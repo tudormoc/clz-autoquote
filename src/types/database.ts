@@ -58,9 +58,48 @@ export interface Database {
           discount_percentage?: number
         }
       }
+      quotes: {
+        Row: {
+          id: string
+          created_at: string
+          material_id: string
+          client_id: string | null
+          quantity: number
+          width: number
+          height: number
+          depth: number
+          total_price: number
+          breakdown: Json
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          material_id: string
+          client_id?: string | null
+          quantity: number
+          width: number
+          height: number
+          depth: number
+          total_price: number
+          breakdown: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          material_id?: string
+          client_id?: string | null
+          quantity?: number
+          width?: number
+          height?: number
+          depth?: number
+          total_price?: number
+          breakdown?: Json
+        }
+      }
     }
   }
 }
 
 export type Material = Database['public']['Tables']['materials']['Row'];
 export type Client = Database['public']['Tables']['clients']['Row'];
+export type Quote = Database['public']['Tables']['quotes']['Row'];

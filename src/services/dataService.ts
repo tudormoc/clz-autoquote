@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
-import type { Material, Client } from '../types/database';
+import type { Material, Client, Quote } from '../types/database';
+import type { QuoteRequest, QuoteResult } from '../lib/pricing-engine';
 
 // Mock data to fall back on if no Supabase connection is available
 const MOCK_MATERIALS: Material[] = [
@@ -53,5 +54,29 @@ export const dataService = {
     // Fallback to mock
     console.warn("Using mock client data");
     return new Promise(resolve => setTimeout(() => resolve(MOCK_CLIENTS), 500));
+  },
+
+  saveQuote: async (request: QuoteRequest, result: QuoteResult): Promise<{ data: Quote | null, error: any }> => {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert({
+          material_id: request.materialId,
+          client_id: request.clientId || null,
+          quantity: request.quantity,
+          width: request.dimensions.width,
+          height: request.dimensions.height,
+          depth: request.dimensions.depth,
+          total_price: result.totalPrice,
+          breakdown: result as any // JSONB column
+        })
+        .select()
+        .single();
+      
+      return { data, error };
+    }
+
+    console.warn("Supabase not configured. Quote not saved to database.");
+    return { data: null, error: 'Supabase not configured' };
   }
 };
