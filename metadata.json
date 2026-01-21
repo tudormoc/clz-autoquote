@@ -1,0 +1,5 @@
+{
+  "name": "AutoQuote Engine",
+  "description": "Production-ready automated quoting engine with strict logic separation, validation, and strategy-based pricing.",
+  "requestFramePermissions": []
+}
