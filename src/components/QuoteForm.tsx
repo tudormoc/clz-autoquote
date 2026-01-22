@@ -21,6 +21,7 @@ interface QuoteFormProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onCalculate: () => void;
     onReset: () => void;
+    isEditing?: boolean;
 }
 
 export const QuoteForm = ({
@@ -30,6 +31,7 @@ export const QuoteForm = ({
     onChange,
     onCalculate,
     onReset,
+    isEditing = false,
 }: QuoteFormProps) => {
     return (
         <Card className="border-[#E5E5E0] shadow-sm">
@@ -113,7 +115,7 @@ export const QuoteForm = ({
                     {APP_COPY.form.resetButton}
                 </Button>
                 <Button onClick={onCalculate} disabled={loading} className="bg-[#414131] hover:bg-[#2D2D22] text-white min-w-[160px] gap-2">
-                    {loading ? 'Processing...' : APP_COPY.form.submitButton}
+                    {loading ? 'Processing...' : (isEditing ? 'Update Quote' : APP_COPY.form.submitButton)}
                     {!loading && <ChevronRight className="h-4 w-4" />}
                 </Button>
             </CardFooter>

@@ -11,7 +11,14 @@ export const useQuoteCalculator = () => {
     const [error, setError] = useState<string | null>(null);
     const [quotesHistory, setQuotesHistory] = useState<Quote[]>([]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        bookName: string;
+        email: string;
+        quantity: number;
+        width: number;
+        height: number;
+        pages: number;
+    }>({
         bookName: PRICING_CONSTANTS.DEFAULTS.BOOK_NAME,
         email: '',
         quantity: PRICING_CONSTANTS.DEFAULTS.QUANTITY,
@@ -22,6 +29,8 @@ export const useQuoteCalculator = () => {
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [currentQuote, setCurrentQuote] = useState<QuoteResult | null>(null);
+
+    const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchHistory();
@@ -34,6 +43,20 @@ export const useQuoteCalculator = () => {
         } catch (err) {
             console.error("Failed to fetch history:", err);
         }
+    };
+
+    const handleSelectQuote = (quote: Quote) => {
+        setEditingQuoteId(quote.id);
+        setFormData({
+            bookName: quote.book_name,
+            email: quote.customer_email || '',
+            quantity: quote.quantity,
+            width: Number(quote.width),
+            height: Number(quote.height),
+            pages: quote.pages,
+        });
+        setCurrentQuote(null); // Clear previous result to focus on editing form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,7 +95,8 @@ export const useQuoteCalculator = () => {
 
         setLoading(true);
         try {
-            const response = await processQuoteAction(validation.data);
+            // Pass editingQuoteId if we are in edit mode
+            const response = await processQuoteAction(validation.data, editingQuoteId || undefined);
 
             if ('error' in response) {
                 setError(response.error ?? APP_COPY.errors.generic);
@@ -85,6 +109,13 @@ export const useQuoteCalculator = () => {
                     console.warn(response.warning);
                 }
                 fetchHistory();
+                // We keep editingQuoteId set so they can keep tweaking this same quote
+                // Or successful save could exit edit mode? 
+                // Let's decide to EXIT edit mode on successful save to "Confirm" changes?
+                // actually, for "Calculate" usually we might want to keep editing until done.
+                // But since we SAVE to DB, it might be confusing if we keep "editing" the old ID but we just saved.
+                // Actually if we UPDATE, the ID is same.
+                // So keeping it is fine.
             }
         } catch (e) {
             console.error(e);
@@ -96,6 +127,7 @@ export const useQuoteCalculator = () => {
 
     const handleReset = () => {
         setCurrentQuote(null);
+        setEditingQuoteId(null);
         setFormData({
             bookName: PRICING_CONSTANTS.DEFAULTS.BOOK_NAME,
             email: '',
@@ -115,8 +147,10 @@ export const useQuoteCalculator = () => {
         error,
         quotesHistory,
         currentQuote,
+        editingQuoteId,
         handleInputChange,
         handleCalculate,
-        handleReset
+        handleReset,
+        handleSelectQuote
     };
 };

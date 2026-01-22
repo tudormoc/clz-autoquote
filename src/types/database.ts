@@ -22,6 +22,7 @@ export interface Database {
           total_price: number | null
           unit_price: number | null
           customer_email: string | null
+          applied_discount: number | null
         }
         Insert: {
           id?: string
@@ -35,6 +36,7 @@ export interface Database {
           total_price?: number | null
           unit_price?: number | null
           customer_email?: string | null
+          applied_discount?: number | null
         }
         Update: {
           id?: string
@@ -48,6 +50,7 @@ export interface Database {
           total_price?: number | null
           unit_price?: number | null
           customer_email?: string | null
+          applied_discount?: number | null
         }
         Relationships: []
       }
@@ -55,6 +58,7 @@ export interface Database {
         Row: {
           id: number
           created_at: string
+          updated_at: string
           min_quantity: number
           max_quantity: number | null
           discount_percentage: number
@@ -62,6 +66,7 @@ export interface Database {
         Insert: {
           id?: number
           created_at?: string
+          updated_at?: string
           min_quantity: number
           max_quantity?: number | null
           discount_percentage: number
@@ -69,6 +74,7 @@ export interface Database {
         Update: {
           id?: number
           created_at?: string
+          updated_at?: string
           min_quantity?: number
           max_quantity?: number | null
           discount_percentage?: number

@@ -7,9 +7,10 @@ import type { Quote } from '@/types/database';
 
 interface QuoteHistoryListProps {
     history: Quote[];
+    onSelectQuote?: (quote: Quote) => void;
 }
 
-export const QuoteHistoryList = ({ history }: QuoteHistoryListProps) => {
+export const QuoteHistoryList = ({ history, onSelectQuote }: QuoteHistoryListProps) => {
     return (
         <div className="space-y-4">
             <h2 className="text-sm font-semibold text-[#414131] flex items-center gap-2 uppercase tracking-widest">
@@ -19,9 +20,13 @@ export const QuoteHistoryList = ({ history }: QuoteHistoryListProps) => {
             {history.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3">
                     {history.slice(0, 5).map((quote) => (
-                        <div key={quote.id} className="bg-white border border-[#E5E5E0] p-4 rounded-lg flex items-center justify-between group hover:border-[#414131] transition-colors">
+                        <div
+                            key={quote.id}
+                            onClick={() => onSelectQuote?.(quote)}
+                            className="bg-white border border-[#E5E5E0] p-4 rounded-lg flex items-center justify-between group hover:border-[#414131] transition-colors cursor-pointer"
+                        >
                             <div>
-                                <p className="font-semibold text-sm">{quote.book_name}</p>
+                                <p className="font-semibold text-sm group-hover:text-[#414131] transition-colors">{quote.book_name}</p>
                                 <p className="text-xs text-[#6B6B5F]">{quote.quantity} units • {quote.pages} pages • {quote.width}x{quote.height}mm</p>
                             </div>
                             <div className="text-right">

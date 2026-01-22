@@ -17,9 +17,11 @@ export default function Home() {
         error,
         quotesHistory,
         currentQuote,
+        editingQuoteId,
         handleInputChange,
         handleCalculate,
-        handleReset
+        handleReset,
+        handleSelectQuote
     } = useQuoteCalculator();
 
     return (
@@ -43,9 +45,13 @@ export default function Home() {
                             onChange={handleInputChange}
                             onCalculate={handleCalculate}
                             onReset={handleReset}
+                            isEditing={!!editingQuoteId}
                         />
 
-                        <QuoteHistoryList history={quotesHistory} />
+                        <QuoteHistoryList
+                            history={quotesHistory}
+                            onSelectQuote={handleSelectQuote}
+                        />
                     </div>
 
                     <div className="lg:col-span-5">

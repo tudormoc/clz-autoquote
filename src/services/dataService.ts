@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Quote, QuoteInsert } from '../types/database';
+import type { Quote, QuoteInsert, QuoteUpdate } from '../types/database';
 
 // Helper to check if Supabase is actually configured with real credentials
 const isSupabaseConfigured = () => {
@@ -51,6 +51,29 @@ export const dataService = {
       return { data, error };
     } catch (e) {
       console.error("Error saving quote:", e);
+      return { data: null, error: e };
+    }
+  },
+
+  /**
+   * Updates an existing quote in Supabase
+   */
+  updateQuote: async (id: string, updates: QuoteUpdate): Promise<{ data: Quote | null, error: any }> => {
+    if (!isSupabaseConfigured()) {
+      return { data: null, error: 'Supabase not configured' };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (e) {
+      console.error("Error updating quote:", e);
       return { data: null, error: e };
     }
   },
