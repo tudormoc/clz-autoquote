@@ -5,6 +5,7 @@ import { PRICING_CONSTANTS } from '../config/constants';
 
 export const QuoteRequestSchema = z.object({
   bookName: z.string().min(1, "Book name is required"),
+  email: z.string().email("Invalid email address"),
   quantity: z.number()
     .int()
     .min(PRICING_CONSTANTS.MIN_QUANTITY, `Minimum quantity is ${PRICING_CONSTANTS.MIN_QUANTITY}`)

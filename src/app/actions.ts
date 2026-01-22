@@ -22,10 +22,13 @@ export async function processQuoteAction(formData: z.infer<typeof QuoteRequestSc
     // 3. Save to database
     const { error: saveError } = await dataService.saveQuote({
         book_name: validation.data.bookName,
+        customer_email: validation.data.email,
         quantity: validation.data.quantity,
         width: validation.data.width,
         height: validation.data.height,
-        pages: validation.data.pages
+        pages: validation.data.pages,
+        total_price: result.totalPrice,
+        unit_price: result.pricePerUnit
     });
 
     if (saveError) {

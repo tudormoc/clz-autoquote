@@ -10,6 +10,7 @@ import { APP_COPY } from '@/locales/en';
 interface QuoteFormProps {
     formData: {
         bookName: string;
+        email: string;
         quantity: number;
         width: number;
         height: number;
@@ -40,15 +41,27 @@ export const QuoteForm = ({
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
                 {/* Book Name */}
-                <Input
-                    label={APP_COPY.form.bookNameLabel}
-                    placeholder={APP_COPY.form.bookNamePlaceholder}
-                    id="bookName"
-                    name="bookName"
-                    value={formData.bookName}
-                    onChange={onChange}
-                    error={formErrors.bookName}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Input
+                        label={APP_COPY.form.bookNameLabel}
+                        placeholder={APP_COPY.form.bookNamePlaceholder}
+                        id="bookName"
+                        name="bookName"
+                        value={formData.bookName}
+                        onChange={onChange}
+                        error={formErrors.bookName}
+                    />
+                    <Input
+                        label="Email Address"
+                        placeholder="your@email.com"
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={onChange}
+                        error={formErrors.email}
+                    />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
                     <Input

@@ -19,6 +19,9 @@ export interface Database {
           width: number
           height: number
           pages: number
+          total_price: number | null
+          unit_price: number | null
+          customer_email: string | null
         }
         Insert: {
           id?: string
@@ -29,6 +32,9 @@ export interface Database {
           width: number
           height: number
           pages: number
+          total_price?: number | null
+          unit_price?: number | null
+          customer_email?: string | null
         }
         Update: {
           id?: string
@@ -39,6 +45,9 @@ export interface Database {
           width?: number
           height?: number
           pages?: number
+          total_price?: number | null
+          unit_price?: number | null
+          customer_email?: string | null
         }
         Relationships: []
       }

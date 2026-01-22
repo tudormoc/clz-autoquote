@@ -1,3 +1,36 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Next.js
+/.next/
+/out/
+/build
+next.config.js.timestamp-*
+
+# Production
+dist/
+dist-ssr/
+
+# Environment variables
+# We ignore all .env files by default to keep secrets safe
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+# But we allow the example file so developers know what keys are needed
+!.env.example
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
 # Logs
 logs
 *.log
@@ -7,16 +40,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 *.suo
 *.ntvs*
 *.njsproj

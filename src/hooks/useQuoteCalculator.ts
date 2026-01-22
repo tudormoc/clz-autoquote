@@ -13,6 +13,7 @@ export const useQuoteCalculator = () => {
 
     const [formData, setFormData] = useState({
         bookName: PRICING_CONSTANTS.DEFAULTS.BOOK_NAME,
+        email: '',
         quantity: PRICING_CONSTANTS.DEFAULTS.QUANTITY,
         width: PRICING_CONSTANTS.DEFAULTS.WIDTH,
         height: PRICING_CONSTANTS.DEFAULTS.HEIGHT,
@@ -97,6 +98,7 @@ export const useQuoteCalculator = () => {
         setCurrentQuote(null);
         setFormData({
             bookName: PRICING_CONSTANTS.DEFAULTS.BOOK_NAME,
+            email: '',
             quantity: PRICING_CONSTANTS.DEFAULTS.QUANTITY,
             width: PRICING_CONSTANTS.DEFAULTS.WIDTH,
             height: PRICING_CONSTANTS.DEFAULTS.HEIGHT,
