@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PRICING_CONSTANTS } from '../config/constants';
+import type { DiscountTier } from '../types/database';
 
 // --- Zod Schemas for Validation ---
 
@@ -34,7 +35,7 @@ export interface QuoteResult {
  * Calculates a basic quote for a book.
  * This is a preliminary version that will be refined as the business logic evolves.
  */
-export function calculateQuote(request: QuoteRequest): QuoteResult {
+export function calculateQuote(request: QuoteRequest, discountTiers: DiscountTier[] = []): QuoteResult {
   // 1. Validation
   const validated = QuoteRequestSchema.parse(request);
 
@@ -48,14 +49,29 @@ export function calculateQuote(request: QuoteRequest): QuoteResult {
   const unitPrice = PRICING_CONSTANTS.BOOKBINDING.BASE_FEE + areaCost + pageCost;
   const subtotal = unitPrice * validated.quantity;
 
-  // Simple volume discount
+  // 3. Dynamic Discount Logic
   let quantityDiscount = 0;
-  if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_3.MIN_QTY) {
-    quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_3.DISCOUNT;
-  } else if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_2.MIN_QTY) {
-    quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_2.DISCOUNT;
-  } else if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_1.MIN_QTY) {
-    quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_1.DISCOUNT;
+
+  // Find matching tier
+  const matchingTier = discountTiers.find(tier => {
+    const minMatch = validated.quantity >= tier.min_quantity;
+    const maxMatch = tier.max_quantity === null || validated.quantity <= tier.max_quantity;
+    return minMatch && maxMatch;
+  });
+
+  if (matchingTier) {
+    quantityDiscount = matchingTier.discount_percentage;
+  } else {
+    // Fallback to hardcoded constants if no tiers provided or matched
+    if (discountTiers.length === 0) {
+      if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_3.MIN_QTY) {
+        quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_3.DISCOUNT;
+      } else if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_2.MIN_QTY) {
+        quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_2.DISCOUNT;
+      } else if (validated.quantity >= PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_1.MIN_QTY) {
+        quantityDiscount = PRICING_CONSTANTS.VOLUME_DISCOUNT_THRESHOLDS.TIER_1.DISCOUNT;
+      }
+    }
   }
 
   const totalDiscountAmount = subtotal * quantityDiscount;

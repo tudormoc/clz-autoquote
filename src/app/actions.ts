@@ -16,8 +16,11 @@ export async function processQuoteAction(formData: z.infer<typeof QuoteRequestSc
         return { error: "Validation failed", issues: validation.error.issues };
     }
 
-    // 2. Perform calculation strictly on the server
-    const result = engineCalculate(validation.data);
+    // 2. Fetch dependencies (Discount Tiers)
+    const discountTiers = await dataService.getDiscountTiers();
+
+    // 3. Perform calculation strictly on the server
+    const result = engineCalculate(validation.data, discountTiers);
 
     // 3. Save to database
     const { error: saveError } = await dataService.saveQuote({

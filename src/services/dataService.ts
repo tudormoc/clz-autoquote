@@ -53,5 +53,28 @@ export const dataService = {
       console.error("Error saving quote:", e);
       return { data: null, error: e };
     }
+  },
+
+  /**
+   * Fetches discount tiers from Supabase
+   */
+  getDiscountTiers: async () => {
+    if (!isSupabaseConfigured()) {
+      console.warn("Supabase not configured. Returning empty tiers.");
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('discount_tiers')
+        .select('*')
+        .order('min_quantity', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Error fetching discount tiers:", e);
+      return [];
+    }
   }
 };

@@ -51,6 +51,30 @@ export interface Database {
         }
         Relationships: []
       }
+      discount_tiers: {
+        Row: {
+          id: number
+          created_at: string
+          min_quantity: number
+          max_quantity: number | null
+          discount_percentage: number
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          min_quantity: number
+          max_quantity?: number | null
+          discount_percentage: number
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          min_quantity?: number
+          max_quantity?: number | null
+          discount_percentage?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -70,3 +94,5 @@ export interface Database {
 export type Quote = Database['public']['Tables']['quotes']['Row'];
 export type QuoteInsert = Database['public']['Tables']['quotes']['Insert'];
 export type QuoteUpdate = Database['public']['Tables']['quotes']['Update'];
+
+export type DiscountTier = Database['public']['Tables']['discount_tiers']['Row'];
