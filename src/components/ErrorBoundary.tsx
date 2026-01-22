@@ -1,5 +1,5 @@
 import React, { ErrorInfo, ReactNode } from "react";
-import { APP_COPY } from "../config/copy";
+import { APP_COPY } from "@/locales/en";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 
@@ -28,15 +28,15 @@ class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-            <Card className="w-full max-w-md border-destructive">
-                <CardHeader>
-                    <CardTitle className="text-destructive">System Error</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="mb-4 text-muted-foreground">{APP_COPY.errors.generic}</p>
-                    <Button onClick={() => window.location.reload()}>Reload Application</Button>
-                </CardContent>
-            </Card>
+          <Card className="w-full max-w-md border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">System Error</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-muted-foreground">{APP_COPY.errors.generic}</p>
+              <Button onClick={() => window.location.reload()}>Reload Application</Button>
+            </CardContent>
+          </Card>
         </div>
       );
     }

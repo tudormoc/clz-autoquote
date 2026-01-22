@@ -1,82 +1,57 @@
 import { supabase } from '../lib/supabase';
-import type { Material, Client, Quote } from '../types/database';
-import type { QuoteRequest, QuoteResult } from '../lib/pricing-engine';
-
-// Mock data to fall back on if no Supabase connection is available
-const MOCK_MATERIALS: Material[] = [
-  { id: '1', name: 'Aluminum 6061', base_cost: 2700, category: 'metal', density_multiplier: 1, created_at: new Date().toISOString() },
-  { id: '2', name: 'Stainless Steel 304', base_cost: 4000, category: 'metal', density_multiplier: 1, created_at: new Date().toISOString() },
-  { id: '3', name: 'ABS Plastic', base_cost: 1200, category: 'plastic', density_multiplier: 1, created_at: new Date().toISOString() },
-  { id: '4', name: 'Oak Wood', base_cost: 1500, category: 'wood', density_multiplier: 1, created_at: new Date().toISOString() },
-  { id: '5', name: 'Carbon Fiber', base_cost: 8000, category: 'composite', density_multiplier: 1, created_at: new Date().toISOString() },
-];
-
-const MOCK_CLIENTS: Client[] = [
-  { id: 'c1', name: 'Guest (Standard)', tier: 'standard', discount_percentage: 0, created_at: new Date().toISOString() },
-  { id: 'c2', name: 'TechStart (Premium)', tier: 'premium', discount_percentage: 5, created_at: new Date().toISOString() },
-  { id: 'c3', name: 'MegaCorp (Enterprise)', tier: 'enterprise', discount_percentage: 15, created_at: new Date().toISOString() },
-];
+import type { Quote, QuoteInsert } from '../types/database';
 
 // Helper to check if Supabase is actually configured with real credentials
 const isSupabaseConfigured = () => {
-  return supabase.supabaseUrl && 
-         supabase.supabaseKey && 
-         !supabase.supabaseUrl.includes('placeholder');
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return url && key && !url.includes('placeholder');
 };
 
 export const dataService = {
-  getMaterials: async (): Promise<Material[]> => {
-    // Try fetch from Supabase if keys exist and aren't placeholders
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase.from('materials').select('*');
-        if (!error && data && data.length > 0) return data;
-      } catch (e) {
-        console.warn("Supabase fetch failed, falling back to mocks", e);
-      }
+  /**
+   * Fetches all quotes from Supabase
+   */
+  getQuotes: async (): Promise<Quote[]> => {
+    if (!isSupabaseConfigured()) {
+      console.warn("Supabase not configured. Returning empty list.");
+      return [];
     }
-    
-    // Fallback to mock
-    console.warn("Using mock material data");
-    return new Promise(resolve => setTimeout(() => resolve(MOCK_MATERIALS), 500));
-  },
 
-  getClients: async (): Promise<Client[]> => {
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase.from('clients').select('*');
-        if (!error && data && data.length > 0) return data;
-      } catch (e) {
-        console.warn("Supabase fetch failed, falling back to mocks", e);
-      }
-    }
-    
-    // Fallback to mock
-    console.warn("Using mock client data");
-    return new Promise(resolve => setTimeout(() => resolve(MOCK_CLIENTS), 500));
-  },
-
-  saveQuote: async (request: QuoteRequest, result: QuoteResult): Promise<{ data: Quote | null, error: any }> => {
-    if (isSupabaseConfigured()) {
+    try {
       const { data, error } = await supabase
         .from('quotes')
-        .insert({
-          material_id: request.materialId,
-          client_id: request.clientId || null,
-          quantity: request.quantity,
-          width: request.dimensions.width,
-          height: request.dimensions.height,
-          depth: request.dimensions.depth,
-          total_price: result.totalPrice,
-          breakdown: result as any // JSONB column
-        })
-        .select()
-        .single();
-      
-      return { data, error };
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Error fetching quotes:", e);
+      return [];
+    }
+  },
+
+  /**
+   * Saves a new quote to Supabase
+   */
+  saveQuote: async (quote: QuoteInsert): Promise<{ data: Quote | null, error: any }> => {
+    if (!isSupabaseConfigured()) {
+      console.warn("Supabase not configured. Quote not saved.");
+      return { data: null, error: 'Supabase not configured' };
     }
 
-    console.warn("Supabase not configured. Quote not saved to database.");
-    return { data: null, error: 'Supabase not configured' };
+    try {
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert(quote)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (e) {
+      console.error("Error saving quote:", e);
+      return { data: null, error: e };
+    }
   }
 };

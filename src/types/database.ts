@@ -9,97 +9,55 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      materials: {
-        Row: {
-          id: string
-          created_at: string
-          name: string
-          base_cost: number
-          category: 'metal' | 'plastic' | 'wood' | 'composite'
-          density_multiplier: number
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          name: string
-          base_cost: number
-          category: string
-          density_multiplier?: number
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          name?: string
-          base_cost?: number
-          category?: string
-          density_multiplier?: number
-        }
-      }
-      clients: {
-        Row: {
-          id: string
-          created_at: string
-          name: string
-          tier: 'standard' | 'premium' | 'enterprise'
-          discount_percentage: number
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          name: string
-          tier: string
-          discount_percentage: number
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          name?: string
-          tier?: string
-          discount_percentage?: number
-        }
-      }
       quotes: {
         Row: {
           id: string
           created_at: string
-          material_id: string
-          client_id: string | null
+          updated_at: string
+          book_name: string
           quantity: number
           width: number
           height: number
-          depth: number
-          total_price: number
-          breakdown: Json
+          pages: number
         }
         Insert: {
           id?: string
           created_at?: string
-          material_id: string
-          client_id?: string | null
+          updated_at?: string
+          book_name: string
           quantity: number
           width: number
           height: number
-          depth: number
-          total_price: number
-          breakdown: Json
+          pages: number
         }
         Update: {
           id?: string
           created_at?: string
-          material_id?: string
-          client_id?: string | null
+          updated_at?: string
+          book_name?: string
           quantity?: number
           width?: number
           height?: number
-          depth?: number
-          total_price?: number
-          breakdown?: Json
+          pages?: number
         }
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
 
-export type Material = Database['public']['Tables']['materials']['Row'];
-export type Client = Database['public']['Tables']['clients']['Row'];
 export type Quote = Database['public']['Tables']['quotes']['Row'];
+export type QuoteInsert = Database['public']['Tables']['quotes']['Insert'];
+export type QuoteUpdate = Database['public']['Tables']['quotes']['Update'];
