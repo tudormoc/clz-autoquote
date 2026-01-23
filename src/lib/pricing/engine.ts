@@ -55,6 +55,34 @@ export async function fetchPricingRules(supabase: SupabaseClient<Database>): Pro
 }
 
 /**
+ * Automatically determines the cover production type based on book specifications.
+ */
+export function calculateCoverProductionType(input: QuoteInput): 'standard' | 'fast' | 'manual' {
+    const { width, height } = input.format;
+    const { headbands_enabled, spine_type } = input.cover_details;
+    const { quantity } = input;
+
+    // 1. Manual check (Overrides everything else)
+    if (width > 305 || height > 380) {
+        return 'manual';
+    }
+
+    // 2. Fast check
+    const isFastWidth = width > 99 && width < 296;
+    const isFastHeight = height > 119 && height < 381;
+    const hasNoHeadbands = !headbands_enabled;
+    const isBulkOrder = quantity >= 1000;
+    const isSquareSpine = spine_type === 'square';
+
+    if (isFastWidth && isFastHeight && hasNoHeadbands && isBulkOrder && isSquareSpine) {
+        return 'fast';
+    }
+
+    // 3. Default to Standard
+    return 'standard';
+}
+
+/**
  * Calculates a detailed quote breakdown based on inputs and rules.
  */
 export function calculateDetailedQuote(
@@ -115,6 +143,29 @@ export function calculateDetailedQuote(
         productionTotal += cost.production;
     }
 
+    // --- 4. Cover Production Mode (System Assigned) ---
+    const prodType = calculateCoverProductionType(input);
+    const prodSlug = `cover_${prodType}`;
+    const prodRule = getRule(prodSlug);
+
+    if (prodRule) {
+        const cost = calculateOperationCost(prodRule, input.quantity, 1);
+        // Ensure name reflects the specific production mode
+        cost.item.name = `Cover Production (${prodType})`;
+        items.push(cost.item);
+        setupTotal += cost.setup;
+        productionTotal += cost.production;
+    } else {
+        // Fallback if specific slug doesn't exist: just show as info if no pricing yet
+        items.push({
+            id: 'cover_production_info',
+            name: `Cover Production (${prodType})`,
+            type: 'production',
+            cost: 0,
+            details: 'Price rule pending'
+        });
+    }
+
     // Example: 'casing_in' if distinct from binding type?
     // Often included in 'hardcover', but if separated:
     const casingRule = getRule('casing_in');
@@ -140,7 +191,8 @@ export function calculateDetailedQuote(
         items,
         metadata: {
             setup_total: Number(setupTotal.toFixed(2)),
-            production_total: Number(productionTotal.toFixed(2))
+            production_total: Number(productionTotal.toFixed(2)),
+            cover_production_type: calculateCoverProductionType(input)
         }
     };
 }
@@ -162,7 +214,10 @@ function calculateOperationCost(rule: PricingRule, quantity: number, complexityF
             id: rule.slug,
             name: rule.operation_name,
             type: 'production' as const,
-            cost: Number((setupCost + totalProdCost).toFixed(2)), // Round for display
+            cost: Number((setupCost + totalProdCost).toFixed(2)),
+            setup_cost: Number(setupCost.toFixed(2)),
+            production_cost: Number(totalProdCost.toFixed(2)),
+            unit_production_cost: Number(unitProdRate.toFixed(4)),
             details: `Setup: ${setupCost.toFixed(2)} | Prod: ${unitProdRate.toFixed(4)}/unit`
         }
     };

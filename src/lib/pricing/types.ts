@@ -39,6 +39,9 @@ export interface CostItem {
   name: string;
   type: 'setup' | 'production' | 'material';
   cost: number;
+  setup_cost?: number;
+  production_cost?: number;
+  unit_production_cost?: number;
   details?: string; // "200 + (0.5 * 100)"
 }
 
@@ -51,5 +54,6 @@ export interface QuoteBreakdown {
     applied_discount?: number;
     setup_total: number;
     production_total: number;
+    cover_production_type?: 'standard' | 'fast' | 'manual';
   };
 }

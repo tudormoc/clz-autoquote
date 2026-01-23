@@ -12,6 +12,7 @@ export const CoverDetailsSchema = z.object({
     headbands_enabled: z.boolean(),
     headbands_type: z.enum(['politi', 'g&w']).optional(),
     finishings: z.array(z.string()).optional(),
+    cover_production_type: z.enum(['standard', 'fast', 'manual']).optional(),
 });
 
 export const InternalDetailsSchema = z.object({

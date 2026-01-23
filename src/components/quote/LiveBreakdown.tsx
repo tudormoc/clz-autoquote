@@ -14,7 +14,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
     }
 
     return (
-        <Card className="sticky top-6 border-[#E5E5E0] shadow-sm">
+        <Card className="border-[#E5E5E0] shadow-sm">
             <CardHeader className="bg-[#FAF9F6] border-b border-[#F5F5F0]">
                 <CardTitle className="text-[#414131]">Price Breakdown</CardTitle>
             </CardHeader>
@@ -33,14 +33,31 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     <p className="text-xs font-semibold text-[#414131] uppercase">Operations & Materials</p>
                     {breakdown.items.length === 0 && <p className="text-sm text-gray-400 italic">No operations costed yet.</p>}
                     {breakdown.items.map((item, i) => (
-                        <div key={i} className="flex justify-between text-sm group">
-                            <span className="text-[#414131]">{item.name}</span>
-                            <div className="text-right">
-                                <span className="font-medium text-[#1A1A1A]">€{item.cost.toFixed(2)}</span>
-                                <p className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div key={i} className="py-2 border-b border-[#F5F5F0] last:border-0 group">
+                            <div className="flex justify-between items-baseline mb-1">
+                                <span className="text-[#414131] font-medium">{item.name}</span>
+                                <span className="font-semibold text-[#1A1A1A]">€{item.cost.toFixed(2)}</span>
+                            </div>
+
+                            {(item.setup_cost !== undefined || item.unit_production_cost !== undefined) ? (
+                                <div className="flex justify-between text-[11px] text-[#6B6B5F] font-mono">
+                                    <div className="space-x-2">
+                                        {item.setup_cost !== undefined && (
+                                            <span>Setup: €{item.setup_cost.toFixed(2)}</span>
+                                        )}
+                                        {item.unit_production_cost !== undefined && (
+                                            <span>• Prod: €{item.unit_production_cost.toFixed(4)}/u</span>
+                                        )}
+                                    </div>
+                                    {item.production_cost !== undefined && (
+                                        <span className="text-[#9B9B8F]">Σ Prod: €{item.production_cost.toFixed(2)}</span>
+                                    )}
+                                </div>
+                            ) : item.details && (
+                                <p className="text-[10px] text-gray-400 italic">
                                     {item.details}
                                 </p>
-                            </div>
+                            )}
                         </div>
                     ))}
                 </div>

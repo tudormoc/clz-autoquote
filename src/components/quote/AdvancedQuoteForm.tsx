@@ -78,7 +78,7 @@ export function AdvancedQuoteForm() {
             </div>
 
             <div className="lg:col-span-4">
-                <div className="sticky top-6">
+                <div className="sticky top-20">
                     <LiveBreakdown breakdown={estimate} />
                 </div>
             </div>

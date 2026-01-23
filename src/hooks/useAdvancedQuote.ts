@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { usePricingRules } from './usePricingRules';
-import { calculateDetailedQuote } from '@/lib/pricing/engine';
+import { calculateDetailedQuote, calculateCoverProductionType } from '@/lib/pricing/engine';
 import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction } from '@/app/actions';
 import { Quote } from '@/types/database';
@@ -51,6 +51,21 @@ export const useAdvancedQuote = () => {
     });
 
     const values = form.watch();
+
+    // Auto-calculate cover production type
+    useEffect(() => {
+        const prodType = calculateCoverProductionType(values as QuoteInput);
+        if (prodType !== values.cover_details?.cover_production_type) {
+            form.setValue('cover_details.cover_production_type', prodType, { shouldValidate: true });
+        }
+    }, [
+        values.quantity,
+        values.format?.width,
+        values.format?.height,
+        values.cover_details?.headbands_enabled,
+        values.cover_details?.spine_type,
+        form
+    ]);
 
     // Auto-calculate estimate whenever values or rules change
     useEffect(() => {

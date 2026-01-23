@@ -12,6 +12,7 @@ interface Props {
 
 export function CoverSection({ control, errors }: Props) {
     const headbandsEnabled = useWatch({ control, name: "cover_details.headbands_enabled" });
+
     return (
         <Card>
             <CardHeader>
