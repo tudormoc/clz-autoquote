@@ -39,7 +39,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                 <span className="font-semibold text-[#1A1A1A]">€{item.cost.toFixed(2)}</span>
                             </div>
 
-                            {(item.setup_cost !== undefined || item.unit_production_cost !== undefined) ? (
+                            {(item.setup_cost !== undefined || item.unit_production_cost !== undefined) && (
                                 <div className="flex justify-between text-[11px] text-[#6B6B5F] font-mono">
                                     <div className="space-x-2">
                                         {item.setup_cost !== undefined && (
@@ -53,8 +53,10 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                         <span className="text-[#9B9B8F]">Σ Prod: €{item.production_cost.toFixed(2)}</span>
                                     )}
                                 </div>
-                            ) : item.details && (
-                                <p className="text-[10px] text-gray-400 italic">
+                            )}
+
+                            {item.details && (
+                                <p className="text-[10px] text-gray-400 italic mt-0.5">
                                     {item.details}
                                 </p>
                             )}

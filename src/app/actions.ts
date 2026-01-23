@@ -69,3 +69,10 @@ export async function processQuoteAction(
 export async function getQuoteHistoryAction() {
     return await dataService.getQuotes();
 }
+
+/**
+ * Server Action to delete a quote
+ */
+export async function deleteQuoteAction(id: string) {
+    return await dataService.deleteQuote(id);
+}

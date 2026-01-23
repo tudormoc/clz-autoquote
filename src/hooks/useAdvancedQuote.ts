@@ -5,7 +5,7 @@ import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { usePricingRules } from './usePricingRules';
 import { calculateDetailedQuote, calculateCoverProductionType } from '@/lib/pricing/engine';
 import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
-import { processQuoteAction, getQuoteHistoryAction } from '@/app/actions';
+import { processQuoteAction, getQuoteHistoryAction, deleteQuoteAction } from '@/app/actions';
 import { Quote } from '@/types/database';
 
 const DEFAULT_VALUES: QuoteInput = {
@@ -34,11 +34,12 @@ const DEFAULT_VALUES: QuoteInput = {
 };
 
 export const useAdvancedQuote = () => {
-    const { rules, rulesLoading } = usePricingRules();
+    const { rules, tiers, rulesLoading } = usePricingRules();
     const [estimate, setEstimate] = useState<QuoteBreakdown | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [history, setHistory] = useState<Quote[]>([]);
+    const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
 
     useEffect(() => {
         getQuoteHistoryAction().then(setHistory);
@@ -77,7 +78,7 @@ export const useAdvancedQuote = () => {
         try {
             // Only calculate if we have basic required numbers
             if (values.quantity && values.pages && values.format?.width) {
-                const result = calculateDetailedQuote(values as QuoteInput, rules);
+                const result = calculateDetailedQuote(values as QuoteInput, rules, tiers);
                 setEstimate(result);
             }
         } catch (e) {
@@ -86,18 +87,22 @@ export const useAdvancedQuote = () => {
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [JSON.stringify(values), rules, rulesLoading]);
+    }, [JSON.stringify(values), rules, tiers, rulesLoading]);
 
     const onSubmit = async (data: QuoteInput) => {
         setIsSaving(true);
         setSaveError(null);
         try {
-            const response = await processQuoteAction(data);
+            const response = await processQuoteAction(data, selectedQuoteId || undefined);
             if (response.error) {
                 setSaveError(response.error);
                 console.error(response.issues);
             } else {
                 getQuoteHistoryAction().then(setHistory);
+                // Clear selected ID after successful save (or keep if we want to follow up with edits)
+                // For now, let's keep it if we want to continue editing, or clear if it's a "fresh start"
+                // Actually, the user says "what if i want to edit the old quote without creating a new one?"
+                // So after "Calculate Quote" (which saves), it updates the record.
             }
         } catch (e) {
             setSaveError("Failed to save quote");
@@ -109,6 +114,52 @@ export const useAdvancedQuote = () => {
 
     const resetToDefault = () => {
         form.reset(DEFAULT_VALUES);
+        setSelectedQuoteId(null);
+    };
+
+    const handleDeleteQuote = async (id: string) => {
+        try {
+            const response = await deleteQuoteAction(id);
+            if (response.error) {
+                setSaveError("Failed to delete quote");
+            } else {
+                getQuoteHistoryAction().then(setHistory);
+                if (selectedQuoteId === id) {
+                    resetToDefault();
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            setSaveError("Failed to delete quote");
+        }
+    };
+
+    const selectQuote = (quote: Quote) => {
+        setSelectedQuoteId(quote.id);
+        if (quote.specifications) {
+            form.reset(quote.specifications as any);
+        } else {
+            // Backward compatibility
+            form.reset({
+                project_title: quote.book_name,
+                client_name: quote.customer_email || undefined,
+                quantity: quote.quantity,
+                format: { width: Number(quote.width), height: Number(quote.height) },
+                pages: quote.pages,
+                cover_details: {
+                    type: 'hardcover',
+                    spine_type: 'square',
+                    board_thickness: 2.5,
+                    headbands_enabled: false,
+                    finishings: []
+                },
+                internals: {
+                    sheet_width: 700,
+                    sheet_height: 1000,
+                    endpapers_enabled: false
+                }
+            } as any);
+        }
     };
 
     return {
@@ -118,7 +169,10 @@ export const useAdvancedQuote = () => {
         saveError,
         rulesLoading,
         history,
+        selectedQuoteId,
         resetToDefault,
+        handleDeleteQuote,
+        selectQuote,
         handleSave: form.handleSubmit(onSubmit)
     };
 };

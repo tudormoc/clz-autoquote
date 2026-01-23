@@ -1,16 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Clock, History } from 'lucide-react';
+import { Clock, History, Trash2 } from 'lucide-react';
 import { APP_COPY } from '@/locales/en';
 import type { Quote } from '@/types/database';
 
 interface QuoteHistoryListProps {
     history: Quote[];
     onSelectQuote?: (quote: Quote) => void;
+    onDeleteQuote?: (id: string) => void;
 }
 
-export const QuoteHistoryList = ({ history, onSelectQuote }: QuoteHistoryListProps) => {
+export const QuoteHistoryList = ({ history, onSelectQuote, onDeleteQuote }: QuoteHistoryListProps) => {
     return (
         <div className="space-y-4">
             <h2 className="text-sm font-semibold text-[#414131] flex items-center gap-2 uppercase tracking-widest">
@@ -29,11 +30,25 @@ export const QuoteHistoryList = ({ history, onSelectQuote }: QuoteHistoryListPro
                                 <p className="font-semibold text-sm group-hover:text-[#414131] transition-colors">{quote.book_name}</p>
                                 <p className="text-xs text-[#6B6B5F]">{quote.quantity} units • {quote.pages} pages • {quote.width}x{quote.height}mm</p>
                             </div>
-                            <div className="text-right">
+                            <div className="flex flex-col items-end">
                                 <p className="text-xs text-[#A1A19A] flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     {new Date(quote.created_at).toLocaleDateString()}
                                 </p>
+                                {onDeleteQuote && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm('Are you sure you want to delete this quote?')) {
+                                                onDeleteQuote(quote.id);
+                                            }
+                                        }}
+                                        className="mt-2 text-[#A1A19A] hover:text-red-500 transition-colors md:opacity-0 group-hover:opacity-100 p-1"
+                                        title="Delete quote"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

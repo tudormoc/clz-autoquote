@@ -25,6 +25,12 @@ export interface PricingConfig {
   active: boolean;
 }
 
+export interface DiscountTier {
+  min_quantity: number;
+  max_quantity: number | null;
+  discount_percentage: number;
+}
+
 // Joined type for easier usage
 export interface PricingRule extends Operation, PricingConfig {
   operation_name: string; // Alias for Operation.name

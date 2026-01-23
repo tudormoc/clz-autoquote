@@ -99,5 +99,26 @@ export const dataService = {
       console.error("Error fetching discount tiers:", e);
       return [];
     }
+  },
+
+  /**
+   * Deletes a quote from Supabase
+   */
+  deleteQuote: async (id: string): Promise<{ error: any }> => {
+    if (!isSupabaseConfigured()) {
+      return { error: 'Supabase not configured' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .delete()
+        .eq('id', id);
+
+      return { error };
+    } catch (e) {
+      console.error("Error deleting quote:", e);
+      return { error: e };
+    }
   }
 };

@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../../types/database';
-import { PricingRule, QuoteInput, QuoteBreakdown, CostItem } from './types';
+import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier } from './types';
 
 /**
  * Fetches all active pricing rules (Operation + Config) from Supabase.
@@ -55,6 +55,27 @@ export async function fetchPricingRules(supabase: SupabaseClient<Database>): Pro
 }
 
 /**
+ * Fetches volume discount tiers from Supabase.
+ */
+export async function fetchDiscountTiers(supabase: SupabaseClient<Database>): Promise<DiscountTier[]> {
+    const { data, error } = await supabase
+        .from('discount_tiers')
+        .select('*')
+        .order('min_quantity', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching discount tiers:', error);
+        return [];
+    }
+
+    return data.map(tier => ({
+        min_quantity: Number(tier.min_quantity),
+        max_quantity: tier.max_quantity ? Number(tier.max_quantity) : null,
+        discount_percentage: Number(tier.discount_percentage)
+    }));
+}
+
+/**
  * Automatically determines the cover production type based on book specifications.
  */
 export function calculateCoverProductionType(input: QuoteInput): 'standard' | 'fast' | 'manual' {
@@ -87,7 +108,8 @@ export function calculateCoverProductionType(input: QuoteInput): 'standard' | 'f
  */
 export function calculateDetailedQuote(
     input: QuoteInput,
-    rules: PricingRule[]
+    rules: PricingRule[],
+    discountTiers: DiscountTier[] = []
 ): QuoteBreakdown {
     const items: CostItem[] = [];
     let setupTotal = 0;
@@ -95,6 +117,16 @@ export function calculateDetailedQuote(
 
     // Helper to find rule by slug
     const getRule = (slug: string) => rules.find(r => r.slug === slug);
+
+    // 0. Resolve the relevant discount percentage for the given quantity
+    const tier = discountTiers.find(t =>
+        input.quantity >= t.min_quantity &&
+        (t.max_quantity === null || input.quantity <= t.max_quantity)
+    );
+    const discountFactor = tier ? (1 - tier.discount_percentage) : 1;
+    const discountLabel = tier && tier.discount_percentage > 0
+        ? `${(tier.discount_percentage * 100).toFixed(0)}% volume discount`
+        : null;
 
     // --- 1. Cover Production Mode (System Assigned) ---
     // This is currently our only live pricing operation.
@@ -104,6 +136,21 @@ export function calculateDetailedQuote(
 
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
+
+        // Apply discount to this specific operation
+        if (discountFactor < 1) {
+            cost.item.cost = Number((cost.item.cost * discountFactor).toFixed(2));
+            if (cost.item.setup_cost) cost.item.setup_cost = Number((cost.item.setup_cost * discountFactor).toFixed(2));
+            if (cost.item.production_cost) cost.item.production_cost = Number((cost.item.production_cost * discountFactor).toFixed(2));
+            if (cost.item.unit_production_cost) cost.item.unit_production_cost = Number((cost.item.unit_production_cost * discountFactor).toFixed(4));
+
+            cost.item.details += ` (Applied ${discountLabel})`;
+
+            // Adjust totals accordingly
+            cost.setup *= discountFactor;
+            cost.production *= discountFactor;
+        }
+
         // Ensure name reflects the specific production mode
         cost.item.name = `Cover Production (${prodType})`;
         items.push(cost.item);
@@ -134,6 +181,7 @@ export function calculateDetailedQuote(
         currency: 'EUR',
         items,
         metadata: {
+            applied_discount: tier?.discount_percentage || 0,
             setup_total: Number(setupTotal.toFixed(2)),
             production_total: Number(productionTotal.toFixed(2)),
             cover_production_type: calculateCoverProductionType(input)

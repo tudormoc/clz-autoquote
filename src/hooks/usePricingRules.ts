@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { fetchPricingRules } from '@/lib/pricing/engine';
-import { PricingRule } from '@/lib/pricing/types';
+import { fetchPricingRules, fetchDiscountTiers } from '@/lib/pricing/engine';
+import { PricingRule, DiscountTier } from '@/lib/pricing/types';
 
 export function usePricingRules() {
     const [rules, setRules] = useState<PricingRule[]>([]);
+    const [tiers, setTiers] = useState<DiscountTier[]>([]);
     const [rulesLoading, setRulesLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
-                // fetchPricingRules expects a supabase client. 
-                // We use the singleton which is configured with public key.
-                const fetched = await fetchPricingRules(supabase);
-                setRules(fetched);
+                const [fetchedRules, fetchedTiers] = await Promise.all([
+                    fetchPricingRules(supabase),
+                    fetchDiscountTiers(supabase)
+                ]);
+                setRules(fetchedRules);
+                setTiers(fetchedTiers);
             } catch (e) {
-                console.error("Failed to load pricing rules", e);
+                console.error("Failed to load pricing data", e);
             } finally {
                 setRulesLoading(false);
             }
@@ -23,5 +26,5 @@ export function usePricingRules() {
         load();
     }, []);
 
-    return { rules, rulesLoading };
+    return { rules, tiers, rulesLoading };
 }
