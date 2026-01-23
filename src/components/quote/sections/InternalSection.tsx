@@ -14,6 +14,10 @@ interface Props {
 
 export function InternalSection({ control, errors }: Props) {
     const endpapersEnabled = useWatch({ control, name: "internals.endpapers_enabled" });
+    const pages = useWatch({ control, name: "pages" }) || 0;
+    const imposition = useWatch({ control, name: "internals.imposition" }) || 16;
+    const signatures = Math.ceil(pages / imposition);
+
     return (
         <Card>
             <CardHeader>
@@ -22,7 +26,15 @@ export function InternalSection({ control, errors }: Props) {
             <CardContent className="space-y-4">
                 {/* Printed Sheets Specifications */}
                 <div className="space-y-4 border-b pb-4">
-                    <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Printed Sheets</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Printed Sheets</h3>
+                        {(signatures > 0) && (
+                            <div className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 flex items-center gap-2">
+                                <span className="uppercase tracking-tighter">Signatures:</span>
+                                <span className="text-gray-600">{signatures} / {imposition}</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Controller
                             control={control}
@@ -162,6 +174,6 @@ export function InternalSection({ control, errors }: Props) {
                     )}
                 </div>
             </CardContent>
-        </Card>
+        </Card >
     );
 }

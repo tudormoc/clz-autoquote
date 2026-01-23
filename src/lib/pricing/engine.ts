@@ -128,43 +128,34 @@ export function calculateDetailedQuote(
         ? `${(tier.discount_percentage * 100).toFixed(0)}% volume discount`
         : null;
 
-    // --- 1. Cover Production Mode (System Assigned) ---
-    // This is currently our only live pricing operation.
+    // --- 1. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
+    const cfgsRule = getRule('cfgs');
+    if (cfgsRule) {
+        // Complexity: (Number of Signatures - 1)
+        const imposition = input.internals.imposition || 16;
+        const signatures = Math.ceil(input.pages / imposition);
+        const complexity = Math.max(0, signatures - 1);
+
+        const cost = calculateOperationCost(cfgsRule, input.quantity, complexity);
+        applyDiscountToItem(cost, discountFactor, discountLabel);
+
+        cost.item.details += ` (x${signatures} sigs)`;
+        items.push(cost.item);
+        setupTotal += cost.setup;
+        productionTotal += cost.production;
+    }
+
+    // --- 2. Cover Production Mode ---
     const prodType = calculateCoverProductionType(input);
-    const prodSlug = `cover_${prodType}`;
-    const prodRule = getRule(prodSlug);
+    const prodRule = getRule(`cover_${prodType}`);
 
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
-
-        // Apply discount to this specific operation
-        if (discountFactor < 1) {
-            cost.item.cost = Number((cost.item.cost * discountFactor).toFixed(2));
-            if (cost.item.setup_cost) cost.item.setup_cost = Number((cost.item.setup_cost * discountFactor).toFixed(2));
-            if (cost.item.production_cost) cost.item.production_cost = Number((cost.item.production_cost * discountFactor).toFixed(2));
-            if (cost.item.unit_production_cost) cost.item.unit_production_cost = Number((cost.item.unit_production_cost * discountFactor).toFixed(4));
-
-            cost.item.details += ` (Applied ${discountLabel})`;
-
-            // Adjust totals accordingly
-            cost.setup *= discountFactor;
-            cost.production *= discountFactor;
-        }
-
-        // Ensure name reflects the specific production mode
+        applyDiscountToItem(cost, discountFactor, discountLabel);
         cost.item.name = `Cover Production (${prodType})`;
         items.push(cost.item);
         setupTotal += cost.setup;
         productionTotal += cost.production;
-    } else {
-        // Fallback if specific slug doesn't exist: just show as info if no pricing yet
-        items.push({
-            id: 'cover_production_info',
-            name: `Cover Production (${prodType})`,
-            type: 'production',
-            cost: 0,
-            details: 'Price rule pending'
-        });
     }
 
 
@@ -214,3 +205,28 @@ function calculateOperationCost(rule: PricingRule, quantity: number, complexityF
         }
     };
 }
+
+/**
+ * Helper to apply volume discount to a calculated operation item.
+ */
+function applyDiscountToItem(
+    cost: { setup: number; production: number; item: CostItem },
+    discountFactor: number,
+    label: string | null
+) {
+    if (discountFactor >= 1) return;
+
+    cost.item.cost = Number((cost.item.cost * discountFactor).toFixed(2));
+    if (cost.item.setup_cost) cost.item.setup_cost = Number((cost.item.setup_cost * discountFactor).toFixed(2));
+    if (cost.item.production_cost) cost.item.production_cost = Number((cost.item.production_cost * discountFactor).toFixed(2));
+    if (cost.item.unit_production_cost) cost.item.unit_production_cost = Number((cost.item.unit_production_cost * discountFactor).toFixed(4));
+
+    if (label) {
+        cost.item.details += ` (Applied ${label})`;
+    }
+
+    // Adjust the internal numeric totals used for metadata
+    cost.setup *= discountFactor;
+    cost.production *= discountFactor;
+}
+

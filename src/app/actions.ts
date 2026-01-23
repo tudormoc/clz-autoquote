@@ -1,6 +1,6 @@
 'use server'
 
-import { calculateDetailedQuote, fetchPricingRules } from '@/lib/pricing/engine';
+import { calculateDetailedQuote, fetchPricingRules, fetchDiscountTiers } from '@/lib/pricing/engine';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { supabase } from '@/lib/supabase';
 import { dataService } from '@/services/dataService';
@@ -23,12 +23,15 @@ export async function processQuoteAction(
     // cast validation.data to ensure it matches what engine expects (dates/undefined handling)
     const input = validation.data;
 
-    // 2. Fetch Pricing Rules (Operations + Configs)
+    // 2. Fetch Pricing Rules & Discount Tiers
     // We fetch this fresh on every request to ensure latest prices are used.
-    const rules = await fetchPricingRules(supabase);
+    const [rules, tiers] = await Promise.all([
+        fetchPricingRules(supabase),
+        fetchDiscountTiers(supabase)
+    ]);
 
     // 3. Perform calculation
-    const result = calculateDetailedQuote(input, rules);
+    const result = calculateDetailedQuote(input, rules, tiers);
 
     // 4. Save to database
     // Map the complex input back to the flat columns for backward compatibility + JSON blob
@@ -41,7 +44,7 @@ export async function processQuoteAction(
         pages: input.pages,
         total_price: result.total_price,
         unit_price: result.unit_price,
-        applied_discount: 0, // Engine can calculate this if we add logic
+        applied_discount: result.metadata.applied_discount || 0,
         specifications: input as any // Store full detailed object
     };
 
