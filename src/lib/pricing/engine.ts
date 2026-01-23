@@ -96,54 +96,8 @@ export function calculateDetailedQuote(
     // Helper to find rule by slug
     const getRule = (slug: string) => rules.find(r => r.slug === slug);
 
-    // --- 1. Core Binding / Cover ---
-    // If input.cover_details.type matches an operation slug (e.g., 'hardcover', 'softcover_sewn')
-    if (input.cover_details.type) {
-        const rule = getRule(input.cover_details.type);
-        if (rule) {
-            // Complexity: 1 (base binding)
-            // Check if we need to account for format size in variable factor?
-            // Usually binding cost might depend on spine thickness (pages) or format area.
-            // For now, let's assume complexity = 1, but we could use input.pages or area.
-            const cost = calculateOperationCost(rule, input.quantity, 1);
-            items.push(cost.item);
-            setupTotal += cost.setup;
-            productionTotal += cost.production;
-        }
-    }
-
-    // --- 2. Finishings ---
-    if (input.cover_details.finishings) {
-        for (const finishSlug of input.cover_details.finishings) {
-            const rule = getRule(finishSlug);
-            if (rule) {
-                // Complexity: 1
-                const cost = calculateOperationCost(rule, input.quantity, 1);
-                items.push(cost.item);
-                setupTotal += cost.setup;
-                productionTotal += cost.production;
-            }
-        }
-    }
-
-    // --- 3. Internal Operations (Printing/Folding) ---
-    // Example: 'folding'
-    const foldingRule = getRule('folding');
-    if (foldingRule) {
-        // Complexity: Number of signatures.
-        // Approx: pages / 16 (standard signature size)
-        const signatures = Math.ceil(input.pages / 16);
-        const cost = calculateOperationCost(foldingRule, input.quantity, signatures);
-
-        // Update item name to reflect signatures
-        cost.item.details += ` (x${signatures} sigs)`;
-
-        items.push(cost.item);
-        setupTotal += cost.setup;
-        productionTotal += cost.production;
-    }
-
-    // --- 4. Cover Production Mode (System Assigned) ---
+    // --- 1. Cover Production Mode (System Assigned) ---
+    // This is currently our only live pricing operation.
     const prodType = calculateCoverProductionType(input);
     const prodSlug = `cover_${prodType}`;
     const prodRule = getRule(prodSlug);
@@ -164,16 +118,6 @@ export function calculateDetailedQuote(
             cost: 0,
             details: 'Price rule pending'
         });
-    }
-
-    // Example: 'casing_in' if distinct from binding type?
-    // Often included in 'hardcover', but if separated:
-    const casingRule = getRule('casing_in');
-    if (casingRule) {
-        const cost = calculateOperationCost(casingRule, input.quantity, 1);
-        items.push(cost.item);
-        setupTotal += cost.setup;
-        productionTotal += cost.production;
     }
 
 

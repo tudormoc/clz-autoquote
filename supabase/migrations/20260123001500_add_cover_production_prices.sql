@@ -1,4 +1,8 @@
 -- Migration: Add specific prices for Cover Production Modes
+-- 0. Ensure operation_id is unique to support the ON CONFLICT clause and data integrity
+ALTER TABLE pricing_configs DROP CONSTRAINT IF EXISTS pricing_configs_operation_id_key;
+ALTER TABLE pricing_configs ADD CONSTRAINT pricing_configs_operation_id_key UNIQUE (operation_id);
+
 -- 1. Ensure Operations exist
 INSERT INTO operations (slug, name, category, description) VALUES
 ('cover_standard', 'Standard Cover Production', 'cover', 'Semi-automated cover production (Hörauf / Kolbus)'),
