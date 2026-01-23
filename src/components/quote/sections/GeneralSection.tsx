@@ -1,6 +1,6 @@
 import React from 'react';
 import { Control, Controller, FieldErrors } from 'react-hook-form';
-import { QuoteInput } from '@/lib/pricing/validation';
+import { QuoteInput } from '@/lib/pricing/types';
 import { Input } from '@/components/ui/Input'; // Assuming existing Input component
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 

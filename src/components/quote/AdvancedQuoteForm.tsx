@@ -11,7 +11,7 @@ import { QuoteHistoryList } from '@/components/QuoteHistoryList';
 import { Quote } from '@/types/database';
 
 export function AdvancedQuoteForm() {
-    const { form, estimate, isSaving, saveError, history, handleSave } = useAdvancedQuote();
+    const { form, estimate, isSaving, saveError, history, resetToDefault, handleSave } = useAdvancedQuote();
 
     const handleSelectQuote = (quote: Quote) => {
         // Populate form from history
@@ -27,9 +27,19 @@ export function AdvancedQuoteForm() {
                 quantity: quote.quantity,
                 format: { width: Number(quote.width), height: Number(quote.height) },
                 pages: quote.pages,
-                cover_details: { type: 'hardcover', finishings: [] },
-                internals: {}
-            });
+                cover_details: {
+                    type: 'hardcover',
+                    spine_type: 'square',
+                    board_thickness: 2.5,
+                    headbands_enabled: false,
+                    finishings: []
+                },
+                internals: {
+                    sheet_width: 700,
+                    sheet_height: 1000,
+                    endpapers_enabled: false
+                }
+            } as any);
         }
     };
 
@@ -47,7 +57,15 @@ export function AdvancedQuoteForm() {
                         </div>
                     )}
 
-                    <div className="flex justify-end pt-4">
+                    <div className="flex flex-col md:flex-row justify-end gap-4 pt-4">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={resetToDefault}
+                            className="w-full md:w-auto min-w-[150px] h-12 text-lg bg-white border-[#E5E5E0] text-[#6B6B5F] hover:bg-gray-50"
+                        >
+                            New Quote
+                        </Button>
                         <Button type="submit" disabled={isSaving} className="w-full md:w-auto min-w-[200px] h-12 text-lg">
                             {isSaving ? 'Processing...' : 'Calculate Quote'}
                         </Button>

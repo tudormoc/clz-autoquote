@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { QuoteInputSchema, QuoteInput } from '@/lib/pricing/validation';
+import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { usePricingRules } from './usePricingRules';
 import { calculateDetailedQuote } from '@/lib/pricing/engine';
-import { QuoteBreakdown } from '@/lib/pricing/types';
+import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction } from '@/app/actions';
 import { Quote } from '@/types/database';
 
@@ -15,10 +15,21 @@ const DEFAULT_VALUES: QuoteInput = {
     pages: 100,
     cover_details: {
         type: 'hardcover',
+        spine_type: 'square',
+        board_thickness: 2.5,
+        headbands_enabled: false,
+        headbands_type: 'politi',
         finishings: []
     },
     internals: {
-        printing_type: 'standard'
+        printing_type: 'standard',
+        sheet_width: 700,
+        sheet_height: 1000,
+        sheet_weight: 170,
+        sheet_type: 'coated_matte',
+        endpapers_enabled: false,
+        endpapers_weight: 170,
+        endpapers_type: 'coated_matte'
     }
 };
 
@@ -81,6 +92,10 @@ export const useAdvancedQuote = () => {
         }
     };
 
+    const resetToDefault = () => {
+        form.reset(DEFAULT_VALUES);
+    };
+
     return {
         form,
         estimate,
@@ -88,6 +103,7 @@ export const useAdvancedQuote = () => {
         saveError,
         rulesLoading,
         history,
+        resetToDefault,
         handleSave: form.handleSubmit(onSubmit)
     };
 };

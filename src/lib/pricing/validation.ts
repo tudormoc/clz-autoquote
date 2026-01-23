@@ -7,13 +7,28 @@ export const DimensionsSchema = z.object({
 
 export const CoverDetailsSchema = z.object({
     type: z.string().min(1, "Cover type is required"),
-    material_id: z.string().optional(),
+    spine_type: z.enum(['square', 'round']),
+    board_thickness: z.number().min(0.1, "Required"),
+    headbands_enabled: z.boolean(),
+    headbands_type: z.enum(['politi', 'g&w']).optional(),
     finishings: z.array(z.string()).optional(),
 });
 
 export const InternalDetailsSchema = z.object({
     paper_material_id: z.string().optional(),
     printing_type: z.string().optional(),
+
+    // Printed Sheets
+    sheet_width: z.number().min(1, "Width required"),
+    sheet_height: z.number().min(1, "Height required"),
+    imposition: z.number().min(1, "Imposition required").optional(),
+    sheet_weight: z.number().min(1, "Weight required").optional(),
+    sheet_type: z.enum(['coated_matte', 'coated_gloss']).optional(),
+
+    // Endpapers
+    endpapers_enabled: z.boolean(),
+    endpapers_weight: z.number().min(1, "Endpaper weight required").optional(),
+    endpapers_type: z.enum(['coated_matte', 'coated_gloss']).optional(),
 });
 
 export const PackagingSchema = z.object({
@@ -32,5 +47,3 @@ export const QuoteInputSchema = z.object({
     internals: InternalDetailsSchema,
     packaging: PackagingSchema.optional(),
 });
-
-export type QuoteInput = z.infer<typeof QuoteInputSchema>;

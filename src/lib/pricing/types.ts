@@ -30,30 +30,9 @@ export interface PricingRule extends Operation, PricingConfig {
   operation_name: string; // Alias for Operation.name
 }
 
-export interface QuoteInput {
-  display_id?: string; // For referencing existing quotes
-  client_name?: string;
-  email?: string;
-  project_title: string;
-  quantity: number;
-  format: {
-    width: number;
-    height: number;
-  };
-  pages: number;
-  cover_details: {
-    type: string; // e.g., 'hardcover', 'softcover'
-    material_id?: string;
-    finishings?: string[]; // slugs of operations
-  };
-  internals: {
-    paper_material_id?: string;
-    printing_type?: string;
-  };
-  packaging?: {
-    type?: string;
-  };
-}
+import { z } from 'zod';
+import { QuoteInputSchema } from './validation';
+export type QuoteInput = z.infer<typeof QuoteInputSchema>;
 
 export interface CostItem {
   id: string; // operation slug or material id
