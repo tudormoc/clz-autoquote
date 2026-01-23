@@ -23,6 +23,7 @@ export interface Database {
           unit_price: number | null
           customer_email: string | null
           applied_discount: number | null
+          specifications: Json | null
         }
         Insert: {
           id?: string
@@ -37,6 +38,7 @@ export interface Database {
           unit_price?: number | null
           customer_email?: string | null
           applied_discount?: number | null
+          specifications?: Json | null
         }
         Update: {
           id?: string
@@ -51,6 +53,7 @@ export interface Database {
           unit_price?: number | null
           customer_email?: string | null
           applied_discount?: number | null
+          specifications?: Json | null
         }
         Relationships: []
       }
@@ -80,6 +83,107 @@ export interface Database {
           discount_percentage?: number
         }
         Relationships: []
+      }
+      operations: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          description: string | null
+          category: 'internal' | 'cover' | 'packaging' | 'finishing' | 'other'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          description?: string | null
+          category: 'internal' | 'cover' | 'packaging' | 'finishing' | 'other'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          description?: string | null
+          category?: 'internal' | 'cover' | 'packaging' | 'finishing' | 'other'
+          created_at?: string
+        }
+        Relationships: []
+      }
+      materials: {
+        Row: {
+          id: string
+          category: 'paper' | 'cardboard' | 'cover_material' | 'foil' | 'glue' | 'other'
+          name: string
+          cost_per_unit: number
+          unit_type: string
+          properties: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          category: 'paper' | 'cardboard' | 'cover_material' | 'foil' | 'glue' | 'other'
+          name: string
+          cost_per_unit: number
+          unit_type: string
+          properties?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          category?: 'paper' | 'cardboard' | 'cover_material' | 'foil' | 'glue' | 'other'
+          name?: string
+          cost_per_unit?: number
+          unit_type?: string
+          properties?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      pricing_configs: {
+        Row: {
+          id: string
+          operation_id: string
+          setup_base_cost: number
+          setup_variable_factor: number
+          production_base_cost: number
+          production_variable_factor: number
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          operation_id: string
+          setup_base_cost?: number
+          setup_variable_factor?: number
+          production_base_cost?: number
+          production_variable_factor?: number
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          operation_id?: string
+          setup_base_cost?: number
+          setup_variable_factor?: number
+          production_base_cost?: number
+          production_variable_factor?: number
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_configs_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
