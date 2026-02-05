@@ -1,44 +1,70 @@
 import mssql from 'mssql';
 
-const config: mssql.config = {
+export type MSSQL_DB = 'BUSINESS' | 'NETPRO';
+
+const baseConfig: Omit<mssql.config, 'database'> = {
     user: process.env.MSSQL_USER,
     password: process.env.MSSQL_PASSWORD,
     server: process.env.MSSQL_SERVER || '',
-    database: process.env.MSSQL_DATABASE,
     options: {
-        encrypt: true, // Use this if you're on Azure or want encryption
-        trustServerCertificate: process.env.MSSQL_TRUST_CERT === 'true', // Change to true for local dev / self-signed certs
+        encrypt: true,
+        trustServerCertificate: process.env.MSSQL_TRUST_CERT === 'true',
     },
 };
 
-let poolPromise: Promise<mssql.ConnectionPool> | null = null;
+const databaseNames: Record<MSSQL_DB, string | undefined> = {
+    BUSINESS: process.env.MSSQL_DATABASE_BUSINESS,
+    NETPRO: process.env.MSSQL_DATABASE_NETPRO,
+};
 
-export const getMSSQLPool = async () => {
-    if (poolPromise) return poolPromise;
+// Store pools for each database
+const pools: Record<string, Promise<mssql.ConnectionPool> | undefined> = {};
 
-    poolPromise = new mssql.ConnectionPool(config)
+/**
+ * Get or create a connection pool for a specific database
+ */
+export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
+    const dbName = databaseNames[db];
+
+    if (!dbName) {
+        throw new Error(`Database name for ${db} is not configured in environment variables`);
+    }
+
+    if (pools[db]) return pools[db];
+
+    const config: mssql.config = {
+        ...baseConfig,
+        database: dbName,
+    };
+
+    pools[db] = new mssql.ConnectionPool(config)
         .connect()
         .then((pool) => {
-            console.log('Connected to MSSQL Database');
+            console.log(`Connected to MSSQL Database: ${db} (${dbName})`);
             return pool;
         })
         .catch((err) => {
-            poolPromise = null;
-            console.error('Database Connection Failed! Bad Config: ', err);
+            delete pools[db];
+            console.error(`Database Connection Failed for ${db}!`, err);
             throw err;
         });
 
-    return poolPromise;
+    return pools[db];
 };
 
 /**
- * Execute a query on the MSSQL database
+ * Execute a query on the specified MSSQL database
  * @param query SQL query string
  * @param params Optional parameters for the query
+ * @param db The database to query (defaults to 'BUSINESS')
  */
-export const queryMSSQL = async <T = any>(query: string, params: Record<string, any> = {}) => {
+export const queryMSSQL = async <T = any>(
+    query: string,
+    params: Record<string, any> = {},
+    db: MSSQL_DB = 'BUSINESS'
+) => {
     try {
-        const pool = await getMSSQLPool();
+        const pool = await getMSSQLPool(db);
         const request = pool.request();
 
         // Add parameters if provided
@@ -49,7 +75,7 @@ export const queryMSSQL = async <T = any>(query: string, params: Record<string, 
         const result = await request.query<T>(query);
         return result;
     } catch (err) {
-        console.error('SQL error', err);
+        console.error(`SQL error in ${db}:`, err);
         throw err;
     }
 };

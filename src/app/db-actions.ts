@@ -1,22 +1,22 @@
 'use server'
 
-import { queryMSSQL, getMSSQLPool } from '@/lib/mssql';
+import { queryMSSQL, getMSSQLPool, MSSQL_DB } from '@/lib/mssql';
 
-export async function getTablesAction() {
+export async function getTablesAction(db: MSSQL_DB = 'BUSINESS') {
     try {
         const result = await queryMSSQL(`
       SELECT TABLE_NAME 
       FROM INFORMATION_SCHEMA.TABLES 
       WHERE TABLE_TYPE = 'BASE TABLE'
       ORDER BY TABLE_NAME
-    `);
+    `, {}, db);
         return { success: true, tables: result.recordset.map(r => r.TABLE_NAME) };
     } catch (err: any) {
         return { success: false, error: err.message };
     }
 }
 
-export async function getTableDataAction(tableName: string, searchTerm?: string, filterColumn?: string, filterValue?: string) {
+export async function getTableDataAction(tableName: string, searchTerm?: string, filterColumn?: string, filterValue?: string, db: MSSQL_DB = 'BUSINESS') {
     try {
         if (!/^[a-zA-Z0-9_]+$/.test(tableName)) throw new Error('Invalid table name');
 
@@ -24,7 +24,7 @@ export async function getTableDataAction(tableName: string, searchTerm?: string,
             SELECT COLUMN_NAME, DATA_TYPE 
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_NAME = @tableName
-        `, { tableName });
+        `, { tableName }, db);
 
         const columns = columnsRes.recordset;
         let query = `SELECT TOP 100 * FROM ${tableName}`;
@@ -55,7 +55,7 @@ export async function getTableDataAction(tableName: string, searchTerm?: string,
             query = `SELECT TOP 100 * FROM ${tableName} WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        const data = await queryMSSQL(query, params);
+        const data = await queryMSSQL(query, params, db);
 
         return {
             success: true,
@@ -67,9 +67,9 @@ export async function getTableDataAction(tableName: string, searchTerm?: string,
     }
 }
 
-export async function testConnectionAction() {
+export async function testConnectionAction(db: MSSQL_DB = 'BUSINESS') {
     try {
-        const pool = await getMSSQLPool();
+        const pool = await getMSSQLPool(db);
         const result = await pool.request().query('SELECT @@VERSION as version');
         return { success: true, version: result.recordset[0].version };
     } catch (err: any) {
@@ -77,7 +77,7 @@ export async function testConnectionAction() {
     }
 }
 
-export async function getColumnDistinctValuesAction(tableName: string, columnName: string) {
+export async function getColumnDistinctValuesAction(tableName: string, columnName: string, db: MSSQL_DB = 'BUSINESS') {
     try {
         if (!/^[a-zA-Z0-9_]+$/.test(tableName) || !/^[a-zA-Z0-9_]+$/.test(columnName)) {
             throw new Error('Invalid table or column name');
@@ -88,7 +88,7 @@ export async function getColumnDistinctValuesAction(tableName: string, columnNam
             FROM ${tableName}
             GROUP BY ${columnName}
             ORDER BY count DESC
-        `);
+        `, {}, db);
 
         return {
             success: true,

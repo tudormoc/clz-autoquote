@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getTablesAction, getTableDataAction, testConnectionAction, getColumnDistinctValuesAction } from '../app/db-actions';
+import { MSSQL_DB } from '@/lib/mssql';
 
 export function DBExplorer() {
+    const [selectedDB, setSelectedDB] = useState<MSSQL_DB>('BUSINESS');
     const [tables, setTables] = useState<string[]>([]);
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [tableInfo, setTableInfo] = useState<{ columns: any[], rows: any[] } | null>(null);
@@ -16,18 +18,21 @@ export function DBExplorer() {
 
     useEffect(() => {
         loadTables();
-    }, []);
+    }, [selectedDB]);
 
     const loadTables = async () => {
         setLoading(true);
-        const res = await getTablesAction();
+        setTables([]);
+        setSelectedTable('');
+        setTableInfo(null);
+        const res = await getTablesAction(selectedDB);
         if (res.success) setTables(res.tables || []);
         setLoading(false);
     };
 
     const handleTest = async () => {
         setLoading(true);
-        const res = await testConnectionAction();
+        const res = await testConnectionAction(selectedDB);
         setConnStatus(res);
         setLoading(false);
     };
@@ -39,7 +44,7 @@ export function DBExplorer() {
         setLoading(true);
         setUniqueValues(null); // Clear unique values on table change
         setActiveColForUnique('');
-        const res = await getTableDataAction(name, search, fCol, fVal);
+        const res = await getTableDataAction(name, search, fCol, fVal, selectedDB);
         if (res.success) {
             setTableInfo({ columns: res.columns || [], rows: res.rows || [] });
         }
@@ -49,7 +54,7 @@ export function DBExplorer() {
     const handleViewUniqueValues = async (colName: string) => {
         setLoading(true);
         setActiveColForUnique(colName);
-        const res = await getColumnDistinctValuesAction(selectedTable, colName);
+        const res = await getColumnDistinctValuesAction(selectedTable, colName, selectedDB);
         if (res.success) {
             setUniqueValues(res.values || []);
         }
@@ -72,15 +77,43 @@ export function DBExplorer() {
 
     return (
         <div className="space-y-6 max-w-full">
-            <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <button
-                    onClick={handleTest}
-                    className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
-                >
-                    Test Connection
-                </button>
-                {connStatus.success && <span className="text-green-600 text-sm font-medium">✅ Connected to SQL Server</span>}
-                {connStatus.error && <span className="text-red-600 text-sm font-medium">❌ {connStatus.error}</span>}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setSelectedDB('BUSINESS')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${selectedDB === 'BUSINESS'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Business (ERP)
+                        </button>
+                        <button
+                            onClick={() => setSelectedDB('NETPRO')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${selectedDB === 'NETPRO'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            NetPro (PROD)
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={handleTest}
+                        className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                    >
+                        Test {selectedDB} Connection
+                    </button>
+
+                    {connStatus.success && <span className="text-green-600 text-sm font-medium">✅ Connected to {selectedDB}</span>}
+                    {connStatus.error && <span className="text-red-600 text-sm font-medium">❌ {connStatus.error}</span>}
+                </div>
+
+                <div className="text-xs text-gray-400 font-mono">
+                    Target: {selectedDB === 'BUSINESS' ? 'COOPZANARDI' : 'NETPRO'}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
