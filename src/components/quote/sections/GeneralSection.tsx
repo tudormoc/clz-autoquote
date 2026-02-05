@@ -2,6 +2,7 @@ import { Control, Controller, FieldErrors, useWatch } from 'react-hook-form';
 import { QuoteInput } from '@/lib/pricing/types';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { ClientAutocomplete } from '../ClientAutocomplete';
 
 interface Props {
     control: Control<QuoteInput>;
@@ -34,9 +35,10 @@ export function GeneralSection({ control, errors }: Props) {
                         control={control}
                         name="client_name"
                         render={({ field }) => (
-                            <Input
+                            <ClientAutocomplete
                                 {...field}
-                                label="Client Name"
+                                label="Client Name (from local Database)"
+                                placeholder="Start typing client name..."
                                 error={errors.client_name?.message}
                             />
                         )}
