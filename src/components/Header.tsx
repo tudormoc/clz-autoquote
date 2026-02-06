@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, Database } from 'lucide-react';
+import { BookOpen, Database, ShieldCheck } from 'lucide-react';
 import { APP_COPY } from '@/locales/en';
 import Link from 'next/link';
 
@@ -19,13 +19,22 @@ export const Header = () => {
                     </div>
                 </Link>
 
-                <Link
-                    href="/db-test"
-                    className="p-2 text-[#6B6B5F] hover:text-[#414131] hover:bg-gray-100 rounded-full transition-all"
-                    title="Database Explorer"
-                >
-                    <Database className="h-5 w-5" />
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/admin"
+                        className="p-2 text-[#6B6B5F] hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                        title="Control Center"
+                    >
+                        <ShieldCheck className="h-5 w-5" />
+                    </Link>
+                    <Link
+                        href="/db-test"
+                        className="p-2 text-[#6B6B5F] hover:text-[#414131] hover:bg-gray-100 rounded-full transition-all"
+                        title="Database Explorer"
+                    >
+                        <Database className="h-5 w-5" />
+                    </Link>
+                </div>
             </div>
         </header>
     );

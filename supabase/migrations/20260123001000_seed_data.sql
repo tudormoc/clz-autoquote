@@ -1,2 +1,0 @@
--- Legacy seed data removed to maintain a clean slate.
--- Operations are now added one-by-one with specific authorized pricing.

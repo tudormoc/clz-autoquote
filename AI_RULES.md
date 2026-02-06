@@ -1,11 +1,11 @@
 # AI CONSTITUTION (Strict Adherence Required)
 
-**Context:** Production-grade Quoting Engine (Next.js, TypeScript, Supabase, Cloudflare).
+**Context:** Production-grade Quoting Engine (Next.js, TypeScript, Local MSSQL, Cloudflare).
 
 ## 1. SINGLE SOURCE OF TRUTH (THE GOLDEN RULE)
 *   **NO Hardcoded Text:** NEVER write inline strings like `<h1>Get a Quote</h1>`.
     *   *Correct:* `<h1>{t.home.hero_title}</h1>`
-    *   *Action:* Store all user-facing text in `src/config/copy.ts` (or dictionary keys) to allow for future translations (i18n).
+    *   *Action:* Store all user-facing text in `src/locales/` to allow for future translations (i18n).
 *   **NO Magic Numbers:** Never use raw numbers in logic.
     *   *Correct:* `price * CONFIG.PRICING.TAX_RATE`
     *   *Action:* Define all math constants in `src/config/constants.ts`.

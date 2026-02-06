@@ -1,4 +1,4 @@
-import { Control, Controller, FieldErrors, useWatch } from 'react-hook-form';
+import { Control, Controller, FieldErrors, useWatch, UseFormSetValue } from 'react-hook-form';
 import { QuoteInput } from '@/lib/pricing/types';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -7,9 +7,10 @@ import { ClientAutocomplete } from '../ClientAutocomplete';
 interface Props {
     control: Control<QuoteInput>;
     errors: FieldErrors<QuoteInput>;
+    setValue: UseFormSetValue<QuoteInput>;
 }
 
-export function GeneralSection({ control, errors }: Props) {
+export function GeneralSection({ control, errors, setValue }: Props) {
     const format = useWatch({ control, name: 'format' });
     const openedWidth = (format?.width || 0) * 2;
     const openedHeight = format?.height || 0;
@@ -40,6 +41,7 @@ export function GeneralSection({ control, errors }: Props) {
                                 label="Client Name (from local Database)"
                                 placeholder="Start typing client name..."
                                 error={errors.client_name?.message}
+                                onSelectClientId={(id) => setValue('client_id', id)}
                             />
                         )}
                     />

@@ -137,12 +137,20 @@ export const useAdvancedQuote = () => {
     const selectQuote = (quote: Quote) => {
         setSelectedQuoteId(quote.id);
         if (quote.specifications) {
-            form.reset(quote.specifications as any);
+            const specs = quote.specifications as any;
+            form.reset({
+                ...specs,
+                client_id: quote.customer_id || specs.client_id,
+                client_name: quote.customer_name || specs.client_name,
+                email: quote.customer_email || specs.email
+            });
         } else {
             // Backward compatibility
             form.reset({
                 project_title: quote.book_name,
-                client_name: quote.customer_email || undefined,
+                client_name: quote.customer_name || undefined,
+                client_id: quote.customer_id || undefined,
+                email: quote.customer_email || undefined,
                 quantity: quote.quantity,
                 format: { width: Number(quote.width), height: Number(quote.height) },
                 pages: quote.pages,

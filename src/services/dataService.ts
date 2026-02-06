@@ -1,123 +1,152 @@
-import { supabase } from '../lib/supabase';
+import { queryMSSQL } from '../lib/mssql';
 import type { Quote, QuoteInsert, QuoteUpdate } from '../types/database';
-
-// Helper to check if Supabase is actually configured with real credentials
-const isSupabaseConfigured = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return url && key && !url.includes('placeholder');
-};
 
 export const dataService = {
   /**
-   * Fetches all quotes from Supabase
+   * Fetches all quotes from Local MSSQL
    */
   getQuotes: async (): Promise<Quote[]> => {
-    if (!isSupabaseConfigured()) {
-      console.warn("Supabase not configured. Returning empty list.");
-      return [];
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const result = await queryMSSQL<Quote>(
+        'SELECT * FROM quotes ORDER BY created_at DESC',
+        {},
+        'QUOTES'
+      );
 
-      if (error) throw error;
-      return data || [];
+      // Parse specifications JSON if it's a string
+      return (result.recordset || []).map(quote => ({
+        ...quote,
+        specifications: typeof quote.specifications === 'string'
+          ? JSON.parse(quote.specifications)
+          : quote.specifications
+      })) as Quote[];
     } catch (e) {
-      console.error("Error fetching quotes:", e);
+      console.error("Error fetching quotes from MSSQL:", e);
       return [];
     }
   },
 
   /**
-   * Saves a new quote to Supabase
+   * Saves a new quote to Local MSSQL
    */
   saveQuote: async (quote: QuoteInsert): Promise<{ data: Quote | null, error: any }> => {
-    if (!isSupabaseConfigured()) {
-      console.warn("Supabase not configured. Quote not saved.");
-      return { data: null, error: 'Supabase not configured' };
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .insert(quote)
-        .select()
-        .single();
+      const query = `
+        INSERT INTO quotes (
+          book_name, quantity, width, height, pages, 
+          total_price, unit_price, customer_email, 
+          customer_id, customer_name, status, internal_notes,
+          applied_discount, specifications
+        )
+        OUTPUT INSERTED.*
+        VALUES (
+          @book_name, @quantity, @width, @height, @pages, 
+          @total_price, @unit_price, @customer_email, 
+          @customer_id, @customer_name, @status, @internal_notes,
+          @applied_discount, @specifications
+        )
+      `;
 
-      return { data, error };
+      const params = {
+        book_name: quote.book_name,
+        quantity: quote.quantity,
+        width: quote.width,
+        height: quote.height,
+        pages: quote.pages,
+        total_price: quote.total_price,
+        unit_price: quote.unit_price,
+        customer_email: quote.customer_email,
+        customer_id: quote.customer_id,
+        customer_name: quote.customer_name,
+        status: quote.status || 'draft',
+        internal_notes: quote.internal_notes,
+        applied_discount: quote.applied_discount,
+        specifications: JSON.stringify(quote.specifications)
+      };
+
+      const result = await queryMSSQL(query, params, 'QUOTES');
+      const savedQuote = result.recordset[0];
+
+      if (savedQuote) {
+        savedQuote.specifications = JSON.parse(savedQuote.specifications);
+      }
+
+      return { data: savedQuote, error: null };
     } catch (e) {
-      console.error("Error saving quote:", e);
+      console.error("Error saving quote to MSSQL:", e);
       return { data: null, error: e };
     }
   },
 
   /**
-   * Updates an existing quote in Supabase
+   * Updates an existing quote in Local MSSQL
    */
   updateQuote: async (id: string, updates: QuoteUpdate): Promise<{ data: Quote | null, error: any }> => {
-    if (!isSupabaseConfigured()) {
-      return { data: null, error: 'Supabase not configured' };
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      // Build dynamic update query
+      const sets: string[] = [];
+      const params: Record<string, any> = { id };
 
-      return { data, error };
+      Object.entries(updates).forEach(([key, value]) => {
+        if (key !== 'id' && key !== 'created_at') {
+          sets.push(`${key} = @${key}`);
+          params[key] = key === 'specifications' ? JSON.stringify(value) : value;
+        }
+      });
+
+      sets.push('updated_at = SYSDATETIMEOFFSET()');
+
+      const query = `
+        UPDATE quotes 
+        SET ${sets.join(', ')}
+        OUTPUT INSERTED.*
+        WHERE id = @id
+      `;
+
+      const result = await queryMSSQL(query, params, 'QUOTES');
+      const updatedQuote = result.recordset[0];
+
+      if (updatedQuote && updatedQuote.specifications) {
+        updatedQuote.specifications = JSON.parse(updatedQuote.specifications);
+      }
+
+      return { data: updatedQuote, error: null };
     } catch (e) {
-      console.error("Error updating quote:", e);
+      console.error("Error updating quote in MSSQL:", e);
       return { data: null, error: e };
     }
   },
 
   /**
-   * Fetches discount tiers from Supabase
+   * Fetches discount tiers from Local MSSQL
    */
   getDiscountTiers: async () => {
-    if (!isSupabaseConfigured()) {
-      console.warn("Supabase not configured. Returning empty tiers.");
-      return [];
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('discount_tiers')
-        .select('*')
-        .order('min_quantity', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      const result = await queryMSSQL(
+        'SELECT * FROM discount_tiers ORDER BY min_quantity ASC',
+        {},
+        'QUOTES'
+      );
+      return result.recordset || [];
     } catch (e) {
-      console.error("Error fetching discount tiers:", e);
+      console.error("Error fetching discount tiers from MSSQL:", e);
       return [];
     }
   },
 
   /**
-   * Deletes a quote from Supabase
+   * Deletes a quote from Local MSSQL
    */
   deleteQuote: async (id: string): Promise<{ error: any }> => {
-    if (!isSupabaseConfigured()) {
-      return { error: 'Supabase not configured' };
-    }
-
     try {
-      const { error } = await supabase
-        .from('quotes')
-        .delete()
-        .eq('id', id);
-
-      return { error };
+      await queryMSSQL(
+        'DELETE FROM quotes WHERE id = @id',
+        { id },
+        'QUOTES'
+      );
+      return { error: null };
     } catch (e) {
-      console.error("Error deleting quote:", e);
+      console.error("Error deleting quote from MSSQL:", e);
       return { error: e };
     }
   }

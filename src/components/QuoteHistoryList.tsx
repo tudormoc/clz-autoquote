@@ -27,7 +27,9 @@ export const QuoteHistoryList = ({ history, onSelectQuote, onDeleteQuote }: Quot
                             className="bg-white border border-[#E5E5E0] p-4 rounded-lg flex items-center justify-between group hover:border-[#414131] transition-colors cursor-pointer"
                         >
                             <div>
-                                <p className="font-semibold text-sm group-hover:text-[#414131] transition-colors">{quote.book_name}</p>
+                                <p className="font-semibold text-sm group-hover:text-[#414131] transition-colors">
+                                    {quote.book_name} {quote.customer_name && <span className="text-[#A1A19A] font-normal"> - {quote.customer_name}</span>}
+                                </p>
                                 <p className="text-xs text-[#6B6B5F]">{quote.quantity} units • {quote.pages} pages • {quote.width}x{quote.height}mm</p>
                             </div>
                             <div className="flex flex-col items-end">

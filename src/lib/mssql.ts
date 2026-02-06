@@ -1,6 +1,6 @@
 import mssql from 'mssql';
 
-export type MSSQL_DB = 'BUSINESS' | 'NETPRO';
+export type MSSQL_DB = 'BUSINESS' | 'NETPRO' | 'QUOTES';
 
 const baseConfig: Omit<mssql.config, 'database'> = {
     user: process.env.MSSQL_USER,
@@ -15,6 +15,7 @@ const baseConfig: Omit<mssql.config, 'database'> = {
 const databaseNames: Record<MSSQL_DB, string | undefined> = {
     BUSINESS: process.env.MSSQL_DATABASE_BUSINESS,
     NETPRO: process.env.MSSQL_DATABASE_NETPRO,
+    QUOTES: process.env.MSSQL_DATABASE_QUOTES,
 };
 
 // Store pools for each database

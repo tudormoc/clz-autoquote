@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.309.0",
     "mssql": "^12.2.0",
@@ -30,7 +29,6 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.31",
-    "supabase": "^2.72.8",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.3.0"
   }

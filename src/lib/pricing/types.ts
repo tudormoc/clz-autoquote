@@ -26,6 +26,7 @@ export interface PricingConfig {
 }
 
 export interface DiscountTier {
+  id?: number;
   min_quantity: number;
   max_quantity: number | null;
   discount_percentage: number;

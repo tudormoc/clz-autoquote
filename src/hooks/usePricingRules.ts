@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { fetchPricingRules, fetchDiscountTiers } from '@/lib/pricing/engine';
+import { getPricingRulesAction, getDiscountTiersAction } from '@/app/actions';
 import { PricingRule, DiscountTier } from '@/lib/pricing/types';
 
 export function usePricingRules() {
@@ -12,8 +11,8 @@ export function usePricingRules() {
         const load = async () => {
             try {
                 const [fetchedRules, fetchedTiers] = await Promise.all([
-                    fetchPricingRules(supabase),
-                    fetchDiscountTiers(supabase)
+                    getPricingRulesAction(),
+                    getDiscountTiersAction()
                 ]);
                 setRules(fetchedRules);
                 setTiers(fetchedTiers);

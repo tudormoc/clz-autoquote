@@ -1,9 +1,9 @@
 'use server'
 
-import { calculateDetailedQuote, fetchPricingRules, fetchDiscountTiers } from '@/lib/pricing/engine';
+import { calculateDetailedQuote } from '@/lib/pricing/engine';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
-import { supabase } from '@/lib/supabase';
 import { dataService } from '@/services/dataService';
+import { pricingService } from '@/services/pricingService';
 import { z } from 'zod';
 
 /**
@@ -23,11 +23,10 @@ export async function processQuoteAction(
     // cast validation.data to ensure it matches what engine expects (dates/undefined handling)
     const input = validation.data;
 
-    // 2. Fetch Pricing Rules & Discount Tiers
-    // We fetch this fresh on every request to ensure latest prices are used.
+    // 2. Fetch Pricing Rules & Discount Tiers from Local MSSQL
     const [rules, tiers] = await Promise.all([
-        fetchPricingRules(supabase),
-        fetchDiscountTiers(supabase)
+        pricingService.getPricingRules(),
+        pricingService.getDiscountTiers()
     ]);
 
     // 3. Perform calculation
@@ -37,7 +36,10 @@ export async function processQuoteAction(
     // Map the complex input back to the flat columns for backward compatibility + JSON blob
     const quotePayload = {
         book_name: input.project_title,
-        customer_email: input.email || input.client_name, // Prefer email if valid
+        customer_email: input.email || null,
+        customer_id: input.client_id || null,
+        customer_name: input.client_name || null,
+        status: 'draft',
         quantity: input.quantity,
         width: input.format.width,
         height: input.format.height,
@@ -45,7 +47,7 @@ export async function processQuoteAction(
         total_price: result.total_price,
         unit_price: result.unit_price,
         applied_discount: result.metadata.applied_discount || 0,
-        specifications: input as any // Store full detailed object
+        specifications: input as any
     };
 
     let saveResponse;
@@ -78,4 +80,18 @@ export async function getQuoteHistoryAction() {
  */
 export async function deleteQuoteAction(id: string) {
     return await dataService.deleteQuote(id);
+}
+
+/**
+ * Server Action to fetch latest pricing rules
+ */
+export async function getPricingRulesAction() {
+    return await pricingService.getPricingRules();
+}
+
+/**
+ * Server Action to fetch volume discount tiers
+ */
+export async function getDiscountTiersAction() {
+    return await pricingService.getDiscountTiers();
 }

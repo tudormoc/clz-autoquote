@@ -28,7 +28,11 @@ export function AdvancedQuoteForm() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20">
             <div className="lg:col-span-8 space-y-8">
                 <form onSubmit={handleSave} className="space-y-6">
-                    <GeneralSection control={form.control} errors={form.formState.errors} />
+                    <GeneralSection
+                        control={form.control}
+                        errors={form.formState.errors}
+                        setValue={form.setValue}
+                    />
                     <InternalSection control={form.control} errors={form.formState.errors} />
                     <CoverSection control={form.control} errors={form.formState.errors} />
 

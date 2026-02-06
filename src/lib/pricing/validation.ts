@@ -39,6 +39,7 @@ export const PackagingSchema = z.object({
 export const QuoteInputSchema = z.object({
     display_id: z.string().optional(),
     client_name: z.string().optional(),
+    client_id: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
     project_title: z.string().min(1, "Project title is required"),
     quantity: z.number().int().min(1, "Minimum quantity is 1"),

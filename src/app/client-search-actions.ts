@@ -8,6 +8,7 @@ export async function searchMSSQLClientsAction(searchTerm: string) {
     try {
         const result = await queryMSSQL(
             `SELECT TOP 20 
+                RTRIM(an_conto) as id,
                 RTRIM(an_descr1) + ' ' + RTRIM(ISNULL(an_descr2, '')) as name,
                 CASE 
                     WHEN an_descr1 LIKE @startTerm THEN 1 
@@ -24,6 +25,7 @@ export async function searchMSSQLClientsAction(searchTerm: string) {
             }
         );
         return result.recordset.map((r: any) => ({
+            id: r.id.trim(),
             name: r.name.trim()
         }));
     } catch (err) {

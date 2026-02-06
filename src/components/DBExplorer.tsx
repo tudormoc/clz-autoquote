@@ -266,6 +266,6 @@ export function DBExplorer() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
