@@ -8,7 +8,7 @@ import { CoverSection } from './sections/CoverSection';
 import { LiveBreakdown } from './LiveBreakdown';
 import { Button } from '@/components/ui/Button';
 import { QuoteHistoryList } from '@/components/QuoteHistoryList';
-import { Quote } from '@/types/database';
+import { Quote } from '@/types';
 
 export function AdvancedQuoteForm() {
     const {

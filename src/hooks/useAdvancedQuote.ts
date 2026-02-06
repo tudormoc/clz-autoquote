@@ -6,7 +6,7 @@ import { usePricingRules } from './usePricingRules';
 import { calculateDetailedQuote, calculateCoverProductionType } from '@/lib/pricing/engine';
 import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction, deleteQuoteAction } from '@/app/actions';
-import { Quote } from '@/types/database';
+import { Quote } from '@/types';
 
 const DEFAULT_VALUES: QuoteInput = {
     project_title: 'My Book Project',
@@ -78,7 +78,7 @@ export const useAdvancedQuote = () => {
         try {
             // Only calculate if we have basic required numbers
             if (values.quantity && values.pages && values.format?.width) {
-                const result = calculateDetailedQuote(values as QuoteInput, rules, tiers);
+                const result = calculateDetailedQuote(values as QuoteInput, rules, tiers, signatureTypes);
                 setEstimate(result);
             }
         } catch (e) {

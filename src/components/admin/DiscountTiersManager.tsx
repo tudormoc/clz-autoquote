@@ -13,7 +13,7 @@ import { APP_COPY } from '@/locales/en';
 export function DiscountTiersManager() {
     const [tiers, setTiers] = useState<DiscountTier[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<number | string | null>(null);
     const [editForm, setEditForm] = useState<Partial<DiscountTier>>({});
     const [isAdding, setIsAdding] = useState(false);
 
@@ -34,7 +34,7 @@ export function DiscountTiersManager() {
         setEditForm(tier);
     };
 
-    const handleSave = async (id: number) => {
+    const handleSave = async (id: number | string) => {
         const res = await updateRecordAction('QUOTES', 'discount_tiers', id, 'id', {
             min_quantity: Number(editForm.min_quantity),
             max_quantity: editForm.max_quantity ? Number(editForm.max_quantity) : null,
@@ -49,8 +49,8 @@ export function DiscountTiersManager() {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (confirm('Are you sure you want to delete this tier?')) {
+    const handleDelete = async (id: number | string) => {
+        if (confirm(APP_COPY.admin.discountTiers.deleteConfirm)) {
             const res = await deleteRecordAction('QUOTES', 'discount_tiers', id, 'id');
             if (res.success) loadData();
         }
@@ -135,8 +135,8 @@ export function DiscountTiersManager() {
                                     <span className="text-[10px] text-blue-600 ml-1">e.g. 0.10 for 10%</span>
                                 </td>
                                 <td className="px-6 py-3 text-right space-x-2">
-                                    <button onClick={handleAdd} className="text-green-600 hover:text-green-800"><Save size={18} /></button>
-                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                                    <button onClick={handleAdd} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
+                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
                                 </td>
                             </tr>
                         )}
@@ -191,13 +191,13 @@ export function DiscountTiersManager() {
                                 <td className="px-6 py-4 text-right">
                                     {editingId === tier.id ? (
                                         <div className="flex justify-end gap-3">
-                                            <button onClick={() => handleSave(tier.id!)} className="text-green-600 hover:text-green-800"><Save size={18} /></button>
-                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                                            <button onClick={() => handleSave(tier.id!)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
+                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
                                         </div>
                                     ) : (
-                                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleStartEdit(tier)} className="text-blue-500 hover:text-blue-700"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(tier.id!)} className="text-red-400 hover:text-red-600"><Trash2 size={18} /></button>
+                                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => handleStartEdit(tier)} className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-all"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDelete(tier.id!)} className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-all"><Trash2 size={18} /></button>
                                         </div>
                                     )}
                                 </td>

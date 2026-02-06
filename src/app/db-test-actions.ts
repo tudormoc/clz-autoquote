@@ -5,7 +5,8 @@ import { queryMSSQL } from '@/lib/mssql';
 export async function testDatabaseConnections() {
     const results = {
         business: { success: false, message: '', data: null as any },
-        netpro: { success: false, message: '', data: null as any }
+        netpro: { success: false, message: '', data: null as any },
+        quotes: { success: false, message: '', data: null as any }
     };
 
     // Test Business (COOPZANARDI)
@@ -28,6 +29,24 @@ export async function testDatabaseConnections() {
         results.netpro.data = netproResult.recordset[0];
     } catch (err: any) {
         results.netpro.message = err.message;
+    }
+
+    // Test Quotes (CLZDWHQANDPROG)
+    try {
+        const quotesResult = await queryMSSQL('SELECT TOP 1 * FROM signature_types', {}, 'QUOTES');
+        results.quotes.success = true;
+        results.quotes.message = 'Successfully connected to Quotes DB';
+        results.quotes.data = quotesResult.recordset[0];
+    } catch (err: any) {
+        // Fallback if signatures table doesn't exist yet or is empty
+        try {
+            const fallback = await queryMSSQL('SELECT 1 as connection_test', {}, 'QUOTES');
+            results.quotes.success = true;
+            results.quotes.message = 'Successfully connected to Quotes DB (Fallback)';
+            results.quotes.data = fallback.recordset[0];
+        } catch (innerErr: any) {
+            results.quotes.message = innerErr.message;
+        }
     }
 
     return results;

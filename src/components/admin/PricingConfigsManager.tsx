@@ -11,7 +11,7 @@ import { APP_COPY } from '@/locales/en';
 export function PricingConfigsManager() {
     const [rules, setRules] = useState<PricingRule[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<number | string | null>(null);
     const [editForm, setEditForm] = useState<Partial<PricingRule>>({});
 
     const loadData = async () => {
@@ -25,7 +25,7 @@ export function PricingConfigsManager() {
         loadData();
     }, []);
 
-    const handleSave = async (id: string) => {
+    const handleSave = async (id: number | string) => {
         const res = await updateRecordAction('QUOTES', 'pricing_configs', id, 'id', {
             setup_base_cost: Number(editForm.setup_base_cost),
             setup_variable_factor: Number(editForm.setup_variable_factor),
@@ -116,13 +116,13 @@ export function PricingConfigsManager() {
                                     <td className="px-6 py-4 text-right">
                                         {isEditing ? (
                                             <div className="flex justify-end gap-3">
-                                                <button onClick={() => handleSave(rule.id)} className="text-green-600 hover:text-green-800"><Save size={18} /></button>
-                                                <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                                                <button onClick={() => handleSave(rule.id)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
+                                                <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
                                             </div>
                                         ) : (
                                             <button
                                                 onClick={() => { setEditingId(rule.id); setEditForm(rule); }}
-                                                className="text-indigo-500 hover:text-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
                                             >
                                                 <Edit2 size={18} />
                                             </button>

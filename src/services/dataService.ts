@@ -1,5 +1,5 @@
 import { queryMSSQL } from '../lib/mssql';
-import type { Quote, QuoteInsert, QuoteUpdate } from '../types/database';
+import type { Quote, QuoteInsert, QuoteUpdate } from '@/types';
 
 export const dataService = {
   /**

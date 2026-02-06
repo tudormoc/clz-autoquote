@@ -23,14 +23,15 @@ export async function processQuoteAction(
     // cast validation.data to ensure it matches what engine expects (dates/undefined handling)
     const input = validation.data;
 
-    // 2. Fetch Pricing Rules & Discount Tiers from Local MSSQL
-    const [rules, tiers] = await Promise.all([
+    // 2. Fetch Pricing Rules, Discount Tiers & Signature Types from Local MSSQL
+    const [rules, tiers, sigs] = await Promise.all([
         pricingService.getPricingRules(),
-        pricingService.getDiscountTiers()
+        pricingService.getDiscountTiers(),
+        pricingService.getSignatureTypes()
     ]);
 
     // 3. Perform calculation
-    const result = calculateDetailedQuote(input, rules, tiers);
+    const result = calculateDetailedQuote(input, rules, tiers, sigs);
 
     // 4. Save to database
     // Map the complex input back to the flat columns for backward compatibility + JSON blob

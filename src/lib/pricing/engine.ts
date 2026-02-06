@@ -1,4 +1,4 @@
-import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier } from './types';
+import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier, SignatureType } from './types';
 
 /**
  * Automatically determines the cover production type based on book specifications.
@@ -34,7 +34,8 @@ export function calculateCoverProductionType(input: QuoteInput): 'standard' | 'f
 export function calculateDetailedQuote(
     input: QuoteInput,
     rules: PricingRule[],
-    discountTiers: DiscountTier[] = []
+    discountTiers: DiscountTier[] = [],
+    signatureTypes: SignatureType[] = []
 ): QuoteBreakdown {
     const items: CostItem[] = [];
     let setupTotal = 0;
@@ -56,18 +57,35 @@ export function calculateDetailedQuote(
     // --- 1. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
     const cfgsRule = getRule('cfgs');
     if (cfgsRule) {
-        // Complexity: (Number of Signatures - 1)
-        // Complexity: (Number of Signatures - 1)
-        // Complexity: (Number of Signatures - 1)
-        // Manual mode only: sum of all signature batches
-        const signatures = input.internals.custom_signatures?.reduce((sum, sig) => sum + sig.amount, 0) || 0;
+        const customSigs = input.internals.custom_signatures || [];
+        const totalSigs = customSigs.reduce((sum, sig) => sum + sig.amount, 0);
 
-        const complexity = Math.max(0, signatures - 1);
+        // Calculate Production Rate based on specific signatures
+        let unitProductionRate = 0;
+        let details = '';
 
-        const cost = calculateOperationCost(cfgsRule, input.quantity, complexity);
+        if (customSigs.length > 0 && signatureTypes.length > 0) {
+            // New logic: Sum of (amount * signature_type_unit_price)
+            customSigs.forEach(sig => {
+                const type = signatureTypes.find(t => t.id === sig.signature_type_id);
+                if (type) {
+                    unitProductionRate += (sig.amount * type.unit_price);
+                    details += `${sig.amount}x${type.name} `;
+                }
+            });
+        } else {
+            // Fallback to legacy logic
+            unitProductionRate = cfgsRule.production_base_cost;
+            details = `Std logic`;
+        }
+
+        const complexity = Math.max(0, totalSigs - 1);
+        const cost = calculateOperationCost(cfgsRule, input.quantity, complexity, unitProductionRate);
+
+        // Update details with signature breakdown
+        cost.item.details = `Setup (sigs-1): ${cost.setup.toFixed(2)} | Prod (${details.trim()}): ${unitProductionRate.toFixed(4)}/unit`;
+
         applyDiscountToItem(cost, discountFactor, discountLabel);
-
-        cost.item.details += ` (x${signatures} sigs)`;
         items.push(cost.item);
         setupTotal += cost.setup;
         productionTotal += cost.production;
@@ -87,12 +105,8 @@ export function calculateDetailedQuote(
     }
 
 
+    // Final Totals
     const totalBeforeDiscount = setupTotal + productionTotal;
-
-    // Placeholder for discount logic
-    const appliedDiscount = 0; // standard volume discount could be applied here
-
-    // For now, returning total
 
     return {
         total_price: Number(totalBeforeDiscount.toFixed(2)),
@@ -112,10 +126,15 @@ export function calculateDetailedQuote(
  * Helper to calculate cost for a single operation.
  * Returns Setup Cost and Total Production Cost (Rate * Qty).
  */
-function calculateOperationCost(rule: PricingRule, quantity: number, complexityFactor: number) {
+function calculateOperationCost(
+    rule: PricingRule,
+    quantity: number,
+    complexityFactor: number,
+    overrideUnitRate?: number
+) {
     const setupCost = rule.setup_base_cost + (rule.setup_variable_factor * complexityFactor);
 
-    const unitProdRate = rule.production_base_cost + (rule.production_variable_factor * complexityFactor);
+    const unitProdRate = overrideUnitRate ?? (rule.production_base_cost + (rule.production_variable_factor * complexityFactor));
     const totalProdCost = unitProdRate * quantity;
 
     return {

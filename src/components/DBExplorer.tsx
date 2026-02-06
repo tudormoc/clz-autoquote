@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTablesAction, getTableDataAction, testConnectionAction, getColumnDistinctValuesAction } from '../app/db-actions';
+import { getTablesAction, getTableDataAction, getColumnDistinctValuesAction } from '../app/db-actions';
 import { MSSQL_DB } from '@/lib/mssql';
 
 export function DBExplorer() {
@@ -10,7 +10,6 @@ export function DBExplorer() {
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [tableInfo, setTableInfo] = useState<{ columns: any[], rows: any[] } | null>(null);
     const [loading, setLoading] = useState(false);
-    const [connStatus, setConnStatus] = useState<{ success?: boolean, version?: string, error?: string }>({});
     const [searchTerm, setSearchTerm] = useState('');
     const [filterColumn, setFilterColumn] = useState('');
     const [filterValue, setFilterValue] = useState('');
@@ -30,12 +29,7 @@ export function DBExplorer() {
         setLoading(false);
     };
 
-    const handleTest = async () => {
-        setLoading(true);
-        const res = await testConnectionAction(selectedDB);
-        setConnStatus(res);
-        setLoading(false);
-    };
+
 
     const [activeColForUnique, setActiveColForUnique] = useState('');
 
@@ -98,21 +92,20 @@ export function DBExplorer() {
                         >
                             NetPro (PROD)
                         </button>
+                        <button
+                            onClick={() => setSelectedDB('QUOTES')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${selectedDB === 'QUOTES'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Quotes (INTERNAL)
+                        </button>
                     </div>
-
-                    <button
-                        onClick={handleTest}
-                        className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors"
-                    >
-                        Test {selectedDB} Connection
-                    </button>
-
-                    {connStatus.success && <span className="text-green-600 text-sm font-medium">✅ Connected to {selectedDB}</span>}
-                    {connStatus.error && <span className="text-red-600 text-sm font-medium">❌ {connStatus.error}</span>}
                 </div>
 
                 <div className="text-xs text-gray-400 font-mono">
-                    Target: {selectedDB === 'BUSINESS' ? 'COOPZANARDI' : 'NETPRO'}
+                    Target: {selectedDB === 'BUSINESS' ? 'COOPZANARDI' : selectedDB === 'NETPRO' ? 'NETPRO' : 'CLZDWHQANDPROG'}
                 </div>
             </div>
 

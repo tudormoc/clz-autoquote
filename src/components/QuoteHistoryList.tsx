@@ -3,7 +3,7 @@
 import React from 'react';
 import { Clock, History, Trash2 } from 'lucide-react';
 import { APP_COPY } from '@/locales/en';
-import type { Quote } from '@/types/database';
+import type { Quote } from '@/types';
 
 interface QuoteHistoryListProps {
     history: Quote[];

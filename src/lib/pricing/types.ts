@@ -1,44 +1,23 @@
-export interface Operation {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  category: 'internal' | 'cover' | 'packaging' | 'finishing' | 'other';
-}
-
-export interface Material {
-  id: string;
-  category: 'paper' | 'cardboard' | 'cover_material' | 'foil' | 'glue' | 'other';
-  name: string;
-  cost_per_unit: number;
-  unit_type: string;
-  properties: Record<string, any>;
-}
-
-export interface PricingConfig {
-  id: string;
-  operation_id: string;
-  setup_base_cost: number;
-  setup_variable_factor: number;
-  production_base_cost: number;
-  production_variable_factor: number;
-  active: boolean;
-}
-
-export interface DiscountTier {
-  id?: number;
-  min_quantity: number;
-  max_quantity: number | null;
-  discount_percentage: number;
-}
-
-// Joined type for easier usage
-export interface PricingRule extends Operation, PricingConfig {
-  operation_name: string; // Alias for Operation.name
-}
-
 import { z } from 'zod';
 import { QuoteInputSchema } from './validation';
+import {
+  Operation,
+  Material,
+  PricingConfig,
+  DiscountTier,
+  PricingRule,
+  SignatureType
+} from '@/types';
+
+export type {
+  Operation,
+  Material,
+  PricingConfig,
+  DiscountTier,
+  PricingRule,
+  SignatureType
+};
+
 export type QuoteInput = z.infer<typeof QuoteInputSchema>;
 
 export interface CostItem {
@@ -63,14 +42,4 @@ export interface QuoteBreakdown {
     production_total: number;
     cover_production_type?: 'standard' | 'fast' | 'manual';
   };
-}
-export interface SignatureType {
-  id: string;
-  name: string;
-  pages: number;
-  sort_order: number;
-  unit_price: number;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
 }

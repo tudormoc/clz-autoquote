@@ -35,9 +35,7 @@ export function SignaturesManager() {
         const res = await updateRecordAction('QUOTES', 'signature_types', id, 'id', {
             name: editForm.name,
             pages: Number(editForm.pages),
-            unit_price: Number(editForm.unit_price),
-            sort_order: Number(editForm.sort_order),
-            is_active: editForm.is_active ? 1 : 0
+            unit_price: Number(editForm.unit_price)
         });
 
         if (res.success) {
@@ -63,7 +61,7 @@ export function SignaturesManager() {
             name: editForm.name,
             pages: Number(editForm.pages),
             unit_price: Number(editForm.unit_price),
-            sort_order: Number(editForm.sort_order),
+            sort_order: 100, // Default sorting
             is_active: 1
         });
 
@@ -76,14 +74,9 @@ export function SignaturesManager() {
         }
     };
 
-    const toggleActive = async (sig: SignatureType) => {
-        const res = await updateRecordAction('QUOTES', 'signature_types', sig.id, 'id', {
-            is_active: sig.is_active ? 0 : 1
-        });
-        if (res.success) loadData();
-    };
 
-    if (loading && signatures.length === 0) return <div className="p-8 text-center text-gray-500 font-medium">Loading signature types...</div>;
+
+    if (loading && signatures.length === 0) return <div className="p-8 text-center text-gray-500 font-medium italic">{APP_COPY.admin.signatureTypes.loading}</div>;
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -109,27 +102,20 @@ export function SignaturesManager() {
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">
                         <tr>
-                            <th className="px-6 py-3 w-16">{APP_COPY.admin.signatureTypes.activeLabel}</th>
                             <th className="px-6 py-3">{APP_COPY.admin.signatureTypes.nameLabel}</th>
                             <th className="px-6 py-3 text-center">{APP_COPY.admin.signatureTypes.pagesLabel}</th>
                             <th className="px-6 py-3 text-center">{APP_COPY.admin.signatureTypes.unitPriceLabel}</th>
-                            <th className="px-6 py-3 text-center">{APP_COPY.admin.signatureTypes.priorityLabel}</th>
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {isAdding && (
                             <tr className="bg-emerald-50/30">
-                                <td className="px-6 py-3 text-center">
-                                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                                        <Check size={14} className="text-emerald-600" />
-                                    </div>
-                                </td>
                                 <td className="px-6 py-3">
                                     <input
                                         type="text"
                                         placeholder="e.g. 16 pages"
-                                        className="w-full px-2 py-1 border rounded text-sm bg-white"
+                                        className="w-full px-2 py-1 border border-border rounded text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
                                         value={editForm.name || ''}
                                         onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                                         autoFocus
@@ -138,7 +124,7 @@ export function SignaturesManager() {
                                 <td className="px-6 py-3">
                                     <input
                                         type="number"
-                                        className="w-full px-2 py-1 border rounded text-sm bg-white"
+                                        className="w-full px-2 py-1 border border-border rounded text-sm bg-white text-center"
                                         value={editForm.pages || ''}
                                         onChange={e => setEditForm({ ...editForm, pages: parseInt(e.target.value) })}
                                     />
@@ -147,59 +133,43 @@ export function SignaturesManager() {
                                     <input
                                         type="number"
                                         step="0.0001"
-                                        className="w-full px-2 py-1 border rounded text-sm bg-white font-mono"
+                                        className="w-full px-2 py-1 border border-border rounded text-sm bg-white font-mono text-center"
                                         value={editForm.unit_price ?? ''}
                                         onChange={e => setEditForm({ ...editForm, unit_price: parseFloat(e.target.value) })}
                                     />
                                 </td>
-                                <td className="px-6 py-3">
-                                    <input
-                                        type="number"
-                                        className="w-full px-2 py-1 border rounded text-sm bg-white"
-                                        value={editForm.sort_order || ''}
-                                        onChange={e => setEditForm({ ...editForm, sort_order: parseInt(e.target.value) })}
-                                    />
-                                </td>
                                 <td className="px-6 py-3 text-right space-x-2">
-                                    <button onClick={handleAdd} className="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-50"><Save size={18} /></button>
-                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50"><X size={18} /></button>
+                                    <button onClick={handleAdd} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-colors"><Save size={18} /></button>
+                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors"><X size={18} /></button>
                                 </td>
                             </tr>
                         )}
                         {signatures.map((sig) => (
-                            <tr key={sig.id} className={`hover:bg-gray-50 transition-colors group ${!sig.is_active ? 'bg-gray-50/50' : ''}`}>
-                                <td className="px-6 py-4">
-                                    <button
-                                        onClick={() => toggleActive(sig)}
-                                        className={`w-8 h-4 rounded-full relative transition-colors ${sig.is_active ? 'bg-blue-600' : 'bg-gray-200'}`}
-                                    >
-                                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${sig.is_active ? 'translate-x-4' : ''}`} />
-                                    </button>
-                                </td>
+                            <tr key={sig.id} className="hover:bg-gray-50 transition-colors group">
                                 <td className="px-6 py-4">
                                     {editingId === sig.id ? (
                                         <input
                                             type="text"
-                                            className="w-full px-2 py-1 border rounded text-sm bg-white"
+                                            className="w-full px-2 py-1 border border-border rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editForm.name || ''}
                                             onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                                         />
                                     ) : (
-                                        <span className={`text-sm font-semibold ${sig.is_active ? 'text-gray-900' : 'text-gray-400'}`}>
+                                        <span className="text-sm font-semibold text-gray-900">
                                             {sig.name}
                                         </span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 text-center">
                                     {editingId === sig.id ? (
                                         <input
                                             type="number"
-                                            className="w-24 px-2 py-1 border rounded text-sm bg-white"
+                                            className="w-full max-w-[100px] px-2 py-1 border border-border rounded text-sm bg-white text-center focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editForm.pages || ''}
                                             onChange={e => setEditForm({ ...editForm, pages: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className={`text-sm font-mono ${sig.is_active ? 'text-gray-600' : 'text-gray-400'}`}>
+                                        <span className="text-sm font-mono text-gray-600">
                                             {sig.pages} pp
                                         </span>
                                     )}
@@ -209,40 +179,26 @@ export function SignaturesManager() {
                                         <input
                                             type="number"
                                             step="0.0001"
-                                            className="w-24 px-2 py-1 border rounded text-sm bg-white font-mono text-center"
+                                            className="w-full max-w-[120px] px-2 py-1 border border-border rounded text-sm bg-white font-mono text-center focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={editForm.unit_price ?? 0}
                                             onChange={e => setEditForm({ ...editForm, unit_price: parseFloat(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className={`text-sm font-mono ${sig.is_active ? 'text-blue-600' : 'text-gray-400'}`}>
+                                        <span className="text-sm font-mono text-blue-600 font-semibold">
                                             €{sig.unit_price.toFixed(4)}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    {editingId === sig.id ? (
-                                        <input
-                                            type="number"
-                                            className="w-24 px-2 py-1 border rounded text-sm bg-white text-center"
-                                            value={editForm.sort_order || ''}
-                                            onChange={e => setEditForm({ ...editForm, sort_order: parseInt(e.target.value) })}
-                                        />
-                                    ) : (
-                                        <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">
-                                            #{sig.sort_order}
                                         </span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     {editingId === sig.id ? (
                                         <div className="flex justify-end gap-3">
-                                            <button onClick={() => handleSave(sig.id)} className="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-50"><Save size={18} /></button>
-                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50"><X size={18} /></button>
+                                            <button onClick={() => handleSave(sig.id)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-colors"><Save size={18} /></button>
+                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors"><X size={18} /></button>
                                         </div>
                                     ) : (
                                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleStartEdit(sig)} className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(sig.id)} className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50"><Trash2 size={18} /></button>
+                                            <button onClick={() => handleStartEdit(sig)} className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-colors"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDelete(sig.id)} className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-colors"><Trash2 size={18} /></button>
                                         </div>
                                     )}
                                 </td>
