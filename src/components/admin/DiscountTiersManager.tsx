@@ -8,6 +8,8 @@ import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
+import { APP_COPY } from '@/locales/en';
+
 export function DiscountTiersManager() {
     const [tiers, setTiers] = useState<DiscountTier[]>([]);
     const [loading, setLoading] = useState(true);
@@ -70,14 +72,14 @@ export function DiscountTiersManager() {
         }
     };
 
-    if (loading && tiers.length === 0) return <div className="p-8 text-center text-gray-500">Loading tiers...</div>;
+    if (loading && tiers.length === 0) return <div className="p-8 text-center text-gray-500">{APP_COPY.admin.discountTiers.loading}</div>;
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                 <div>
-                    <h2 className="font-bold text-gray-800">Volume Discount Tiers</h2>
-                    <p className="text-xs text-gray-500">Configure percentage discounts based on quantity</p>
+                    <h2 className="font-bold text-gray-800">{APP_COPY.admin.discountTiers.title}</h2>
+                    <p className="text-xs text-gray-500">{APP_COPY.admin.discountTiers.subtitle}</p>
                 </div>
                 <Button
                     variant="primary"
@@ -85,7 +87,7 @@ export function DiscountTiersManager() {
                     onClick={() => { setIsAdding(true); setEditingId(null); setEditForm({ min_quantity: 0, max_quantity: 0, discount_percentage: 0 }); }}
                     className="flex items-center gap-1"
                 >
-                    <Plus size={16} /> Add Tier
+                    <Plus size={16} /> {APP_COPY.admin.discountTiers.addTier}
                 </Button>
             </div>
 
@@ -93,9 +95,9 @@ export function DiscountTiersManager() {
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">
                         <tr>
-                            <th className="px-6 py-3">Min Qty</th>
-                            <th className="px-6 py-3">Max Qty</th>
-                            <th className="px-6 py-3">Discount %</th>
+                            <th className="px-6 py-3">{APP_COPY.admin.discountTiers.minQty}</th>
+                            <th className="px-6 py-3">{APP_COPY.admin.discountTiers.maxQty}</th>
+                            <th className="px-6 py-3">{APP_COPY.admin.discountTiers.discount}</th>
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -209,7 +211,7 @@ export function DiscountTiersManager() {
                     <div className="inline-flex items-center justify-center p-3 bg-gray-50 rounded-full mb-3 text-gray-400">
                         <AlertCircle size={24} />
                     </div>
-                    <p className="text-gray-500 text-sm">No discount tiers found. Click Sync to restore defaults or add a new one.</p>
+                    <p className="text-gray-500 text-sm">{APP_COPY.admin.discountTiers.noTiers}</p>
                 </div>
             )}
         </div>

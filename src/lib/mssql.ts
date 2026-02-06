@@ -42,6 +42,14 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
         .connect()
         .then((pool) => {
             console.log(`Connected to MSSQL Database: ${db} (${dbName})`);
+
+            // Critical: Handle connection loss
+            pool.on('error', (err) => {
+                console.error(`MSSQL Pool Error for ${db}:`, err);
+                // Invalidate the pool so next request creates a new one
+                delete pools[db];
+            });
+
             return pool;
         })
         .catch((err) => {

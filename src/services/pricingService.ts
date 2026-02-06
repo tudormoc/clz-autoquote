@@ -62,5 +62,30 @@ export const pricingService = {
             console.error('Error fetching discount tiers from MSSQL:', error);
             return [];
         }
+    },
+
+    /**
+     * Fetches signature types
+     */
+    getSignatureTypes: async () => {
+        try {
+            const result = await queryMSSQL(
+                'SELECT * FROM signature_types WHERE is_active = 1 ORDER BY sort_order ASC',
+                {},
+                'QUOTES'
+            );
+
+            return (result.recordset || []).map((row: any) => ({
+                id: row.id,
+                name: row.name,
+                pages: Number(row.pages),
+                unit_price: Number(row.unit_price || 0),
+                sort_order: Number(row.sort_order),
+                is_active: Boolean(row.is_active)
+            }));
+        } catch (error) {
+            console.error('Error fetching signature types from MSSQL:', error);
+            return [];
+        }
     }
 };

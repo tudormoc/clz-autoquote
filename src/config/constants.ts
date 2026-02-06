@@ -1,32 +1,28 @@
-export const PRICING_CONSTANTS = {
-  // Volume thresholds for books
-  VOLUME_DISCOUNT_THRESHOLDS: {
-    TIER_1: { MIN_QTY: 100, DISCOUNT: 0.05 }, // 5% off
-    TIER_2: { MIN_QTY: 500, DISCOUNT: 0.10 }, // 10% off
-    TIER_3: { MIN_QTY: 1000, DISCOUNT: 0.15 }, // 15% off
+// This file serves as a placeholder for global application constants.
+//
+// NOTE:
+// Most business logic (pricing, discounts, volumes) is NOT hardcoded here.
+// Instead, it is fetched dynamically from our 3 local MSSQL databases.
+//
+// Use this file ONLY for true static configuration (e.g., UI timeouts, pagination limits).
+
+export const APP_CONFIG = {
+  // UI & UX Configuration
+  UI: {
+    TOAST_DURATION: 3000,
   },
 
-  // Base costs for bookbinding (Conceptual)
-  BOOKBINDING: {
-    BASE_FEE: 10,
-    COST_PER_AREA_M2: 5,
-    COST_PER_PAGE: 0.05,
-  },
-
-  // Validation Limits
-  MAX_QUANTITY: 100000,
-  MIN_QUANTITY: 1,
-  MAX_DIMENSION: 1000, // mm (e.g. 1 meter max)
-  MIN_DIMENSION: 50,   // mm (5cm min)
-  MAX_PAGES: 2000,
-  MIN_PAGES: 1,
-
-  // Default Form Values
+  // Default Form Values (Fallbacks)
   DEFAULTS: {
     QUANTITY: 100,
     WIDTH: 210, // A4
     HEIGHT: 297, // A4
     PAGES: 120,
     BOOK_NAME: '',
-  }
+  },
+
+  // Fallback defaults / System constraints
+  LIMITS: {
+    MAX_FILE_UPLOAD_MB: 10,
+  },
 } as const;

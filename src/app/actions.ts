@@ -95,3 +95,10 @@ export async function getPricingRulesAction() {
 export async function getDiscountTiersAction() {
     return await pricingService.getDiscountTiers();
 }
+
+/**
+ * Server Action to fetch signature types
+ */
+export async function getSignatureTypesAction() {
+    return await pricingService.getSignatureTypes();
+}

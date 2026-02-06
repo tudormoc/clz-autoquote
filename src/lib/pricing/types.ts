@@ -64,3 +64,13 @@ export interface QuoteBreakdown {
     cover_production_type?: 'standard' | 'fast' | 'manual';
   };
 }
+export interface SignatureType {
+  id: string;
+  name: string;
+  pages: number;
+  sort_order: number;
+  unit_price: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

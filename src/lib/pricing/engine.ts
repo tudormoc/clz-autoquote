@@ -57,8 +57,11 @@ export function calculateDetailedQuote(
     const cfgsRule = getRule('cfgs');
     if (cfgsRule) {
         // Complexity: (Number of Signatures - 1)
-        const imposition = input.internals.imposition || 16;
-        const signatures = Math.ceil(input.pages / imposition);
+        // Complexity: (Number of Signatures - 1)
+        // Complexity: (Number of Signatures - 1)
+        // Manual mode only: sum of all signature batches
+        const signatures = input.internals.custom_signatures?.reduce((sum, sig) => sum + sig.amount, 0) || 0;
+
         const complexity = Math.max(0, signatures - 1);
 
         const cost = calculateOperationCost(cfgsRule, input.quantity, complexity);

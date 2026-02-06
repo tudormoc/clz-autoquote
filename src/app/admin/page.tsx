@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 
 export default function AdminPage() {
     return (
-        <main className="min-h-screen bg-[#FDFDFB]">
+        <main className="min-h-screen bg-background">
             <Header />
             <AdminDashboard />
         </main>

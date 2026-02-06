@@ -17,6 +17,7 @@ export function AdvancedQuoteForm() {
         isSaving,
         saveError,
         history,
+        signatureTypes,
         selectedQuoteId,
         resetToDefault,
         handleSave,
@@ -26,18 +27,23 @@ export function AdvancedQuoteForm() {
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20">
-            <div className="lg:col-span-8 space-y-8">
+            <div className="lg:col-span-7 space-y-8">
                 <form onSubmit={handleSave} className="space-y-6">
                     <GeneralSection
                         control={form.control}
                         errors={form.formState.errors}
                         setValue={form.setValue}
                     />
-                    <InternalSection control={form.control} errors={form.formState.errors} />
+                    <InternalSection
+                        control={form.control}
+                        errors={form.formState.errors}
+                        setValue={form.setValue}
+                        signatureTypes={signatureTypes}
+                    />
                     <CoverSection control={form.control} errors={form.formState.errors} />
 
                     {saveError && (
-                        <div className="text-red-500 bg-red-50 p-4 rounded border border-red-200">
+                        <div className="text-destructive bg-destructive/10 p-4 rounded border border-destructive/20">
                             {saveError}
                         </div>
                     )}
@@ -47,7 +53,7 @@ export function AdvancedQuoteForm() {
                             type="button"
                             variant="secondary"
                             onClick={resetToDefault}
-                            className="w-full md:w-auto min-w-[150px] h-12 text-lg bg-white border-[#E5E5E0] text-[#6B6B5F] hover:bg-gray-50"
+                            className="w-full md:w-auto min-w-[150px] h-12 text-lg bg-background border-border text-muted-foreground hover:bg-secondary"
                         >
                             New Quote
                         </Button>
@@ -57,7 +63,7 @@ export function AdvancedQuoteForm() {
                     </div>
                 </form>
 
-                <div className="pt-12 border-t border-gray-100">
+                <div className="pt-12 border-t border-border">
                     <QuoteHistoryList
                         history={history}
                         onSelectQuote={selectQuote}
@@ -66,7 +72,7 @@ export function AdvancedQuoteForm() {
                 </div>
             </div>
 
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-5">
                 <div className="sticky top-20">
                     <LiveBreakdown breakdown={estimate} />
                 </div>

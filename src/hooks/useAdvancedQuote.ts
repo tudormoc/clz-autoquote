@@ -34,7 +34,7 @@ const DEFAULT_VALUES: QuoteInput = {
 };
 
 export const useAdvancedQuote = () => {
-    const { rules, tiers, rulesLoading } = usePricingRules();
+    const { rules, tiers, signatureTypes, rulesLoading } = usePricingRules();
     const [estimate, setEstimate] = useState<QuoteBreakdown | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -177,6 +177,7 @@ export const useAdvancedQuote = () => {
         saveError,
         rulesLoading,
         history,
+        signatureTypes,
         selectedQuoteId,
         resetToDefault,
         handleDeleteQuote,

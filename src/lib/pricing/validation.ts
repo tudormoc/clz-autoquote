@@ -30,6 +30,13 @@ export const InternalDetailsSchema = z.object({
     endpapers_enabled: z.boolean(),
     endpapers_weight: z.number().min(1, "Endpaper weight required").optional(),
     endpapers_type: z.enum(['coated_matte', 'coated_gloss']).optional(),
+
+    // Signatures
+    custom_signatures: z.array(z.object({
+        amount: z.number().min(1),
+        signature_type_id: z.string().optional(),
+        size: z.number().min(1).optional() // Keep as optional for calculation cache/fallback
+    })).optional()
 });
 
 export const PackagingSchema = z.object({
