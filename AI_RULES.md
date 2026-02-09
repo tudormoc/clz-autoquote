@@ -42,3 +42,20 @@
 *   **Server Actions:**
     *   Keep server actions pure and separated in `src/app/*-actions.ts`.
     *   Always wrap DB calls in try/catch blocks with standard error return types.
+
+## 6. PRICING MODULE ARCHITECTURE
+*   **Centralized Pricing Logic:** All pricing calculations live in `src/lib/pricing/`.
+*   **Formula Organization:**
+    *   Each pricing domain has its own file in `src/lib/pricing/formulas/`:
+        *   `cover.ts` - Cover production type logic
+        *   `internal.ts` - CFGS (Cutting, Folding, Gathering, Sewing) calculations
+        *   `discount.ts` - Volume discount logic
+        *   `operations.ts` - Generic operation cost calculations
+    *   **Adding New Formulas:** Create a new file in `formulas/` (e.g., `lamination.ts`, `paper.ts`) and export from `formulas/index.ts`.
+*   **Data Layer:** `src/lib/pricing/data.ts` handles all database fetching for pricing rules, tiers, and materials.
+*   **Engine:** `src/lib/pricing/engine.ts` orchestrates formulas and data to produce final quotes.
+*   **Why This Matters:**
+    *   Adding a new operation? → Create one formula file (~50 lines)
+    *   Changing a calculation? → Edit one specific formula file
+    *   All pricing logic is discoverable in one folder
+    *   Files stay small and focused (50-100 lines each)

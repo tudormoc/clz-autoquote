@@ -2,8 +2,8 @@
 
 import { calculateDetailedQuote } from '@/lib/pricing/engine';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
+import { getPricingRules, getDiscountTiers, getSignatureTypes } from '@/lib/pricing/data';
 import { dataService } from '@/services/dataService';
-import { pricingService } from '@/services/pricingService';
 import { z } from 'zod';
 
 /**
@@ -25,9 +25,9 @@ export async function processQuoteAction(
 
     // 2. Fetch Pricing Rules, Discount Tiers & Signature Types from Local MSSQL
     const [rules, tiers, sigs] = await Promise.all([
-        pricingService.getPricingRules(),
-        pricingService.getDiscountTiers(),
-        pricingService.getSignatureTypes()
+        getPricingRules(),
+        getDiscountTiers(),
+        getSignatureTypes()
     ]);
 
     // 3. Perform calculation
@@ -87,19 +87,19 @@ export async function deleteQuoteAction(id: string) {
  * Server Action to fetch latest pricing rules
  */
 export async function getPricingRulesAction() {
-    return await pricingService.getPricingRules();
+    return await getPricingRules();
 }
 
 /**
  * Server Action to fetch volume discount tiers
  */
 export async function getDiscountTiersAction() {
-    return await pricingService.getDiscountTiers();
+    return await getDiscountTiers();
 }
 
 /**
  * Server Action to fetch signature types
  */
 export async function getSignatureTypesAction() {
-    return await pricingService.getSignatureTypes();
+    return await getSignatureTypes();
 }

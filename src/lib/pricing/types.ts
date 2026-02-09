@@ -29,6 +29,7 @@ export interface CostItem {
   production_cost?: number;
   unit_production_cost?: number;
   details?: string; // "200 + (0.5 * 100)"
+  discount_percentage?: number; // Discount applied to this line (0-1, e.g., 0.15 = 15%)
 }
 
 export interface QuoteBreakdown {

@@ -39,22 +39,6 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
         value: type.id
     }));
 
-    // Ensure at least one line exists with a smart default from DB
-    React.useEffect(() => {
-        if (fields.length === 0 && signatureTypes.length > 0) {
-            // Find a common default like 16 or 32, otherwise take the first
-            const defaultType = signatureTypes.find(t => t.pages === 32) ||
-                signatureTypes.find(t => t.pages === 16) ||
-                signatureTypes[0];
-
-            append({
-                amount: 1,
-                signature_type_id: defaultType.id,
-                size: defaultType.pages
-            });
-        }
-    }, [fields.length, append, signatureTypes]);
-
     // Construct configuration string for display (e.g., 1/16 + 18/32 + endpapers)
     const configString = [
         ...(watchCustomSignatures?.map(sig => `${sig.amount || 0}/${sig.size || 0}`) || []),
@@ -79,7 +63,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     {...field}
                                     label={APP_COPY.form.sheetWidth}
                                     type="number"
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                    }}
                                     error={errors.internals?.sheet_width?.message}
                                 />
                             )}
@@ -92,7 +79,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     {...field}
                                     label={APP_COPY.form.sheetHeight}
                                     type="number"
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                    }}
                                     error={errors.internals?.sheet_height?.message}
                                 />
                             )}
@@ -105,7 +95,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     {...field}
                                     label={APP_COPY.form.weightLabel}
                                     type="number"
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                    }}
                                     error={errors.internals?.sheet_weight?.message}
                                 />
                             )}
@@ -138,7 +131,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                 {...field}
                                 label={APP_COPY.form.pagesLabel}
                                 type="number"
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                }}
                                 error={errors.pages?.message}
                             />
                         )}
@@ -170,7 +166,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                         {...field}
                                         label={APP_COPY.form.endpaperWeight}
                                         type="number"
-                                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                        }}
                                         error={errors.internals?.endpapers_weight?.message}
                                     />
                                 )}
@@ -228,7 +227,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                                     type="number"
                                                     placeholder="Qty"
                                                     className="h-9"
-                                                    onChange={(e) => f.onChange(parseInt(e.target.value) || 0)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        f.onChange(val === '' ? '' : parseInt(val) || 0);
+                                                    }}
                                                 />
                                             </div>
                                         )}

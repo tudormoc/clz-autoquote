@@ -68,7 +68,10 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                                     {...field}
                                     label="Closed Width (mm)"
                                     type="number"
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                    }}
                                     error={errors.format?.width?.message}
                                 />
                             )}
@@ -81,7 +84,10 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                                     {...field}
                                     label="Closed Height (mm)"
                                     type="number"
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                    }}
                                     error={errors.format?.height?.message}
                                 />
                             )}
@@ -108,7 +114,10 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                                 {...field}
                                 label="Quantity"
                                 type="number"
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                }}
                                 error={errors.quantity?.message}
                             />
                         )}

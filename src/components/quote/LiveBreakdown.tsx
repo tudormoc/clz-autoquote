@@ -42,16 +42,17 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[40%]">Operation</TableHead>
+                            <TableHead className="w-[35%]">Operation</TableHead>
                             <TableHead className="text-right">Setup</TableHead>
                             <TableHead className="text-right">Unit</TableHead>
+                            <TableHead className="text-right w-[60px]">Disc%</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {breakdown.items.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground italic h-24">
+                                <TableCell colSpan={5} className="text-center text-muted-foreground italic h-24">
                                     No operations costed yet.
                                 </TableCell>
                             </TableRow>
@@ -60,7 +61,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                             <TableRow key={i}>
                                 <TableCell className="font-medium">
                                     <div className="flex flex-col">
-                                        <span>{item.name}</span>
+                                        <span className="text-sm">{item.name}</span>
                                         {item.details && (
                                             <span className="text-[10px] text-muted-foreground font-normal">{item.details}</span>
                                         )}
@@ -72,6 +73,15 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                 <TableCell className="text-right font-mono text-xs">
                                     {item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-'}
                                 </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                    {item.discount_percentage ? (
+                                        <span className="text-green-600 font-medium">
+                                            -{(item.discount_percentage * 100).toFixed(0)}%
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </TableCell>
                                 <TableCell className="text-right font-mono font-medium">
                                     €{item.cost.toFixed(2)}
                                 </TableCell>
@@ -80,11 +90,11 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={3} className="font-medium">Setup Total</TableCell>
+                            <TableCell colSpan={4} className="font-medium">Setup Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                            <TableCell colSpan={3} className="font-medium">Production Total</TableCell>
+                            <TableCell colSpan={4} className="font-medium">Production Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
                         </TableRow>
                     </TableFooter>
