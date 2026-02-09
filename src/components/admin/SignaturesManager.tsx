@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getSignatureTypesAction } from '@/app/actions';
 import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/app/admin-actions';
 import { SignatureType } from '@/lib/pricing/types';
-import { Plus, Trash2, Save, Edit2, X, AlertCircle, Layers, Check } from 'lucide-react';
+import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales/en';
 
@@ -79,22 +79,15 @@ export function SignaturesManager() {
     if (loading && signatures.length === 0) return <div className="p-8 text-center text-gray-500 font-medium italic">{APP_COPY.admin.signatureTypes.loading}</div>;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <div>
-                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
-                        <Layers size={18} className="text-blue-600" />
-                        {APP_COPY.admin.signatureTypes.title}
-                    </h2>
-                    <p className="text-xs text-gray-500">{APP_COPY.admin.signatureTypes.subtitle}</p>
-                </div>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-3 border-b border-gray-200 flex justify-end">
                 <Button
                     variant="primary"
                     size="sm"
                     onClick={() => { setIsAdding(true); setEditingId(null); setEditForm({ name: '', pages: 16, unit_price: 0, sort_order: 100 }); }}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1.5"
                 >
-                    <Plus size={16} /> {APP_COPY.admin.signatureTypes.addType}
+                    <Plus size={14} /> {APP_COPY.admin.signatureTypes.addType}
                 </Button>
             </div>
 

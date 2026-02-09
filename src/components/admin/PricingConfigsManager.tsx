@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getPricingRulesAction } from '@/app/actions';
 import { updateRecordAction } from '@/app/admin-actions';
 import { PricingRule } from '@/lib/pricing/types';
-import { Save, Edit2, X, Settings2 } from 'lucide-react';
+import { Save, Edit2, X } from 'lucide-react';
 
 import { APP_COPY } from '@/locales/en';
 
@@ -44,17 +44,7 @@ export function PricingConfigsManager() {
     if (loading && rules.length === 0) return <div className="p-8 text-center text-gray-500 italic">{APP_COPY.admin.pricingRules.loading}</div>;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                <div>
-                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
-                        <Settings2 size={18} className="text-indigo-600" />
-                        {APP_COPY.admin.pricingRules.title}
-                    </h2>
-                    <p className="text-xs text-gray-500">{APP_COPY.admin.pricingRules.subtitle}</p>
-                </div>
-            </div>
-
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">

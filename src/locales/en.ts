@@ -58,6 +58,17 @@ export const APP_COPY = {
   admin: {
     title: "Control Center",
     subtitle: "Manage the core pricing engine and production parameters",
+    sidebar: {
+      title: "Tables",
+    },
+    categories: {
+      pricing: "Pricing",
+      operations: "Operations",
+      clients: "Clients",
+      materials: "Materials",
+      other: "Other",
+    },
+    noManager: "Manager component not found for this table.",
     pricingRules: {
       title: "Production Operations",
       subtitle: "Management of base setup costs and variable production rates",

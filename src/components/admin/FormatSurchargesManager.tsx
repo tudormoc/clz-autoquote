@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getFormatSurchargesAction } from '@/app/actions';
 import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/app/admin-actions';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
@@ -85,12 +85,8 @@ export function FormatSurchargesManager() {
     if (loading && surcharges.length === 0) return <div className="p-8 text-center text-gray-500">{APP_COPY.admin.formatSurcharges.loading}</div>;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <div>
-                    <h2 className="font-bold text-gray-800">{APP_COPY.admin.formatSurcharges.title}</h2>
-                    <p className="text-xs text-gray-500">{APP_COPY.admin.formatSurcharges.subtitle}</p>
-                </div>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-3 border-b border-gray-200 flex justify-end">
                 <Button
                     variant="primary"
                     size="sm"
@@ -99,9 +95,9 @@ export function FormatSurchargesManager() {
                         setEditingId(null); 
                         setEditForm({ width_min: 0, width_max: 0, height_min: 0, height_max: 0, surcharge_percentage: 0 }); 
                     }}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1.5"
                 >
-                    <Plus size={16} /> {APP_COPY.admin.formatSurcharges.addSurcharge}
+                    <Plus size={14} /> {APP_COPY.admin.formatSurcharges.addSurcharge}
                 </Button>
             </div>
 

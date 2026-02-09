@@ -42,18 +42,16 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[35%]">Operation</TableHead>
+                            <TableHead className="w-[40%]">Operation</TableHead>
                             <TableHead className="text-right">Setup</TableHead>
                             <TableHead className="text-right">Unit</TableHead>
-                            <TableHead className="text-right w-[60px]">Surch%</TableHead>
-                            <TableHead className="text-right w-[60px]">Disc%</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {breakdown.items.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground italic h-24">
+                                <TableCell colSpan={4} className="text-center text-muted-foreground italic h-24">
                                     No operations costed yet.
                                 </TableCell>
                             </TableRow>
@@ -74,24 +72,6 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                 <TableCell className="text-right font-mono text-xs">
                                     {item.original_unit_production_cost ? `€${item.original_unit_production_cost.toFixed(4)}` : (item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-')}
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs">
-                                    {item.surcharge_percentage ? (
-                                        <span className="text-orange-600 font-medium">
-                                            +{(item.surcharge_percentage * 100).toFixed(0)}%
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted-foreground">-</span>
-                                    )}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-xs">
-                                    {item.discount_percentage ? (
-                                        <span className="text-green-600 font-medium">
-                                            -{(item.discount_percentage * 100).toFixed(0)}%
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted-foreground">-</span>
-                                    )}
-                                </TableCell>
                                 <TableCell className="text-right font-mono font-medium">
                                     €{item.cost.toFixed(2)}
                                 </TableCell>
@@ -100,13 +80,39 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={5} className="font-medium">Setup Total</TableCell>
+                            <TableCell colSpan={3} className="font-medium">Setup Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                            <TableCell colSpan={5} className="font-medium">Production Total</TableCell>
+                            <TableCell colSpan={3} className="font-medium">Production Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
                         </TableRow>
+                        {breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0 ? (
+                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
+                                <TableCell colSpan={3} className="font-medium text-orange-700">
+                                    Format Surcharge
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                        (+{(breakdown.metadata.applied_surcharge * 100).toFixed(1)}%)
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-orange-700">
+                                    +€{((breakdown.metadata.setup_total + breakdown.metadata.production_total) * breakdown.metadata.applied_surcharge).toFixed(2)}
+                                </TableCell>
+                            </TableRow>
+                        ) : null}
+                        {breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0 ? (
+                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
+                                <TableCell colSpan={3} className="font-medium text-green-700">
+                                    Volume Discount
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                        (-{(breakdown.metadata.applied_discount * 100).toFixed(1)}%)
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-green-700">
+                                    -€{((breakdown.metadata.setup_total + breakdown.metadata.production_total) * (1 + (breakdown.metadata.applied_surcharge || 0)) * breakdown.metadata.applied_discount).toFixed(2)}
+                                </TableCell>
+                            </TableRow>
+                        ) : null}
                     </TableFooter>
                 </Table>
             </CardContent>

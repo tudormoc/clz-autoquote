@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getDiscountTiersAction } from '@/app/actions';
 import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/app/admin-actions';
 import { DiscountTier } from '@/lib/pricing/types';
@@ -75,19 +75,15 @@ export function DiscountTiersManager() {
     if (loading && tiers.length === 0) return <div className="p-8 text-center text-gray-500">{APP_COPY.admin.discountTiers.loading}</div>;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <div>
-                    <h2 className="font-bold text-gray-800">{APP_COPY.admin.discountTiers.title}</h2>
-                    <p className="text-xs text-gray-500">{APP_COPY.admin.discountTiers.subtitle}</p>
-                </div>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-3 border-b border-gray-200 flex justify-end">
                 <Button
                     variant="primary"
                     size="sm"
                     onClick={() => { setIsAdding(true); setEditingId(null); setEditForm({ min_quantity: 0, max_quantity: 0, discount_percentage: 0 }); }}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1.5"
                 >
-                    <Plus size={16} /> {APP_COPY.admin.discountTiers.addTier}
+                    <Plus size={14} /> {APP_COPY.admin.discountTiers.addTier}
                 </Button>
             </div>
 
