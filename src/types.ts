@@ -75,6 +75,17 @@ export interface DiscountTier {
     created_at?: string
 }
 
+export interface FormatSurcharge {
+    id?: number | string
+    width_min: number
+    width_max: number
+    height_min: number
+    height_max: number
+    surcharge_percentage: number
+    created_at?: string
+    updated_at?: string
+}
+
 export interface SignatureType {
     id: string
     name: string

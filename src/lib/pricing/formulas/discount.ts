@@ -31,6 +31,15 @@ export function applyDiscountToItem(
     // Store the discount percentage in the item (e.g., 0.15 for 15% discount)
     cost.item.discount_percentage = 1 - discountFactor;
 
+    // Store original values before applying discount (only if not already stored by surcharge)
+    if (cost.item.setup_cost && !cost.item.original_setup_cost) {
+        cost.item.original_setup_cost = cost.item.setup_cost;
+    }
+    if (cost.item.unit_production_cost && !cost.item.original_unit_production_cost) {
+        cost.item.original_unit_production_cost = cost.item.unit_production_cost;
+    }
+
+    // Apply discount to displayed values
     cost.item.cost = Number((cost.item.cost * discountFactor).toFixed(2));
     if (cost.item.setup_cost) {
         cost.item.setup_cost = Number((cost.item.setup_cost * discountFactor).toFixed(2));

@@ -1,4 +1,5 @@
 import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier, SignatureType } from './types';
+import { FormatSurcharge } from '@/types';
 import {
     calculateCoverProductionType,
     calculateCFGSProductionRate,
@@ -7,6 +8,10 @@ import {
     calculateDiscountFactor,
     getDiscountLabel,
     applyDiscountToItem,
+    findMaxFormatSurcharge,
+    calculateSurchargeFactor,
+    getSurchargeLabel,
+    applySurchargeToItem,
     calculateOperationCost
 } from './formulas';
 
@@ -17,7 +22,8 @@ export function calculateDetailedQuote(
     input: QuoteInput,
     rules: PricingRule[],
     discountTiers: DiscountTier[] = [],
-    signatureTypes: SignatureType[] = []
+    signatureTypes: SignatureType[] = [],
+    formatSurcharges: FormatSurcharge[] = []
 ): QuoteBreakdown {
     const items: CostItem[] = [];
     let setupTotal = 0;
@@ -26,12 +32,17 @@ export function calculateDetailedQuote(
     // Helper to find rule by slug
     const getRule = (slug: string) => rules.find(r => r.slug === slug);
 
-    // 0. Resolve the relevant discount percentage for the given quantity
+    // 0. Resolve format surcharge based on dimensions (max of width and height surcharges)
+    const surchargePercentage = findMaxFormatSurcharge(input.format.width, input.format.height, formatSurcharges);
+    const surchargeFactor = calculateSurchargeFactor(surchargePercentage);
+    const surchargeLabel = getSurchargeLabel(surchargePercentage);
+
+    // 1. Resolve the relevant discount percentage for the given quantity
     const tier = findDiscountTier(input.quantity, discountTiers);
     const discountFactor = calculateDiscountFactor(tier);
     const discountLabel = getDiscountLabel(tier);
 
-    // --- 1. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
+    // --- 2. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
     const cfgsRule = getRule('cfgs');
     if (cfgsRule) {
         const complexity = calculateCFGSComplexity(input);
@@ -46,19 +57,26 @@ export function calculateDetailedQuote(
         // Update details with signature breakdown
         cost.item.details = `Setup (sigs-1): ${cost.setup.toFixed(2)} | Prod (${details}): ${unitProductionRate.toFixed(4)}/unit`;
 
+        // Apply surcharge first, then discount
+        applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
         applyDiscountToItem(cost, discountFactor, discountLabel);
+        
         items.push(cost.item);
         setupTotal += cost.setup;
         productionTotal += cost.production;
     }
 
-    // --- 2. Cover Production Mode ---
+    // --- 3. Cover Production Mode ---
     const prodType = calculateCoverProductionType(input);
     const prodRule = getRule(`cover_${prodType}`);
 
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
+        
+        // Apply surcharge first, then discount
+        applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
         applyDiscountToItem(cost, discountFactor, discountLabel);
+        
         cost.item.name = `Cover Production (${prodType})`;
         items.push(cost.item);
         setupTotal += cost.setup;
@@ -76,6 +94,7 @@ export function calculateDetailedQuote(
         items,
         metadata: {
             applied_discount: tier?.discount_percentage || 0,
+            applied_surcharge: surchargePercentage,
             setup_total: Number(setupTotal.toFixed(2)),
             production_total: Number(productionTotal.toFixed(2)),
             cover_production_type: calculateCoverProductionType(input)

@@ -4,7 +4,8 @@ import React from 'react';
 import { DiscountTiersManager } from '@/components/admin/DiscountTiersManager';
 import { PricingConfigsManager } from '@/components/admin/PricingConfigsManager';
 import { SignaturesManager } from '@/components/admin/SignaturesManager';
-import { ShieldCheck, Target, Tags, Layers } from 'lucide-react';
+import { FormatSurchargesManager } from '@/components/admin/FormatSurchargesManager';
+import { ShieldCheck, Target, Tags, Layers, Maximize2 } from 'lucide-react';
 
 import { APP_COPY } from '@/locales/en';
 
@@ -44,6 +45,14 @@ export default function AdminDashboard() {
                         <h2 className="text-xs uppercase tracking-widest font-bold">{APP_COPY.admin.discountTiers.title}</h2>
                     </div>
                     <DiscountTiersManager />
+                </section>
+
+                <section>
+                    <div className="flex items-center gap-2 mb-4 text-gray-400">
+                        <Maximize2 size={18} />
+                        <h2 className="text-xs uppercase tracking-widest font-bold">{APP_COPY.admin.formatSurcharges.title}</h2>
+                    </div>
+                    <FormatSurchargesManager />
                 </section>
             </div>
         </div>

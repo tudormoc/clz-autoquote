@@ -91,6 +91,19 @@ export const APP_COPY = {
       noTypes: "No signature types found in database.",
       loading: "Retreiving imposition library...",
       deleteConfirm: "Are you sure you want to delete this signature type?",
+    },
+    formatSurcharges: {
+      title: "Format Surcharges",
+      subtitle: "Dimension-based price adjustments for non-standard formats",
+      widthMin: "Width Min (mm)",
+      widthMax: "Width Max (mm)",
+      heightMin: "Height Min (mm)",
+      heightMax: "Height Max (mm)",
+      surcharge: "Surcharge %",
+      addSurcharge: "Add Surcharge",
+      noSurcharges: "No format surcharges configured.",
+      loading: "Loading format surcharges...",
+      deleteConfirm: "Are you sure you want to delete this format surcharge?",
     }
   }
 } as const;

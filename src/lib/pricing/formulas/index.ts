@@ -6,4 +6,5 @@
 export * from './cover';
 export * from './internal';
 export * from './discount';
+export * from './surcharge';
 export * from './operations';

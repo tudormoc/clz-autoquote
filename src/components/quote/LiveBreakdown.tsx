@@ -45,6 +45,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                             <TableHead className="w-[35%]">Operation</TableHead>
                             <TableHead className="text-right">Setup</TableHead>
                             <TableHead className="text-right">Unit</TableHead>
+                            <TableHead className="text-right w-[60px]">Surch%</TableHead>
                             <TableHead className="text-right w-[60px]">Disc%</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                         </TableRow>
@@ -52,7 +53,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     <TableBody>
                         {breakdown.items.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground italic h-24">
+                                <TableCell colSpan={6} className="text-center text-muted-foreground italic h-24">
                                     No operations costed yet.
                                 </TableCell>
                             </TableRow>
@@ -68,10 +69,19 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
-                                    {item.setup_cost ? `€${item.setup_cost.toFixed(2)}` : '-'}
+                                    {item.original_setup_cost ? `€${item.original_setup_cost.toFixed(2)}` : (item.setup_cost ? `€${item.setup_cost.toFixed(2)}` : '-')}
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
-                                    {item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-'}
+                                    {item.original_unit_production_cost ? `€${item.original_unit_production_cost.toFixed(4)}` : (item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-')}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                    {item.surcharge_percentage ? (
+                                        <span className="text-orange-600 font-medium">
+                                            +{(item.surcharge_percentage * 100).toFixed(0)}%
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs">
                                     {item.discount_percentage ? (
@@ -90,11 +100,11 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={4} className="font-medium">Setup Total</TableCell>
+                            <TableCell colSpan={5} className="font-medium">Setup Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                            <TableCell colSpan={4} className="font-medium">Production Total</TableCell>
+                            <TableCell colSpan={5} className="font-medium">Production Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
                         </TableRow>
                     </TableFooter>

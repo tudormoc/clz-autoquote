@@ -40,7 +40,7 @@ const DEFAULT_VALUES: QuoteInput = {
 };
 
 export const useAdvancedQuote = () => {
-    const { rules, tiers, signatureTypes, rulesLoading } = usePricingRules();
+    const { rules, tiers, signatureTypes, formatSurcharges, rulesLoading } = usePricingRules();
     const [estimate, setEstimate] = useState<QuoteBreakdown | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export const useAdvancedQuote = () => {
         try {
             // Only calculate if we have basic required numbers
             if (values.quantity && values.pages && values.format?.width) {
-                const result = calculateDetailedQuote(values as QuoteInput, rules, tiers, signatureTypes);
+                const result = calculateDetailedQuote(values as QuoteInput, rules, tiers, signatureTypes, formatSurcharges);
                 setEstimate(result);
             }
         } catch (e) {
@@ -93,7 +93,7 @@ export const useAdvancedQuote = () => {
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [JSON.stringify(values), rules, tiers, rulesLoading]);
+    }, [JSON.stringify(values), rules, tiers, formatSurcharges, rulesLoading]);
 
     const onSubmit = async (data: QuoteInput) => {
         setIsSaving(true);

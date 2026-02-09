@@ -28,7 +28,11 @@ export interface CostItem {
   setup_cost?: number;
   production_cost?: number;
   unit_production_cost?: number;
+  // Original values before surcharge/discount
+  original_setup_cost?: number;
+  original_unit_production_cost?: number;
   details?: string; // "200 + (0.5 * 100)"
+  surcharge_percentage?: number; // Format surcharge applied (0-1, e.g., 0.20 = 20%)
   discount_percentage?: number; // Discount applied to this line (0-1, e.g., 0.15 = 15%)
 }
 
@@ -39,6 +43,7 @@ export interface QuoteBreakdown {
   items: CostItem[];
   metadata: {
     applied_discount?: number;
+    applied_surcharge?: number;
     setup_total: number;
     production_total: number;
     cover_production_type?: 'standard' | 'fast' | 'manual';
