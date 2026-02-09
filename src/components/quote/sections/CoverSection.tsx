@@ -66,7 +66,10 @@ export function CoverSection({ control, errors }: Props) {
                                 label="Board Thickness (mm)"
                                 type="number"
                                 step="0.1"
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(val === '' ? '' : parseFloat(val) || 0);
+                                }}
                                 error={errors.cover_details?.board_thickness?.message}
                             />
                         )}

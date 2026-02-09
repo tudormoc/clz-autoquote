@@ -14,11 +14,31 @@ export const APP_CONFIG = {
 
   // Default Form Values (Fallbacks)
   DEFAULTS: {
-    QUANTITY: 100,
-    WIDTH: 210, // A4
-    HEIGHT: 297, // A4
-    PAGES: 120,
-    BOOK_NAME: '',
+    QUANTITY: 1000,
+    WIDTH: 148, // A5
+    HEIGHT: 210, // A5
+    PAGES: 100,
+    BOOK_NAME: 'My Book Project',
+    
+    // Cover defaults
+    COVER_TYPE: 'hardcover',
+    SPINE_TYPE: 'square',
+    BOARD_THICKNESS: 2.5,
+    HEADBANDS_ENABLED: false,
+    HEADBANDS_TYPE: 'politi',
+    
+    // Internal sheet defaults
+    SHEET_WIDTH: 700,
+    SHEET_HEIGHT: 1000,
+    SHEET_THICKNESS: 1.5,
+    SHEET_WEIGHT: 170,
+    SHEET_TYPE: 'coated_matte',
+    
+    // Endpapers defaults
+    ENDPAPERS_ENABLED: false,
+    ENDPAPERS_WEIGHT: 170,
+    ENDPAPERS_THICKNESS: 0.15,
+    ENDPAPERS_TYPE: 'coated_matte',
   },
 
   // Fallback defaults / System constraints

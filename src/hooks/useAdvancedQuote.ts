@@ -7,29 +7,35 @@ import { calculateDetailedQuote, calculateCoverProductionType } from '@/lib/pric
 import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction, deleteQuoteAction } from '@/app/actions';
 import { Quote } from '@/types';
+import { APP_CONFIG } from '@/config/constants';
 
 const DEFAULT_VALUES: QuoteInput = {
-    project_title: 'My Book Project',
-    quantity: 1000,
-    format: { width: 148, height: 210 },
-    pages: 100,
+    project_title: APP_CONFIG.DEFAULTS.BOOK_NAME,
+    quantity: APP_CONFIG.DEFAULTS.QUANTITY,
+    format: { 
+        width: APP_CONFIG.DEFAULTS.WIDTH, 
+        height: APP_CONFIG.DEFAULTS.HEIGHT 
+    },
+    pages: APP_CONFIG.DEFAULTS.PAGES,
     cover_details: {
-        type: 'hardcover',
-        spine_type: 'square',
-        board_thickness: 2.5,
-        headbands_enabled: false,
-        headbands_type: 'politi',
+        type: APP_CONFIG.DEFAULTS.COVER_TYPE,
+        spine_type: APP_CONFIG.DEFAULTS.SPINE_TYPE as 'square' | 'round',
+        board_thickness: APP_CONFIG.DEFAULTS.BOARD_THICKNESS,
+        headbands_enabled: APP_CONFIG.DEFAULTS.HEADBANDS_ENABLED,
+        headbands_type: APP_CONFIG.DEFAULTS.HEADBANDS_TYPE as 'politi' | 'g&w',
         finishings: []
     },
     internals: {
         printing_type: 'standard',
-        sheet_width: 700,
-        sheet_height: 1000,
-        sheet_weight: 170,
-        sheet_type: 'coated_matte',
-        endpapers_enabled: false,
-        endpapers_weight: 170,
-        endpapers_type: 'coated_matte'
+        sheet_width: APP_CONFIG.DEFAULTS.SHEET_WIDTH,
+        sheet_height: APP_CONFIG.DEFAULTS.SHEET_HEIGHT,
+        sheet_thickness: APP_CONFIG.DEFAULTS.SHEET_THICKNESS,
+        sheet_weight: APP_CONFIG.DEFAULTS.SHEET_WEIGHT,
+        sheet_type: APP_CONFIG.DEFAULTS.SHEET_TYPE as 'coated_matte' | 'coated_gloss',
+        endpapers_enabled: APP_CONFIG.DEFAULTS.ENDPAPERS_ENABLED,
+        endpapers_weight: APP_CONFIG.DEFAULTS.ENDPAPERS_WEIGHT,
+        endpapers_thickness: APP_CONFIG.DEFAULTS.ENDPAPERS_THICKNESS,
+        endpapers_type: APP_CONFIG.DEFAULTS.ENDPAPERS_TYPE as 'coated_matte' | 'coated_gloss'
     }
 };
 

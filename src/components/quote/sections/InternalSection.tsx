@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { InfoBadge } from '@/components/ui/InfoBadge';
 import { APP_COPY } from '@/locales/en';
 
 interface Props {
@@ -87,6 +88,8 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                 />
                             )}
                         />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
                         <Controller
                             control={control}
                             name="internals.sheet_weight"
@@ -100,6 +103,23 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                         field.onChange(val === '' ? '' : parseInt(val) || 0);
                                     }}
                                     error={errors.internals?.sheet_weight?.message}
+                                />
+                            )}
+                        />
+                        <Controller
+                            control={control}
+                            name="internals.sheet_thickness"
+                            render={({ field }) => (
+                                <Input
+                                    {...field}
+                                    label="Thickness (mm)"
+                                    type="number"
+                                    step="0.01"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        field.onChange(val === '' ? '' : parseFloat(val) || 0);
+                                    }}
+                                    error={errors.internals?.sheet_thickness?.message}
                                 />
                             )}
                         />
@@ -123,13 +143,24 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                 {/* Legacy Pages Field */}
                 <div>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium leading-none">
+                            {APP_COPY.form.pagesLabel}
+                        </label>
+                        {pages > 0 && (
+                            <InfoBadge
+                                label={APP_COPY.form.totalLabel || "TOTAL"}
+                                value={`${pages + (endpapersEnabled ? 8 : 0)} pp`}
+                                detail={endpapersEnabled ? `(${pages} + 8)` : undefined}
+                            />
+                        )}
+                    </div>
                     <Controller
                         control={control}
                         name="pages"
                         render={({ field }) => (
                             <Input
                                 {...field}
-                                label={APP_COPY.form.pagesLabel}
                                 type="number"
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -157,38 +188,57 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                     />
 
                     {endpapersEnabled && (
-                        <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 ml-1">
-                            <Controller
-                                control={control}
-                                name="internals.endpapers_weight"
-                                render={({ field }) => (
-                                    <Input
-                                        {...field}
-                                        label={APP_COPY.form.endpaperWeight}
-                                        type="number"
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            field.onChange(val === '' ? '' : parseInt(val) || 0);
-                                        }}
-                                        error={errors.internals?.endpapers_weight?.message}
-                                    />
-                                )}
-                            />
-                            <Controller
-                                control={control}
-                                name="internals.endpapers_type"
-                                render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        label={APP_COPY.form.endpaperType}
-                                        options={[
-                                            { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
-                                            { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
-                                        ]}
-                                        error={errors.internals?.endpapers_type?.message}
-                                    />
-                                )}
-                            />
+                        <div className="space-y-4 pl-6 border-l-2 ml-1">
+                            <div className="grid grid-cols-3 gap-4">
+                                <Controller
+                                    control={control}
+                                    name="internals.endpapers_weight"
+                                    render={({ field }) => (
+                                        <Input
+                                            {...field}
+                                            label={APP_COPY.form.endpaperWeight}
+                                            type="number"
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                            }}
+                                            error={errors.internals?.endpapers_weight?.message}
+                                        />
+                                    )}
+                                />
+                                <Controller
+                                    control={control}
+                                    name="internals.endpapers_thickness"
+                                    render={({ field }) => (
+                                        <Input
+                                            {...field}
+                                            label="Thickness (mm)"
+                                            type="number"
+                                            step="0.01"
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                field.onChange(val === '' ? '' : parseFloat(val) || 0);
+                                            }}
+                                            error={errors.internals?.endpapers_thickness?.message}
+                                        />
+                                    )}
+                                />
+                                <Controller
+                                    control={control}
+                                    name="internals.endpapers_type"
+                                    render={({ field }) => (
+                                        <Select
+                                            {...field}
+                                            label={APP_COPY.form.endpaperType}
+                                            options={[
+                                                { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
+                                                { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
+                                            ]}
+                                            error={errors.internals?.endpapers_type?.message}
+                                        />
+                                    )}
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
@@ -198,10 +248,10 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">{APP_COPY.form.impositionTitle}</h3>
                         {configString && (
-                            <div className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 flex items-center gap-2">
-                                <span className="uppercase tracking-tighter text-[9px]">{APP_COPY.form.configurationLabel}</span>
-                                <span className="text-gray-600 font-mono">{configString}</span>
-                            </div>
+                            <InfoBadge
+                                label={APP_COPY.form.configurationLabel}
+                                value={configString}
+                            />
                         )}
                     </div>
 
@@ -297,9 +347,12 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                             <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{APP_COPY.form.totalImposedPages}</span>
-                                <span className={`font-mono font-bold ${totalManualPages === pages ? 'text-green-600' : 'text-orange-500'}`}>
-                                    {totalManualPages} <span className="text-xs font-normal text-muted-foreground">/ {pages} {APP_COPY.form.targetPagesSuffix}</span>
-                                </span>
+                                <InfoBadge
+                                    label=""
+                                    value={`${totalManualPages} / ${pages}`}
+                                    detail={APP_COPY.form.targetPagesSuffix}
+                                    className={totalManualPages === pages ? 'text-green-600' : 'text-orange-500'}
+                                />
                             </div>
                             {totalManualPages !== pages && (
                                 <p className="text-[11px] text-orange-500 mt-1">

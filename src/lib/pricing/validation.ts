@@ -22,6 +22,7 @@ export const InternalDetailsSchema = z.object({
     // Printed Sheets
     sheet_width: z.number().min(1, "Width required"),
     sheet_height: z.number().min(1, "Height required"),
+    sheet_thickness: z.number().min(0.01, "Thickness required").optional(),
     imposition: z.number().min(1, "Imposition required").optional(),
     sheet_weight: z.number().min(1, "Weight required").optional(),
     sheet_type: z.enum(['coated_matte', 'coated_gloss']).optional(),
@@ -29,6 +30,7 @@ export const InternalDetailsSchema = z.object({
     // Endpapers
     endpapers_enabled: z.boolean(),
     endpapers_weight: z.number().min(1, "Endpaper weight required").optional(),
+    endpapers_thickness: z.number().min(0.01, "Endpaper thickness required").optional(),
     endpapers_type: z.enum(['coated_matte', 'coated_gloss']).optional(),
 
     // Signatures
