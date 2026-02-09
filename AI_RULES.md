@@ -44,18 +44,46 @@
     *   Always wrap DB calls in try/catch blocks with standard error return types.
 
 ## 6. PRICING MODULE ARCHITECTURE
-*   **Centralized Pricing Logic:** All pricing calculations live in `src/lib/pricing/`.
-*   **Formula Organization:**
-    *   Each pricing domain has its own file in `src/lib/pricing/formulas/`:
-        *   `cover.ts` - Cover production type logic
-        *   `internal.ts` - CFGS (Cutting, Folding, Gathering, Sewing) calculations
-        *   `discount.ts` - Volume discount logic
-        *   `operations.ts` - Generic operation cost calculations
-    *   **Adding New Formulas:** Create a new file in `formulas/` (e.g., `lamination.ts`, `paper.ts`) and export from `formulas/index.ts`.
-*   **Data Layer:** `src/lib/pricing/data.ts` handles all database fetching for pricing rules, tiers, and materials.
-*   **Engine:** `src/lib/pricing/engine.ts` orchestrates formulas and data to produce final quotes.
-*   **Why This Matters:**
-    *   Adding a new operation? → Create one formula file (~50 lines)
-    *   Changing a calculation? → Edit one specific formula file
-    *   All pricing logic is discoverable in one folder
-    *   Files stay small and focused (50-100 lines each)
+
+### 6.1 Structure
+- **All pricing logic:** `src/lib/pricing/`
+- **Formulas:** `src/lib/pricing/formulas/` (one file per operation, 50-150 lines)
+- **Data layer:** `src/lib/pricing/data.ts` (DB fetching)
+- **Engine:** `src/lib/pricing/engine.ts` (orchestrates everything)
+
+### 6.2 Formula Standards (MANDATORY)
+
+**Before ANY formula work, read:** `src/lib/pricing/formulas/QUICK_REFERENCE.md`
+
+**Every formula file MUST have:**
+1. **Visual header block** (copy from existing files or `TEMPLATE.ts`)
+2. **Constants in** `src/config/constants.ts` → `PRICING_FORMULAS` (NO magic numbers)
+3. **JSDoc + `@example`** on all exported functions
+4. **Naming:** `calculate[Op][Aspect]`, `find[What]`, `apply[What]To[Target]`
+
+### 6.3 Adding New Operations
+
+1. `cp formulas/TEMPLATE.ts formulas/your-operation.ts`
+2. Add constants to `src/config/constants.ts` → `PRICING_FORMULAS`
+3. Implement with full documentation
+4. Export from `formulas/index.ts`
+5. Integrate in `engine.ts` (follow existing patterns)
+6. Add DB rule via Admin Dashboard
+7. Test: `npm run lint` + UI
+
+### 6.4 Modifying Formulas
+
+1. **Try constants first** (preferred) → Edit `constants.ts`
+2. **If logic change needed:**
+   - Update header block
+   - Adjust JSDoc examples
+   - Add inline comments
+   - Test edge cases
+
+### 6.5 Quality Checklist
+
+- [ ] No magic numbers (all in `constants.ts`)
+- [ ] Header block + JSDoc + examples
+- [ ] File is 50-150 lines
+- [ ] `npm run lint` passes
+- [ ] Tested in UI with real data

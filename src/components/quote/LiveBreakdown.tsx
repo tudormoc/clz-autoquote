@@ -87,31 +87,34 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                             <TableCell colSpan={3} className="font-medium">Production Total</TableCell>
                             <TableCell className="text-right font-mono">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
                         </TableRow>
-                        {breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0 ? (
-                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                                <TableCell colSpan={3} className="font-medium text-orange-700">
-                                    Format Surcharge
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                        (+{(breakdown.metadata.applied_surcharge * 100).toFixed(1)}%)
-                                    </span>
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-orange-700">
-                                    +€{((breakdown.metadata.setup_total + breakdown.metadata.production_total) * breakdown.metadata.applied_surcharge).toFixed(2)}
-                                </TableCell>
-                            </TableRow>
-                        ) : null}
-                        {breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0 ? (
-                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                                <TableCell colSpan={3} className="font-medium text-green-700">
-                                    Volume Discount
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                        (-{(breakdown.metadata.applied_discount * 100).toFixed(1)}%)
-                                    </span>
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-green-700">
-                                    -€{((breakdown.metadata.setup_total + breakdown.metadata.production_total) * (1 + (breakdown.metadata.applied_surcharge || 0)) * breakdown.metadata.applied_discount).toFixed(2)}
-                                </TableCell>
-                            </TableRow>
+                        {(breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0) || (breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0) ? (
+                            <>
+                                <TableRow className="border-t-2 border-gray-300">
+                                    <TableCell colSpan={4} className="py-2">
+                                        <div className="text-xs text-muted-foreground font-normal">Applied adjustments:</div>
+                                    </TableCell>
+                                </TableRow>
+                                {breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0 ? (
+                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                        <TableCell colSpan={3} className="text-sm text-orange-700 pl-8">
+                                            Format Surcharge: +{(breakdown.metadata.applied_surcharge * 100).toFixed(1)}%
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                            (included above)
+                                        </TableCell>
+                                    </TableRow>
+                                ) : null}
+                                {breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0 ? (
+                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                        <TableCell colSpan={3} className="text-sm text-green-700 pl-8">
+                                            Volume Discount: -{(breakdown.metadata.applied_discount * 100).toFixed(1)}%
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                            (included above)
+                                        </TableCell>
+                                    </TableRow>
+                                ) : null}
+                            </>
                         ) : null}
                     </TableFooter>
                 </Table>

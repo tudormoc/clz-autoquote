@@ -15,8 +15,8 @@ export const APP_CONFIG = {
   // Default Form Values (Fallbacks)
   DEFAULTS: {
     QUANTITY: 1000,
-    WIDTH: 148, // A5
-    HEIGHT: 210, // A5
+    WIDTH: 148,
+    HEIGHT: 210,
     PAGES: 100,
     BOOK_NAME: 'My Book Project',
     
@@ -37,12 +37,43 @@ export const APP_CONFIG = {
     // Endpapers defaults
     ENDPAPERS_ENABLED: false,
     ENDPAPERS_WEIGHT: 170,
-    ENDPAPERS_THICKNESS: 0.15,
+    ENDPAPERS_THICKNESS: 1.5,
     ENDPAPERS_TYPE: 'coated_matte',
   },
 
   // Fallback defaults / System constraints
   LIMITS: {
     MAX_FILE_UPLOAD_MB: 10,
+  },
+} as const;
+
+// ============================================================================
+// PRICING FORMULA CONSTANTS
+// ============================================================================
+// These constants control the mathematical formulas used in pricing calculations.
+// Edit these values to adjust how prices are calculated across the system.
+
+export const PRICING_FORMULAS = {
+  // --- CFGS (Cutting, Folding, Gathering, Sewing) ---
+  CFGS: {
+    // Complexity calculation: max(MIN_COMPLEXITY, TotalSignatures - COMPLEXITY_BASE)
+    // Example: 15 signatures → 15 - 1 = 14 complexity
+    COMPLEXITY_BASE: 1,
+    MIN_COMPLEXITY: 0,
+  },
+
+  // --- Cover Production Type Logic ---
+  COVER: {
+    // Manual production thresholds (if exceeded, must use manual production)
+    MANUAL_WIDTH_THRESHOLD: 305,    // mm
+    MANUAL_HEIGHT_THRESHOLD: 380,   // mm
+
+    // Fast production requirements (all must be true for fast mode)
+    FAST_MIN_WIDTH: 99,             // mm
+    FAST_MAX_WIDTH: 296,            // mm
+    FAST_MIN_HEIGHT: 119,           // mm
+    FAST_MAX_HEIGHT: 381,           // mm
+    FAST_MIN_QUANTITY: 1000,        // units
+    FAST_SPINE_TYPE: 'square',      // spine type required
   },
 } as const;
