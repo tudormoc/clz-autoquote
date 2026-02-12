@@ -41,7 +41,11 @@ export interface Operation {
     slug: string
     name: string
     description: string | null
-    category: 'internal' | 'cover' | 'packaging' | 'finishing' | 'other'
+    category: 'internal' | 'cover' | 'gluing' | 'casing_in' | 'finishing' | 'packaging' | 'other'
+    discount_multiplier_setup?: number
+    discount_multiplier_production?: number
+    surcharge_multiplier_setup?: number
+    surcharge_multiplier_production?: number
     created_at?: string
 }
 

@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { InfoBadge } from '@/components/ui/InfoBadge';
+import { calculateBlockThickness } from '@/lib/pricing/formulas';
 import { APP_COPY } from '@/locales/en';
 
 interface Props {
@@ -19,6 +20,32 @@ interface Props {
 export function InternalSection({ control, errors, setValue, signatureTypes = [] }: Props) {
     const endpapersEnabled = useWatch({ control, name: "internals.endpapers_enabled" });
     const pages = useWatch({ control, name: "pages" }) || 0;
+    
+    // Watch all values needed for block thickness calculation
+    const sheetWeight = useWatch({ control, name: "internals.sheet_weight" }) || 0;
+    const sheetThickness = useWatch({ control, name: "internals.sheet_thickness" }) || 0;
+    const endpapersWeight = useWatch({ control, name: "internals.endpapers_weight" }) || 0;
+    const endpapersThickness = useWatch({ control, name: "internals.endpapers_thickness" }) || 0;
+    
+    // Calculate block thickness
+    const blockThickness = React.useMemo(() => {
+        if (!pages || !sheetWeight || !sheetThickness) return 0;
+        
+        try {
+            return calculateBlockThickness({
+                pages,
+                internals: {
+                    sheet_weight: sheetWeight,
+                    sheet_thickness: sheetThickness,
+                    endpapers_enabled: endpapersEnabled,
+                    endpapers_weight: endpapersWeight,
+                    endpapers_thickness: endpapersThickness
+                }
+            } as QuoteInput);
+        } catch {
+            return 0;
+        }
+    }, [pages, sheetWeight, sheetThickness, endpapersEnabled, endpapersWeight, endpapersThickness]);
 
     // Field Array for custom signatures
     const { fields, append, remove } = useFieldArray({
@@ -147,13 +174,22 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                         <label className="text-sm font-medium leading-none">
                             {APP_COPY.form.pagesLabel}
                         </label>
-                        {pages > 0 && (
-                            <InfoBadge
-                                label={APP_COPY.form.totalLabel || "TOTAL"}
-                                value={`${pages + (endpapersEnabled ? 8 : 0)} pp`}
-                                detail={endpapersEnabled ? `(${pages} + 8)` : undefined}
-                            />
-                        )}
+                        <div className="flex gap-2">
+                            {pages > 0 && (
+                                <InfoBadge
+                                    label={APP_COPY.form.totalLabel || "TOTAL"}
+                                    value={`${pages + (endpapersEnabled ? 8 : 0)} pp`}
+                                    detail={endpapersEnabled ? `(${pages} + 8)` : undefined}
+                                />
+                            )}
+                            {blockThickness > 0 && (
+                                <InfoBadge
+                                    label="BLOCK"
+                                    value={`${blockThickness.toFixed(1)}mm`}
+                                    className="bg-blue-50 border-blue-200"
+                                />
+                            )}
+                        </div>
                     </div>
                     <Controller
                         control={control}

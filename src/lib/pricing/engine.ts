@@ -12,7 +12,9 @@ import {
     calculateSurchargeFactor,
     getSurchargeLabel,
     applySurchargeToItem,
-    calculateOperationCost
+    calculateOperationCost,
+    calculateGluingSlugs,
+    calculateGluingProductionRate
 } from './formulas';
 
 /**
@@ -57,9 +59,23 @@ export function calculateDetailedQuote(
         // Update details with signature breakdown
         cost.item.details = `Setup (sigs-1): ${cost.setup.toFixed(2)} | Prod (${details}): ${unitProductionRate.toFixed(4)}/unit`;
 
-        // Apply surcharge first, then discount
-        applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
-        applyDiscountToItem(cost, discountFactor, discountLabel);
+        // Apply surcharge first (with separate setup/production multipliers)
+        applySurchargeToItem(
+            cost, 
+            surchargeFactor, 
+            surchargePercentage,
+            cfgsRule.surcharge_multiplier_setup ?? 1.0,
+            cfgsRule.surcharge_multiplier_production ?? 1.0
+        );
+        
+        // Then apply discount (with separate setup/production multipliers)
+        applyDiscountToItem(
+            cost, 
+            discountFactor, 
+            discountLabel,
+            cfgsRule.discount_multiplier_setup ?? 1.0,
+            cfgsRule.discount_multiplier_production ?? 1.0
+        );
         
         items.push(cost.item);
         setupTotal += cost.setup;
@@ -73,15 +89,62 @@ export function calculateDetailedQuote(
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
         
-        // Apply surcharge first, then discount
-        applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
-        applyDiscountToItem(cost, discountFactor, discountLabel);
+        // Apply surcharge first (with separate setup/production multipliers)
+        applySurchargeToItem(
+            cost, 
+            surchargeFactor, 
+            surchargePercentage,
+            prodRule.surcharge_multiplier_setup ?? 1.0,
+            prodRule.surcharge_multiplier_production ?? 1.0
+        );
+        
+        // Then apply discount (with separate setup/production multipliers)
+        applyDiscountToItem(
+            cost, 
+            discountFactor, 
+            discountLabel,
+            prodRule.discount_multiplier_setup ?? 1.0,
+            prodRule.discount_multiplier_production ?? 1.0
+        );
         
         cost.item.name = `Cover Production (${prodType})`;
         items.push(cost.item);
         setupTotal += cost.setup;
         productionTotal += cost.production;
     }
+
+    // --- 4. Gluing Operations ---
+    const gluingSlugs = calculateGluingSlugs(input);
+    
+    gluingSlugs.forEach(slug => {
+        const gluingRule = getRule(slug);
+        if (gluingRule) {
+            const unitRate = calculateGluingProductionRate(slug, input);
+            const cost = calculateOperationCost(gluingRule, input.quantity, 1, unitRate);
+            
+            // Apply surcharge first (with separate setup/production multipliers)
+            applySurchargeToItem(
+                cost, 
+                surchargeFactor, 
+                surchargePercentage,
+                gluingRule.surcharge_multiplier_setup ?? 1.0,
+                gluingRule.surcharge_multiplier_production ?? 1.0
+            );
+            
+            // Then apply discount (with separate setup/production multipliers)
+            applyDiscountToItem(
+                cost, 
+                discountFactor, 
+                discountLabel,
+                gluingRule.discount_multiplier_setup ?? 1.0,
+                gluingRule.discount_multiplier_production ?? 1.0
+            );
+            
+            items.push(cost.item);
+            setupTotal += cost.setup;
+            productionTotal += cost.production;
+        }
+    });
 
 
     // Final Totals

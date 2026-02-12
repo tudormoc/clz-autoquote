@@ -13,7 +13,11 @@ export async function getPricingRules(): Promise<PricingRule[]> {
                 o.slug,
                 o.name as operation_name,
                 o.description,
-                o.category
+                o.category,
+                o.discount_multiplier_setup,
+                o.discount_multiplier_production,
+                o.surcharge_multiplier_setup,
+                o.surcharge_multiplier_production
             FROM pricing_configs pc
             JOIN operations o ON pc.operation_id = o.id
             WHERE pc.active = 1
@@ -21,6 +25,7 @@ export async function getPricingRules(): Promise<PricingRule[]> {
 
         return (result.recordset || []).map((row: any) => ({
             id: row.id,
+            operation_id: row.operation_id,
             slug: row.slug,
             name: row.operation_name,
             operation_name: row.operation_name,
@@ -30,7 +35,11 @@ export async function getPricingRules(): Promise<PricingRule[]> {
             setup_variable_factor: Number(row.setup_variable_factor),
             production_base_cost: Number(row.production_base_cost),
             production_variable_factor: Number(row.production_variable_factor),
-            active: row.active
+            active: row.active,
+            discount_multiplier_setup: row.discount_multiplier_setup !== null && row.discount_multiplier_setup !== undefined ? Number(row.discount_multiplier_setup) : 1.0,
+            discount_multiplier_production: row.discount_multiplier_production !== null && row.discount_multiplier_production !== undefined ? Number(row.discount_multiplier_production) : 1.0,
+            surcharge_multiplier_setup: row.surcharge_multiplier_setup !== null && row.surcharge_multiplier_setup !== undefined ? Number(row.surcharge_multiplier_setup) : 1.0,
+            surcharge_multiplier_production: row.surcharge_multiplier_production !== null && row.surcharge_multiplier_production !== undefined ? Number(row.surcharge_multiplier_production) : 1.0
         })) as PricingRule[];
     } catch (error) {
         console.error('Error fetching pricing rules from MSSQL:', error);

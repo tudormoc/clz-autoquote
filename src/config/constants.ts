@@ -76,4 +76,72 @@ export const PRICING_FORMULAS = {
     FAST_MIN_QUANTITY: 1000,        // units
     FAST_SPINE_TYPE: 'square',      // spine type required
   },
+
+  // --- Block Thickness Calculation ---
+  BLOCK: {
+    // Density divisor for converting gsm to thickness factor
+    DENSITY_DIVISOR: 1000,          // Converts gsm to proper density
+    
+    // Pages to sheets conversion
+    PAGES_PER_SHEET: 2,             // 2 pages per sheet (front + back)
+    
+    // Endpapers configuration
+    ENDPAPER_PAGES: 8,              // Endpapers add 8 pages (4 sheets) to block
+  },
+
+  // --- Gluing Operations ---
+  GLUING: {
+    // Square Spine Gluing - Tiered by block thickness
+    SQUARE_HIGH_THRESHOLD: 50,      // mm - Above this = high rate
+    SQUARE_MID_THRESHOLD: 30,       // mm - Above this = mid rate, below = low rate
+    SQUARE_RATES: {
+      HIGH: 0.124,                  // €/unit - Block > 50mm
+      MID: 0.093,                   // €/unit - Block 30-50mm
+      LOW: 0.062,                   // €/unit - Block ≤ 30mm
+    },
+
+    // Round Spine Gluing - Tiered by block thickness
+    ROUND_HIGH_THRESHOLD: 50,       // mm - Above this = high rate
+    ROUND_MID_THRESHOLD: 30,        // mm - Above this = mid rate, below = low rate
+    ROUND_RATES: {
+      HIGH: 0.21,                   // €/unit - Block > 50mm
+      MID: 0.16,                    // €/unit - Block 30-50mm
+      LOW: 0.105,                   // €/unit - Block ≤ 30mm
+    },
+
+    // Manual Loading Gluing - Tiered by dimensions
+    MANUAL_HEIGHT_THRESHOLD: 380,   // mm - Height above this = default rate
+    MANUAL_WIDTH_TIER_1: 305,       // mm - Width ≤ this = default rate
+    MANUAL_WIDTH_TIER_2: 310,       // mm - Width 305-310 = tier 2 rate
+    MANUAL_WIDTH_TIER_3: 320,       // mm - Width 310-320 = tier 3 rate
+    MANUAL_RATES: {
+      DEFAULT: 0.28,                // €/unit - Height>380 OR Width≤305 OR Width>320
+      TIER_2: 0.13,                 // €/unit - Width 305-310mm
+      TIER_3: 0.18,                 // €/unit - Width 310-320mm
+    },
+  },
 } as const;
+
+// ============================================================================
+// OPERATION CATEGORIES
+// ============================================================================
+// Categories for organizing operations in the admin UI and pricing engine
+
+export const OPERATION_CATEGORIES = [
+  { value: 'internal', label: 'Internal', order: 1 },
+  { value: 'cover', label: 'Cover', order: 2 },
+  { value: 'gluing', label: 'Gluing', order: 3 },
+  { value: 'casing_in', label: 'Casing-in', order: 4 },
+  { value: 'finishing', label: 'Finishing', order: 5 },
+  { value: 'packaging', label: 'Packaging', order: 6 },
+  { value: 'other', label: 'Other', order: 7 },
+] as const;
+
+export type OperationCategoryValue = typeof OPERATION_CATEGORIES[number]['value'];
+
+// Helper to get category label from value
+export function getCategoryLabel(value: string): string {
+  return OPERATION_CATEGORIES.find(c => c.value === value)?.label || value;
+}
+
+// ============================================================================

@@ -78,6 +78,8 @@ export const APP_COPY = {
       productionBase: "Production Unit (€)",
       noRules: "Configuration registry is empty.",
       loading: "Synchronizing pricing rules...",
+      addOperation: "Add Operation",
+      deleteConfirm: "Are you sure you want to delete this pricing rule? This will also remove the operation.",
     },
     discountTiers: {
       title: "Volume Optimization",

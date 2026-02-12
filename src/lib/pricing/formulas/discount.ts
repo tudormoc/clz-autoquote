@@ -67,26 +67,37 @@ export function calculateDiscountFactor(tier: DiscountTier | null): number {
  * Applies volume discount to a cost item and its internal tracking values.
  * 
  * This function modifies the cost object in-place, applying the discount
- * to all cost components (setup, production, unit costs).
+ * to setup and production components separately based on their multipliers.
  * 
  * @param cost - Cost object containing setup, production, and item details
- * @param discountFactor - Discount factor (e.g., 0.85 for 15% discount)
+ * @param discountFactor - Base discount factor (e.g., 0.85 for 15% discount)
  * @param label - Human-readable discount label (e.g., "15% volume discount")
+ * @param setupMultiplier - Multiplier for setup discount (0.0-1.0, default 1.0)
+ * @param productionMultiplier - Multiplier for production discount (0.0-1.0, default 1.0)
  * 
  * @example
  * // Before: { cost: 100, setup_cost: 20, production_cost: 80 }
- * applyDiscountToItem(cost, 0.85, "15% volume discount")
- * // After: { cost: 85, setup_cost: 17, production_cost: 68, discount_percentage: 0.15 }
+ * // Apply 15% discount: 100% to setup, 50% to production
+ * applyDiscountToItem(cost, 0.85, "15% volume discount", 1.0, 0.5)
+ * // After: { cost: 83, setup_cost: 17 (20*0.85), production_cost: 66 (80*0.925) }
  */
 export function applyDiscountToItem(
     cost: { setup: number; production: number; item: CostItem },
     discountFactor: number,
-    label: string | null
+    label: string | null,
+    setupMultiplier: number = 1.0,
+    productionMultiplier: number = 1.0
 ): void {
     // No discount to apply
     if (discountFactor >= 1) return;
 
-    // Store the discount percentage in the item (e.g., 0.15 for 15% discount)
+    // Calculate adjusted discount factors for setup and production
+    // Formula: adjustedFactor = 1 - ((1 - baseFactor) * multiplier)
+    // Example: 15% discount with 0.5 multiplier = 1 - ((1 - 0.85) * 0.5) = 0.925 (7.5% discount)
+    const setupDiscountFactor = 1 - ((1 - discountFactor) * setupMultiplier);
+    const productionDiscountFactor = 1 - ((1 - discountFactor) * productionMultiplier);
+
+    // Store the base discount percentage in the item (e.g., 0.15 for 15% discount)
     cost.item.discount_percentage = 1 - discountFactor;
 
     // Store original values before applying discount (only if not already stored by surcharge)
@@ -97,21 +108,27 @@ export function applyDiscountToItem(
         cost.item.original_unit_production_cost = cost.item.unit_production_cost;
     }
 
-    // Apply discount to displayed values
-    cost.item.cost = Number((cost.item.cost * discountFactor).toFixed(2));
+    // Apply discount to setup
+    const discountedSetup = cost.setup * setupDiscountFactor;
     if (cost.item.setup_cost) {
-        cost.item.setup_cost = Number((cost.item.setup_cost * discountFactor).toFixed(2));
-    }
-    if (cost.item.production_cost) {
-        cost.item.production_cost = Number((cost.item.production_cost * discountFactor).toFixed(2));
-    }
-    if (cost.item.unit_production_cost) {
-        cost.item.unit_production_cost = Number((cost.item.unit_production_cost * discountFactor).toFixed(4));
+        cost.item.setup_cost = Number((cost.item.setup_cost * setupDiscountFactor).toFixed(2));
     }
 
+    // Apply discount to production
+    const discountedProduction = cost.production * productionDiscountFactor;
+    if (cost.item.production_cost) {
+        cost.item.production_cost = Number((cost.item.production_cost * productionDiscountFactor).toFixed(2));
+    }
+    if (cost.item.unit_production_cost) {
+        cost.item.unit_production_cost = Number((cost.item.unit_production_cost * productionDiscountFactor).toFixed(4));
+    }
+
+    // Update total cost
+    cost.item.cost = Number((discountedSetup + discountedProduction).toFixed(2));
+
     // Adjust the internal numeric totals used for metadata
-    cost.setup *= discountFactor;
-    cost.production *= discountFactor;
+    cost.setup = discountedSetup;
+    cost.production = discountedProduction;
 }
 
 /**

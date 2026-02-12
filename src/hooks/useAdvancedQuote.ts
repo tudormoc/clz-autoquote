@@ -11,6 +11,8 @@ import { APP_CONFIG } from '@/config/constants';
 
 const DEFAULT_VALUES: QuoteInput = {
     project_title: APP_CONFIG.DEFAULTS.BOOK_NAME,
+    client_name: '',
+    email: '',
     quantity: APP_CONFIG.DEFAULTS.QUANTITY,
     format: { 
         width: APP_CONFIG.DEFAULTS.WIDTH, 
