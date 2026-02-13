@@ -58,3 +58,6 @@ Thumbs.db
 # Misc
 tmp/
 .gemini/
+
+# Exclude nested projects
+BindMasterPro/
