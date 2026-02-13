@@ -24,15 +24,15 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
     }
 
     return (
-        <Card className="border-border shadow-sm">
-            <CardHeader className="bg-secondary border-b border-border py-4">
+        <Card className="border-zinc-800">
+            <CardHeader className="bg-zinc-900/50 border-b border-zinc-800">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg font-medium text-primary">Price Breakdown</CardTitle>
+                    <CardTitle className="text-white">Price Breakdown</CardTitle>
                     <div className="text-right">
-                        <div className="text-2xl font-bold text-foreground">
+                        <div className="text-xl font-bold text-white font-mono">
                             €{breakdown.total_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-zinc-500 font-mono">
                             €{breakdown.unit_price.toFixed(2)} / unit
                         </div>
                     </div>
@@ -51,7 +51,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     <TableBody>
                         {breakdown.items.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground italic h-24">
+                                <TableCell colSpan={4} className="text-center text-zinc-500 italic h-20">
                                     No operations costed yet.
                                 </TableCell>
                             </TableRow>
@@ -62,14 +62,14 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                     <div className="flex flex-col">
                                         <span className="text-sm">{item.name}</span>
                                         {item.details && (
-                                            <span className="text-[10px] text-muted-foreground font-normal">{item.details}</span>
+                                            <span className="text-[10px] text-zinc-500 font-normal">{item.details}</span>
                                         )}
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs">
+                                <TableCell className="text-right font-mono text-xs text-zinc-400">
                                     {item.original_setup_cost ? `€${item.original_setup_cost.toFixed(2)}` : (item.setup_cost ? `€${item.setup_cost.toFixed(2)}` : '-')}
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs">
+                                <TableCell className="text-right font-mono text-xs text-zinc-400">
                                     {item.original_unit_production_cost ? `€${item.original_unit_production_cost.toFixed(4)}` : (item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-')}
                                 </TableCell>
                                 <TableCell className="text-right font-mono font-medium">
@@ -79,37 +79,37 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                         ))}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={3} className="font-medium">Setup Total</TableCell>
-                            <TableCell className="text-right font-mono">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
+                        <TableRow className="bg-zinc-900/30 hover:bg-zinc-900/30">
+                            <TableCell colSpan={3} className="font-medium text-xs">Setup Total</TableCell>
+                            <TableCell className="text-right font-mono text-sm">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
                         </TableRow>
-                        <TableRow className="bg-muted/50 hover:bg-muted/50 border-t-0">
-                            <TableCell colSpan={3} className="font-medium">Production Total</TableCell>
-                            <TableCell className="text-right font-mono">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
+                        <TableRow className="bg-zinc-900/30 hover:bg-zinc-900/30 border-t-0">
+                            <TableCell colSpan={3} className="font-medium text-xs">Production Total</TableCell>
+                            <TableCell className="text-right font-mono text-sm">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
                         </TableRow>
                         {(breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0) || (breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0) ? (
                             <>
-                                <TableRow className="border-t-2 border-gray-300">
+                                <TableRow className="border-t border-zinc-700">
                                     <TableCell colSpan={4} className="py-2">
-                                        <div className="text-xs text-muted-foreground font-normal">Applied adjustments:</div>
+                                        <div className="text-xs text-zinc-500 font-normal">Applied adjustments:</div>
                                     </TableCell>
                                 </TableRow>
                                 {breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0 ? (
-                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                        <TableCell colSpan={3} className="text-sm text-orange-700 pl-8">
+                                    <TableRow className="bg-zinc-900/20 hover:bg-zinc-900/20">
+                                        <TableCell colSpan={3} className="text-xs text-warning-foreground pl-6">
                                             Format Surcharge: +{(breakdown.metadata.applied_surcharge * 100).toFixed(1)}%
                                         </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                        <TableCell className="text-right font-mono text-xs text-zinc-500">
                                             (included above)
                                         </TableCell>
                                     </TableRow>
                                 ) : null}
                                 {breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0 ? (
-                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                        <TableCell colSpan={3} className="text-sm text-green-700 pl-8">
+                                    <TableRow className="bg-zinc-900/20 hover:bg-zinc-900/20">
+                                        <TableCell colSpan={3} className="text-xs text-success-foreground pl-6">
                                             Volume Discount: -{(breakdown.metadata.applied_discount * 100).toFixed(1)}%
                                         </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                        <TableCell className="text-right font-mono text-xs text-zinc-500">
                                             (included above)
                                         </TableCell>
                                     </TableRow>

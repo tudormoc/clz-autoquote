@@ -9,6 +9,8 @@
     *   *Workflow:* Analyze -> Propose Plan -> Wait for Approval -> Execute -> Verify.
 2.  **NO ASSUMPTIONS:** If a requirement is vague, stop and ask. Do not guess.
 3.  **CLEAN AS YOU GO:** Every change must leave the file cleaner and more organized than before.
+4.  **READ DESIGN SYSTEM FIRST:** Before ANY UI work, read `.kiro/steering/design-system.md`
+5.  **ZERO HARDCODED VALUES:** All colors, spacing, text from centralized sources. NO EXCEPTIONS.
 
 ## 1. DESIGN PHILOSOPHY
 *   **Future-Proof:** Use standard, well-supported patterns. Avoid experimental hacks.
@@ -22,17 +24,35 @@
 
 ## 3. TECHNICAL STANDARDS (THE GOLDEN RULES)
 *   **Single Source of Truth:**
-    *   Text -> `src/locales/` (No hardcoded strings)
-    *   Config/Math -> `src/config/constants.ts` (No magic numbers)
-    *   Styles -> Tailwind classes or `globals.css` (No arbitrary values like `w-[350px]`)
+    *   **Text** → `src/locales/` (No hardcoded strings)
+    *   **Config/Math** → `src/config/constants.ts` (No magic numbers)
+    *   **Styles** → `src/app/globals.css` CSS variables (No hardcoded colors)
+    *   **Spacing/Typography** → `src/config/constants.ts` DESIGN tokens
 *   **Type Safety:** Strict TypeScript. No `any`. Zod validation for all data boundaries.
 *   **DRY:** Isolate logic. If you copy-paste, you must refactor instead.
+*   **Centralized Design:** ALL colors, spacing, typography from centralized tokens. ZERO hardcoded values.
 
-## 4. UI STANDARDS
-*   **Shadcn UI First:** Use the installed component library. Do not invent new buttons or inputs.
-*   **Strict Styling:** Use standard Tailwind semantic tokens (e.g., `bg-primary`, `text-muted-foreground`).
-    *   **FORBIDDEN:** Hardcoded hex values or arbitrary numbering (e.g., `bg-[#414131]`, `w-[350px]`).
-    *   **REFER:** See `globals.css` for the defined design system tokens.
+## 4. UI STANDARDS (STRICT)
+
+**Read first:** `.kiro/steering/design-system.md`
+
+### Styling Rules - ZERO TOLERANCE
+- ✅ Use semantic tokens: `bg-card`, `text-success-foreground`, `text-warning-foreground`
+- ❌ NEVER hardcode: `#18181b`, `text-green-400`, `bg-red-50`, `w-[350px]`
+
+### Add New Color
+1. Add to `src/app/globals.css` as CSS variable
+2. Add to `tailwind.config.js` colors
+3. Use via semantic token
+
+### Violations
+| ❌ WRONG | ✅ CORRECT |
+|---------|-----------|
+| `text-green-400` | `text-success-foreground` |
+| `text-orange-500` | `text-warning-foreground` |
+| `text-red-600` | `text-destructive` |
+| `bg-[#18181b]` | `bg-card` |
+| `w-[350px]` | `w-full` or `max-w-sm` |
 
 ## 5. INFRASTRUCTURE & DATA PATTERNS
 *   **Database Access:**
@@ -87,3 +107,19 @@
 - [ ] File is 50-150 lines
 - [ ] `npm run lint` passes
 - [ ] Tested in UI with real data
+
+
+## 7. DESIGN SYSTEM ENFORCEMENT
+
+**Before ANY UI work:**
+- [ ] Read `.kiro/steering/design-system.md`
+- [ ] Check `src/app/globals.css` for tokens
+- [ ] Check `src/config/constants.ts` for spacing
+
+**Code Review:**
+- [ ] No hardcoded colors (`#...`, `text-green-400`, `bg-red-50`)
+- [ ] No arbitrary values (`w-[350px]`)
+- [ ] Uses semantic tokens (`bg-card`, `text-success-foreground`)
+- [ ] All text from `src/locales/en.ts`
+
+**Change design:** Edit `src/app/globals.css` → entire app updates instantly.

@@ -2,52 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
   :root {
     /* 
-       DESIGN SYSTEM COLORS
-       Background: #FDFCFB -> 30 8% 99%
-       Foreground: #1A1A1A -> 0 0% 10%
-       Primary: #414131 -> 60 14% 22%
-       Secondary: #FAF9F6 -> 40 14% 97%
-       Muted/Border: #E5E5E0 -> 60 5% 90%
-       Muted-Fore: #6B6B5F -> 60 6% 40%
+       DESIGN SYSTEM - Dark Theme (BindMasterPro Style)
+       Based on Zinc palette with Cyan accent
+       
+       Background Hierarchy:
+       - zinc-950: Main background (#09090b)
+       - zinc-900: Card/Panel background (#18181b)
+       - zinc-800: Borders/Dividers (#27272a)
+       - zinc-700: Input borders (#3f3f46)
+       
+       Text Hierarchy:
+       - zinc-50/100: Primary text (white/near-white)
+       - zinc-300: Secondary text
+       - zinc-400/500: Muted/placeholder text
+       - zinc-600: Disabled/subtle text
+       
+       Accent: Cyan-400/500 for interactive elements
     */
-    --background: 30 8% 99%;
-    --foreground: 0 0% 10%;
+    
+    /* Base colors */
+    --background: 240 10% 3.9%;        /* zinc-950 */
+    --foreground: 240 5% 96%;          /* zinc-100 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    /* Card colors */
+    --card: 240 6% 10%;                /* zinc-900 */
+    --card-foreground: 240 5% 96%;     /* zinc-100 */
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    /* Popover colors */
+    --popover: 240 6% 10%;             /* zinc-900 */
+    --popover-foreground: 240 5% 96%;  /* zinc-100 */
  
-    --primary: 60 14% 22%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary (Cyan accent) */
+    --primary: 189 94% 43%;            /* cyan-500 */
+    --primary-foreground: 240 10% 3.9%; /* zinc-950 */
  
-    --secondary: 40 14% 97%;
-    --secondary-foreground: 60 14% 22%;
+    /* Secondary */
+    --secondary: 240 4% 16%;           /* zinc-800 */
+    --secondary-foreground: 240 5% 96%; /* zinc-100 */
  
-    --muted: 40 14% 97%;
-    --muted-foreground: 60 6% 40%;
+    /* Muted */
+    --muted: 240 4% 16%;               /* zinc-800 */
+    --muted-foreground: 240 4% 46%;    /* zinc-500 */
  
-    --accent: 40 14% 97%;
-    --accent-foreground: 60 14% 22%;
+    /* Accent (Cyan) */
+    --accent: 189 94% 43%;             /* cyan-500 */
+    --accent-foreground: 240 10% 3.9%; /* zinc-950 */
  
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    /* Destructive (Red) */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 240 5% 96%;
+    
+    /* Semantic Status Colors */
+    --success: 142 76% 36%;            /* green-600 */
+    --success-foreground: 142 71% 45%; /* green-400 */
+    --warning: 25 95% 53%;             /* orange-500 */
+    --warning-foreground: 31 97% 72%;  /* orange-400 */
 
-    --border: 60 5% 90%;
-    --input: 60 5% 90%;
-    --ring: 60 14% 22%;
+    /* Borders & Inputs */
+    --border: 240 4% 16%;              /* zinc-800 */
+    --input: 240 4% 16%;               /* zinc-800 */
+    --ring: 189 94% 43%;               /* cyan-500 */
  
+    /* Border radius */
     --radius: 0.5rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
  
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  /* Monospace font for numbers and code */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+  }
+}
+
+/* Custom Scrollbar */
+@layer utilities {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+  
+  /* Selection color */
+  ::selection {
+    background-color: hsl(var(--accent) / 0.3);
+    color: hsl(var(--foreground));
   }
 }

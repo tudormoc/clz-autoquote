@@ -24,28 +24,28 @@ export function AdminSidebar({
     return (
         <aside 
             className={`
-                bg-white border-r border-gray-200 
+                bg-card border-r border-zinc-800 
                 transition-all duration-300 ease-in-out
                 ${isCollapsed ? 'w-16' : 'w-64'}
                 flex flex-col
             `}
         >
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                 {!isCollapsed && (
-                    <h2 className="font-semibold text-gray-900">
+                    <h2 className="font-semibold text-zinc-100">
                         {APP_COPY.admin.sidebar.title}
                     </h2>
                 )}
                 <button
                     onClick={onToggleCollapse}
-                    className="p-1.5 hover:bg-gray-100 rounded-md transition-colors ml-auto"
+                    className="p-1.5 hover:bg-zinc-800 rounded transition-colors ml-auto"
                     aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     {isCollapsed ? (
-                        <ChevronRight size={20} className="text-gray-600" />
+                        <ChevronRight size={20} className="text-zinc-400" />
                     ) : (
-                        <ChevronLeft size={20} className="text-gray-600" />
+                        <ChevronLeft size={20} className="text-zinc-400" />
                     )}
                 </button>
             </div>
@@ -55,7 +55,7 @@ export function AdminSidebar({
                 {Object.entries(tablesByCategory).map(([category, tables]) => (
                     <div key={category} className="mb-4">
                         {!isCollapsed && (
-                            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                                 {categoryLabels[category as keyof typeof categoryLabels] || category}
                             </div>
                         )}
@@ -69,19 +69,19 @@ export function AdminSidebar({
                                         key={table.id}
                                         onClick={() => onTableSelect(table.id)}
                                         className={`
-                                            w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                                            transition-all duration-150
+                                            w-full flex items-center gap-3 px-3 py-2 rounded
+                                            transition-colors
                                             ${isActive 
-                                                ? 'bg-blue-50 text-blue-700 font-medium' 
-                                                : 'text-gray-700 hover:bg-gray-50'
+                                                ? 'bg-zinc-800 text-primary font-medium' 
+                                                : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                                             }
                                             ${isCollapsed ? 'justify-center' : ''}
                                         `}
                                         title={isCollapsed ? table.label : undefined}
                                     >
                                         <Icon 
-                                            size={20} 
-                                            className={isActive ? 'text-blue-600' : 'text-gray-500'}
+                                            size={18} 
+                                            className={isActive ? 'text-primary' : 'text-zinc-500'}
                                         />
                                         {!isCollapsed && (
                                             <span className="text-sm">{table.label}</span>

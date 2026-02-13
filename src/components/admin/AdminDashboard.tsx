@@ -14,7 +14,7 @@ export default function AdminDashboard() {
     const ManagerComponent = MANAGER_COMPONENTS[activeTable];
 
     return (
-        <div className="flex h-[calc(100vh-64px)]">
+        <div className="flex h-[calc(100vh-56px)]">
             {/* Sidebar */}
             <AdminSidebar
                 activeTable={activeTable}
@@ -24,23 +24,23 @@ export default function AdminDashboard() {
             />
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto bg-gray-50">
-                <div className="max-w-7xl mx-auto px-6 py-8">
+            <main className="flex-1 overflow-y-auto bg-background">
+                <div className="max-w-screen-2xl mx-auto px-6 py-6">
                     {/* Header */}
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div className="flex items-center gap-3 mb-2">
-                            <ShieldCheck className="text-blue-600" size={28} />
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <ShieldCheck className="text-primary" size={24} />
+                            <h1 className="text-2xl font-bold text-white">
                                 {APP_COPY.admin.title}
                             </h1>
                         </div>
                         {activeTableConfig && (
-                            <div className="flex items-center gap-2 text-gray-600">
+                            <div className="flex items-center gap-2 text-zinc-400">
                                 <span className="text-sm font-medium">{activeTableConfig.label}</span>
                                 {activeTableConfig.description && (
                                     <>
-                                        <span className="text-gray-400">•</span>
-                                        <span className="text-sm text-gray-500">
+                                        <span className="text-zinc-600">•</span>
+                                        <span className="text-sm text-zinc-500">
                                             {activeTableConfig.description}
                                         </span>
                                     </>
@@ -50,9 +50,9 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Active Manager Component */}
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div>
                         {ManagerComponent ? <ManagerComponent /> : (
-                            <div className="text-center py-12 text-gray-500">
+                            <div className="text-center py-12 text-zinc-500">
                                 {APP_COPY.admin.noManager}
                             </div>
                         )}

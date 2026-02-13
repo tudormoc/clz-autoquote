@@ -6,10 +6,10 @@ export default function Home() {
         <div className="min-h-screen bg-background text-foreground">
             <Header />
 
-            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <main className="max-w-screen-2xl mx-auto px-4 py-4">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-primary">New Quote</h1>
-                    <p className="text-muted-foreground mt-1">Enter the book specifications below to generate a real-time detailed quote.</p>
+                    <h1 className="text-2xl font-semibold text-white">New Quote</h1>
+                    <p className="text-zinc-400 text-sm mt-1">Enter the book specifications below to generate a real-time detailed quote.</p>
                 </div>
 
                 <AdvancedQuoteForm />

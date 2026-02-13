@@ -15,13 +15,13 @@ interface InfoBadgeProps {
 export function InfoBadge({ label, value, detail, className }: InfoBadgeProps) {
     return (
         <div className={cn(
-            "text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded border border-border flex items-center gap-2",
+            "text-xs font-medium text-zinc-200 bg-zinc-800 px-3 py-1 rounded border border-zinc-700 flex items-center gap-2",
             className
         )}>
-            <span className="uppercase tracking-tighter text-[9px]">{label}</span>
-            <span className="text-foreground font-mono">
+            <span className="text-[10px] text-zinc-400">{label}</span>
+            <span className="text-zinc-100 font-mono">
                 {value}
-                {detail && <span className="text-[9px] text-muted-foreground ml-1">{detail}</span>}
+                {detail && <span className="text-[10px] text-zinc-400 ml-1">{detail}</span>}
             </span>
         </div>
     );

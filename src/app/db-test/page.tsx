@@ -12,10 +12,10 @@ export default function DBTestPage() {
         <div className="min-h-screen bg-background text-foreground">
             <Header />
 
-            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <h1 className="text-2xl font-semibold text-primary">Database Explorer</h1>
-                    <p className="text-muted-foreground mt-1">Explore your local MSSQL database to identify tables for integration.</p>
+            <main className="max-w-screen-2xl mx-auto px-4 py-4">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-semibold text-white">Database Explorer</h1>
+                    <p className="text-zinc-400 text-sm mt-1">Explore your local MSSQL database to identify tables for integration.</p>
                 </div>
 
                 <DBStatusSummary />

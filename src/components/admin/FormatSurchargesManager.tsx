@@ -82,11 +82,11 @@ export function FormatSurchargesManager() {
         }
     };
 
-    if (loading && surcharges.length === 0) return <div className="p-8 text-center text-gray-500">{APP_COPY.admin.formatSurcharges.loading}</div>;
+    if (loading && surcharges.length === 0) return <div className="p-8 text-center text-zinc-400">{APP_COPY.admin.formatSurcharges.loading}</div>;
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-gray-200 flex justify-end">
+        <div className="bg-card rounded-lg border border-zinc-800  overflow-hidden">
+            <div className="p-3 border-b border-zinc-800 flex justify-end">
                 <Button
                     variant="primary"
                     size="sm"
@@ -103,7 +103,7 @@ export function FormatSurchargesManager() {
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">
+                    <thead className="bg-zinc-900/50 text-[10px] uppercase tracking-wider text-zinc-400 font-bold border-b">
                         <tr>
                             <th className="px-6 py-3">{APP_COPY.admin.formatSurcharges.widthMin}</th>
                             <th className="px-6 py-3">{APP_COPY.admin.formatSurcharges.widthMax}</th>
@@ -113,9 +113,9 @@ export function FormatSurchargesManager() {
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-zinc-800">
                         {isAdding && (
-                            <tr className="bg-blue-50/50">
+                            <tr className="bg-zinc-800/50">
                                 <td className="px-6 py-3">
                                     <input
                                         type="number"
@@ -156,16 +156,16 @@ export function FormatSurchargesManager() {
                                         value={editForm.surcharge_percentage || ''}
                                         onChange={e => setEditForm({ ...editForm, surcharge_percentage: parseFloat(e.target.value) })}
                                     />
-                                    <span className="text-[10px] text-blue-600 ml-1">e.g. 0.20 for 20%</span>
+                                    <span className="text-[10px] text-primary ml-1">e.g. 0.20 for 20%</span>
                                 </td>
                                 <td className="px-6 py-3 text-right space-x-2">
                                     <button onClick={handleAdd} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
-                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
+                                    <button onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-900/50 transition-all"><X size={18} /></button>
                                 </td>
                             </tr>
                         )}
                         {surcharges.map((surcharge) => (
-                            <tr key={surcharge.id} className="hover:bg-gray-50 transition-colors group">
+                            <tr key={surcharge.id} className="hover:bg-zinc-900/50 transition-colors group">
                                 <td className="px-6 py-4">
                                     {editingId === surcharge.id ? (
                                         <input
@@ -175,7 +175,7 @@ export function FormatSurchargesManager() {
                                             onChange={e => setEditForm({ ...editForm, width_min: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className="text-sm font-medium text-gray-700">{surcharge.width_min}</span>
+                                        <span className="text-sm font-medium text-zinc-200">{surcharge.width_min}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -187,7 +187,7 @@ export function FormatSurchargesManager() {
                                             onChange={e => setEditForm({ ...editForm, width_max: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className="text-sm text-gray-600 font-mono">{surcharge.width_max}</span>
+                                        <span className="text-sm text-zinc-300 font-mono">{surcharge.width_max}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -199,7 +199,7 @@ export function FormatSurchargesManager() {
                                             onChange={e => setEditForm({ ...editForm, height_min: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className="text-sm text-gray-600 font-mono">{surcharge.height_min}</span>
+                                        <span className="text-sm text-zinc-300 font-mono">{surcharge.height_min}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -211,7 +211,7 @@ export function FormatSurchargesManager() {
                                             onChange={e => setEditForm({ ...editForm, height_max: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className="text-sm text-gray-600 font-mono">{surcharge.height_max}</span>
+                                        <span className="text-sm text-zinc-300 font-mono">{surcharge.height_max}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -224,13 +224,13 @@ export function FormatSurchargesManager() {
                                                 value={editForm.surcharge_percentage ?? 0}
                                                 onChange={e => setEditForm({ ...editForm, surcharge_percentage: parseFloat(e.target.value) })}
                                             />
-                                            <span className="text-[10px] text-blue-600"> (0.20 = 20%)</span>
+                                            <span className="text-[10px] text-primary"> (0.20 = 20%)</span>
                                         </div>
                                     ) : (
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                                             surcharge.surcharge_percentage === 0 
-                                                ? 'bg-gray-100 text-gray-600 border-gray-200' 
-                                                : 'bg-orange-100 text-orange-800 border-orange-200'
+                                                ? 'bg-zinc-900 text-zinc-300 border-zinc-800' 
+                                                : 'bg-warning/20 text-warning-foreground border-warning/30'
                                         }`}>
                                             +{(surcharge.surcharge_percentage * 100).toFixed(0)}%
                                         </span>
@@ -240,12 +240,12 @@ export function FormatSurchargesManager() {
                                     {editingId === surcharge.id ? (
                                         <div className="flex justify-end gap-3">
                                             <button onClick={() => handleSave(surcharge.id!)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
-                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
+                                            <button onClick={() => setEditingId(null)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-900/50 transition-all"><X size={18} /></button>
                                         </div>
                                     ) : (
                                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={() => handleStartEdit(surcharge)} className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-all"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(surcharge.id!)} className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-all"><Trash2 size={18} /></button>
+                                            <button onClick={() => handleStartEdit(surcharge)} className="text-primary hover:text-primary/80 p-1 rounded-full hover:bg-zinc-800 transition-all"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDelete(surcharge.id!)} className="text-destructive hover:text-destructive/80 p-1 rounded-full hover:bg-destructive/10 transition-all"><Trash2 size={18} /></button>
                                         </div>
                                     )}
                                 </td>
@@ -255,11 +255,11 @@ export function FormatSurchargesManager() {
                 </table>
             </div>
             {surcharges.length === 0 && !isAdding && (
-                <div className="p-12 text-center border-t border-gray-100">
-                    <div className="inline-flex items-center justify-center p-3 bg-gray-50 rounded-full mb-3 text-gray-400">
+                <div className="p-12 text-center border-t border-zinc-800">
+                    <div className="inline-flex items-center justify-center p-3 bg-zinc-900/50 rounded-full mb-3 text-zinc-500">
                         <AlertCircle size={24} />
                     </div>
-                    <p className="text-gray-500 text-sm">{APP_COPY.admin.formatSurcharges.noSurcharges}</p>
+                    <p className="text-zinc-400 text-sm">{APP_COPY.admin.formatSurcharges.noSurcharges}</p>
                 </div>
             )}
         </div>

@@ -78,7 +78,7 @@ export function CoverSection({ control, errors }: Props) {
 
                 {/* 3. Headbands */}
                 <div className="space-y-4 pt-2">
-                    <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Headbands</h3>
+                    <h3 className="text-sm font-semibold text-zinc-400">Headbands</h3>
                     <Controller
                         control={control}
                         name="cover_details.headbands_enabled"

@@ -50,10 +50,10 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                 {/* Book Format Section */}
                 <div className="space-y-4 pt-2 pb-4 border-y border-border">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Book Dimensions</h3>
+                        <h3 className="text-sm font-semibold text-zinc-400">Book Dimensions</h3>
                         {(openedWidth > 0 && openedHeight > 0) && (
                             <div className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-2">
-                                <span className="uppercase tracking-tighter">Opened Format:</span>
+                                <span>Opened Format:</span>
                                 <span className="text-foreground">{openedWidth} x {openedHeight} mm</span>
                             </div>
                         )}

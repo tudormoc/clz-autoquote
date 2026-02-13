@@ -11,19 +11,19 @@ export interface SelectProps
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ({ className, label, error, id, options, ...props }, ref) => {
         return (
-            <div className="space-y-2 w-full">
+            <div className="w-full">
                 {label && (
                     <label
                         htmlFor={id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="block text-xs font-medium text-zinc-400 mb-1.5"
                     >
                         {label}
                     </label>
                 )}
                 <select
                     className={cn(
-                        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-destructive",
+                        "flex h-9 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
+                        error && "border-destructive focus-visible:border-destructive",
                         className
                     )}
                     ref={ref}
@@ -37,7 +37,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     ))}
                 </select>
                 {error && (
-                    <p className="text-sm text-destructive font-medium animate-in fade-in slide-in-from-top-1">
+                    <p className="text-xs text-destructive mt-1">
                         {error}
                     </p>
                 )}

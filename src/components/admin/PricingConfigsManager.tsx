@@ -136,18 +136,18 @@ export function PricingConfigsManager() {
     })).filter(cat => cat.rules.length > 0);
 
     if (loading && rules.length === 0) {
-        return <div className="p-8 text-center text-gray-500 italic">{APP_COPY.admin.pricingRules.loading}</div>;
+        return <div className="p-8 text-center text-zinc-400 italic">{APP_COPY.admin.pricingRules.loading}</div>;
     }
 
     const renderOperationRow = (rule: PricingRule) => {
         const isEditing = editingId === rule.id;
         
         return (
-            <tr key={rule.id} className="hover:bg-gray-50 transition-colors group">
+            <tr key={rule.id} className="hover:bg-zinc-900/50 transition-colors group">
                 <td className="px-6 py-4">
                     {isEditing ? (
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-mono text-gray-400">{rule.slug}</span>
+                            <span className="text-[10px] font-mono text-zinc-500">{rule.slug}</span>
                             <input
                                 type="text"
                                 className="w-full px-2 py-1 border rounded text-sm"
@@ -166,8 +166,8 @@ export function PricingConfigsManager() {
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-800">{rule.name || rule.operation_name}</span>
-                            <span className="text-[10px] font-mono text-gray-400">{rule.slug}</span>
+                            <span className="text-sm font-semibold text-zinc-100">{rule.name || rule.operation_name}</span>
+                            <span className="text-[10px] font-mono text-zinc-500">{rule.slug}</span>
                         </div>
                     )}
                 </td>
@@ -180,7 +180,7 @@ export function PricingConfigsManager() {
                             onChange={e => setEditForm({ ...editForm, setup_base_cost: parseFloat(e.target.value) })}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">€{rule.setup_base_cost.toFixed(2)}</span>
+                        <span className="text-sm text-zinc-300 font-mono">€{rule.setup_base_cost.toFixed(2)}</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -192,7 +192,7 @@ export function PricingConfigsManager() {
                             onChange={e => setEditForm({ ...editForm, setup_variable_factor: parseFloat(e.target.value) })}
                         />
                     ) : (
-                        <span className="text-sm text-gray-500 font-mono">{rule.setup_variable_factor.toFixed(4)}</span>
+                        <span className="text-sm text-zinc-400 font-mono">{rule.setup_variable_factor.toFixed(4)}</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -204,7 +204,7 @@ export function PricingConfigsManager() {
                             onChange={e => setEditForm({ ...editForm, production_base_cost: parseFloat(e.target.value) })}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">€{rule.production_base_cost.toFixed(4)}</span>
+                        <span className="text-sm text-zinc-300 font-mono">€{rule.production_base_cost.toFixed(4)}</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -222,7 +222,7 @@ export function PricingConfigsManager() {
                             }}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">{((rule.discount_multiplier_setup ?? 1) * 100).toFixed(0)}%</span>
+                        <span className="text-sm text-zinc-300 font-mono">{((rule.discount_multiplier_setup ?? 1) * 100).toFixed(0)}%</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -240,7 +240,7 @@ export function PricingConfigsManager() {
                             }}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">{((rule.discount_multiplier_production ?? 1) * 100).toFixed(0)}%</span>
+                        <span className="text-sm text-zinc-300 font-mono">{((rule.discount_multiplier_production ?? 1) * 100).toFixed(0)}%</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -258,7 +258,7 @@ export function PricingConfigsManager() {
                             }}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">{((rule.surcharge_multiplier_setup ?? 1) * 100).toFixed(0)}%</span>
+                        <span className="text-sm text-zinc-300 font-mono">{((rule.surcharge_multiplier_setup ?? 1) * 100).toFixed(0)}%</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -276,26 +276,26 @@ export function PricingConfigsManager() {
                             }}
                         />
                     ) : (
-                        <span className="text-sm text-gray-600 font-mono">{((rule.surcharge_multiplier_production ?? 1) * 100).toFixed(0)}%</span>
+                        <span className="text-sm text-zinc-300 font-mono">{((rule.surcharge_multiplier_production ?? 1) * 100).toFixed(0)}%</span>
                     )}
                 </td>
                 <td className="px-6 py-4 text-right">
                     {isEditing ? (
                         <div className="flex justify-end gap-3">
                             <button onClick={() => handleSave(rule.id)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
-                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
+                            <button onClick={() => setEditingId(null)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-900/50 transition-all"><X size={18} /></button>
                         </div>
                     ) : (
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                             <button
                                 onClick={() => { setEditingId(rule.id); setEditForm(rule); }}
-                                className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-all"
+                                className="text-primary hover:text-primary/80 p-1 rounded-full hover:bg-zinc-800 transition-all"
                             >
                                 <Edit2 size={18} />
                             </button>
                             <button 
                                 onClick={() => handleDelete(rule.id)} 
-                                className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-all"
+                                className="text-destructive hover:text-destructive/80 p-1 rounded-full hover:bg-destructive/10 transition-all"
                             >
                                 <Trash2 size={18} />
                             </button>
@@ -307,9 +307,9 @@ export function PricingConfigsManager() {
     };
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-                <div className="text-sm text-gray-600">
+        <div className="bg-card rounded-lg border border-zinc-800  overflow-hidden">
+            <div className="p-3 border-b border-zinc-800 flex justify-between items-center">
+                <div className="text-sm text-zinc-300">
                     {rules.length} operation{rules.length !== 1 ? 's' : ''} across {rulesByCategory.length} categor{rulesByCategory.length !== 1 ? 'ies' : 'y'}
                 </div>
                 <Button
@@ -340,11 +340,11 @@ export function PricingConfigsManager() {
             </div>
 
             {isAdding && (
-                <div className="border-b border-gray-200 bg-blue-50/30 p-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Add New Operation</h3>
+                <div className="border-b border-zinc-800 bg-zinc-800/30 p-4">
+                    <h3 className="text-sm font-semibold text-zinc-200 mb-3">Add New Operation</h3>
                     <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Slug (unique identifier)</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Slug (unique identifier)</label>
                             <input
                                 type="text"
                                 placeholder="e.g. gluing_square_spine"
@@ -355,7 +355,7 @@ export function PricingConfigsManager() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Display Name</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Display Name</label>
                             <input
                                 type="text"
                                 placeholder="e.g. Gluing Square Spine"
@@ -365,7 +365,7 @@ export function PricingConfigsManager() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Category</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Category</label>
                             <select
                                 className="w-full px-3 py-2 border rounded text-sm"
                                 value={editForm.category || 'other'}
@@ -379,7 +379,7 @@ export function PricingConfigsManager() {
                     </div>
                     <div className="grid grid-cols-4 gap-3 mb-3">
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Setup Base €</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Setup Base €</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -389,7 +389,7 @@ export function PricingConfigsManager() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Setup Variable</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Setup Variable</label>
                             <input
                                 type="number"
                                 step="0.0001"
@@ -399,7 +399,7 @@ export function PricingConfigsManager() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Production Base €</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Production Base €</label>
                             <input
                                 type="number"
                                 step="0.0001"
@@ -409,7 +409,7 @@ export function PricingConfigsManager() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-600 block mb-1">Production Variable</label>
+                            <label className="text-xs text-zinc-300 block mb-1">Production Variable</label>
                             <input
                                 type="number"
                                 step="0.0001"
@@ -438,19 +438,19 @@ export function PricingConfigsManager() {
                         <div key={category.value}>
                             <button
                                 onClick={() => toggleCategory(category.value)}
-                                className="w-full px-6 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                                className="w-full px-6 py-3 flex items-center justify-between bg-zinc-900/50 hover:bg-zinc-900 transition-colors"
                             >
                                 <div className="flex items-center gap-2">
                                     {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                    <span className="font-semibold text-gray-800">{category.label}</span>
-                                    <span className="text-xs text-gray-500">({category.rules.length})</span>
+                                    <span className="font-semibold text-zinc-100">{category.label}</span>
+                                    <span className="text-xs text-zinc-400">({category.rules.length})</span>
                                 </div>
                             </button>
                             
                             {isExpanded && (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">
+                                        <thead className="bg-zinc-900/50 text-[10px] uppercase tracking-wider text-zinc-400 font-bold border-b">
                                             <tr>
                                                 <th className="px-6 py-3">Operation</th>
                                                 <th className="px-6 py-3">Setup Base</th>
@@ -463,7 +463,7 @@ export function PricingConfigsManager() {
                                                 <th className="px-6 py-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-zinc-800">
                                             {category.rules.map(renderOperationRow)}
                                         </tbody>
                                     </table>
@@ -476,10 +476,10 @@ export function PricingConfigsManager() {
 
             {rules.length === 0 && !isAdding && (
                 <div className="p-12 text-center">
-                    <div className="inline-flex items-center justify-center p-3 bg-gray-50 rounded-full mb-3 text-gray-400">
+                    <div className="inline-flex items-center justify-center p-3 bg-zinc-900/50 rounded-full mb-3 text-zinc-500">
                         <AlertCircle size={24} />
                     </div>
-                    <p className="text-gray-500 text-sm">{APP_COPY.admin.pricingRules.noRules}</p>
+                    <p className="text-zinc-400 text-sm">{APP_COPY.admin.pricingRules.noRules}</p>
                 </div>
             )}
         </div>

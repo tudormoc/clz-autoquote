@@ -9,12 +9,14 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, id, ...props }, ref) => {
+    const isNumberInput = type === 'number';
+    
     return (
-      <div className="space-y-2 w-full">
+      <div className="w-full">
         {label && (
           <label
             htmlFor={id}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="block text-xs font-medium text-zinc-400 mb-1.5"
           >
             {label}
           </label>
@@ -22,8 +24,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-destructive",
+            "flex h-9 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
+            isNumberInput && "font-mono",
+            error && "border-destructive focus-visible:border-destructive",
             className
           )}
           ref={ref}
@@ -31,7 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p className="text-sm text-destructive font-medium animate-in fade-in slide-in-from-top-1">
+          <p className="text-xs text-destructive mt-1">
             {error}
           </p>
         )}

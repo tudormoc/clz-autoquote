@@ -72,11 +72,11 @@ export function DiscountTiersManager() {
         }
     };
 
-    if (loading && tiers.length === 0) return <div className="p-8 text-center text-gray-500">{APP_COPY.admin.discountTiers.loading}</div>;
+    if (loading && tiers.length === 0) return <div className="p-8 text-center text-zinc-400">{APP_COPY.admin.discountTiers.loading}</div>;
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-gray-200 flex justify-end">
+        <div className="bg-card rounded-lg border border-zinc-800  overflow-hidden">
+            <div className="p-3 border-b border-zinc-800 flex justify-end">
                 <Button
                     variant="primary"
                     size="sm"
@@ -89,7 +89,7 @@ export function DiscountTiersManager() {
 
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b">
+                    <thead className="bg-zinc-900/50 text-[10px] uppercase tracking-wider text-zinc-400 font-bold border-b">
                         <tr>
                             <th className="px-6 py-3">{APP_COPY.admin.discountTiers.minQty}</th>
                             <th className="px-6 py-3">{APP_COPY.admin.discountTiers.maxQty}</th>
@@ -97,9 +97,9 @@ export function DiscountTiersManager() {
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-zinc-800">
                         {isAdding && (
-                            <tr className="bg-blue-50/50">
+                            <tr className="bg-zinc-800/50">
                                 <td className="px-6 py-3">
                                     <input
                                         type="number"
@@ -128,16 +128,16 @@ export function DiscountTiersManager() {
                                         value={editForm.discount_percentage || ''}
                                         onChange={e => setEditForm({ ...editForm, discount_percentage: parseFloat(e.target.value) })}
                                     />
-                                    <span className="text-[10px] text-blue-600 ml-1">e.g. 0.10 for 10%</span>
+                                    <span className="text-[10px] text-primary ml-1">e.g. 0.10 for 10%</span>
                                 </td>
                                 <td className="px-6 py-3 text-right space-x-2">
                                     <button onClick={handleAdd} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
-                                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
+                                    <button onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-900/50 transition-all"><X size={18} /></button>
                                 </td>
                             </tr>
                         )}
                         {tiers.map((tier) => (
-                            <tr key={tier.id} className="hover:bg-gray-50 transition-colors group">
+                            <tr key={tier.id} className="hover:bg-zinc-900/50 transition-colors group">
                                 <td className="px-6 py-4">
                                     {editingId === tier.id ? (
                                         <input
@@ -147,7 +147,7 @@ export function DiscountTiersManager() {
                                             onChange={e => setEditForm({ ...editForm, min_quantity: parseInt(e.target.value) })}
                                         />
                                     ) : (
-                                        <span className="text-sm font-medium text-gray-700">{tier.min_quantity}</span>
+                                        <span className="text-sm font-medium text-zinc-200">{tier.min_quantity}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -163,7 +163,7 @@ export function DiscountTiersManager() {
                                             }}
                                         />
                                     ) : (
-                                        <span className="text-sm text-gray-600 font-mono">{tier.max_quantity || '∞'}</span>
+                                        <span className="text-sm text-zinc-300 font-mono">{tier.max_quantity || '∞'}</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -176,10 +176,10 @@ export function DiscountTiersManager() {
                                                 value={editForm.discount_percentage ?? 0}
                                                 onChange={e => setEditForm({ ...editForm, discount_percentage: parseFloat(e.target.value) })}
                                             />
-                                            <span className="text-[10px] text-blue-600"> (0.10 = 10%)</span>
+                                            <span className="text-[10px] text-primary"> (0.10 = 10%)</span>
                                         </div>
                                     ) : (
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-success/20 text-success-foreground border border-success/30">
                                             {(tier.discount_percentage * 100).toFixed(0)}%
                                         </span>
                                     )}
@@ -188,12 +188,12 @@ export function DiscountTiersManager() {
                                     {editingId === tier.id ? (
                                         <div className="flex justify-end gap-3">
                                             <button onClick={() => handleSave(tier.id!)} className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full hover:bg-emerald-50 transition-all"><Save size={18} /></button>
-                                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-all"><X size={18} /></button>
+                                            <button onClick={() => setEditingId(null)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-900/50 transition-all"><X size={18} /></button>
                                         </div>
                                     ) : (
                                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={() => handleStartEdit(tier)} className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-all"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(tier.id!)} className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-all"><Trash2 size={18} /></button>
+                                            <button onClick={() => handleStartEdit(tier)} className="text-primary hover:text-primary/80 p-1 rounded-full hover:bg-zinc-800 transition-all"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDelete(tier.id!)} className="text-destructive hover:text-destructive/80 p-1 rounded-full hover:bg-destructive/10 transition-all"><Trash2 size={18} /></button>
                                         </div>
                                     )}
                                 </td>
@@ -203,11 +203,11 @@ export function DiscountTiersManager() {
                 </table>
             </div>
             {tiers.length === 0 && !isAdding && (
-                <div className="p-12 text-center border-t border-gray-100">
-                    <div className="inline-flex items-center justify-center p-3 bg-gray-50 rounded-full mb-3 text-gray-400">
+                <div className="p-12 text-center border-t border-zinc-800">
+                    <div className="inline-flex items-center justify-center p-3 bg-zinc-900/50 rounded-full mb-3 text-zinc-500">
                         <AlertCircle size={24} />
                     </div>
-                    <p className="text-gray-500 text-sm">{APP_COPY.admin.discountTiers.noTiers}</p>
+                    <p className="text-zinc-400 text-sm">{APP_COPY.admin.discountTiers.noTiers}</p>
                 </div>
             )}
         </div>

@@ -186,7 +186,6 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                 <InfoBadge
                                     label="BLOCK"
                                     value={`${blockThickness.toFixed(1)}mm`}
-                                    className="bg-blue-50 border-blue-200"
                                 />
                             )}
                         </div>
@@ -209,7 +208,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                 </div>
 
                 <div className="space-y-4 pt-2 border-b pb-6">
-                    <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">{APP_COPY.form.endpapersTitle}</h3>
+                    <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.endpapersTitle}</h3>
                     <Controller
                         control={control}
                         name="internals.endpapers_enabled"
@@ -282,7 +281,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                 {/* Imposition Strategy (Signatures) */}
                 <div className="space-y-6 pt-2">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">{APP_COPY.form.impositionTitle}</h3>
+                        <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.impositionTitle}</h3>
                         {configString && (
                             <InfoBadge
                                 label={APP_COPY.form.configurationLabel}
@@ -294,7 +293,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-3">
-                            <div className="flex justify-between items-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-medium text-muted-foreground">
                                 <span className="w-24">{APP_COPY.form.amountLabel}</span>
                                 <span className="flex-1 px-4">{APP_COPY.form.signatureTypeLabel}</span>
                                 <span className="w-16 text-right">{APP_COPY.form.totalPpLabel}</span>
@@ -387,11 +386,11 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     label=""
                                     value={`${totalManualPages} / ${pages}`}
                                     detail={APP_COPY.form.targetPagesSuffix}
-                                    className={totalManualPages === pages ? 'text-green-600' : 'text-orange-500'}
+                                    className={totalManualPages === pages ? 'text-success-foreground' : 'text-warning-foreground'}
                                 />
                             </div>
                             {totalManualPages !== pages && (
-                                <p className="text-[11px] text-orange-500 mt-1">
+                                <p className="text-[11px] text-warning-foreground mt-1">
                                     {APP_COPY.form.impositionWarning}
                                 </p>
                             )}
