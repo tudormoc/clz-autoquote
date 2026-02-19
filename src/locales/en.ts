@@ -14,6 +14,7 @@ export const APP_COPY = {
     totalLabel: "Total",
     submitButton: "Generate Quote",
     resetButton: "Reset Form",
+    blueprintButton: "Preview Blueprint",
     internalSpecsTitle: "Internal Specifications",
     sheetWidth: "Sheet Width (mm)",
     sheetHeight: "Sheet Height (mm)",

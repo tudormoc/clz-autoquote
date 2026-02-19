@@ -88,6 +88,13 @@ export const APP_CONFIG = {
   LIMITS: {
     MAX_FILE_UPLOAD_MB: 10,
   },
+
+  // Blueprint Preview Defaults
+  BLUEPRINT: {
+    HINGE_GAP: 7,        // mm - Space between board and spine
+    TURN_IN: 18,         // mm - Wrap around material
+    BLEED: 0,            // mm - Extra print margin
+  },
 } as const;
 
 // ============================================================================
