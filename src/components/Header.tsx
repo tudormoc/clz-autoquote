@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, Database, ShieldCheck } from 'lucide-react';
+import { BookOpen, Database, BarChart3, FileText } from 'lucide-react';
 import { APP_COPY } from '@/locales/en';
 import Link from 'next/link';
 
@@ -25,11 +25,18 @@ export const Header = () => {
 
                 <div className="flex items-center gap-1">
                     <Link
-                        href="/admin"
+                        href="/quotes"
                         className="p-2 text-zinc-400 hover:text-primary hover:bg-zinc-800 rounded-md transition-all"
-                        title="Control Center"
+                        title="Quote Generator"
                     >
-                        <ShieldCheck className="h-5 w-5" />
+                        <FileText className="h-5 w-5" />
+                    </Link>
+                    <Link
+                        href="/analytics"
+                        className="p-2 text-zinc-400 hover:text-primary hover:bg-zinc-800 rounded-md transition-all"
+                        title="Analytics Dashboard"
+                    >
+                        <BarChart3 className="h-5 w-5" />
                     </Link>
                     <Link
                         href="/db-test"

@@ -1,7 +1,34 @@
 export const APP_COPY = {
   header: {
-    title: "CLZ Book Quote",
-    subtitle: "Professional bookbinding estimation engine",
+    title: "CLZ TM",
+    subtitle: "Business management platform",
+  },
+  home: {
+    welcome: "Welcome to CLZ TM",
+    subtitle: "Integrated business management and analytics platform",
+    cards: {
+      quotes: {
+        title: "Quote Generator",
+        description: "Create detailed book binding quotes",
+      },
+      analytics: {
+        title: "Analytics",
+        description: "Business intelligence and reports",
+      },
+      admin: {
+        title: "Control Center",
+        description: "Manage pricing and configurations",
+      },
+      database: {
+        title: "Database Explorer",
+        description: "Inspect and query databases",
+      },
+    },
+  },
+  quotes: {
+    title: "New Quote",
+    subtitle: "Enter the book specifications below to generate a real-time detailed quote.",
+    settings: "Quote Settings",
   },
   form: {
     bookNameLabel: "Book Project Name",
@@ -57,8 +84,8 @@ export const APP_COPY = {
     empty: "No quotes generated yet.",
   },
   admin: {
-    title: "Control Center",
-    subtitle: "Manage the core pricing engine and production parameters",
+    title: "Quote Settings",
+    subtitle: "Manage pricing rules and quote configurations",
     sidebar: {
       title: "Tables",
     },
@@ -119,5 +146,23 @@ export const APP_COPY = {
       loading: "Loading format surcharges...",
       deleteConfirm: "Are you sure you want to delete this format surcharge?",
     }
+  },
+  analytics: {
+    title: "Analytics Dashboard",
+    subtitle: "Business intelligence and reporting across all databases",
+    sidebar: {
+      title: "Reports",
+    },
+    categories: {
+      clients: "Clients",
+      revenue: "Revenue",
+      production: "Production",
+      trends: "Trends",
+      other: "Other",
+    },
+    noReport: "Report component not found for this section.",
+    empty: "No data available for the selected period.",
+    loading: "Loading analytics data...",
+    error: "Failed to load analytics data.",
   }
 } as const;

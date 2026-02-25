@@ -1,8 +1,9 @@
 import './globals.css';
+import './datepicker.css';
 
 export const metadata = {
-    title: 'CLZ Book Quote',
-    description: 'Professional bookbinding estimation engine',
+    title: 'CLZ TM',
+    description: 'Business management platform',
 }
 
 export default function RootLayout({
