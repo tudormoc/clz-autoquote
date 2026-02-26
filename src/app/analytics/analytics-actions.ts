@@ -3,6 +3,37 @@
 import { queryMSSQL, MSSQL_DB } from '@/lib/mssql';
 
 /**
+ * ============================================================================
+ * ANALYTICS SERVER ACTIONS
+ * ============================================================================
+ * 
+ * This file contains all server actions for analytics reports.
+ * 
+ * ARCHITECTURE:
+ * - Each report has its own action function
+ * - All queries use NOLOCK hints for read-only operations
+ * - Pagination is handled consistently (100 rows per page)
+ * - Date filters are applied to limit data scope
+ * 
+ * DATABASES USED:
+ * - BUSINESS: Revenue, costs, client data (dwarehe, anagra, commess tables)
+ * - NETPRO: Production time tracking (SITUAZIONI, ORDINI, JOBSET tables)
+ * 
+ * PERFORMANCE NOTES:
+ * - Work time queries are separate due to cross-database limitations
+ * - CTEs are used to separate client revenue from supplier costs
+ * - All numeric columns use proper aggregation (SUM, MIN, MAX)
+ * 
+ * COST CALCULATION LOGIC:
+ * - Material costs: From supplier rows (an_tipo='F') using dw_acqvalore
+ * - Labor costs: Work hours from NETPRO × hourly rate from config
+ * - Costs include ALL historical data for each commessa (not date-filtered)
+ * - Revenue is date-filtered to show only invoices in selected period
+ * 
+ * ============================================================================
+ */
+
+/**
  * Analytics Server Actions
  * All data fetching for analytics reports
  */
@@ -24,7 +55,29 @@ export async function getAnalyticsDataAction(reportId: string, params?: Record<s
 }
 
 /**
- * Get production data from NETPRO with filters, pagination, and sorting
+ * ============================================================================
+ * PRODUCTION REPORT
+ * ============================================================================
+ * 
+ * Shows operator work time by date, machine, and commessa.
+ * 
+ * DATA SOURCE: NETPRO database
+ * - SITUAZIONI: Time tracking records
+ * - ORDINI: Order information
+ * - JOBSET: Links tasks to orders
+ * - MACCHINE: Machine details
+ * - OPERATORI: Operator details
+ * 
+ * FILTERS:
+ * - Date range (required)
+ * - Commessa code or description (fuzzy search)
+ * - Machine code or name (fuzzy search)
+ * - Operator code or name (fuzzy search)
+ * 
+ * GROUPING: By date + machine + operator + commessa (4-digit display code)
+ * 
+ * PERFORMANCE: Fast - single database, indexed columns
+ * ============================================================================
  */
 export async function getProductionDataAction(
     year: number = 2024,
@@ -243,8 +296,33 @@ export async function inspectSituazioniAction() {
 }
 
 /**
- * Get client summary data from BUSINESS DB (dwarehe table)
- * Groups by client with revenue, cost, margin, and order metrics
+ * ============================================================================
+ * CLIENT SUMMARY REPORT
+ * ============================================================================
+ * 
+ * Shows aggregated revenue, costs, and margin per client.
+ * 
+ * DATA SOURCES:
+ * - BUSINESS.dwarehe: Revenue and material costs
+ * - BUSINESS.anagra: Client information
+ * - NETPRO.SITUAZIONI: Work time tracking
+ * 
+ * CALCULATION LOGIC:
+ * 1. Get client revenue from date-filtered invoices (an_tipo='C')
+ * 2. Get ALL material costs for those commessas (an_tipo='F', no date filter)
+ * 3. Get work times from NETPRO for those commessas
+ * 4. Calculate: Margin = Revenue - Material Cost - Labor Cost
+ * 
+ * WHY NO DATE FILTER ON COSTS:
+ * If an order was invoiced in 2025 but materials were purchased in 2024,
+ * we still need to include those 2024 costs to calculate true profitability.
+ * 
+ * PERFORMANCE: Moderate - requires 3 queries (revenue, costs, work times)
+ * 
+ * OPTIMIZATION OPPORTUNITIES:
+ * - Could cache work times if they don't change frequently
+ * - Could pre-aggregate costs in a materialized view
+ * ============================================================================
  */
 export async function getClientSummaryDataAction(
     year: number = 2024,
@@ -518,8 +596,39 @@ export async function getClientSummaryDataAction(
 }
 
 /**
- * Get order revenue data from BUSINESS DB (dwarehe table)
- * Groups by order (commessa) with revenue, cost, margin, and quantity
+ * ============================================================================
+ * ORDER REVENUE REPORT
+ * ============================================================================
+ * 
+ * Shows revenue, costs, and margin per order (commessa).
+ * 
+ * DATA SOURCES:
+ * - BUSINESS.dwarehe: Revenue and material costs
+ * - BUSINESS.anagra: Client/supplier information
+ * - BUSINESS.commess: Order descriptions
+ * - NETPRO.SITUAZIONI: Work time tracking
+ * 
+ * CALCULATION LOGIC:
+ * 1. Get revenue per commessa from date-filtered invoices
+ * 2. Get ALL material costs for those commessas (no date filter)
+ * 3. Get work times from NETPRO
+ * 4. Calculate: Margin = Revenue - Material Cost - Labor Cost
+ * 
+ * GROUPING: By full commessa number (dw_commeca)
+ * - This ensures each unique order is a separate row
+ * - Display shows 4-digit code for readability
+ * 
+ * FILTERS:
+ * - Date range (applied to revenue only)
+ * - Commessa code or description (fuzzy search)
+ * - Client code or name (fuzzy search)
+ * 
+ * PERFORMANCE: Moderate - requires 2 queries (revenue+costs, work times)
+ * 
+ * OPTIMIZATION OPPORTUNITIES:
+ * - Work time query could be cached or pre-aggregated
+ * - Could combine with Client Summary to reduce duplicate queries
+ * ============================================================================
  */
 export async function getOrderRevenueDataAction(
     year: number = 2024,
@@ -763,92 +872,86 @@ export async function getOrderRevenueDataAction(
 }
 
 /**
- * Test specific query - Inspect client 9010117 costs
+ * Test specific query - Check work time for a specific commessa
  */
 export async function testSpecificQuery() {
     try {
-        const clientCode = '9010117';
+        const commessaCode = '8337';
 
-        // Method 1: Order Revenue approach (direct CASE statement)
-        const orderRevenueMethod = await queryMSSQL(`
-            SELECT
-                'ORDER_REVENUE_METHOD' as method,
-                SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END) as total_cost
+        // Get work time from NETPRO for this commessa
+        const workTimeResult = await queryMSSQL(`
+            SELECT 
+                SUBSTRING(ORD.COMMESSA, 4, 4) as commessa_display,
+                MIN(ORD.COMMESSA) as commessa_full,
+                MIN(ORD.DESCRIZIONE) as order_description,
+                SUM(SIT.LAVORO) as total_work_time,
+                COUNT(DISTINCT SIT.DATA) as work_days,
+                COUNT(DISTINCT SIT.OGGETTO) as operators_count,
+                MIN(SIT.DATA) as first_work_date,
+                MAX(SIT.DATA) as last_work_date
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            WHERE SIT.TIPO = 'WORK'
+              AND SIT.TIPO_OGGETTO = 'OPE'
+              AND ORD.COMMESSA IS NOT NULL
+              AND SUBSTRING(ORD.COMMESSA, 4, 4) = @commessaCode
+            GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
+        `, { commessaCode }, 'NETPRO');
+
+        // Get detailed breakdown by operator
+        const operatorBreakdown = await queryMSSQL(`
+            SELECT 
+                SIT.OGGETTO as operator_code,
+                MAX(OPE.NOME) as operator_name,
+                SUM(SIT.LAVORO) as work_time,
+                COUNT(DISTINCT SIT.DATA) as work_days
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
+            WHERE SIT.TIPO = 'WORK'
+              AND SIT.TIPO_OGGETTO = 'OPE'
+              AND ORD.COMMESSA IS NOT NULL
+              AND SUBSTRING(ORD.COMMESSA, 4, 4) = @commessaCode
+            GROUP BY SIT.OGGETTO
+            ORDER BY SUM(SIT.LAVORO) DESC
+        `, { commessaCode }, 'NETPRO');
+
+        // Get revenue data for this commessa from BUSINESS
+        const revenueData = await queryMSSQL(`
+            SELECT 
+                RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+                MIN(dw.dw_commeca) as commessa_full,
+                MIN(co.co_descr1) as order_description,
+                MIN(an.an_conto) as client_code,
+                MAX(an.an_descr1) as client_name,
+                SUM(dw.dw_valfatt) as total_revenue,
+                MIN(dw.dw_datmov) as first_invoice_date,
+                MAX(dw.dw_datmov) as last_invoice_date
             FROM dwarehe dw WITH (NOLOCK)
             INNER JOIN anagra an WITH (NOLOCK)
                 ON dw.dw_conto = an.an_conto
                 AND dw.codditt = an.codditt
+            LEFT JOIN commess co WITH (NOLOCK)
+                ON dw.dw_commeca = co.co_comme
+                AND dw.codditt = co.codditt
             WHERE dw.dw_scenario = 1
               AND dw.codditt = 'COOPZANARDI'
-              AND dw.dw_anno >= 2024
-              AND dw.dw_commeca > 0
-              AND (an.an_tipo != 'C' OR an.an_conto = @clientCode)
-        `, { clientCode }, 'BUSINESS');
-
-        // Method 2: Client Summary approach (CTE with joins)
-        const clientSummaryMethod = await queryMSSQL(`
-            WITH ClientRevenue AS (
-                SELECT
-                    an.an_conto as client_code
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = 'COOPZANARDI'
-                  AND dw.dw_anno >= 2024
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                  AND an.an_conto = @clientCode
-                GROUP BY an.an_conto
-            ),
-            SupplierCosts AS (
-                SELECT
-                    dw.dw_commeca,
-                    SUM(dw.dw_acqvalore) as commessa_cost
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = 'COOPZANARDI'
-                  AND an.an_tipo = 'F'
-                  AND dw.dw_acqvalore <> 0
-                  AND dw.dw_commeca > 0
-                GROUP BY dw.dw_commeca
-            ),
-            ClientCommessas AS (
-                SELECT DISTINCT
-                    an.an_conto as client_code,
-                    dw.dw_commeca
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = 'COOPZANARDI'
-                  AND dw.dw_anno >= 2024
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                  AND dw.dw_commeca > 0
-                  AND an.an_conto = @clientCode
-            )
-            SELECT
-                'CLIENT_SUMMARY_METHOD' as method,
-                ISNULL(SUM(sc.commessa_cost), 0) as total_cost
-            FROM ClientRevenue cr
-            LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
-            LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
-        `, { clientCode }, 'BUSINESS');
+              AND an.an_tipo = 'C'
+              AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = @commessaCode
+            GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
+        `, { commessaCode }, 'BUSINESS');
 
         return {
             success: true,
             data: {
-                client: clientCode,
-                orderRevenueMethod: orderRevenueMethod.recordset[0],
-                clientSummaryMethod: clientSummaryMethod.recordset[0]
+                commessa: commessaCode,
+                workTime: workTimeResult.recordset[0] || null,
+                operatorBreakdown: operatorBreakdown.recordset,
+                revenue: revenueData.recordset[0] || null
             },
-            message: 'Comparing cost calculation methods for client 9010117'
+            message: `Work time analysis for commessa ${commessaCode}`
         };
     } catch (err: any) {
         return {
@@ -1172,3 +1275,42 @@ export async function inspectCommessaDataAction(commessaCore: string) {
         };
     }
 }
+
+
+/**
+ * ============================================================================
+ * MAINTENANCE NOTES
+ * ============================================================================
+ * 
+ * ADDING A NEW REPORT:
+ * 1. Create a new action function following the naming pattern: get[ReportName]DataAction
+ * 2. Include standard parameters: year, page, limit, filters, sort, exportAll
+ * 3. Use NOLOCK hints on all queries
+ * 4. Apply pagination with OFFSET/FETCH NEXT
+ * 5. Return standard format: { success, data, pagination, error? }
+ * 
+ * PERFORMANCE OPTIMIZATION:
+ * - Always use WHERE clauses to limit data scope
+ * - Use CTEs to separate complex logic
+ * - Consider caching frequently accessed data (work times, etc.)
+ * - Monitor query execution times in production
+ * 
+ * COST CALCULATION RULES:
+ * - Material costs: Always from supplier rows (an_tipo='F')
+ * - Labor costs: Always from NETPRO work time × hourly rate
+ * - Revenue: Always from client rows (an_tipo='C')
+ * - Date filters: Apply to revenue, NOT to costs (to get full order costs)
+ * 
+ * COMMESSA NUMBER HANDLING:
+ * - BUSINESS DB: 9-digit integer (YYSSSSRRR) → Extract with RIGHT(CAST(dw_commeca/100 AS VARCHAR), 4)
+ * - NETPRO DB: 8-char string (YYSSSSRR) → Extract with SUBSTRING(COMMESSA, 4, 4)
+ * - Always group by FULL number, display 4-digit code
+ * 
+ * COMMON PITFALLS:
+ * - Don't filter costs by date (you'll miss historical costs for current orders)
+ * - Don't group by 4-digit display code (multiple orders can have same code)
+ * - Don't forget NOLOCK hints (can cause blocking in production)
+ * - Don't forget to exclude general expenses (dw_commeca > 0)
+ * 
+ * ============================================================================
+ */

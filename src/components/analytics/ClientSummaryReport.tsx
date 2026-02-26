@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 
 interface ClientSummaryRow {
     client_code: string;
@@ -38,12 +39,10 @@ export function ClientSummaryReport() {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     
-    const getTodayDate = () => new Date().toISOString().split('T')[0];
-    
     const [filters, setFilters] = useState<Filters>({
         client: '',
-        dateFrom: '2024-01-01',
-        dateTo: getTodayDate()
+        dateFrom: getLastYearStart(),
+        dateTo: getLastYearEnd()
     });
     const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -102,8 +101,8 @@ export function ClientSummaryReport() {
     const handleClearFilters = () => {
         const clearedFilters = {
             client: '',
-            dateFrom: '2024-01-01',
-            dateTo: getTodayDate()
+            dateFrom: getLastYearStart(),
+            dateTo: getLastYearEnd()
         };
         setFilters(clearedFilters);
         setAppliedFilters(clearedFilters);
