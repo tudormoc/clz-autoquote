@@ -89,6 +89,11 @@ export const APP_CONFIG = {
     MAX_FILE_UPLOAD_MB: 10,
   },
 
+  // Analytics Configuration
+  ANALYTICS: {
+    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations
+  },
+
   // Blueprint Preview Defaults
   BLUEPRINT: {
     HINGE_GAP: 7,        // mm - Space between board and spine

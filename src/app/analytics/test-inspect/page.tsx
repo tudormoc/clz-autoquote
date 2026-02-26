@@ -14,7 +14,7 @@ export default function TestInspectPage() {
 
     return (
         <div className="p-8 bg-background text-foreground">
-            <h1 className="text-2xl mb-4">Test Query: QTA Fields in SITUAZIONI</h1>
+            <h1 className="text-2xl mb-4">Test Query: DataWarehouse Client Data</h1>
             
             {data.success ? (
                 <>
@@ -22,17 +22,10 @@ export default function TestInspectPage() {
                         {data.message}
                     </div>
                     
-                    <div className="mb-8">
-                        <h2 className="text-xl mb-2">Available QTA Columns:</h2>
-                        <pre className="bg-card p-4 rounded overflow-auto text-xs">
-                            {JSON.stringify(data.columns, null, 2)}
-                        </pre>
-                    </div>
-
                     <div>
-                        <h2 className="text-xl mb-2">Sample Data (10 rows):</h2>
+                        <h2 className="text-xl mb-2 text-success-foreground">Commessa Test Results:</h2>
                         <pre className="bg-card p-4 rounded overflow-auto text-xs">
-                            {JSON.stringify(data.sample, null, 2)}
+                            {JSON.stringify(data.data || data.clientSummary || data, null, 2)}
                         </pre>
                     </div>
                 </>

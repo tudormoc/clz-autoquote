@@ -8,17 +8,18 @@
  * 3. Import and add to MANAGER_COMPONENTS map
  */
 
-import { LucideIcon, Target, Layers, Tags, Maximize2 } from 'lucide-react';
+import { LucideIcon, Target, Layers, Tags, Maximize2, Settings } from 'lucide-react';
 import { DiscountTiersManager } from '@/components/admin/DiscountTiersManager';
 import { PricingConfigsManager } from '@/components/admin/PricingConfigsManager';
 import { SignaturesManager } from '@/components/admin/SignaturesManager';
 import { FormatSurchargesManager } from '@/components/admin/FormatSurchargesManager';
+import { SettingsManager } from '@/components/admin/SettingsManager';
 
 export interface AdminTableConfig {
     id: string;
     label: string;
     icon: LucideIcon;
-    category: 'pricing' | 'operations' | 'clients' | 'materials' | 'other';
+    category: 'pricing' | 'operations' | 'clients' | 'materials' | 'settings' | 'other';
     description?: string;
 }
 
@@ -27,6 +28,13 @@ export interface AdminTableConfig {
  * Order determines sidebar display order
  */
 export const ADMIN_TABLES: AdminTableConfig[] = [
+    {
+        id: 'settings',
+        label: 'Settings',
+        icon: Settings,
+        category: 'settings',
+        description: 'Application settings and configuration'
+    },
     {
         id: 'pricing-configs',
         label: 'Pricing Rules',
@@ -61,6 +69,7 @@ export const ADMIN_TABLES: AdminTableConfig[] = [
  * Map table IDs to their manager components
  */
 export const MANAGER_COMPONENTS: Record<string, React.ComponentType> = {
+    'settings': SettingsManager,
     'pricing-configs': PricingConfigsManager,
     'signature-types': SignaturesManager,
     'discount-tiers': DiscountTiersManager,

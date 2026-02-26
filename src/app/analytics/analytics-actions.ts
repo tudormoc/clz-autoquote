@@ -243,46 +243,612 @@ export async function inspectSituazioniAction() {
 }
 
 /**
- * Test specific query - Check OGGETTO field
+ * Get client summary data from BUSINESS DB (dwarehe table)
+ * Groups by client with revenue, cost, margin, and order metrics
  */
-export async function testSpecificQuery() {
+export async function getClientSummaryDataAction(
+    year: number = 2024,
+    page: number = 1,
+    limit: number = 100,
+    filters?: {
+        client?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    },
+    sort?: {
+        column: string;
+        direction: 'asc' | 'desc';
+    },
+    exportAll: boolean = false
+) {
     try {
-        // Check SITUAZIONI table columns for QTA fields
-        const columns = await queryMSSQL(`
-            SELECT COLUMN_NAME, DATA_TYPE
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = 'SITUAZIONI'
-              AND COLUMN_NAME LIKE '%QTA%'
-            ORDER BY ORDINAL_POSITION
-        `, {}, 'NETPRO');
+        const offset = (page - 1) * limit;
+        const startDate = filters?.dateFrom || `${year}-01-01`;
+        const endDate = filters?.dateTo || `${year + 2}-12-31`;
 
-        // Get sample data with all QTA fields
-        const sample = await queryMSSQL(`
-            SELECT TOP 10
-                SIT.TASK,
-                SIT.DATA,
-                SIT.MACCHINA,
-                SIT.OGGETTO,
-                SIT.TIPO_OGGETTO,
-                SIT.QTA_COMPLETATA,
-                SIT.QTA_RICHIESTA,
-                SIT.QTA_SCARTO,
-                ORD.COMMESSA
-            FROM SITUAZIONI SIT WITH (NOLOCK)
-            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-            WHERE SIT.DATA >= '2025-01-01'
-              AND SIT.TIPO = 'WORK'
-              AND SIT.TIPO_OGGETTO = 'OPE'
-              AND ORD.COMMESSA IS NOT NULL
-            ORDER BY SIT.DATA DESC
-        `, {}, 'NETPRO');
+        // Build WHERE conditions
+        const conditions: string[] = [
+            'dw.dw_scenario = 1',
+            'dw.codditt = @codditt',
+            'dw.dw_anno >= @year',
+            'dw.dw_datmov >= @startDate',
+            'dw.dw_datmov <= @endDate'
+        ];
+
+        const params: Record<string, any> = {
+            codditt: 'COOPZANARDI',
+            year,
+            startDate,
+            endDate,
+            offset,
+            limit
+        };
+
+        if (filters?.client) {
+            const clientTerms = filters.client.split(',').map(c => c.trim()).filter(c => c);
+            if (clientTerms.length > 1) {
+                // Multiple codes: exact match on codes only
+                const placeholders = clientTerms.map((_, i) => `@client${i}`).join(', ');
+                conditions.push(`an.an_conto IN (${placeholders})`);
+                clientTerms.forEach((code, i) => {
+                    params[`client${i}`] = code;
+                });
+            } else if (clientTerms.length === 1) {
+                // Single term: search both code and name
+                conditions.push('(an.an_conto LIKE @client OR an.an_descr1 LIKE @client)');
+                params.client = `%${clientTerms[0]}%`;
+            }
+        }
+
+        const whereClause = conditions.join(' AND ');
+
+        // Build ORDER BY clause
+        const sortColumn = sort?.column || 'revenue';
+        const sortDirection = sort?.direction || 'desc';
+        
+        let orderByClause = '';
+        switch (sortColumn) {
+            case 'client':
+                orderByClause = `cr.client_code ${sortDirection.toUpperCase()}`;
+                break;
+            case 'orders':
+                orderByClause = `cr.total_orders ${sortDirection.toUpperCase()}`;
+                break;
+            case 'revenue':
+                orderByClause = `cr.total_revenue ${sortDirection.toUpperCase()}`;
+                break;
+            case 'cost':
+                orderByClause = `ISNULL(SUM(sc.commessa_cost), 0) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'work_cost':
+                orderByClause = `cr.total_revenue ${sortDirection.toUpperCase()}`;
+                break;
+            case 'margin':
+                orderByClause = `(cr.total_revenue - ISNULL(SUM(sc.commessa_cost), 0)) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'quantity':
+                orderByClause = `cr.total_quantity ${sortDirection.toUpperCase()}`;
+                break;
+            case 'last_order':
+                orderByClause = `cr.client_code ${sortDirection.toUpperCase()}`;
+                break;
+            default:
+                orderByClause = `cr.total_revenue ${sortDirection.toUpperCase()}`;
+        }
+
+        // Get total count for pagination
+        const countResult = await queryMSSQL(`
+            SELECT COUNT(DISTINCT an.an_conto) as total
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON dw.dw_conto = an.an_conto 
+                AND dw.codditt = an.codditt
+            WHERE ${whereClause}
+              AND an.an_tipo = 'C'
+              AND dw.dw_valfatt > 0
+        `, params, 'BUSINESS');
+
+        const total = countResult.recordset[0].total;
+
+        // Get paginated data - first get client revenue, then join with supplier costs by commessa
+        const result = await queryMSSQL(`
+            WITH ClientRevenue AS (
+                SELECT 
+                    an.an_conto as client_code,
+                    an.an_descr1 as client_name,
+                    COUNT(DISTINCT dw.dw_commeca) as total_orders,
+                    SUM(dw.dw_valfatt) as total_revenue,
+                    SUM(dw.dw_collifatt) as total_quantity
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK) 
+                    ON dw.dw_conto = an.an_conto 
+                    AND dw.codditt = an.codditt
+                WHERE ${whereClause}
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                GROUP BY an.an_conto, an.an_descr1
+            ),
+            SupplierCosts AS (
+                SELECT 
+                    dw.dw_commeca,
+                    SUM(dw.dw_acqvalore) as commessa_cost
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND an.an_tipo = 'F'
+                  AND dw.dw_acqvalore <> 0
+                  AND dw.dw_commeca > 0
+                GROUP BY dw.dw_commeca
+            ),
+            ClientCommessas AS (
+                SELECT DISTINCT
+                    an.an_conto as client_code,
+                    dw.dw_commeca
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE ${whereClause}
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+            )
+            SELECT 
+                cr.client_code,
+                cr.client_name,
+                cr.total_orders,
+                cr.total_revenue,
+                ISNULL(SUM(sc.commessa_cost), 0) as total_cost,
+                cr.total_quantity
+            FROM ClientRevenue cr
+            LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
+            LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
+            GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity
+            ORDER BY ${orderByClause}
+            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
+        `, params, 'BUSINESS');
+
+        // Get work time from NETPRO for all commessas linked to these clients
+        const clientCodes = result.recordset.map(row => row.client_code);
+        let workCosts: Record<string, number> = {};
+        
+        if (clientCodes.length > 0) {
+            // First get all commessas for these clients
+            const commessaParams: Record<string, any> = {
+                codditt: 'COOPZANARDI',
+                startDate: filters?.dateFrom || `${year}-01-01`,
+                endDate: filters?.dateTo || `${year + 2}-12-31`,
+                year
+            };
+            
+            const clientPlaceholders = clientCodes.map((code, i) => {
+                commessaParams[`client${i}`] = code;
+                return `@client${i}`;
+            }).join(', ');
+            
+            // Get commessas for these clients
+            const commessasResult = await queryMSSQL(`
+                SELECT DISTINCT
+                    an.an_conto as client_code,
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND dw.dw_anno >= @year
+                  AND dw.dw_datmov >= @startDate
+                  AND dw.dw_datmov <= @endDate
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+                  AND an.an_conto IN (${clientPlaceholders})
+            `, commessaParams, 'BUSINESS');
+            
+            // Get unique commessa codes
+            const commessaCodes = [...new Set(commessasResult.recordset.map(row => row.commessa_display))];
+            
+            if (commessaCodes.length > 0) {
+                const timeParams: Record<string, any> = {};
+                const placeholders = commessaCodes.map((code, i) => {
+                    timeParams[`code${i}`] = code;
+                    return `@code${i}`;
+                }).join(', ');
+                
+                const timeResult = await queryMSSQL(`
+                    SELECT 
+                        SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
+                        SUM(SIT.LAVORO) as total_work_time
+                    FROM SITUAZIONI SIT WITH (NOLOCK)
+                    LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+                    LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+                    WHERE SIT.TIPO = 'WORK'
+                      AND SIT.TIPO_OGGETTO = 'OPE'
+                      AND ORD.COMMESSA IS NOT NULL
+                      AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
+                    GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
+                `, timeParams, 'NETPRO');
+                
+                // Map work times to commessa codes
+                const workTimeMap: Record<string, number> = {};
+                timeResult.recordset.forEach(row => {
+                    workTimeMap[row.commessa_code] = row.total_work_time || 0;
+                });
+                
+                // Sum work costs per client
+                const { APP_CONFIG } = await import('@/config/constants');
+                const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
+                
+                commessasResult.recordset.forEach(row => {
+                    const workTime = workTimeMap[row.commessa_display] || 0;
+                    const workCost = workTime * hourlyRate;
+                    workCosts[row.client_code] = (workCosts[row.client_code] || 0) + workCost;
+                });
+            }
+        }
+
+        // Merge work costs into result
+        const enrichedData = result.recordset.map(row => ({
+            ...row,
+            work_cost: workCosts[row.client_code] || 0
+        }));
 
         return {
             success: true,
-            columns: columns.recordset,
-            sample: sample.recordset,
-            message: 'Checking all QTA fields in SITUAZIONI table'
+            data: enrichedData,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: [],
+            pagination: { page: 1, limit, total: 0, totalPages: 0 }
+        };
+    }
+}
+
+/**
+ * Get order revenue data from BUSINESS DB (dwarehe table)
+ * Groups by order (commessa) with revenue, cost, margin, and quantity
+ */
+export async function getOrderRevenueDataAction(
+    year: number = 2024,
+    page: number = 1,
+    limit: number = 100,
+    filters?: {
+        commessa?: string;
+        client?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    },
+    sort?: {
+        column: string;
+        direction: 'asc' | 'desc';
+    },
+    exportAll: boolean = false
+) {
+    try {
+        const offset = (page - 1) * limit;
+        const startDate = filters?.dateFrom || `${year}-01-01`;
+        const endDate = filters?.dateTo || `${year + 2}-12-31`;
+
+        // Build WHERE conditions
+        const conditions: string[] = [
+            'dw.dw_scenario = 1',
+            'dw.codditt = @codditt',
+            'dw.dw_anno >= @year',
+            'dw.dw_datmov >= @startDate',
+            'dw.dw_datmov <= @endDate',
+            'dw.dw_commeca > 0'
+        ];
+
+        const params: Record<string, any> = {
+            codditt: 'COOPZANARDI',
+            year,
+            startDate,
+            endDate,
+            offset,
+            limit
+        };
+
+        if (filters?.commessa) {
+            const commessaTerms = filters.commessa.split(',').map(c => c.trim()).filter(c => c);
+            if (commessaTerms.length > 1) {
+                // Multiple codes: exact match on 4-digit cores
+                const placeholders = commessaTerms.map((_, i) => `@commessa${i}`).join(', ');
+                conditions.push(`RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})`);
+                commessaTerms.forEach((code, i) => {
+                    params[`commessa${i}`] = code;
+                });
+            } else if (commessaTerms.length === 1) {
+                // Single term: search on 4-digit core only (description filter will be applied after CTE)
+                conditions.push('RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) LIKE @commessa');
+                params.commessa = `%${commessaTerms[0]}%`;
+            }
+        }
+
+        if (filters?.client) {
+            const clientTerms = filters.client.split(',').map(c => c.trim()).filter(c => c);
+            if (clientTerms.length > 1) {
+                // Multiple codes: exact match on codes only - only filter client rows, not suppliers
+                const placeholders = clientTerms.map((_, i) => `@client${i}`).join(', ');
+                conditions.push(`(an.an_tipo != 'C' OR an.an_conto IN (${placeholders}))`);
+                clientTerms.forEach((code, i) => {
+                    params[`client${i}`] = code;
+                });
+            } else if (clientTerms.length === 1) {
+                // Single term: search both code and name - only filter client rows, not suppliers
+                conditions.push(`(an.an_tipo != 'C' OR an.an_conto LIKE @client OR an.an_descr1 LIKE @client)`);
+                params.client = `%${clientTerms[0]}%`;
+            }
+        }
+
+        const whereClause = conditions.join(' AND ');
+
+        // Build ORDER BY clause
+        const sortColumn = sort?.column || 'revenue';
+        const sortDirection = sort?.direction || 'desc';
+        
+        let orderByClause = '';
+        switch (sortColumn) {
+            case 'commessa':
+                orderByClause = `RIGHT(CAST(MIN(dw.dw_commeca) / 100 AS VARCHAR), 4) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'client':
+                orderByClause = `MIN(CASE WHEN an.an_tipo = 'C' THEN an.an_conto END) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'revenue':
+                orderByClause = `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'cost':
+                orderByClause = `SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'margin':
+                orderByClause = `(SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) - SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END)) ${sortDirection.toUpperCase()}`;
+                break;
+            case 'quantity':
+                orderByClause = `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_collifatt ELSE 0 END) ${sortDirection.toUpperCase()}`;
+                break;
+            default:
+                orderByClause = `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) ${sortDirection.toUpperCase()}`;
+        }
+
+        // Get total count for pagination
+        const countResult = await queryMSSQL(`
+            SELECT COUNT(DISTINCT dw.dw_commeca) as total
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON dw.dw_conto = an.an_conto 
+                AND dw.codditt = an.codditt
+            WHERE ${whereClause}
+              AND an.an_tipo = 'C'
+              AND dw.dw_valfatt > 0
+        `, params, 'BUSINESS');
+
+        const total = countResult.recordset[0].total;
+
+        // Store commessa description filter separately for post-CTE filtering
+        let postCTEFilter = '';
+        if (filters?.commessa) {
+            const commessaTerms = filters.commessa.split(',').map(c => c.trim()).filter(c => c);
+            if (commessaTerms.length === 1) {
+                // Single term: also search in description after CTE
+                postCTEFilter = ' WHERE (cr.commessa_display LIKE @commessaDesc OR co.co_descr1 LIKE @commessaDesc)';
+                params.commessaDesc = `%${commessaTerms[0]}%`;
+            }
+        }
+
+        // Get paginated data with revenue AND material costs in one query
+        // Use CTE to separate client revenue from supplier costs
+        const result = await queryMSSQL(`
+            WITH ClientRevenue AS (
+                SELECT 
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+                    MIN(dw.dw_commeca) as commessa_full,
+                    MIN(an.an_conto) as client_code,
+                    MAX(an.an_descr1) as client_name,
+                    SUM(dw.dw_valfatt) as total_revenue,
+                    SUM(dw.dw_collifatt) as total_quantity
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK) 
+                    ON dw.dw_conto = an.an_conto 
+                    AND dw.codditt = an.codditt
+                WHERE ${whereClause}
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                GROUP BY dw.dw_commeca
+            ),
+            SupplierCosts AS (
+                SELECT 
+                    dw.dw_commeca,
+                    SUM(dw.dw_acqvalore) as total_cost
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND an.an_tipo = 'F'
+                  AND dw.dw_acqvalore <> 0
+                  AND dw.dw_commeca > 0
+                GROUP BY dw.dw_commeca
+            )
+            SELECT 
+                RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4) as commessa_display,
+                cr.commessa_full,
+                co.co_descr1 as order_description,
+                cr.client_code,
+                cr.client_name,
+                cr.total_revenue,
+                ISNULL(sc.total_cost, 0) as total_cost,
+                cr.total_quantity
+            FROM ClientRevenue cr
+            LEFT JOIN SupplierCosts sc ON cr.commessa_full = sc.dw_commeca
+            LEFT JOIN commess co WITH (NOLOCK)
+                ON cr.commessa_full = co.co_comme
+                AND co.codditt = @codditt
+            ${postCTEFilter}
+            ORDER BY ${orderByClause.replace('MIN(dw.dw_commeca)', 'cr.commessa_full').replace('MIN(CASE WHEN an.an_tipo = \'C\' THEN an.an_conto END)', 'cr.client_code').replace('SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_valfatt ELSE 0 END)', 'cr.total_revenue').replace('SUM(CASE WHEN an.an_tipo = \'F\' THEN dw.dw_acqvalore ELSE 0 END)', 'ISNULL(sc.total_cost, 0)').replace('(SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_valfatt ELSE 0 END) - SUM(CASE WHEN an.an_tipo = \'F\' THEN dw.dw_acqvalore ELSE 0 END))', '(cr.total_revenue - ISNULL(sc.total_cost, 0))').replace('SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_collifatt ELSE 0 END)', 'cr.total_quantity').replace('RIGHT(CAST(MIN(dw.dw_commeca) / 100 AS VARCHAR), 4)', 'RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4)')}
+            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
+        `, params, 'BUSINESS');
+
+        // Get work time from NETPRO for all commessa codes in the result
+        const commessaCodesForTime = result.recordset.map(row => row.commessa_display);
+        let workTimes: Record<string, number> = {};
+        
+        if (commessaCodesForTime.length > 0) {
+            const timeParams: Record<string, any> = {};
+            const placeholders = commessaCodesForTime.map((code, i) => {
+                timeParams[`code${i}`] = code;
+                return `@code${i}`;
+            }).join(', ');
+            
+            const timeResult = await queryMSSQL(`
+                SELECT 
+                    SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
+                    SUM(SIT.LAVORO) as total_work_time
+                FROM SITUAZIONI SIT WITH (NOLOCK)
+                LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+                LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+                WHERE SIT.TIPO = 'WORK'
+                  AND SIT.TIPO_OGGETTO = 'OPE'
+                  AND ORD.COMMESSA IS NOT NULL
+                  AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
+                GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
+            `, timeParams, 'NETPRO');
+            
+            timeResult.recordset.forEach(row => {
+                workTimes[row.commessa_code] = row.total_work_time || 0;
+            });
+        }
+
+        // Merge work times and calculate work costs
+        const { APP_CONFIG } = await import('@/config/constants');
+        const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
+        
+        const enrichedData = result.recordset.map(row => ({
+            ...row,
+            work_time: workTimes[row.commessa_display] || 0,
+            work_cost: (workTimes[row.commessa_display] || 0) * hourlyRate
+        }));
+
+        return {
+            success: true,
+            data: enrichedData,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: [],
+            pagination: { page: 1, limit, total: 0, totalPages: 0 }
+        };
+    }
+}
+
+/**
+ * Test specific query - Inspect client 9010117 costs
+ */
+export async function testSpecificQuery() {
+    try {
+        const clientCode = '9010117';
+
+        // Method 1: Order Revenue approach (direct CASE statement)
+        const orderRevenueMethod = await queryMSSQL(`
+            SELECT
+                'ORDER_REVENUE_METHOD' as method,
+                SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END) as total_cost
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK)
+                ON dw.dw_conto = an.an_conto
+                AND dw.codditt = an.codditt
+            WHERE dw.dw_scenario = 1
+              AND dw.codditt = 'COOPZANARDI'
+              AND dw.dw_anno >= 2024
+              AND dw.dw_commeca > 0
+              AND (an.an_tipo != 'C' OR an.an_conto = @clientCode)
+        `, { clientCode }, 'BUSINESS');
+
+        // Method 2: Client Summary approach (CTE with joins)
+        const clientSummaryMethod = await queryMSSQL(`
+            WITH ClientRevenue AS (
+                SELECT
+                    an.an_conto as client_code
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = 'COOPZANARDI'
+                  AND dw.dw_anno >= 2024
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND an.an_conto = @clientCode
+                GROUP BY an.an_conto
+            ),
+            SupplierCosts AS (
+                SELECT
+                    dw.dw_commeca,
+                    SUM(dw.dw_acqvalore) as commessa_cost
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = 'COOPZANARDI'
+                  AND an.an_tipo = 'F'
+                  AND dw.dw_acqvalore <> 0
+                  AND dw.dw_commeca > 0
+                GROUP BY dw.dw_commeca
+            ),
+            ClientCommessas AS (
+                SELECT DISTINCT
+                    an.an_conto as client_code,
+                    dw.dw_commeca
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = 'COOPZANARDI'
+                  AND dw.dw_anno >= 2024
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+                  AND an.an_conto = @clientCode
+            )
+            SELECT
+                'CLIENT_SUMMARY_METHOD' as method,
+                ISNULL(SUM(sc.commessa_cost), 0) as total_cost
+            FROM ClientRevenue cr
+            LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
+            LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
+        `, { clientCode }, 'BUSINESS');
+
+        return {
+            success: true,
+            data: {
+                client: clientCode,
+                orderRevenueMethod: orderRevenueMethod.recordset[0],
+                clientSummaryMethod: clientSummaryMethod.recordset[0]
+            },
+            message: 'Comparing cost calculation methods for client 9010117'
         };
     } catch (err: any) {
         return {
@@ -291,6 +857,7 @@ export async function testSpecificQuery() {
         };
     }
 }
+
 export async function inspectOrdiniAction() {
     try {
         // Get ORDINI columns
@@ -505,6 +1072,103 @@ export async function getOrderSummaryDataAction(
             error: err.message,
             data: [],
             pagination: { page: 1, limit, total: 0, totalPages: 0 }
+        };
+    }
+}
+
+
+/**
+ * Inspect commess table structure in BUSINESS DB
+ */
+export async function inspectCommessAction() {
+    try {
+        // Get columns
+        const cols = await queryMSSQL(`
+            SELECT COLUMN_NAME, DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'commess'
+            ORDER BY ORDINAL_POSITION
+        `, {}, 'BUSINESS');
+
+        // Get sample data
+        const sample = await queryMSSQL(`
+            SELECT TOP 5 *
+            FROM commess WITH (NOLOCK)
+            WHERE codditt = 'COOPZANARDI'
+        `, {}, 'BUSINESS');
+
+        return {
+            success: true,
+            columns: cols.recordset,
+            sample: sample.recordset
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message
+        };
+    }
+}
+
+
+/**
+ * Inspect dwarehe data for a specific commessa to understand client vs supplier
+ */
+export async function inspectCommessaDataAction(commessaCore: string) {
+    try {
+        // Get all records for this commessa with detailed info
+        const result = await queryMSSQL(`
+            SELECT 
+                dw.dw_commeca,
+                RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+                dw.dw_conto,
+                an.an_descr1 as account_name,
+                an.an_tipo as account_type,
+                dw.dw_valfatt as invoiced_value,
+                dw.dw_acqvalfatt as acquisition_value,
+                dw.dw_colli as delivered_qty,
+                dw.dw_collifatt as invoiced_qty,
+                dw.dw_valore as delivered_value,
+                dw.dw_acqvalore as acquisition_delivered_value,
+                dw.dw_tipork as record_type,
+                dw.dw_scenario,
+                dw.dw_datmov as movement_date,
+                co.co_descr1 as order_description
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK)
+                ON dw.dw_conto = an.an_conto
+                AND dw.codditt = an.codditt
+            LEFT JOIN commess co WITH (NOLOCK)
+                ON dw.dw_commeca = co.co_comme
+                AND dw.codditt = co.codditt
+            WHERE dw.codditt = 'COOPZANARDI'
+              AND dw.dw_scenario = 1
+              AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = @commessaCore
+            ORDER BY dw.dw_datmov DESC, dw.dw_valfatt DESC
+        `, { commessaCore }, 'BUSINESS');
+
+        // Also get distinct account types to understand the data
+        const accountTypes = await queryMSSQL(`
+            SELECT DISTINCT an.an_tipo, COUNT(*) as count
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK)
+                ON dw.dw_conto = an.an_conto
+                AND dw.codditt = an.codditt
+            WHERE dw.codditt = 'COOPZANARDI'
+              AND dw.dw_scenario = 1
+              AND dw.dw_anno >= 2024
+            GROUP BY an.an_tipo
+        `, {}, 'BUSINESS');
+
+        return {
+            success: true,
+            data: result.recordset,
+            accountTypes: accountTypes.recordset
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message
         };
     }
 }

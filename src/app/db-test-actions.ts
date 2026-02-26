@@ -51,3 +51,34 @@ export async function testDatabaseConnections() {
 
     return results;
 }
+
+export async function inspectCommessTableAction() {
+    try {
+        // Get columns
+        const cols = await queryMSSQL(`
+            SELECT COLUMN_NAME, DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'commess'
+            ORDER BY ORDINAL_POSITION
+        `, {}, 'BUSINESS');
+
+        // Get sample data
+        const sample = await queryMSSQL(`
+            SELECT TOP 5 *
+            FROM commess WITH (NOLOCK)
+            WHERE codditt = 'COOPZANARDI'
+            ORDER BY co_commeca DESC
+        `, {}, 'BUSINESS');
+
+        return {
+            success: true,
+            columns: cols.recordset,
+            sample: sample.recordset
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message
+        };
+    }
+}

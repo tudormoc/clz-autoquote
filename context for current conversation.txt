@@ -1,73 +1,365 @@
-SELECT ORDINI.DESCRIZIONE AS DESC_ORD,
-       OPERAZIONI.DESCRIZIONE AS DESC_OPE,
-       OPERAZIONI.DESCRIZIONE01 AS NOTE_LAV,
-	   ORDINI.COMMESSA As COM,
-       TASKS.TASK AS TASK,
-	   isnull(View_Note_Diba.dd_note,'') as notediba,
-		 isnull(cliente_commessa_attivita.descr,'') as CLI,
-       ORDINI.CODICE01 as COMPOSIZIONE,
-       OPERAZIONI.QTA_RICHIESTA - OPERAZIONI.QTA_COMPLETATA AS QTA_RESIDUA,
-       ORDINI.ORDINE AS ORDINE,
-	   CASE
-  WHEN ORDINI.COMMESSA like '%000____' then SUBSTRING(ORDINI.COMMESSA, 6, 8) 
-	ELSE SUBSTRING(ORDINI.COMMESSA, 4, 4)  
-END AS COMMESSA,
-       ISNULL(OPERAZIONI.OPERAZIONE, '0') AS FASE,
-       OPERAZIONI.OPERAZIONE,
-       MACCHINE.DESCRIZIONE AS MACDESC,
-       JOBSET.QTA_RICHIESTA AS QTA_RICHIESTA,
-       CASE
-           WHEN TASKS.STATO = 'EXE'
-           THEN MACCHINE.VALORE_CONTATORE
-           WHEN(TASKS.STATO <> 'EXE'
-                AND ISNULL(TASKS.CICLI_CONTATI, 0) > 0)
-           THEN TASKS.CICLI_CONTATI
-           ELSE NULL
-       END AS CONTAPEZZI,
-       JOBSET.QTA_COMPLETATA AS QTA_COMPLETATA,
-       JOBSET.QTA_SCARTATA AS QTA_SCARTATA,
-       ORDINI.PART_NUMBER AS PART_NUMBER,
-       ORDINI.DESCRIZIONE AS TITOLO,
-       TASKS.MACCHINA AS MACCHINA,
-       TASKS.STATO AS STATO,
-       ISNULL(TASKS.PROGRAMMA, '-') AS PROGRAMMA,
-ISNULL(ANAG_MATERIALI.FNDESCS,0) AS NOTE_PART_NUMBER,
-ISNULL(ORDINI.FNDESCS,0) AS  NOTE_ORDINE,
-ISNULL(OPERAZIONI.FNDESCS,0) AS NOTE_FASE,
-ISNULL(ANAG_MATERIALI.FNATTACHMENT,0) ALLEGATI_PART_NUMBER,
-ISNULL(ORDINI.FNATTACHMENT,0) AS ALLEGATI_ORDINE,
-ISNULL(OPERAZIONI.FNATTACHMENT,0) ALLEGATI_FASE
-FROM TASKS WITH (NOLOCK)
-     INNER JOIN JOBSET WITH (NOLOCK) ON TASKS.TASK = JOBSET.TASK
-     INNER JOIN OPERAZIONI WITH (NOLOCK) ON(JOBSET.OPERAZIONE = OPERAZIONI.OPERAZIONE
-                                            AND JOBSET.ORDINE = OPERAZIONI.ORDINE)
-     INNER JOIN ORDINI WITH (NOLOCK) ON OPERAZIONI.ORDINE = ORDINI.ORDINE
-	INNER JOIN ANAG_MATERIALI  WITH (NOLOCK) ON ORDINI.PART_NUMBER = ANAG_MATERIALI.PART_NUMBER
-     INNER JOIN MACCHINE WITH (NOLOCK) ON TASKS.MACCHINA = MACCHINE.MACCHINA
-     LEFT JOIN CONTROPARTI WITH (NOLOCK) ON ORDINI.CLIENTE = CONTROPARTI.CONTROPARTE
-	 INNER JOIN CENTRI WITH (NOLOCK) ON CENTRI.CENTRO = MACCHINE.CENTRO
-     INNER JOIN AREE WITH (NOLOCK) ON AREE.AREA = CENTRI.AREA
- left join View_Note_Diba on
-		substring(ordini.ordine,1,1)=mo_tipork and
-		substring(ordini.ordine,2,2)=(mo_anno-2000) and
-		substring(ordini.ordine,4,1)=mo_serie and
-		substring(ordini.ordine,5,9)=mo_numord and
-		substring(ordini.ordine,14,4)=mo_riga 
-		 and  OPERAZIONI.OPERAZIONE=view_note_diba.at_fase
- left join [cliente_commessa_attivita]  on  ORDINI.COMMESSA=[cliente_commessa_attivita] .commessa
-WHERE (TASKS.STATO <>'COM'AND TASKS.STATO <>'VAL') 
-AND AREE.AREA = '$SELAREA$'
-	/*AND TASKS.PROGRAMMA IS NOT NULL*/ 
-	/*CONDIZIONE PER ATTIVARE LA VISUALIZZAZIONE DEI SOLI TASK A PROGRAMMA*/
-ORDER BY
- (CASE TASKS.STATO
-             WHEN 'EXE'
-             THEN 1
-             WHEN 'SUS'
-             THEN 3
-             ELSE 3
-         END), OPERAZIONI.DATA_INIZIO DESC,  
-		 ISNULL(TASKS.PRIORITA,9999 ),
-        ORDINI.ORDINE;
-
-      
+Test Query: DataWarehouse Client Data
+Inspecting commessa 8337 (full: 250833705) - Only rows with dw_acqvalore (cost)
+Commessa Test Results:
+[
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010005,
+    "client_name": "PLASTIGRAFICA SRL ",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 2137.92,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-10-31T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 4508.7,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-10-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010846,
+    "client_name": "APAS O.D.V. Trento ",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 504,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-10-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010846,
+    "client_name": "APAS O.D.V. Trento ",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 504,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-10-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010846,
+    "client_name": "APAS O.D.V. Trento ",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 536.4,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-10-29T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 1412.5,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010846,
+    "client_name": "APAS O.D.V. Trento ",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 504,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010612,
+    "client_name": "SCATOLIFICIO GLORIA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 2133.8,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-30T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010612,
+    "client_name": "SCATOLIFICIO GLORIA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 209.25,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-29T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010612,
+    "client_name": "SCATOLIFICIO GLORIA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 2497,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-19T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010612,
+    "client_name": "SCATOLIFICIO GLORIA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 178,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-19T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010612,
+    "client_name": "SCATOLIFICIO GLORIA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 1014,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-19T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010044,
+    "client_name": "Winter & Company S.r.l.",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 5090.4,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-09-09T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010044,
+    "client_name": "Winter & Company S.r.l.",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 127,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-08-26T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010044,
+    "client_name": "Winter & Company S.r.l.",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 1818,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-08-26T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 174,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-07-31T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 80,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-07-31T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 20,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-07-31T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010044,
+    "client_name": "Winter & Company S.r.l.",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 127,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-07-01T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010044,
+    "client_name": "Winter & Company S.r.l.",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 2181.6,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-07-01T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010017,
+    "client_name": "LABE SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 100,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-06-26T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010324,
+    "client_name": "TECNOINCISIONE SNC",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 235,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-06-26T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010624,
+    "client_name": "OROGRAFICA SRL",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 130,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-05-26T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  },
+  {
+    "commessa_full": 250833705,
+    "commessa_display": "8337",
+    "client_code": 19010479,
+    "client_name": "R.D.M. OVARO SPA",
+    "account_type": "F",
+    "revenue_invoiced": 0,
+    "value_delivered": 0,
+    "cost_acqvalore": 5166.3,
+    "qty_invoiced": 0,
+    "qty_delivered": 0,
+    "movement_date": "2025-05-06T00:00:00.000Z",
+    "record_type": "M",
+    "order_description": "45 FERRARI - TASCHEN 25/00262"
+  }
+]

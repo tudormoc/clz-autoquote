@@ -8,9 +8,11 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText } from 'lucide-react';
+import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign } from 'lucide-react';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
+import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
+import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -26,20 +28,6 @@ export interface AnalyticsSectionConfig {
  */
 export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
     {
-        id: 'client-summary',
-        label: 'Client Summary',
-        icon: Users,
-        category: 'clients',
-        description: 'Client performance and history'
-    },
-    {
-        id: 'revenue-analysis',
-        label: 'Revenue Analysis',
-        icon: TrendingUp,
-        category: 'revenue',
-        description: 'Revenue trends and forecasts'
-    },
-    {
         id: 'production-metrics',
         label: 'Production Report',
         icon: Package,
@@ -54,11 +42,18 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Production grouped by machine'
     },
     {
-        id: 'time-reports',
-        label: 'Time Reports',
-        icon: Calendar,
-        category: 'trends',
-        description: 'Historical trends and patterns'
+        id: 'client-summary',
+        label: 'Client Summary',
+        icon: Users,
+        category: 'clients',
+        description: 'Client performance and history'
+    },
+    {
+        id: 'order-revenue',
+        label: 'Order Revenue',
+        icon: DollarSign,
+        category: 'revenue',
+        description: 'Revenue analysis by order'
     }
 ];
 
@@ -69,6 +64,8 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
 export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
+    'client-summary': ClientSummaryReport,
+    'order-revenue': OrderRevenueReport,
 };
 
 /**
