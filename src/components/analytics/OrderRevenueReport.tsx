@@ -308,7 +308,7 @@ export function OrderRevenueReport() {
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export function OrderRevenueReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-48"
                                     onClick={() => handleSort('client')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -393,13 +393,13 @@ export function OrderRevenueReport() {
                                     
                                     return (
                                         <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="font-mono text-primary truncate">{row.commessa_display}</div>
-                                                <div className="text-xs text-zinc-500 truncate">{row.order_description}</div>
+                                            <td className="px-4 py-3 text-sm w-32">
+                                                <div className="font-mono text-primary truncate max-w-[8rem]">{row.commessa_display}</div>
+                                                <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.order_description}>{row.order_description}</div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="font-mono text-zinc-400 truncate">{row.client_code}</div>
-                                                <div className="text-xs text-zinc-500 truncate">{row.client_name}</div>
+                                            <td className="px-4 py-3 text-sm w-48">
+                                                <div className="font-mono text-zinc-400 truncate max-w-[12rem]">{row.client_code}</div>
+                                                <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
                                                 {formatCurrency(row.total_revenue)}
@@ -432,10 +432,10 @@ export function OrderRevenueReport() {
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
                                     <div className="flex items-center gap-2">Commessa</div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-48">
                                     <div className="flex items-center gap-2">Client</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">

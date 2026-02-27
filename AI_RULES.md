@@ -4,6 +4,21 @@
 > This project demands PERFECTION, SCALABILITY, and MAINTAINABILITY. 
 > There is ZERO TOLERANCE for messy code, quick fixes, or unauthorized changes.
 
+## 📚 Quick Navigation
+
+**New to the project?** Start here:
+- `.kiro/steering/README.md` - Documentation index (find what you need)
+- `.kiro/steering/structure.md` - Project organization
+- `.kiro/steering/tech.md` - Technology stack
+
+**Working on specific domains?**
+- Analytics: `.kiro/steering/analytics-guide.md` + `database-schema.md`
+- Pricing: `src/lib/pricing/formulas/QUICK_REFERENCE.md`
+- UI: `.kiro/steering/design-system.md`
+
+**Having issues?**
+- `.kiro/steering/troubleshooting.md` - Common problems and solutions
+
 ## 0. RULES OF ENGAGEMENT (STRICT)
 1.  **ASK FIRST:** NEVER modify a file without first proposing the specific change and receiving explicit user approval.
     *   *Workflow:* Analyze -> Propose Plan -> Wait for Approval -> Execute -> Verify.
@@ -109,7 +124,213 @@
 - [ ] Tested in UI with real data
 
 
-## 7. DESIGN SYSTEM ENFORCEMENT
+## 7. ANALYTICS MODULE ARCHITECTURE (MANDATORY)
+
+**Before ANY analytics work, read:** `.kiro/steering/database-schema.md`
+
+### 7.1 Structure (DO NOT CHANGE)
+```
+src/app/analytics/
+├── analytics-actions.ts          (Main export - re-exports only)
+├── queries/
+│   ├── shared/
+│   │   ├── filter-builders.ts    (Reusable filter logic)
+│   │   ├── query-utils.ts        (Pagination, sorting, params)
+│   │   └── work-time-fetcher.ts  (Cross-DB work time logic)
+│   ├── netpro-queries.ts         (NETPRO-only reports)
+│   ├── business-queries.ts       (BUSINESS + NETPRO reports)
+│   └── debug-queries.ts          (Inspection utilities)
+```
+
+### 7.2 Adding New Analytics Reports
+
+**Step 1: Determine Database**
+- NETPRO only (production data) → Add to `queries/netpro-queries.ts`
+- BUSINESS only (revenue/costs) → Add to `queries/business-queries.ts`
+- Both databases → Add to `queries/business-queries.ts`
+
+**Step 2: Use Shared Utilities (MANDATORY)**
+```typescript
+import {
+    buildCommessaFilterNETPRO,      // For NETPRO commessa filtering
+    buildCommessaFilterBUSINESS,    // For BUSINESS commessa filtering
+    buildMachineFilter,             // For machine filtering
+    buildOperatorFilter,            // For operator filtering
+    buildClientFilter               // For client filtering
+} from './shared/filter-builders';
+
+import {
+    calculateOffset,                // Pagination offset
+    buildPaginationResult,          // Standard pagination response
+    buildProductionOrderBy,         // ORDER BY for production queries
+    setupDateParams                 // Standard date parameters
+} from './shared/query-utils';
+
+import {
+    fetchWorkTimesForCommessas,     // Get work times for commessa list
+    fetchWorkCostsForClients        // Get work costs by client
+} from './shared/work-time-fetcher';
+```
+
+**Step 3: Follow Standard Pattern**
+```typescript
+export async function getYourReportDataAction(
+    year: number = 2024,
+    page: number = 1,
+    limit: number = 100,
+    filters?: {
+        // Your filters here
+    },
+    sort?: SortConfig,
+    exportAll: boolean = false
+) {
+    try {
+        const offset = calculateOffset(page, limit);
+        const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
+        
+        // Build WHERE conditions
+        const conditions: string[] = [/* base conditions */];
+        const params: Record<string, any> = {/* base params */};
+        
+        // Apply filters using shared utilities
+        buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
+        
+        const whereClause = conditions.join(' AND ');
+        
+        // Your SQL query with NOLOCK hints
+        const result = await queryMSSQL(`
+            SELECT ...
+            FROM ... WITH (NOLOCK)
+            WHERE ${whereClause}
+            ORDER BY ...
+            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
+        `, params, 'NETPRO');
+        
+        return {
+            success: true,
+            data: result.recordset,
+            pagination: buildPaginationResult(page, limit, total)
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: [],
+            pagination: buildPaginationResult(page, limit, 0)
+        };
+    }
+}
+```
+
+**Step 4: Export from Main File**
+```typescript
+// In analytics-actions.ts
+export const getYourReportDataAction = getYourReportData;
+```
+
+**Step 5: Add to Config**
+```typescript
+// In src/config/analyticsSections.ts
+export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
+    // ... existing sections
+    {
+        id: 'your-report',
+        label: 'Your Report',
+        icon: YourIcon,
+        category: 'production', // or 'revenue', 'clients', etc.
+        description: 'Brief description'
+    }
+];
+
+export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
+    // ... existing components
+    'your-report': YourReportComponent,
+};
+```
+
+### 7.3 Query Standards (STRICT)
+
+**ALWAYS:**
+- ✅ Use `WITH (NOLOCK)` on all SELECT queries
+- ✅ Use shared filter builders (NO duplicate filter logic)
+- ✅ Use shared pagination utilities
+- ✅ Use CTEs to separate client revenue from supplier costs
+- ✅ Filter `dw_commeca > 0` to exclude general expenses
+- ✅ Filter `an_tipo = 'C'` for client revenue, `an_tipo = 'F'` for supplier costs
+- ✅ Extract commessa codes: NETPRO uses `SUBSTRING(COMMESSA, 4, 4)`, BUSINESS uses `RIGHT(CAST(dw_commeca/100 AS VARCHAR), 4)`
+
+**NEVER:**
+- ❌ Create duplicate filter logic (use shared utilities)
+- ❌ Hardcode pagination logic (use `calculateOffset` and `buildPaginationResult`)
+- ❌ Filter costs by date (costs should include ALL historical data)
+- ❌ Group by 4-digit display code (group by FULL commessa number)
+- ❌ Forget NOLOCK hints (causes blocking in production)
+- ❌ Include general expenses (dw_commeca = 0) in order costs
+
+### 7.4 UI Component Standards
+
+**Table Column Widths (MANDATORY):**
+```typescript
+// Fixed widths to prevent horizontal scrolling
+<th className="w-28">Date</th>           // 7rem / ~112px
+<th className="w-32">Commessa</th>       // 8rem / ~128px
+<th className="w-40">Commessa</th>       // 10rem / ~160px (with description)
+<th className="w-48">Client</th>         // 12rem / ~192px
+
+// With truncation
+<td className="w-40">
+    <div className="truncate max-w-[10rem]" title={fullText}>
+        {text}
+    </div>
+</td>
+```
+
+**Always include:**
+- Filters (date range, commessa, client, etc.)
+- Pagination (Previous/Next buttons)
+- Sorting (click column headers)
+- Export to Excel functionality
+- Loading states
+- Empty states
+- Error handling
+
+### 7.5 Cost Calculation Rules (CRITICAL)
+
+**Material Costs:**
+- Source: `dwarehe` table with `an_tipo = 'F'` (suppliers)
+- Column: `dw_acqvalore` (NOT `dw_acqvalfatt`)
+- Filter: `dw_commeca > 0` (exclude general expenses)
+- Date: NO date filter (include ALL historical costs)
+
+**Labor Costs:**
+- Source: NETPRO `SITUAZIONI` table
+- Calculation: `work_time × hourly_rate`
+- Hourly rate: `APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE`
+- Use `fetchWorkTimesForCommessas()` or `fetchWorkCostsForClients()`
+
+**Revenue:**
+- Source: `dwarehe` table with `an_tipo = 'C'` (clients)
+- Column: `dw_valfatt`
+- Date: Apply date filter (show only invoices in period)
+
+**Margin:**
+- Formula: `Revenue - Material Cost - Labor Cost`
+- Percentage: `(Margin / Revenue) × 100`
+
+### 7.6 Quality Checklist
+
+- [ ] Uses shared utilities (no duplicate logic)
+- [ ] Follows standard function signature
+- [ ] Uses NOLOCK hints on all queries
+- [ ] Proper error handling with try/catch
+- [ ] Returns standard format: `{ success, data, pagination, error? }`
+- [ ] Exported from `analytics-actions.ts`
+- [ ] Added to `analyticsSections.ts`
+- [ ] UI component has fixed column widths
+- [ ] Tested with filters, sorting, pagination, export
+
+
+## 8. DESIGN SYSTEM ENFORCEMENT
 
 **Before ANY UI work:**
 - [ ] Read `.kiro/steering/design-system.md`

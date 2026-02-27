@@ -287,7 +287,7 @@ export function ClientSummaryReport() {
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-48"
                                     onClick={() => handleSort('client')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -372,9 +372,9 @@ export function ClientSummaryReport() {
                                     
                                     return (
                                         <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="font-mono text-primary">{row.client_code}</div>
-                                                <div className="text-xs text-zinc-500 truncate max-w-xs">{row.client_name}</div>
+                                            <td className="px-4 py-3 text-sm w-48">
+                                                <div className="font-mono text-primary truncate max-w-[12rem]">{row.client_code}</div>
+                                                <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
                                                 {row.total_orders}
@@ -410,7 +410,7 @@ export function ClientSummaryReport() {
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-48">
                                     <div className="flex items-center gap-2">Client</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">

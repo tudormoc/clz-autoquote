@@ -314,7 +314,7 @@ export function OrderSummaryReport() {
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-40"
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export function OrderSummaryReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
                                     onClick={() => handleSort('machine')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -376,13 +376,13 @@ export function OrderSummaryReport() {
                             ) : (
                                 data.map((row, idx) => (
                                     <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm">
-                                            <div className="font-mono text-primary">{row.commessa_display}</div>
-                                            <div className="text-xs text-zinc-500 truncate max-w-xs">{row.order_description}</div>
+                                        <td className="px-4 py-3 text-sm w-40">
+                                            <div className="font-mono text-primary truncate max-w-[10rem]">{row.commessa_display}</div>
+                                            <div className="text-xs text-zinc-500 truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-zinc-300">
-                                            <div className="font-mono text-zinc-400">{row.machine}</div>
-                                            <div className="text-xs text-zinc-500">{row.machine_name}</div>
+                                        <td className="px-4 py-3 text-sm text-zinc-300 w-32">
+                                            <div className="font-mono text-zinc-400 truncate max-w-[8rem]">{row.machine}</div>
+                                            <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.machine_name}>{row.machine_name}</div>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
                                             {formatTime(row.work_time)}
@@ -403,10 +403,10 @@ export function OrderSummaryReport() {
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-40">
                                     <div className="flex items-center gap-2">Commessa</div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
                                     <div className="flex items-center gap-2">Machine</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
