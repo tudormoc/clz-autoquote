@@ -25,6 +25,7 @@ interface Filters {
     client: string;
     dateFrom: string;
     dateTo: string;
+    includeAllRevenueForSplit: boolean;
 }
 
 interface SortConfig {
@@ -43,7 +44,8 @@ export function ClientSummaryReport() {
     const [filters, setFilters] = useState<Filters>({
         client: '',
         dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+        dateTo: getLastYearEnd(),
+        includeAllRevenueForSplit: false
     });
     const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -63,6 +65,7 @@ export function ClientSummaryReport() {
             client: appliedFilters.client || undefined,
             dateFrom: appliedFilters.dateFrom || undefined,
             dateTo: appliedFilters.dateTo || undefined,
+            includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
         }, sortConfig);
         
         if (result.success) {
@@ -103,7 +106,8 @@ export function ClientSummaryReport() {
         const clearedFilters = {
             client: '',
             dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
+            dateTo: getLastYearEnd(),
+            includeAllRevenueForSplit: false
         };
         setFilters(clearedFilters);
         setAppliedFilters(clearedFilters);
@@ -121,6 +125,7 @@ export function ClientSummaryReport() {
                 client: appliedFilters.client || undefined,
                 dateFrom: appliedFilters.dateFrom || undefined,
                 dateTo: appliedFilters.dateTo || undefined,
+                includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
             }, sortConfig, true);
 
             if (result.success && result.data.length > 0) {
@@ -237,6 +242,22 @@ export function ClientSummaryReport() {
                             <Search size={16} />
                             Apply Filters
                         </Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => setFilters({ ...filters, includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
+                            variant={filters.includeAllRevenueForSplit ? "default" : "secondary"}
+                            className={`flex items-center gap-1.5 transition-all ${
+                                filters.includeAllRevenueForSplit 
+                                    ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
+                                    : 'hover:border-warning-foreground/50'
+                            }`}
+                            title={filters.includeAllRevenueForSplit ? "Showing full revenue for clients with split orders" : "Click to include full revenue for clients with split orders"}
+                        >
+                            <span className="text-base leading-none">⚠️</span>
+                            <span className="text-sm font-medium">
+                                {filters.includeAllRevenueForSplit ? 'Full' : 'Split'}
+                            </span>
+                        </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
                             Clear
@@ -352,7 +373,7 @@ export function ClientSummaryReport() {
                                         {getSortIcon('quantity')}
                                     </div>
                                 </th>
-                            </tr>
+                            <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Has split revenue (orders outside date range)"><div className="flex items-center justify-center">⚠️</div></th></tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
@@ -402,7 +423,7 @@ export function ClientSummaryReport() {
                                             <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
                                                 {row.total_quantity.toLocaleString()}
                                             </td>
-                                        </tr>
+                                        <td className="px-2 py-3 text-sm text-center w-12"><span className={`font-mono text-xs ${row.split_orders_count > 0 ? 'text-warning-foreground' : 'text-zinc-500'}`}>{row.split_orders_count > 0 ? 'Y' : 'N'}</span></td></tr>
                                     );
                                 })
                             )}
@@ -439,13 +460,13 @@ export function ClientSummaryReport() {
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -457,3 +478,7 @@ export function ClientSummaryReport() {
         </div>
     );
 }
+
+
+// Updated version with split revenue column indicator
+

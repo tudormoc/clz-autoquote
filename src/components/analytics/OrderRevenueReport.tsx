@@ -146,6 +146,7 @@ export function OrderRevenueReport() {
                         'Descrizione': row.order_description || '',
                         'Codice Cliente': row.client_code,
                         'Nome Cliente': row.client_name,
+                        'Quantità': row.total_quantity,
                         'Fatturato': Number(row.total_revenue.toFixed(2)),
                         'Costo Materiali': Number(row.total_cost.toFixed(2)),
                         'Ore Lavoro': Number(row.work_time.toFixed(2)),
@@ -163,6 +164,7 @@ export function OrderRevenueReport() {
                     { wch: 40 },  // Descrizione
                     { wch: 15 },  // Codice Cliente
                     { wch: 35 },  // Nome Cliente
+                    { wch: 12 },  // Quantità
                     { wch: 15 },  // Fatturato
                     { wch: 15 },  // Costo Materiali
                     { wch: 12 },  // Ore Lavoro
@@ -353,6 +355,15 @@ export function OrderRevenueReport() {
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => handleSort('quantity')}
+                                >
+                                    <div className="flex items-center justify-end gap-2">
+                                        Qty
+                                        {getSortIcon('quantity')}
+                                    </div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('revenue')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -409,13 +420,13 @@ export function OrderRevenueReport() {
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -434,6 +445,9 @@ export function OrderRevenueReport() {
                                             <td className="px-4 py-3 text-sm w-48">
                                                 <div className="font-mono text-zinc-400 truncate max-w-[12rem]">{row.client_code}</div>
                                                 <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                                {row.total_quantity.toLocaleString('it-IT')}
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
                                                 {formatCurrency(row.total_revenue)}
@@ -478,6 +492,9 @@ export function OrderRevenueReport() {
                                     <div className="flex items-center gap-2">Client</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Qty</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
                                     <div className="flex items-center justify-end gap-2">Revenue</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
@@ -500,13 +517,13 @@ export function OrderRevenueReport() {
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>

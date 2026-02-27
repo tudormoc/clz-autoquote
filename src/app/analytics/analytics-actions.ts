@@ -44,7 +44,7 @@ import {
 } from './queries/netpro-queries';
 
 import {
-    getClientSummaryDataAction as getClientSummaryData,
+    getClientSummaryDataActionV2 as getClientSummaryData,
     getOrderRevenueDataAction as getOrderRevenueData
 } from './queries/business-queries';
 
@@ -86,49 +86,3 @@ export async function getAnalyticsDataAction(reportId: string, params?: Record<s
         };
     }
 }
-
-/**
- * ============================================================================
- * MAINTENANCE NOTES
- * ============================================================================
- * 
- * ADDING A NEW REPORT:
- * 1. Determine which database(s) it uses:
- *    - NETPRO only → Add to queries/netpro-queries.ts
- *    - BUSINESS only → Add to queries/business-queries.ts
- *    - Both databases → Add to queries/business-queries.ts
- * 2. Use shared utilities from queries/shared/ for:
- *    - Filter building (filter-builders.ts)
- *    - Pagination and sorting (query-utils.ts)
- *    - Work time fetching (work-time-fetcher.ts)
- * 3. Follow naming pattern: get[ReportName]DataAction
- * 4. Include standard parameters: year, page, limit, filters, sort, exportAll
- * 5. Use NOLOCK hints on all queries
- * 6. Return standard format: { success, data, pagination, error? }
- * 7. Export the new function from this file
- * 
- * PERFORMANCE OPTIMIZATION:
- * - Always use WHERE clauses to limit data scope
- * - Use CTEs to separate complex logic
- * - Consider caching frequently accessed data (work times, etc.)
- * - Monitor query execution times in production
- * 
- * COST CALCULATION RULES:
- * - Material costs: Always from supplier rows (an_tipo='F')
- * - Labor costs: Always from NETPRO work time × hourly rate
- * - Revenue: Always from client rows (an_tipo='C')
- * - Date filters: Apply to revenue, NOT to costs (to get full order costs)
- * 
- * COMMESSA NUMBER HANDLING:
- * - BUSINESS DB: 9-digit integer (YYSSSSRRR) → Extract with RIGHT(CAST(dw_commeca/100 AS VARCHAR), 4)
- * - NETPRO DB: 8-char string (YYSSSSRR) → Extract with SUBSTRING(COMMESSA, 4, 4)
- * - Always group by FULL number, display 4-digit code
- * 
- * COMMON PITFALLS:
- * - Don't filter costs by date (you'll miss historical costs for current orders)
- * - Don't group by 4-digit display code (multiple orders can have same code)
- * - Don't forget NOLOCK hints (can cause blocking in production)
- * - Don't forget to exclude general expenses (dw_commeca > 0)
- * 
- * ============================================================================
- */
