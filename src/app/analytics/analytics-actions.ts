@@ -44,7 +44,7 @@ import {
 } from './queries/netpro-queries';
 
 import {
-    getClientSummaryDataActionV2 as getClientSummaryData,
+    getClientSummaryDataAction as getClientSummaryData,
     getOrderRevenueDataAction as getOrderRevenueData
 } from './queries/business-queries';
 

@@ -68,178 +68,6 @@ import {
  * PERFORMANCE: Moderate - requires 3 queries (revenue, costs, work times)
  * ============================================================================
  */
-export async function getClientSummaryDataAction(
-    year: number = 2024,
-    page: number = 1,
-    limit: number = 100,
-    filters?: {
-        client?: string;
-        dateFrom?: string;
-        dateTo?: string;
-    },
-    sort?: SortConfig,
-    exportAll: boolean = false
-) {
-    try {
-        const offset = calculateOffset(page, limit);
-        const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
-
-        // Build WHERE conditions
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            'dw.codditt = @codditt',
-            'dw.dw_anno >= @year',
-            'dw.dw_datmov >= @startDate',
-            'dw.dw_datmov <= @endDate'
-        ];
-
-        const params: Record<string, any> = {
-            codditt: 'COOPZANARDI',
-            year,
-            startDate,
-            endDate,
-            offset,
-            limit
-        };
-
-        // Apply client filter using shared utility
-        buildClientFilter(filters?.client, conditions, params);
-
-        const whereClause = conditions.join(' AND ');
-
-        // Build ORDER BY clause
-        const orderByClause = buildClientSummaryOrderBy(
-            sort?.column || 'revenue',
-            sort?.direction || 'desc'
-        );
-
-        // Get total count for pagination
-        const countResult = await queryMSSQL(`
-            SELECT COUNT(DISTINCT an.an_conto) as total
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON dw.dw_conto = an.an_conto 
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
-              AND an.an_tipo = 'C'
-              AND dw.dw_valfatt > 0
-        `, params, 'BUSINESS');
-
-        const total = countResult.recordset[0].total;
-
-        // Get paginated data - first get client revenue, then join with supplier costs by commessa
-        const result = await queryMSSQL(`
-            WITH ClientRevenue AS (
-                SELECT 
-                    an.an_conto as client_code,
-                    an.an_descr1 as client_name,
-                    COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) END) as total_orders,
-                    SUM(dw.dw_valfatt) as total_revenue,
-                    SUM(dw.dw_collifatt) as total_quantity
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK) 
-                    ON dw.dw_conto = an.an_conto 
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                GROUP BY an.an_conto, an.an_descr1
-            ),
-            SupplierCosts AS (
-                SELECT 
-                    dw.dw_commeca,
-                    SUM(dw.dw_acqvalore) as commessa_cost
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND an.an_tipo = 'F'
-                  AND dw.dw_acqvalore <> 0
-                  AND dw.dw_commeca > 0
-                GROUP BY dw.dw_commeca
-            ),
-            ClientCommessas AS (
-                SELECT DISTINCT
-                    an.an_conto as client_code,
-                    dw.dw_commeca
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                  AND dw.dw_commeca > 0
-            ),
-            SplitRevenue AS (
-                SELECT 
-                    an.an_conto as client_code,
-                    COUNT(DISTINCT dw.dw_commeca) as split_count
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                  AND dw.dw_commeca > 0
-                  AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
-                GROUP BY an.an_conto
-            )
-            SELECT 
-                cr.client_code,
-                cr.client_name,
-                cr.total_orders,
-                cr.total_revenue,
-                ISNULL(SUM(sc.commessa_cost), 0) as total_cost,
-                cr.total_quantity,
-                ISNULL(sr.split_count, 0) as split_orders_count
-            FROM ClientRevenue cr
-            LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
-            LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
-            LEFT JOIN SplitRevenue sr ON cr.client_code = sr.client_code
-            GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity, sr.split_count
-            ORDER BY ${orderByClause}
-            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
-        `, params, 'BUSINESS');
-
-        // Get work time from NETPRO for all commessas linked to these clients
-        const clientCodes = result.recordset.map(row => row.client_code);
-        const { APP_CONFIG } = await import('@/config/constants');
-        const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
-
-        const workCosts = await fetchWorkCostsForClients(
-            clientCodes,
-            year,
-            startDate,
-            endDate,
-            hourlyRate
-        );
-
-        // Merge work costs into result
-        const enrichedData = result.recordset.map(row => ({
-            ...row,
-            work_cost: workCosts[row.client_code] || 0
-        }));
-
-        return {
-            success: true,
-            data: enrichedData,
-            pagination: buildPaginationResult(page, limit, total)
-        };
-    } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: buildPaginationResult(page, limit, 0)
-        };
-    }
-}
-
 /**
  * ============================================================================
  * ORDER REVENUE REPORT
@@ -495,12 +323,17 @@ export async function getOrderRevenueDataAction(
  * CLIENT SUMMARY REPORT (WITH SPLIT REVENUE TOGGLE)
  * ============================================================================
  * 
- * Updated version with includeAllRevenueForSplit toggle support.
- * When toggle is ON, clients with split orders show ALL revenue instead of
- * just period revenue for accurate profitability calculation.
+ * Shows aggregated revenue, costs, and margin per client.
+ * Includes toggle to show full revenue for orders with split invoices.
+ * 
+ * SPLIT REVENUE TOGGLE:
+ * - When OFF: Shows only revenue from invoices in the selected period
+ * - When ON: Shows all-time revenue for orders that have invoices in the period
+ * 
+ * This allows seeing true profitability for orders that span multiple periods.
  * ============================================================================
  */
-export async function getClientSummaryDataActionV2(
+export async function getClientSummaryDataAction(
     year: number = 2024,
     page: number = 1,
     limit: number = 100,

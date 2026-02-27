@@ -271,7 +271,7 @@ export function OrderRevenueReport() {
                         <Button 
                             type="button" 
                             onClick={() => setFilters({ ...filters, includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
-                            variant={filters.includeAllRevenueForSplit ? "default" : "secondary"}
+                            variant={filters.includeAllRevenueForSplit ? "primary" : "secondary"}
                             className={`flex items-center gap-1.5 transition-all ${
                                 filters.includeAllRevenueForSplit 
                                     ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
