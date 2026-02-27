@@ -126,6 +126,7 @@ export function OrderRevenueReport() {
     };
 
     const handleExportExcel = async () => {
+        if (loading) return; // Prevent multiple clicks
         setLoading(true);
         try {
             const result = await getOrderRevenueDataAction(2024, 1, 999999, {
@@ -287,9 +288,9 @@ export function OrderRevenueReport() {
                             <X size={16} />
                             Clear
                         </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
+                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            Export Excel
+                            {loading ? 'Exporting...' : 'Export Excel'}
                         </Button>
                     </div>
                 </form>

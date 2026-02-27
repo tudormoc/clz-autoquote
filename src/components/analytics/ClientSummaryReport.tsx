@@ -119,6 +119,7 @@ export function ClientSummaryReport() {
     };
 
     const handleExportExcel = async () => {
+        if (loading) return; // Prevent multiple clicks
         setLoading(true);
         try {
             const result = await getClientSummaryDataAction(2024, 1, 999999, {
@@ -262,9 +263,9 @@ export function ClientSummaryReport() {
                             <X size={16} />
                             Clear
                         </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
+                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            Export Excel
+                            {loading ? 'Exporting...' : 'Export Excel'}
                         </Button>
                     </div>
                 </form>
