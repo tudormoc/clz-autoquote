@@ -29,6 +29,7 @@ interface Filters {
     client: string;
     dateFrom: string;
     dateTo: string;
+    includeAllRevenueForSplit: boolean;
 }
 
 interface SortConfig {
@@ -48,7 +49,8 @@ export function OrderRevenueReport() {
         commessa: '',
         client: '',
         dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+        dateTo: getLastYearEnd(),
+        includeAllRevenueForSplit: false
     });
     const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -69,6 +71,7 @@ export function OrderRevenueReport() {
             client: appliedFilters.client || undefined,
             dateFrom: appliedFilters.dateFrom || undefined,
             dateTo: appliedFilters.dateTo || undefined,
+            includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
         }, sortConfig);
         
         if (result.success) {
@@ -110,7 +113,8 @@ export function OrderRevenueReport() {
             commessa: '',
             client: '',
             dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
+            dateTo: getLastYearEnd(),
+            includeAllRevenueForSplit: false
         };
         setFilters(clearedFilters);
         setAppliedFilters(clearedFilters);
@@ -129,6 +133,7 @@ export function OrderRevenueReport() {
                 client: appliedFilters.client || undefined,
                 dateFrom: appliedFilters.dateFrom || undefined,
                 dateTo: appliedFilters.dateTo || undefined,
+                includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
             }, sortConfig, true);
 
             if (result.success && result.data.length > 0) {
@@ -259,6 +264,22 @@ export function OrderRevenueReport() {
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
                             Apply Filters
+                        </Button>
+                        <Button 
+                            type="button" 
+                            onClick={() => setFilters({ ...filters, includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
+                            variant={filters.includeAllRevenueForSplit ? "default" : "secondary"}
+                            className={`flex items-center gap-1.5 transition-all ${
+                                filters.includeAllRevenueForSplit 
+                                    ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
+                                    : 'hover:border-warning-foreground/50'
+                            }`}
+                            title={filters.includeAllRevenueForSplit ? "Showing full revenue for split orders" : "Click to include full revenue for split orders"}
+                        >
+                            <span className="text-base leading-none">⚠️</span>
+                            <span className="text-sm font-medium">
+                                {filters.includeAllRevenueForSplit ? 'Full' : 'Split'}
+                            </span>
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />

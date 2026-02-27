@@ -264,12 +264,17 @@ export async function getClientSummaryDataAction(
  * - Material Cost: ALL historical costs for those orders ❌
  * - Work Cost: ALL historical work for those orders ❌
  * 
- * GROUPING: By full commessa number (dw_commeca)
- * - This ensures each unique order is a separate row
+ * SPLIT REVENUE TOGGLE:
+ * - When includeAllRevenueForSplit is TRUE, orders with split revenue (invoices
+ *   outside date range) will show ALL revenue instead of just period revenue
+ * - This allows seeing true profitability for orders that span multiple periods
+ * 
+ * GROUPING: By 4-digit commessa code
+ * - Multiple revisions of same order are grouped together
  * - Display shows 4-digit code for readability
  * 
  * FILTERS:
- * - Date range (applied to revenue only)
+ * - Date range (applied to revenue only, unless toggle is ON)
  * - Commessa code or description (fuzzy search)
  * - Client code or name (fuzzy search)
  * 
@@ -285,6 +290,7 @@ export async function getOrderRevenueDataAction(
         client?: string;
         dateFrom?: string;
         dateTo?: string;
+        includeAllRevenueForSplit?: boolean;
     },
     sort?: SortConfig,
     exportAll: boolean = false
@@ -292,6 +298,7 @@ export async function getOrderRevenueDataAction(
     try {
         const offset = calculateOffset(page, limit);
         const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
+        const includeAllRevenue = filters?.includeAllRevenueForSplit || false;
 
         // Build WHERE conditions
         const conditions: string[] = [
@@ -345,6 +352,34 @@ export async function getOrderRevenueDataAction(
         // Transform ORDER BY for use after CTE
         const orderByClause = transformOrderByForCTE(rawOrderByClause);
 
+        // Build conditional CTE for all-time revenue (only when toggle is ON)
+        const allTimeRevenueCTE = includeAllRevenue ? `,
+            AllTimeRevenue AS (
+                SELECT 
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+                    SUM(dw.dw_valfatt) as all_time_revenue
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
+            )` : '';
+
+        // Conditional revenue column: use all-time revenue for split orders when toggle is ON
+        const revenueColumn = includeAllRevenue 
+            ? 'CASE WHEN sr.dw_commeca IS NOT NULL THEN ISNULL(atr.all_time_revenue, cr.total_revenue) ELSE cr.total_revenue END as total_revenue'
+            : 'cr.total_revenue';
+
+        // Conditional join for all-time revenue
+        const allTimeRevenueJoin = includeAllRevenue
+            ? 'LEFT JOIN AllTimeRevenue atr ON cr.commessa_display = atr.commessa_display'
+            : '';
+
         // Get paginated data with revenue AND material costs in one query
         // Use CTE to separate client revenue from supplier costs
         const result = await queryMSSQL(`
@@ -392,20 +427,21 @@ export async function getOrderRevenueDataAction(
                   AND dw.dw_valfatt > 0
                   AND dw.dw_commeca > 0
                   AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
-            )
+            )${allTimeRevenueCTE}
             SELECT 
                 RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4) as commessa_display,
                 cr.commessa_full,
                 co.co_descr1 as order_description,
                 cr.client_code,
                 cr.client_name,
-                cr.total_revenue,
+                ${revenueColumn},
                 ISNULL(sc.total_cost, 0) as total_cost,
                 cr.total_quantity,
                 CASE WHEN sr.dw_commeca IS NOT NULL THEN 1 ELSE 0 END as has_split_revenue
             FROM ClientRevenue cr
             LEFT JOIN SupplierCosts sc ON cr.commessa_display = sc.commessa_display
             LEFT JOIN SplitRevenue sr ON RIGHT(CAST(sr.dw_commeca / 100 AS VARCHAR), 4) = cr.commessa_display
+            ${allTimeRevenueJoin}
             LEFT JOIN commess co WITH (NOLOCK)
                 ON cr.commessa_full = co.co_comme
                 AND co.codditt = @codditt
