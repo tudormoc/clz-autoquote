@@ -9,10 +9,11 @@ export const metadata = {
 
 export default function DBTestPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="h-screen flex flex-col bg-background overflow-hidden">
             <Header />
 
-            <main className="max-w-screen-2xl mx-auto px-4 py-4">
+            <main className="flex-1 overflow-y-auto">
+                <div className="max-w-screen-2xl mx-auto px-4 py-4">
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold text-white">Database Explorer</h1>
                     <p className="text-zinc-400 text-sm mt-1">Explore your local MSSQL database to identify tables for integration.</p>
@@ -21,6 +22,7 @@ export default function DBTestPage() {
                 <DBStatusSummary />
 
                 <DBExplorer />
+                </div>
             </main>
         </div>
     );

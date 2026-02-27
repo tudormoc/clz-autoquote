@@ -6,10 +6,11 @@ import { Settings } from 'lucide-react';
 
 export default function QuotesPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="h-screen flex flex-col bg-background overflow-hidden">
             <Header />
 
-            <main className="max-w-screen-2xl mx-auto px-4 py-4">
+            <main className="flex-1 overflow-y-auto">
+                <div className="max-w-screen-2xl mx-auto px-4 py-4">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-white">{APP_COPY.quotes.title}</h1>
@@ -25,6 +26,7 @@ export default function QuotesPage() {
                 </div>
 
                 <AdvancedQuoteForm />
+                </div>
             </main>
         </div>
     );

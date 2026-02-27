@@ -281,8 +281,9 @@ export function ClientSummaryReport() {
 
             {/* Table */}
             <div className="bg-card border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
+                {data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th 
@@ -404,7 +405,51 @@ export function ClientSummaryReport() {
                             )}
                         </tbody>
                     </table>
-                </div>
+                    </div>
+                ) : (
+                    <table className="w-full">
+                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center gap-2">Client</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Orders</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Revenue</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Material Cost</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Labor Cost</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Margin</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Quantity</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                        {APP_COPY.analytics.empty}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );

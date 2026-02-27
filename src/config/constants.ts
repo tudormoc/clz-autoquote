@@ -91,7 +91,7 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations
+    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations
   },
 
   // Blueprint Preview Defaults

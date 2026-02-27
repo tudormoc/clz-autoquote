@@ -3,9 +3,11 @@ import { Header } from '@/components/Header';
 
 export default function AnalyticsPage() {
     return (
-        <main className="min-h-screen bg-background">
+        <div className="h-screen flex flex-col bg-background overflow-hidden">
             <Header />
-            <AnalyticsDashboard />
-        </main>
+            <div className="flex-1 overflow-y-auto">
+                <AnalyticsDashboard />
+            </div>
+        </div>
     );
 }

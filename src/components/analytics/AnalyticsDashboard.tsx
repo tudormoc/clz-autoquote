@@ -14,7 +14,7 @@ export default function AnalyticsDashboard() {
     const ReportComponent = REPORT_COMPONENTS[activeSection];
 
     return (
-        <div className="flex min-h-[calc(100vh-56px)]">
+        <div className="flex h-full">
             {/* Sidebar */}
             <AnalyticsSidebar
                 activeSection={activeSection}
@@ -24,7 +24,7 @@ export default function AnalyticsDashboard() {
             />
 
             {/* Main Content */}
-            <main className="flex-1 bg-background">
+            <main className="flex-1 bg-background overflow-y-auto">
                 <div className="max-w-screen-2xl mx-auto px-6 py-6">
                     {/* Header */}
                     <div className="mb-6">

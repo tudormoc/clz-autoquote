@@ -14,7 +14,7 @@ export default function AdminDashboard() {
     const ManagerComponent = MANAGER_COMPONENTS[activeTable];
 
     return (
-        <div className="flex h-[calc(100vh-56px)]">
+        <div className="flex h-full">
             {/* Sidebar */}
             <AdminSidebar
                 activeTable={activeTable}

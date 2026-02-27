@@ -308,8 +308,9 @@ export function OrderSummaryReport() {
 
             {/* Table */}
             <div className="bg-card border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
+                {data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th 
@@ -397,7 +398,45 @@ export function OrderSummaryReport() {
                             )}
                         </tbody>
                     </table>
-                </div>
+                    </div>
+                ) : (
+                    <table className="w-full">
+                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center gap-2">Commessa</div>
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center gap-2">Machine</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Time</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Qty Req</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Qty Done</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+                                        {APP_COPY.analytics.empty}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );

@@ -92,18 +92,36 @@
 
 /* Custom Scrollbar */
 @layer utilities {
+  /* Only show scrollbar when hovering or actively scrolling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  *:hover {
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
+    background: transparent;
     border-radius: 4px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+  }
+
+  *:hover::-webkit-scrollbar-track {
+    background: hsl(var(--background));
   }
 
   ::-webkit-scrollbar-thumb:hover {

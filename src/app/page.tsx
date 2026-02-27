@@ -26,10 +26,11 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="h-screen flex flex-col bg-background overflow-hidden">
             <Header />
-
-            <main className="max-w-screen-2xl mx-auto px-4 py-12">
+            
+            <main className="flex-1 overflow-y-auto">
+                <div className="max-w-screen-2xl mx-auto px-4 py-12">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold text-white mb-3">
                         {APP_COPY.home.welcome}
@@ -64,6 +65,7 @@ export default function Home() {
                             </Link>
                         );
                     })}
+                </div>
                 </div>
             </main>
         </div>
