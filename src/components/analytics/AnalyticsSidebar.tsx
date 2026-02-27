@@ -2,21 +2,16 @@
 
 import { ANALYTICS_SECTIONS, getSectionsByCategory } from '@/config/analyticsSections';
 import { APP_COPY } from '@/locales/en';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 interface AnalyticsSidebarProps {
     activeSection: string;
-    onSectionSelect: (sectionId: string) => void;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
 }
 
-export function AnalyticsSidebar({
-    activeSection,
-    onSectionSelect,
-    isCollapsed,
-    onToggleCollapse
-}: AnalyticsSidebarProps) {
+export function AnalyticsSidebar({ activeSection }: AnalyticsSidebarProps) {
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const sectionsByCategory = getSectionsByCategory();
 
     return (
@@ -34,13 +29,15 @@ export function AnalyticsSidebar({
                         </h2>
                     )}
                     <button
-                        onClick={onToggleCollapse}
+                        onClick={() => setIsCollapsed(!isCollapsed)}
                         className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-primary transition-colors"
                         title={isCollapsed ? 'Expand' : 'Collapse'}
                     >
                         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                     </button>
                 </div>
+
+
 
                 {/* Sections List */}
                 <nav className="flex-1 overflow-y-auto p-2">
@@ -57,9 +54,9 @@ export function AnalyticsSidebar({
                                     const isActive = activeSection === section.id;
 
                                     return (
-                                        <button
+                                        <Link
                                             key={section.id}
-                                            onClick={() => onSectionSelect(section.id)}
+                                            href={`/analytics/${section.id}`}
                                             className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
                                                 isActive
                                                     ? 'bg-primary/10 text-primary'
@@ -73,7 +70,7 @@ export function AnalyticsSidebar({
                                                     {section.label}
                                                 </span>
                                             )}
-                                        </button>
+                                        </Link>
                                     );
                                 })}
                             </div>

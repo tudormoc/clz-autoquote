@@ -152,6 +152,7 @@ export const APP_COPY = {
     subtitle: "Business intelligence and reporting across all databases",
     sidebar: {
       title: "Reports",
+      allReports: "All Reports",
     },
     categories: {
       clients: "Clients",
