@@ -50,12 +50,20 @@ import {
  * CALCULATION LOGIC:
  * 1. Get client revenue from date-filtered invoices (an_tipo='C')
  * 2. Get ALL material costs for those commessas (an_tipo='F', no date filter)
- * 3. Get work times from NETPRO for those commessas
+ * 3. Get ALL work times from NETPRO for those commessas (no date filter)
  * 4. Calculate: Margin = Revenue - Material Cost - Labor Cost
  * 
  * WHY NO DATE FILTER ON COSTS:
- * If an order was invoiced in 2025 but materials were purchased in 2024,
- * we still need to include those 2024 costs to calculate true profitability.
+ * If an order was invoiced in 2025 but materials were purchased in 2024 and
+ * work was done in 2024, we still need to include those 2024 costs to calculate
+ * true profitability of the order. This gives accurate margin per order.
+ * 
+ * DATE FILTER BEHAVIOR:
+ * - Revenue: Only invoices in selected date range ✅
+ * - Orders: Only orders with invoices in date range ✅
+ * - Quantity: Only quantities from invoices in date range ✅
+ * - Material Cost: ALL historical costs for those orders ❌
+ * - Work Cost: ALL historical work for those orders ❌
  * 
  * PERFORMANCE: Moderate - requires 3 queries (revenue, costs, work times)
  * ============================================================================
@@ -164,6 +172,22 @@ export async function getClientSummaryDataAction(
                   AND an.an_tipo = 'C'
                   AND dw.dw_valfatt > 0
                   AND dw.dw_commeca > 0
+            ),
+            SplitRevenue AS (
+                SELECT 
+                    an.an_conto as client_code,
+                    COUNT(DISTINCT dw.dw_commeca) as split_count
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+                  AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
+                GROUP BY an.an_conto
             )
             SELECT 
                 cr.client_code,
@@ -171,11 +195,13 @@ export async function getClientSummaryDataAction(
                 cr.total_orders,
                 cr.total_revenue,
                 ISNULL(SUM(sc.commessa_cost), 0) as total_cost,
-                cr.total_quantity
+                cr.total_quantity,
+                ISNULL(sr.split_count, 0) as split_orders_count
             FROM ClientRevenue cr
             LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
             LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
-            GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity
+            LEFT JOIN SplitRevenue sr ON cr.client_code = sr.client_code
+            GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity, sr.split_count
             ORDER BY ${orderByClause}
             ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
         `, params, 'BUSINESS');
@@ -224,8 +250,19 @@ export async function getClientSummaryDataAction(
  * CALCULATION LOGIC:
  * 1. Get revenue per commessa from date-filtered invoices
  * 2. Get ALL material costs for those commessas (no date filter)
- * 3. Get work times from NETPRO
+ * 3. Get ALL work times from NETPRO for those commessas (no date filter)
  * 4. Calculate: Margin = Revenue - Material Cost - Labor Cost
+ * 
+ * WHY NO DATE FILTER ON COSTS:
+ * If an order was invoiced in 2025 but materials were purchased in 2024 and
+ * work was done in 2024, we still need to include those 2024 costs to calculate
+ * true profitability of the order.
+ * 
+ * DATE FILTER BEHAVIOR:
+ * - Revenue: Only invoices in selected date range ✅
+ * - Quantity: Only quantities from invoices in date range ✅
+ * - Material Cost: ALL historical costs for those orders ❌
+ * - Work Cost: ALL historical work for those orders ❌
  * 
  * GROUPING: By full commessa number (dw_commeca)
  * - This ensures each unique order is a separate row
@@ -290,7 +327,7 @@ export async function getOrderRevenueDataAction(
 
         // Get total count for pagination
         const countResult = await queryMSSQL(`
-            SELECT COUNT(DISTINCT dw.dw_commeca) as total
+            SELECT COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as total
             FROM dwarehe dw WITH (NOLOCK)
             INNER JOIN anagra an WITH (NOLOCK) 
                 ON dw.dw_conto = an.an_conto 
@@ -326,11 +363,11 @@ export async function getOrderRevenueDataAction(
                 WHERE ${whereClause}
                   AND an.an_tipo = 'C'
                   AND dw.dw_valfatt > 0
-                GROUP BY dw.dw_commeca
+                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
             ),
             SupplierCosts AS (
                 SELECT 
-                    dw.dw_commeca,
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
                     SUM(dw.dw_acqvalore) as total_cost
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK)
@@ -341,7 +378,20 @@ export async function getOrderRevenueDataAction(
                   AND an.an_tipo = 'F'
                   AND dw.dw_acqvalore <> 0
                   AND dw.dw_commeca > 0
-                GROUP BY dw.dw_commeca
+                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
+            ),
+            SplitRevenue AS (
+                SELECT DISTINCT dw.dw_commeca
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE dw.dw_scenario = 1
+                  AND dw.codditt = @codditt
+                  AND an.an_tipo = 'C'
+                  AND dw.dw_valfatt > 0
+                  AND dw.dw_commeca > 0
+                  AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
             )
             SELECT 
                 RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4) as commessa_display,
@@ -351,9 +401,11 @@ export async function getOrderRevenueDataAction(
                 cr.client_name,
                 cr.total_revenue,
                 ISNULL(sc.total_cost, 0) as total_cost,
-                cr.total_quantity
+                cr.total_quantity,
+                CASE WHEN sr.dw_commeca IS NOT NULL THEN 1 ELSE 0 END as has_split_revenue
             FROM ClientRevenue cr
-            LEFT JOIN SupplierCosts sc ON cr.commessa_full = sc.dw_commeca
+            LEFT JOIN SupplierCosts sc ON cr.commessa_display = sc.commessa_display
+            LEFT JOIN SplitRevenue sr ON RIGHT(CAST(sr.dw_commeca / 100 AS VARCHAR), 4) = cr.commessa_display
             LEFT JOIN commess co WITH (NOLOCK)
                 ON cr.commessa_full = co.co_comme
                 AND co.codditt = @codditt

@@ -18,6 +18,7 @@ interface ClientSummaryRow {
     total_cost: number;
     total_quantity: number;
     work_cost: number;
+    split_orders_count: number;
 }
 
 interface Filters {
@@ -135,7 +136,8 @@ export function ClientSummaryReport() {
                         'Costo Materiali': Number(row.total_cost.toFixed(2)),
                         'Costo Lavoro': Number(row.work_cost.toFixed(2)),
                         'Margine': Number(margin.toFixed(2)),
-                        'Quantità': row.total_quantity
+                        'Quantità': row.total_quantity,
+                        'Ordini con Fatturato Parziale': row.split_orders_count
                     };
                 });
 
@@ -150,7 +152,8 @@ export function ClientSummaryReport() {
                     { wch: 15 },  // Costo Materiali
                     { wch: 15 },  // Costo Lavoro
                     { wch: 15 },  // Margine
-                    { wch: 10 }   // Quantità
+                    { wch: 10 },  // Quantità
+                    { wch: 28 }   // Ordini con Fatturato Parziale
                 ];
 
                 XLSX.utils.book_append_sheet(wb, ws, 'Client Summary');

@@ -63,23 +63,37 @@ const query = `
 **Symptoms:** Profit margins don't make sense
 
 **Causes:**
-1. Costs filtered by date (should include ALL historical costs)
-2. Work time not included in cost calculation
-3. Wrong hourly rate
+1. Misunderstanding date filter behavior
+2. Wrong hourly rate
+3. General expenses included in costs
 
 **Solution:**
 ```typescript
-// ✅ Revenue CTE - filter by date
+// ✅ CORRECT BEHAVIOR (as designed):
+// Revenue CTE - filter by date (only invoices in period)
 WHERE dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate
 
-// ✅ Cost CTE - NO date filter
+// Cost CTE - NO date filter (ALL historical costs for those orders)
 WHERE dw.dw_scenario = 1  // No date filter!
 
-// ✅ Include work costs
-const workCosts = await fetchWorkTimesForCommessas(commessaCodes);
+// Work times - NO date filter (ALL historical work for those orders)
+// This is handled by fetchWorkTimesForCommessas which doesn't filter by date
+
+// ✅ Why? If order invoiced in 2025 but costs/work in 2024, we need
+// those 2024 costs to calculate true profitability of the order.
+
+// ✅ Exclude general expenses
+WHERE dw.dw_commeca > 0
+
+// ✅ Calculate margin
 const totalCost = materialCost + (workTime * HOURLY_RATE);
 const margin = revenue - totalCost;
 ```
+
+**Understanding the date filter:**
+- Date filter applies to: Revenue, Order count, Quantity
+- Date filter does NOT apply to: Material costs, Work costs
+- This is intentional for accurate profitability calculation
 
 ---
 

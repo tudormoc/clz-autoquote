@@ -21,6 +21,7 @@ interface OrderRevenueRow {
     total_quantity: number;
     work_time: number;
     work_cost: number;
+    has_split_revenue: number;
 }
 
 interface Filters {
@@ -137,13 +138,15 @@ export function OrderRevenueReport() {
                     
                     return {
                         'Commessa': row.commessa_display,
+                        'Descrizione': row.order_description || '',
                         'Codice Cliente': row.client_code,
                         'Nome Cliente': row.client_name,
                         'Fatturato': Number(row.total_revenue.toFixed(2)),
                         'Costo Materiali': Number(row.total_cost.toFixed(2)),
                         'Ore Lavoro': Number(row.work_time.toFixed(2)),
                         'Costo Lavoro': Number(row.work_cost.toFixed(2)),
-                        'Margine': Number(margin.toFixed(2))
+                        'Margine': Number(margin.toFixed(2)),
+                        'Fatturato Parziale': row.has_split_revenue === 1 ? 'SI' : 'NO'
                     };
                 });
 
@@ -152,13 +155,15 @@ export function OrderRevenueReport() {
 
                 ws['!cols'] = [
                     { wch: 10 },  // Commessa
+                    { wch: 40 },  // Descrizione
                     { wch: 15 },  // Codice Cliente
                     { wch: 35 },  // Nome Cliente
                     { wch: 15 },  // Fatturato
                     { wch: 15 },  // Costo Materiali
                     { wch: 12 },  // Ore Lavoro
                     { wch: 15 },  // Costo Lavoro
-                    { wch: 15 }   // Margine
+                    { wch: 15 },  // Margine
+                    { wch: 18 }   // Fatturato Parziale
                 ];
 
                 XLSX.utils.book_append_sheet(wb, ws, 'Order Revenue');
@@ -370,18 +375,26 @@ export function OrderRevenueReport() {
                                         {getSortIcon('margin')}
                                     </div>
                                 </th>
+                                <th 
+                                    className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12"
+                                    title="Partial Revenue (outside date range)"
+                                >
+                                    <div className="flex items-center justify-center">
+                                        ⚠️
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -421,6 +434,11 @@ export function OrderRevenueReport() {
                                                     {marginPercent.toFixed(1)}%
                                                 </div>
                                             </td>
+                                            <td className="px-2 py-3 text-sm text-center w-12">
+                                                <span className={`font-mono text-xs ${row.has_split_revenue === 1 ? 'text-warning-foreground' : 'text-zinc-500'}`}>
+                                                    {row.has_split_revenue === 1 ? 'Y' : 'N'}
+                                                </span>
+                                            </td>
                                         </tr>
                                     );
                                 })
@@ -453,18 +471,21 @@ export function OrderRevenueReport() {
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
                                     <div className="flex items-center justify-end gap-2">Margin</div>
                                 </th>
+                                <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Partial Revenue">
+                                    <div className="flex items-center justify-center">⚠️</div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
