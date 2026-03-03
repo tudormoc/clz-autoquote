@@ -77,6 +77,15 @@ RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
 - `MACCHINA` (VARCHAR) - Machine code
 - `DESCRIZIONE` (VARCHAR) - Machine name
 
+#### CENTRI (Work Centers)
+- `CENTRO` (VARCHAR) - Machine/center code
+- `DESCRIZIONE` (VARCHAR) - Machine/center name
+- `REPARTO` (VARCHAR) - Area code (links to AREE)
+
+#### AREE (Production Areas)
+- `REPARTO` (VARCHAR) - Area code
+- `DESCRIZIONE` (VARCHAR) - Area name
+
 #### OPERATORI (Operators)
 - `OPERATORE` (VARCHAR) - Operator code
 - `NOME` (VARCHAR) - Operator name

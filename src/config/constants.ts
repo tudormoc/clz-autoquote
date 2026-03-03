@@ -92,6 +92,22 @@ export const APP_CONFIG = {
   // Analytics Configuration
   ANALYTICS: {
     HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations
+    
+    // Production Flow Configuration
+    // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
+    PRODUCTION_FLOW: {
+      // Flow A: Block/Internal Production (runs in parallel with Flow B)
+      FLOW_A_AREAS: ['Taglio Carta', 'Piega', 'Raccolta', 'Cucitura'],
+      
+      // Flow B: Cover Production (runs in parallel with Flow A)
+      FLOW_B_AREAS: ['Taglio Cartone', 'Taglio Plancia', 'Copertine'],
+      
+      // Assembly Phase: Requires both Flow A and Flow B to be complete
+      ASSEMBLY_AREAS: ['Messa in colla', 'Incassatura', 'Imbavatura'],
+      
+      // Finishing Phase: Final operations after assembly
+      FINISHING_AREAS: ['Accavallatura', 'Stampa a caldo', 'Finissaggio/lavori manuali', 'Lavorazione esterna', 'Generico'],
+    },
   },
 
   // Blueprint Preview Defaults

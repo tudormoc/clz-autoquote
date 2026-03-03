@@ -13,6 +13,7 @@ import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
+import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -42,6 +43,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Production grouped by machine'
     },
     {
+        id: 'order-operations',
+        label: 'Order Operations',
+        icon: Calendar,
+        category: 'production',
+        description: 'Track operations progress per order'
+    },
+    {
         id: 'client-summary',
         label: 'Client Summary',
         icon: Users,
@@ -64,6 +72,7 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
 export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
+    'order-operations': OrderOperationsReport,
     'client-summary': ClientSummaryReport,
     'order-revenue': OrderRevenueReport,
 };

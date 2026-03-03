@@ -133,4 +133,14 @@
     background-color: hsl(var(--accent) / 0.3);
     color: hsl(var(--foreground));
   }
+
+  /* Animations */
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
 }
