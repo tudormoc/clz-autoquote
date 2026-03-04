@@ -52,10 +52,10 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
     },
     {
         id: 'area-summary',
-        label: 'Machine Summary',
+        label: 'Area Summary',
         icon: BarChart3,
         category: 'production',
-        description: 'Work time summary by machine'
+        description: 'Work time summary by area'
     },
     {
         id: 'client-summary',

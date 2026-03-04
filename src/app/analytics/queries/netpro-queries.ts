@@ -326,12 +326,14 @@ export async function getAreaSummaryDataAction(
 
         // Get machine work times and track unique commessas
         // Filter: only include commessas with QTA_RICHIESTA >= 10
+        // Special: For Piega area machines, use completed quantity instead of requested
         const result = await queryMSSQL(`
             SELECT 
                 SIT.MACCHINA as machine_code,
                 JST.ORDINE as ordine,
                 SUM(SIT.LAVORO) as work_time,
-                MAX(ISNULL(JST.QTA_RICHIESTA, 0)) as requested_quantity
+                MAX(ISNULL(JST.QTA_RICHIESTA, 0)) as requested_quantity,
+                SUM(ISNULL(SIT.QTA_COMPLETATA, 0)) as completed_quantity
             FROM SITUAZIONI SIT WITH (NOLOCK)
             LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
             WHERE ${whereClause}
@@ -344,21 +346,48 @@ export async function getAreaSummaryDataAction(
         const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
 
         // Group machines by custom areas and track unique commessas
-        const areaMap = new Map<string, { work_time: number; commessas: Map<number, number> }>();
+        // Use a composite key (machine_code + ordine) to avoid double-counting work time
+        const areaMap = new Map<string, { 
+            work_time: number; 
+            commessas: Map<number, number>;
+            processedWorkSessions: Set<string>; // Track machine-order combinations
+        }>();
+        
+        // Piega area machine codes for special handling
+        const piegaMachines = MACHINE_AREAS['Piega'] as readonly string[];
         
         result.recordset.forEach(row => {
             // Find which area this machine belongs to
             for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
                 const codes = machineCodes as readonly string[];
                 if (codes.includes(row.machine_code)) {
-                    const current = areaMap.get(areaName) || { work_time: 0, commessas: new Map() };
+                    const current = areaMap.get(areaName) || { 
+                        work_time: 0, 
+                        commessas: new Map(),
+                        processedWorkSessions: new Set()
+                    };
                     
-                    // Add work time
-                    current.work_time += row.work_time;
+                    // Add work time only once per machine-order combination
+                    const workSessionKey = `${row.machine_code}-${row.ordine}`;
+                    if (!current.processedWorkSessions.has(workSessionKey)) {
+                        current.work_time += row.work_time;
+                        current.processedWorkSessions.add(workSessionKey);
+                    }
                     
-                    // Track unique commessa quantity (only count each commessa once)
-                    if (row.ordine && !current.commessas.has(row.ordine)) {
-                        current.commessas.set(row.ordine, row.requested_quantity);
+                    // Track commessa quantities
+                    // For Piega area: SUM all completed_quantity per order
+                    // For other areas: use requested_quantity (only count each commessa once)
+                    if (row.ordine) {
+                        if (areaName === 'Piega') {
+                            // Sum all completed quantities for this order
+                            const existingQty = current.commessas.get(row.ordine) || 0;
+                            current.commessas.set(row.ordine, existingQty + row.completed_quantity);
+                        } else {
+                            // Use requested quantity (only store once per order)
+                            if (!current.commessas.has(row.ordine)) {
+                                current.commessas.set(row.ordine, row.requested_quantity);
+                            }
+                        }
                     }
                     
                     areaMap.set(areaName, current);
