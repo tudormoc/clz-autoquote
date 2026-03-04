@@ -46,8 +46,8 @@ export function AreaSummaryReport() {
     });
     const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'work_time',
-        direction: 'desc'
+        column: 'display_order',
+        direction: 'asc'
     });
 
     const limit = 100;
@@ -106,8 +106,8 @@ export function AreaSummaryReport() {
         setFilters(clearedFilters);
         setAppliedFilters(clearedFilters);
         setSortConfig({
-            column: 'work_time',
-            direction: 'desc'
+            column: 'display_order',
+            direction: 'asc'
         });
         setPage(1);
     };

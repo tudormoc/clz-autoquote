@@ -113,18 +113,18 @@ export const APP_CONFIG = {
     // Maps area names to machine codes for aggregated reporting
     // Machine codes are from NETPRO.SITUAZIONI.MACCHINA column
     MACHINE_AREAS: {
-      // 'Campioni': ['176'],
-      'Cellofanatura': ['169', '180'],
-      'Copertine': ['103', '174'],
-      'Cucitura': ['105', '106', '107', '108', '109'],
-      // 'Finissaggio': ['100', '117', '118', '119', '121', '123', '124', '126', '127', '128', '129', '130', '131', '134', '136', '138', '175', '198'],
-      'Incassatura': ['114', '159'],
-      // 'Incollaggio': ['135', '137'],
-      // 'Logistica e manutenzione': ['170', '171', '172', '173', '178', '179', '185'],
+      'Taglio': ['154', '155', '156', '256'],
       'Piega': ['141', '143', '144', '145', '146', '147', '148', '149'],
       'Raccolta': ['115', '158'],
+      'Cucitura': ['105', '106', '107', '108', '109'],
+      'Copertine': ['103', '174'],
       'Stampa a caldo': ['167'],
-      'Taglio': ['154', '155', '156', '256'],
+      'Incassatura': ['114', '159'],
+      'Cellofanatura': ['169', '180'],
+      // 'Campioni': ['176'],
+      // 'Finissaggio': ['100', '117', '118', '119', '121', '123', '124', '126', '127', '128', '129', '130', '131', '134', '136', '138', '175', '198'],
+      // 'Incollaggio': ['135', '137'],
+      // 'Logistica e manutenzione': ['170', '171', '172', '173', '178', '179', '185'],
     } as const,
     
     // Target Velocity (pieces per hour) for each area

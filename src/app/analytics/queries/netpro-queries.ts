@@ -324,18 +324,26 @@ export async function getAreaSummaryDataAction(
 
         const whereClause = conditions.join(' AND ');
 
-        // Get machine work times and track unique commessas
-        // Filter: only include commessas with QTA_RICHIESTA >= 10
-        // Special: For Piega area machines, use completed quantity instead of requested
-        const result = await queryMSSQL(`
+        // Get machine work times WITHOUT joining to avoid duplicates
+        // We'll get quantities separately since they're at order level
+        const workTimeResult = await queryMSSQL(`
+            SELECT 
+                SIT.MACCHINA as machine_code,
+                SUM(SIT.LAVORO) as work_time
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            WHERE ${whereClause}
+            GROUP BY SIT.MACCHINA
+        `, params, 'NETPRO');
+
+        // Get quantities per machine-order for areas that need it
+        const quantityResult = await queryMSSQL(`
             SELECT 
                 SIT.MACCHINA as machine_code,
                 JST.ORDINE as ordine,
-                SUM(SIT.LAVORO) as work_time,
                 MAX(ISNULL(JST.QTA_RICHIESTA, 0)) as requested_quantity,
                 SUM(ISNULL(SIT.QTA_COMPLETATA, 0)) as completed_quantity
             FROM SITUAZIONI SIT WITH (NOLOCK)
-            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            INNER JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
             WHERE ${whereClause}
               AND (JST.QTA_RICHIESTA IS NULL OR JST.QTA_RICHIESTA >= 10)
             GROUP BY SIT.MACCHINA, JST.ORDINE
@@ -345,39 +353,40 @@ export async function getAreaSummaryDataAction(
         const { APP_CONFIG } = await import('@/config/constants');
         const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
 
-        // Group machines by custom areas and track unique commessas
-        // Use a composite key (machine_code + ordine) to avoid double-counting work time
+        // Create work time map by machine (no duplicates)
+        const machineWorkTime = new Map<string, number>();
+        workTimeResult.recordset.forEach(row => {
+            machineWorkTime.set(row.machine_code, row.work_time);
+        });
+
+        // Group machines by custom areas
         const areaMap = new Map<string, { 
             work_time: number; 
             commessas: Map<number, number>;
-            processedWorkSessions: Set<string>; // Track machine-order combinations
         }>();
         
-        // Piega area machine codes for special handling
-        const piegaMachines = MACHINE_AREAS['Piega'] as readonly string[];
+        // Add work time per area (from work time map, no duplicates)
+        for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
+            const codes = machineCodes as readonly string[];
+            let totalWorkTime = 0;
+            
+            codes.forEach(machineCode => {
+                totalWorkTime += machineWorkTime.get(machineCode) || 0;
+            });
+            
+            areaMap.set(areaName, {
+                work_time: totalWorkTime,
+                commessas: new Map()
+            });
+        }
         
-        result.recordset.forEach(row => {
-            // Find which area this machine belongs to
+        // Now add quantities per order (from quantity result)
+        quantityResult.recordset.forEach(row => {
             for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
                 const codes = machineCodes as readonly string[];
                 if (codes.includes(row.machine_code)) {
-                    const current = areaMap.get(areaName) || { 
-                        work_time: 0, 
-                        commessas: new Map(),
-                        processedWorkSessions: new Set()
-                    };
-                    
-                    // Add work time only once per machine-order combination
-                    const workSessionKey = `${row.machine_code}-${row.ordine}`;
-                    if (!current.processedWorkSessions.has(workSessionKey)) {
-                        current.work_time += row.work_time;
-                        current.processedWorkSessions.add(workSessionKey);
-                    }
-                    
-                    // Track commessa quantities
-                    // For Piega area: SUM all completed_quantity per order
-                    // For other areas: use requested_quantity (only count each commessa once)
-                    if (row.ordine) {
+                    const current = areaMap.get(areaName);
+                    if (current && row.ordine) {
                         if (areaName === 'Piega') {
                             // Sum all completed quantities for this order
                             const existingQty = current.commessas.get(row.ordine) || 0;
@@ -389,15 +398,13 @@ export async function getAreaSummaryDataAction(
                             }
                         }
                     }
-                    
-                    areaMap.set(areaName, current);
                     break;
                 }
             }
         });
 
         // Convert to array format and sum unique commessa quantities
-        let areaData = Array.from(areaMap.entries()).map(([area_name, data]) => {
+        let areaData = Array.from(areaMap.entries()).map(([area_name, data], index) => {
             const totalQty = Array.from(data.commessas.values()).reduce((sum, qty) => sum + qty, 0);
             const velocity = data.work_time > 0 ? totalQty / data.work_time : 0;
             
@@ -412,7 +419,8 @@ export async function getAreaSummaryDataAction(
                 velocity: velocity,
                 target_velocity: targetVelocity,
                 efficiency: efficiency,
-                machine_count: (MACHINE_AREAS[area_name as keyof typeof MACHINE_AREAS] as readonly string[])?.length || 0
+                machine_count: (MACHINE_AREAS[area_name as keyof typeof MACHINE_AREAS] as readonly string[])?.length || 0,
+                display_order: index // Track original order from MACHINE_AREAS
             };
         });
 
@@ -424,9 +432,9 @@ export async function getAreaSummaryDataAction(
             );
         }
 
-        // Sort data
-        const sortColumn = sort?.column || 'work_time';
-        const sortDirection = sort?.direction || 'desc';
+        // Sort data (if no sort specified, use display_order from MACHINE_AREAS)
+        const sortColumn = sort?.column || 'display_order';
+        const sortDirection = sort?.direction || 'asc';
         
         areaData.sort((a, b) => {
             let aVal: string | number;
@@ -444,6 +452,9 @@ export async function getAreaSummaryDataAction(
             } else if (sortColumn === 'efficiency') {
                 aVal = a.efficiency;
                 bVal = b.efficiency;
+            } else if (sortColumn === 'display_order') {
+                aVal = a.display_order;
+                bVal = b.display_order;
             } else {
                 aVal = a.work_time;
                 bVal = b.work_time;
