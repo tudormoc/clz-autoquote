@@ -8,12 +8,13 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign } from 'lucide-react';
+import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign, BarChart3 } from 'lucide-react';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
+import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -50,6 +51,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Track operations progress per order'
     },
     {
+        id: 'area-summary',
+        label: 'Machine Summary',
+        icon: BarChart3,
+        category: 'production',
+        description: 'Work time summary by machine'
+    },
+    {
         id: 'client-summary',
         label: 'Client Summary',
         icon: Users,
@@ -73,6 +81,7 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
     'order-operations': OrderOperationsReport,
+    'area-summary': AreaSummaryReport,
     'client-summary': ClientSummaryReport,
     'order-revenue': OrderRevenueReport,
 };

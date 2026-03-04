@@ -40,7 +40,8 @@
 // Import all query functions
 import {
     getProductionDataAction as getProductionData,
-    getOrderSummaryDataAction as getOrderSummaryData
+    getOrderSummaryDataAction as getOrderSummaryData,
+    getAreaSummaryDataAction as getAreaSummaryData
 } from './queries/netpro-queries';
 
 import {
@@ -59,6 +60,7 @@ import {
 // Re-export with proper async wrappers for 'use server'
 export const getProductionDataAction = getProductionData;
 export const getOrderSummaryDataAction = getOrderSummaryData;
+export const getAreaSummaryDataAction = getAreaSummaryData;
 export const getClientSummaryDataAction = getClientSummaryData;
 export const getOrderRevenueDataAction = getOrderRevenueData;
 export const inspectSituazioniAction = inspectSituazioni;

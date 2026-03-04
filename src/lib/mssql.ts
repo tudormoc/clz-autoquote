@@ -10,6 +10,7 @@ const baseConfig: Omit<mssql.config, 'database'> = {
         encrypt: true,
         trustServerCertificate: process.env.MSSQL_TRUST_CERT === 'true',
     },
+    requestTimeout: 15000, // Default timeout in milliseconds
 };
 
 const databaseNames: Record<MSSQL_DB, string | undefined> = {
@@ -66,14 +67,36 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
  * @param query SQL query string
  * @param params Optional parameters for the query
  * @param db The database to query (defaults to 'BUSINESS')
+ * @param timeout Optional timeout in milliseconds (defaults to 15000ms)
  */
 export const queryMSSQL = async <T = any>(
     query: string,
     params: Record<string, any> = {},
-    db: MSSQL_DB = 'BUSINESS'
+    db: MSSQL_DB = 'BUSINESS',
+    timeout?: number
 ) => {
     try {
-        const pool = await getMSSQLPool(db);
+        let pool: mssql.ConnectionPool;
+        
+        // If custom timeout is specified, create a temporary pool with that timeout
+        if (timeout !== undefined && timeout !== 15000) {
+            const dbName = databaseNames[db];
+            if (!dbName) {
+                throw new Error(`Database name for ${db} is not configured in environment variables`);
+            }
+            
+            const customConfig: mssql.config = {
+                ...baseConfig,
+                database: dbName,
+                requestTimeout: timeout,
+            };
+            
+            pool = await new mssql.ConnectionPool(customConfig).connect();
+        } else {
+            // Use the default pool
+            pool = await getMSSQLPool(db);
+        }
+        
         const request = pool.request();
 
         // Add parameters if provided
@@ -82,6 +105,12 @@ export const queryMSSQL = async <T = any>(
         });
 
         const result = await request.query<T>(query);
+        
+        // Close temporary pool if we created one
+        if (timeout !== undefined && timeout !== 15000) {
+            await pool.close();
+        }
+        
         return result;
     } catch (err) {
         console.error(`SQL error in ${db}:`, err);

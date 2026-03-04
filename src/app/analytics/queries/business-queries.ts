@@ -394,6 +394,9 @@ export async function getClientSummaryDataAction(
 
         const total = countResult.recordset[0].total;
 
+        // Use longer timeout when toggle is ON (complex query with multiple CTEs)
+        const queryTimeout = includeAllRevenue ? 20000 : undefined; // 20 seconds vs default 15 seconds
+
         // Build conditional CTE for all-time revenue (only when toggle is ON)
         // Logic: Calculate difference between period and all-time revenue for orders only
         const allTimeRevenueCTE = includeAllRevenue ? `,
@@ -550,7 +553,7 @@ export async function getClientSummaryDataAction(
             GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity, ISNULL(sr.split_count, 0)
             ORDER BY ${orderByClause}
             ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
-        `, params, 'BUSINESS');
+        `, params, 'BUSINESS', queryTimeout);
 
         // Get work time from NETPRO for all commessas linked to these clients
         const clientCodes = result.recordset.map(row => row.client_code);

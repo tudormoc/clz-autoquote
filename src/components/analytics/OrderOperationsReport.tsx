@@ -212,8 +212,8 @@ export function OrderOperationsReport() {
                             </div>
 
                             <div className="space-y-4 pt-4">
-                                {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_A_AREAS.includes(op.area_name)).length > 0 ? (
-                                    operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_A_AREAS.includes(op.area_name)).map((op, idx, arr) => (
+                                {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_A_AREAS.includes(op.area_name as any)).length > 0 ? (
+                                    operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_A_AREAS.includes(op.area_name as any)).map((op, idx, arr) => (
                                         <div key={idx} className="relative">
                                             {idx < arr.length - 1 && (
                                                 <div className="absolute left-[20px] top-[40px] bottom-[-20px] w-[2px] bg-gradient-to-b from-blue-500/20 to-transparent z-0" />
@@ -237,8 +237,8 @@ export function OrderOperationsReport() {
                             </div>
 
                             <div className="space-y-4 pt-4">
-                                {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_B_AREAS.includes(op.area_name)).length > 0 ? (
-                                    operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_B_AREAS.includes(op.area_name)).map((op, idx, arr) => (
+                                {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_B_AREAS.includes(op.area_name as any)).length > 0 ? (
+                                    operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FLOW_B_AREAS.includes(op.area_name as any)).map((op, idx, arr) => (
                                         <div key={idx} className="relative">
                                             {idx < arr.length - 1 && (
                                                 <div className="absolute left-[20px] top-[40px] bottom-[-20px] w-[2px] bg-gradient-to-b from-purple-500/20 to-transparent z-0" />
@@ -264,7 +264,7 @@ export function OrderOperationsReport() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.ASSEMBLY_AREAS.includes(op.area_name)).map((op, idx) => (
+                            {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.ASSEMBLY_AREAS.includes(op.area_name as any)).map((op, idx) => (
                                 <OperationNode key={idx} op={op} />
                             ))}
                         </div>
@@ -280,7 +280,7 @@ export function OrderOperationsReport() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FINISHING_AREAS.includes(op.area_name)).map((op, idx) => (
+                            {operations.filter(op => APP_CONFIG.ANALYTICS.PRODUCTION_FLOW.FINISHING_AREAS.includes(op.area_name as any)).map((op, idx) => (
                                 <OperationNode key={idx} op={op} />
                             ))}
                         </div>

@@ -270,3 +270,182 @@ export async function getOrderSummaryDataAction(
         };
     }
 }
+
+
+/**
+ * ============================================================================
+ * AREA SUMMARY REPORT (Custom Area Grouping by Machine Time)
+ * ============================================================================
+ * 
+ * Shows total MACHINE work time grouped by custom-defined areas.
+ * Uses TIPO_OGGETTO='MAC' (machine time, not operator time).
+ * Areas are defined in APP_CONFIG.ANALYTICS.MACHINE_AREAS.
+ * 
+ * FILTERS:
+ * - Date range (required)
+ * - Area name (fuzzy search, optional)
+ * 
+ * GROUPING: By custom area (machines grouped per area config)
+ * 
+ * PERFORMANCE: Fast - aggregates machine data then groups by area in application layer
+ * ============================================================================
+ */
+export async function getAreaSummaryDataAction(
+    year: number = 2024,
+    page: number = 1,
+    limit: number = 100,
+    filters?: {
+        machine?: string; // Now used as area filter
+        dateFrom?: string;
+        dateTo?: string;
+    },
+    sort?: SortConfig,
+    exportAll: boolean = false
+) {
+    try {
+        const startDate = filters?.dateFrom || `${year}-01-01`;
+        const endDate = filters?.dateTo || `${year + 2}-01-01`;
+
+        // Build WHERE conditions - using MAC data (machine time, not operator time)
+        const conditions: string[] = [
+            'SIT.DATA >= @startDate',
+            'SIT.DATA <= @endDate',
+            'SIT.TIPO = @tipo',
+            'SIT.TIPO_OGGETTO = @tipoOggetto',
+            'SIT.LAVORO > 0'  // Ignore rows with zero work time
+        ];
+
+        const params: Record<string, any> = {
+            startDate,
+            endDate,
+            tipo: 'WORK',
+            tipoOggetto: 'MAC',
+        };
+
+        const whereClause = conditions.join(' AND ');
+
+        // Get machine work times and track unique commessas
+        // Filter: only include commessas with QTA_RICHIESTA >= 10
+        const result = await queryMSSQL(`
+            SELECT 
+                SIT.MACCHINA as machine_code,
+                JST.ORDINE as ordine,
+                SUM(SIT.LAVORO) as work_time,
+                MAX(ISNULL(JST.QTA_RICHIESTA, 0)) as requested_quantity
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            WHERE ${whereClause}
+              AND (JST.QTA_RICHIESTA IS NULL OR JST.QTA_RICHIESTA >= 10)
+            GROUP BY SIT.MACCHINA, JST.ORDINE
+        `, params, 'NETPRO');
+
+        // Import machine areas config
+        const { APP_CONFIG } = await import('@/config/constants');
+        const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
+
+        // Group machines by custom areas and track unique commessas
+        const areaMap = new Map<string, { work_time: number; commessas: Map<number, number> }>();
+        
+        result.recordset.forEach(row => {
+            // Find which area this machine belongs to
+            for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
+                const codes = machineCodes as readonly string[];
+                if (codes.includes(row.machine_code)) {
+                    const current = areaMap.get(areaName) || { work_time: 0, commessas: new Map() };
+                    
+                    // Add work time
+                    current.work_time += row.work_time;
+                    
+                    // Track unique commessa quantity (only count each commessa once)
+                    if (row.ordine && !current.commessas.has(row.ordine)) {
+                        current.commessas.set(row.ordine, row.requested_quantity);
+                    }
+                    
+                    areaMap.set(areaName, current);
+                    break;
+                }
+            }
+        });
+
+        // Convert to array format and sum unique commessa quantities
+        let areaData = Array.from(areaMap.entries()).map(([area_name, data]) => {
+            const totalQty = Array.from(data.commessas.values()).reduce((sum, qty) => sum + qty, 0);
+            const velocity = data.work_time > 0 ? totalQty / data.work_time : 0;
+            
+            // Get target velocity and calculate efficiency
+            const targetVelocity = APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY[area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY] || 0;
+            const efficiency = targetVelocity > 0 ? (velocity / targetVelocity) * 100 : 0;
+            
+            return {
+                area_name,
+                work_time: data.work_time,
+                requested_quantity: totalQty,
+                velocity: velocity,
+                target_velocity: targetVelocity,
+                efficiency: efficiency,
+                machine_count: (MACHINE_AREAS[area_name as keyof typeof MACHINE_AREAS] as readonly string[])?.length || 0
+            };
+        });
+
+        // Apply area filter if provided
+        if (filters?.machine) {
+            const searchTerm = filters.machine.toLowerCase();
+            areaData = areaData.filter(row => 
+                row.area_name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Sort data
+        const sortColumn = sort?.column || 'work_time';
+        const sortDirection = sort?.direction || 'desc';
+        
+        areaData.sort((a, b) => {
+            let aVal: string | number;
+            let bVal: string | number;
+            
+            if (sortColumn === 'area_name') {
+                aVal = a.area_name;
+                bVal = b.area_name;
+            } else if (sortColumn === 'requested_quantity') {
+                aVal = a.requested_quantity;
+                bVal = b.requested_quantity;
+            } else if (sortColumn === 'velocity') {
+                aVal = a.velocity;
+                bVal = b.velocity;
+            } else if (sortColumn === 'efficiency') {
+                aVal = a.efficiency;
+                bVal = b.efficiency;
+            } else {
+                aVal = a.work_time;
+                bVal = b.work_time;
+            }
+            
+            if (typeof aVal === 'string') {
+                return sortDirection === 'asc' 
+                    ? aVal.localeCompare(bVal as string)
+                    : (bVal as string).localeCompare(aVal);
+            }
+            
+            return sortDirection === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
+        });
+
+        const total = areaData.length;
+        
+        // Apply pagination
+        const offset = calculateOffset(page, limit);
+        const paginatedData = exportAll ? areaData : areaData.slice(offset, offset + limit);
+
+        return {
+            success: true,
+            data: paginatedData,
+            pagination: buildPaginationResult(page, limit, total)
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: [],
+            pagination: buildPaginationResult(page, limit, 0)
+        };
+    }
+}

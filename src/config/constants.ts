@@ -108,6 +108,44 @@ export const APP_CONFIG = {
       // Finishing Phase: Final operations after assembly
       FINISHING_AREAS: ['Accavallatura', 'Stampa a caldo', 'Finissaggio/lavori manuali', 'Lavorazione esterna', 'Generico'],
     },
+    
+    // Custom Machine Area Groupings for Analytics Dashboard
+    // Maps area names to machine codes for aggregated reporting
+    // Machine codes are from NETPRO.SITUAZIONI.MACCHINA column
+    MACHINE_AREAS: {
+      // 'Campioni': ['178'],
+      'Cellofanatura': ['169', '180'],
+      'Copertine': ['144'],
+      'Cucitura': ['109', '180', '113', '101', '118', '183'],
+      // 'Finissaggio': ['170', '146', '147', '139', '138', '165', '185'],
+      'Incassatura': ['161', '153', '157'],
+      // 'Incollaggio': ['115'],
+      // 'Logistica e manutenzione': ['158', '119', '106', '169', '177', '111', '129', '136', '128', '116', '102'],
+      'Piega': ['174', '105', '173', '167', '143', '135', '145', '175', '141', '156', '155', '176', '134', '103', '168', '164', '123', '142', '149', '124', '121', '133', '126', '120', '256', '181', '160', '100', '172'],
+      'Raccolta': ['137', '179', '130', '107', '127', '150', '131', '122'],
+      'Stampa a caldo': ['159', '154', '198', '148', '108', '110', '152', '112', '184'],
+      'Taglio': ['114'],
+    } as const,
+    
+    // Target Velocity (pieces per hour) for each area
+    // Used to calculate efficiency: (actual velocity / target velocity) × 100%
+    AREA_TARGET_VELOCITY: {
+      'Cellofanatura': 1125,
+      'Copertine': 1260,
+      'Cucitura': 1120,
+      'Incassatura': 2800,
+      'Piega': 4200,
+      'Raccolta': 1120,
+      'Stampa a caldo': 1050,
+      'Taglio': 3000,
+    } as const,
+    
+    // Efficiency thresholds for color coding
+    EFFICIENCY_THRESHOLDS: {
+      EXCELLENT: 60,  // >= 100% = Green (meeting or exceeding target)
+      ACCEPTABLE: 40,  // >= 80% = Yellow (below target but acceptable)
+      // < 80% = Red (significantly below target)
+    } as const,
   },
 
   // Blueprint Preview Defaults
