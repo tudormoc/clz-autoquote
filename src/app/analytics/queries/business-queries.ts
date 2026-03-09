@@ -160,67 +160,19 @@ export async function getOrderRevenueDataAction(
             sort?.direction || 'desc'
         );
 
-        // Get total count for pagination
-        const countResult = await queryMSSQL(`
-            SELECT COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as total
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON dw.dw_conto = an.an_conto 
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
-              AND an.an_tipo = 'C'
-              AND dw.dw_valfatt > 0
-        `, params, 'BUSINESS');
-
-        const total = countResult.recordset[0].total;
-
         // Build post-CTE filter for commessa description search
         const postCTEFilter = buildPostCTECommessaFilter(filters?.commessa, params);
 
         // Transform ORDER BY for use after CTE
         const orderByClause = transformOrderByForCTE(rawOrderByClause);
 
-        // Build conditional CTE for all-time revenue (only when toggle is ON)
-        const allTimeRevenueCTE = includeAllRevenue ? `,
-            OrdersInPeriod AS (
-                SELECT DISTINCT dw.dw_commeca
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-            ),
-            AllTimeRevenue AS (
-                SELECT 
-                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                    SUM(dw.dw_valfatt) as all_time_revenue
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                INNER JOIN OrdersInPeriod oip ON dw.dw_commeca = oip.dw_commeca
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
-                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
-            )` : '';
+        // Extended timeout for export (fetches more data)
+        const queryTimeout = exportAll ? 30000 : undefined;
 
-        // Conditional revenue column: use all-time revenue for split orders when toggle is ON
-        const revenueColumn = includeAllRevenue
-            ? 'CASE WHEN sr.commessa_display IS NOT NULL THEN ISNULL(atr.all_time_revenue, cr.total_revenue) ELSE cr.total_revenue END as total_revenue'
-            : 'cr.total_revenue';
-
-        // Conditional join for all-time revenue
-        const allTimeRevenueJoin = includeAllRevenue
-            ? 'LEFT JOIN AllTimeRevenue atr ON cr.commessa_display = atr.commessa_display'
-            : '';
-
-        // Get paginated data with revenue AND material costs in one query
-        // Use CTE to separate client revenue from supplier costs
-        const result = await queryMSSQL(`
+        // Main query — ALWAYS uses fast 3-CTE version (no toggle-specific CTEs).
+        // Full revenue adjustment is computed as a lightweight post-processing step,
+        // targeting only split commessas instead of embedding expensive CTEs.
+        const mainQuery = `
             WITH ClientRevenue AS (
                 SELECT 
                     RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
@@ -265,38 +217,156 @@ export async function getOrderRevenueDataAction(
                   AND dw.dw_valfatt > 0
                   AND dw.dw_commeca > 0
                   AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
-            )${allTimeRevenueCTE}
+            )
             SELECT 
                 RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4) as commessa_display,
                 cr.commessa_full,
                 co.co_descr1 as order_description,
                 cr.client_code,
                 cr.client_name,
-                ${revenueColumn},
+                cr.total_revenue,
                 ISNULL(sc.total_cost, 0) as total_cost,
                 cr.total_quantity,
                 CASE WHEN sr.commessa_display IS NOT NULL THEN 1 ELSE 0 END as has_split_revenue
             FROM ClientRevenue cr
             LEFT JOIN SupplierCosts sc ON cr.commessa_display = sc.commessa_display
             LEFT JOIN SplitRevenue sr ON cr.commessa_display = sr.commessa_display
-            ${allTimeRevenueJoin}
             LEFT JOIN commess co WITH (NOLOCK)
                 ON cr.commessa_full = co.co_comme
                 AND co.codditt = @codditt
             ${postCTEFilter}
             ORDER BY ${orderByClause}
-            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
-        `, params, 'BUSINESS');
+            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+        `;
 
-        // Get work time from NETPRO for all commessa codes in the result
-        const commessaCodesForTime = result.recordset.map(row => row.commessa_display);
-        const workTimes = await fetchWorkTimesForCommessas(commessaCodesForTime);
+        // Count query (shared by both paths)
+        const countQuery = `
+            SELECT COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as total
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON dw.dw_conto = an.an_conto 
+                AND dw.codditt = an.codditt
+            WHERE ${whereClause}
+              AND an.an_tipo = 'C'
+              AND dw.dw_valfatt > 0
+        `;
+
+        let allRecords: any[];
+        let total: number;
+
+        if (exportAll) {
+            // EXPORT PATH: Batch through pages using OFFSET/FETCH for fast execution
+            const EXPORT_PAGE_SIZE = 200;
+
+            const countResult = await queryMSSQL(countQuery, params, 'BUSINESS');
+            total = countResult.recordset[0].total;
+
+            if (total === 0) {
+                allRecords = [];
+            } else {
+                const totalExportPages = Math.ceil(total / EXPORT_PAGE_SIZE);
+                const pagePromises = Array.from({ length: totalExportPages }, (_, i) =>
+                    queryMSSQL(mainQuery, {
+                        ...params,
+                        offset: i * EXPORT_PAGE_SIZE,
+                        limit: EXPORT_PAGE_SIZE
+                    }, 'BUSINESS', queryTimeout)
+                );
+                const pageResults = await Promise.all(pagePromises);
+                allRecords = pageResults.flatMap(r => r.recordset);
+            }
+        } else {
+            // NORMAL PATH: Count + single page in parallel
+            const countPromise = queryMSSQL(countQuery, params, 'BUSINESS');
+            const dataPromise = queryMSSQL(mainQuery, params, 'BUSINESS', queryTimeout);
+            const [countResult, result] = await Promise.all([countPromise, dataPromise]);
+            total = countResult.recordset[0].total;
+            allRecords = result.recordset;
+        }
+
+        // POST-PROCESSING: Apply full revenue for split commessas (when toggle is ON).
+        // Instead of embedding expensive CTEs that scan ALL historical revenue,
+        // we compute the adjustment targeting only commessas with split revenue.
+        if (includeAllRevenue && allRecords.length > 0) {
+            const splitCommessas = allRecords
+                .filter(r => r.has_split_revenue === 1)
+                .map(r => r.commessa_display) as string[];
+
+            if (splitCommessas.length > 0) {
+                const ADJ_BATCH_SIZE = 50;
+                const adjustments: Record<string, number> = {};
+
+                const adjBatches: string[][] = [];
+                for (let i = 0; i < splitCommessas.length; i += ADJ_BATCH_SIZE) {
+                    adjBatches.push(splitCommessas.slice(i, i + ADJ_BATCH_SIZE));
+                }
+
+                // Compute all-time revenue per split commessa in parallel batches
+                await Promise.all(adjBatches.map(async (batch) => {
+                    const adjParams: Record<string, any> = {
+                        codditt: 'COOPZANARDI',
+                    };
+                    const placeholders = batch.map((code, i) => {
+                        adjParams[`cm${i}`] = code;
+                        return `@cm${i}`;
+                    }).join(', ');
+
+                    // Get all-time revenue for these specific commessas
+                    const adjResult = await queryMSSQL(`
+                        SELECT 
+                            RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+                            SUM(dw.dw_valfatt) as all_time_revenue
+                        FROM dwarehe dw WITH (NOLOCK)
+                        INNER JOIN anagra an WITH (NOLOCK)
+                            ON dw.dw_conto = an.an_conto
+                            AND dw.codditt = an.codditt
+                        WHERE dw.dw_scenario = 1
+                          AND dw.codditt = @codditt
+                          AND an.an_tipo = 'C'
+                          AND dw.dw_valfatt > 0
+                          AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})
+                        GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
+                    `, adjParams, 'BUSINESS', queryTimeout);
+
+                    adjResult.recordset.forEach(row => {
+                        adjustments[row.commessa_display] = row.all_time_revenue;
+                    });
+                }));
+
+                // Replace period revenue with all-time revenue for split commessas
+                allRecords.forEach(record => {
+                    if (record.has_split_revenue === 1 && adjustments[record.commessa_display] !== undefined) {
+                        record.total_revenue = adjustments[record.commessa_display];
+                    }
+                });
+            }
+        }
+
+        // Get work time from NETPRO — batch in chunks for large exports
+        const BATCH_SIZE = 50;
+        const allCommessaCodes = allRecords.map(row => row.commessa_display);
+        let workTimes: Record<string, number> = {};
+
+        if (allCommessaCodes.length <= BATCH_SIZE) {
+            workTimes = await fetchWorkTimesForCommessas(allCommessaCodes);
+        } else {
+            const batches: string[][] = [];
+            for (let i = 0; i < allCommessaCodes.length; i += BATCH_SIZE) {
+                batches.push(allCommessaCodes.slice(i, i + BATCH_SIZE));
+            }
+            const batchResults = await Promise.all(
+                batches.map(batch => fetchWorkTimesForCommessas(batch))
+            );
+            batchResults.forEach(batchResult => {
+                Object.assign(workTimes, batchResult);
+            });
+        }
 
         // Merge work times and calculate work costs
         const { APP_CONFIG } = await import('@/config/constants');
         const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
 
-        const enrichedData = result.recordset.map(row => ({
+        const enrichedData = allRecords.map(row => ({
             ...row,
             work_time: workTimes[row.commessa_display] || 0,
             work_cost: (workTimes[row.commessa_display] || 0) * hourlyRate
