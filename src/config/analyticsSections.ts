@@ -12,6 +12,7 @@ import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign,
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
+import { ClientDeliveriesReport } from '@/components/analytics/ClientDeliveriesReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
@@ -65,6 +66,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Client performance and history'
     },
     {
+        id: 'client-deliveries',
+        label: 'Client Deliveries',
+        icon: Package,
+        category: 'clients',
+        description: 'Client deliveries by value'
+    },
+    {
         id: 'order-revenue',
         label: 'Order Revenue',
         icon: DollarSign,
@@ -83,6 +91,7 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'order-operations': OrderOperationsReport,
     'area-summary': AreaSummaryReport,
     'client-summary': ClientSummaryReport,
+    'client-deliveries': ClientDeliveriesReport,
     'order-revenue': OrderRevenueReport,
 };
 

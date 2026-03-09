@@ -88,3 +88,10 @@ export async function getAnalyticsDataAction(reportId: string, params?: Record<s
         };
     }
 }
+
+import {
+    getClientDeliveriesDataAction as getClientDeliveriesData
+} from './queries/client-deliveries-queries';
+
+// Export Client Deliveries action
+export const getClientDeliveriesDataAction = getClientDeliveriesData;

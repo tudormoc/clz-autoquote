@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { getAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { generateAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { APP_COPY } from '@/locales/en';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { MonthSelectorModal } from './MonthSelectorModal';
+import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 
@@ -17,7 +19,6 @@ interface AreaSummaryRow {
     velocity: number;
     target_velocity: number;
     efficiency: number;
-    machine_count: number;
 }
 
 interface Filters {
@@ -38,6 +39,8 @@ export function AreaSummaryReport() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [showMonthModal, setShowMonthModal] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
     
     const [filters, setFilters] = useState<Filters>({
         area: '',
@@ -125,8 +128,7 @@ export function AreaSummaryReport() {
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => ({
                     'Area': row.area_name,
-                    'Numero Macchine': row.machine_count,
-                    'Quantità Richiesta': row.requested_quantity,
+                    'Quantità': row.requested_quantity,
                     'Ore Lavorate': row.work_time.toFixed(2),
                     'Velocità (pz/h)': row.velocity.toFixed(1),
                     'Target (pz/h)': row.target_velocity,
@@ -142,6 +144,43 @@ export function AreaSummaryReport() {
             console.error('Export failed:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGeneratePDF = async (year: number, months: number[]) => {
+        setPdfLoading(true);
+        try {
+            const result = await generateAreaSummaryPDFAction(year, months);
+            
+            if (result.success && result.pdf) {
+                // Convert base64 to blob and download
+                const byteCharacters = atob(result.pdf);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: 'application/pdf' });
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                setShowMonthModal(false);
+            } else {
+                console.error('PDF generation failed:', result.error);
+                alert('Failed to generate PDF: ' + result.error);
+            }
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            alert('Failed to generate PDF');
+        } finally {
+            setPdfLoading(false);
         }
     };
 
@@ -168,7 +207,14 @@ export function AreaSummaryReport() {
     }
 
     return (
-        <div className="space-y-4">
+        <>
+            <MonthSelectorModal
+                isOpen={showMonthModal}
+                onClose={() => setShowMonthModal(false)}
+                onGenerate={handleGeneratePDF}
+                loading={pdfLoading}
+            />
+            <div className="space-y-4">
             {/* Filters */}
             <div className="bg-card border border-zinc-800 rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
@@ -215,6 +261,10 @@ export function AreaSummaryReport() {
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
                             {loading ? 'Exporting...' : 'Export Excel'}
+                        </Button>
+                        <Button type="button" onClick={() => setShowMonthModal(true)} variant="secondary" className="flex items-center gap-2">
+                            <FileText size={16} />
+                            Generate PDF Report
                         </Button>
                     </div>
                 </form>
@@ -268,9 +318,6 @@ export function AreaSummaryReport() {
                                             Area
                                             {getSortIcon('area_name')}
                                         </div>
-                                    </th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-400">
-                                        Machines
                                     </th>
                                     <th 
                                         className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
@@ -326,11 +373,6 @@ export function AreaSummaryReport() {
                                             <td className="px-4 py-3 text-sm">
                                                 <div className="font-medium text-white">{row.area_name}</div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-center">
-                                                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded bg-zinc-800 text-zinc-300">
-                                                    {row.machine_count}
-                                                </span>
-                                            </td>
                                             <td className="px-4 py-3 text-sm text-right font-mono text-white">
                                                 {row.requested_quantity.toLocaleString()}
                                             </td>
@@ -357,5 +399,6 @@ export function AreaSummaryReport() {
                 )}
             </div>
         </div>
+        </>
     );
 }

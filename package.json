@@ -15,6 +15,7 @@
     "lucide-react": "^0.563.0",
     "mssql": "^12.2.0",
     "next": "^16.1.6",
+    "puppeteer": "^24.38.0",
     "react": "^19.2.4",
     "react-day-picker": "^9.13.2",
     "react-dom": "^19.2.4",
@@ -25,7 +26,7 @@
   },
   "devDependencies": {
     "@types/mssql": "^9.1.9",
-    "@types/node": "^25.2.1",
+    "@types/node": "^25.3.3",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.16",

@@ -91,7 +91,10 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations
+    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations
+    
+    // Company Information
+    COMPANY_NAME: 'TM - CLZ',
     
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
@@ -131,7 +134,7 @@ export const APP_CONFIG = {
     // Used to calculate efficiency: (actual velocity / target velocity) × 100%
     AREA_TARGET_VELOCITY: {
       'Cellofanatura': 1125,
-      'Copertine': 1260,
+      'Copertine': 2160,
       'Cucitura': 1120,
       'Incassatura': 2800,
       'Piega': 4200,
