@@ -67,7 +67,7 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
  * @param query SQL query string
  * @param params Optional parameters for the query
  * @param db The database to query (defaults to 'BUSINESS')
- * @param timeout Optional timeout in milliseconds (defaults to 15000ms)
+ * @param timeout Optional request timeout in ms (overrides pool default of 15000ms)
  */
 export const queryMSSQL = async <T = any>(
     query: string,
@@ -77,26 +77,15 @@ export const queryMSSQL = async <T = any>(
 ) => {
     try {
         let pool: mssql.ConnectionPool;
-        
-        // If custom timeout is specified, create a temporary pool with that timeout
+
         if (timeout !== undefined && timeout !== 15000) {
-            const dbName = databaseNames[db];
-            if (!dbName) {
-                throw new Error(`Database name for ${db} is not configured in environment variables`);
-            }
-            
-            const customConfig: mssql.config = {
-                ...baseConfig,
-                database: dbName,
-                requestTimeout: timeout,
-            };
-            
-            pool = await new mssql.ConnectionPool(customConfig).connect();
+            // Use a cached pool with custom timeout (avoids creating/destroying pools per query)
+            pool = await getCustomTimeoutPool(db, timeout);
         } else {
-            // Use the default pool
+            // Use the default shared pool
             pool = await getMSSQLPool(db);
         }
-        
+
         const request = pool.request();
 
         // Add parameters if provided
@@ -104,16 +93,50 @@ export const queryMSSQL = async <T = any>(
             request.input(key, value);
         });
 
-        const result = await request.query<T>(query);
-        
-        // Close temporary pool if we created one
-        if (timeout !== undefined && timeout !== 15000) {
-            await pool.close();
-        }
-        
-        return result;
+        return await request.query<T>(query);
     } catch (err) {
         console.error(`SQL error in ${db}:`, err);
         throw err;
     }
 };
+
+// Cache for pools with custom timeouts (keyed by "db:timeout")
+const customTimeoutPools: Record<string, Promise<mssql.ConnectionPool> | undefined> = {};
+
+/**
+ * Get or create a cached pool with a custom request timeout.
+ * Pools are reused across calls with the same db + timeout combination.
+ */
+async function getCustomTimeoutPool(db: MSSQL_DB, timeout: number): Promise<mssql.ConnectionPool> {
+    const key = `${db}:${timeout}`;
+    if (customTimeoutPools[key]) return customTimeoutPools[key]!;
+
+    const dbName = databaseNames[db];
+    if (!dbName) {
+        throw new Error(`Database name for ${db} is not configured in environment variables`);
+    }
+
+    const config: mssql.config = {
+        ...baseConfig,
+        database: dbName,
+        requestTimeout: timeout,
+    };
+
+    customTimeoutPools[key] = new mssql.ConnectionPool(config)
+        .connect()
+        .then((pool) => {
+            console.log(`Connected to MSSQL (custom timeout ${timeout}ms): ${db} (${dbName})`);
+            pool.on('error', (err) => {
+                console.error(`MSSQL Custom Pool Error for ${key}:`, err);
+                delete customTimeoutPools[key];
+            });
+            return pool;
+        })
+        .catch((err) => {
+            delete customTimeoutPools[key];
+            throw err;
+        });
+
+    return customTimeoutPools[key]!;
+}
+
