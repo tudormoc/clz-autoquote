@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { InfoBadge } from '@/components/ui/InfoBadge';
 import { calculateBlockThickness } from '@/lib/pricing/formulas';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 interface Props {
     control: Control<QuoteInput>;
@@ -139,7 +139,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                             render={({ field }) => (
                                 <Input
                                     {...field}
-                                    label="Thickness (mm)"
+                                    label={APP_COPY.form.thickness}
                                     type="number"
                                     step="0.01"
                                     onChange={(e) => {
@@ -247,7 +247,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     render={({ field }) => (
                                         <Input
                                             {...field}
-                                            label="Thickness (mm)"
+                                            label={APP_COPY.form.thickness}
                                             type="number"
                                             step="0.01"
                                             onChange={(e) => {

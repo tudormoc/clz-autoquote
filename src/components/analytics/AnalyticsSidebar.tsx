@@ -1,7 +1,7 @@
 'use client';
 
 import { ANALYTICS_SECTIONS, getSectionsByCategory } from '@/config/analyticsSections';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';

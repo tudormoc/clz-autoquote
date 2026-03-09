@@ -9,7 +9,7 @@ import { LiveBreakdown } from './LiveBreakdown';
 import { Button } from '@/components/ui/Button';
 import { QuoteHistoryList } from '@/components/QuoteHistoryList';
 import { Quote } from '@/types';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { calculateBlockThickness } from '@/lib/pricing/formulas/block';
 import { Layers } from 'lucide-react';
@@ -122,10 +122,10 @@ export function AdvancedQuoteForm() {
                             onClick={resetToDefault}
                             className="sm:w-auto"
                         >
-                            New Quote
+                            {APP_COPY.form.newQuote}
                         </Button>
                         <Button type="submit" disabled={isSaving} className="sm:w-auto">
-                            {isSaving ? 'Processing...' : (selectedQuoteId ? 'Update Quote' : 'Calculate Quote')}
+                            {isSaving ? APP_COPY.form.processing : (selectedQuoteId ? APP_COPY.form.updateQuote : APP_COPY.form.calculateQuote)}
                         </Button>
                     </div>
                 </form>

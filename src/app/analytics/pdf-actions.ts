@@ -3,7 +3,7 @@
 import puppeteer from 'puppeteer';
 import { getAreaSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 interface MonthData {
     month: string;

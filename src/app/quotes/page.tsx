@@ -1,6 +1,6 @@
 import { Header } from '@/components/Header';
 import { AdvancedQuoteForm } from '@/components/quote/AdvancedQuoteForm';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales/it';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
 

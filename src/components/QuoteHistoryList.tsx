@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Clock, History, Trash2 } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import type { Quote } from '@/types';
 
 interface QuoteHistoryListProps {
@@ -41,7 +41,7 @@ export const QuoteHistoryList = ({ history, onSelectQuote, onDeleteQuote }: Quot
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (confirm('Are you sure you want to delete this quote?')) {
+                                            if (confirm(APP_COPY.history.deleteConfirm)) {
                                                 onDeleteQuote(quote.id);
                                             }
                                         }}

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { ADMIN_TABLES, MANAGER_COMPONENTS } from '@/config/adminTables';
 import { ShieldCheck } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 export default function AdminDashboard() {
     const [activeTable, setActiveTable] = useState(ADMIN_TABLES[0].id);

@@ -3,6 +3,7 @@ import { QuoteInput } from '@/lib/pricing/types';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ClientAutocomplete } from '../ClientAutocomplete';
+import { APP_COPY } from '@/locales';
 
 interface Props {
     control: Control<QuoteInput>;
@@ -17,7 +18,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>General Information</CardTitle>
+                <CardTitle>{APP_COPY.form.generalInfo}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -27,7 +28,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                         render={({ field }) => (
                             <Input
                                 {...field}
-                                label="Project Title"
+                                label={APP_COPY.form.projectTitle}
                                 error={errors.project_title?.message}
                             />
                         )}
@@ -38,8 +39,8 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                         render={({ field }) => (
                             <ClientAutocomplete
                                 {...field}
-                                label="Client Name (from local Database)"
-                                placeholder="Start typing client name..."
+                                label={APP_COPY.form.clientName}
+                                placeholder={APP_COPY.form.clientPlaceholder}
                                 error={errors.client_name?.message}
                                 onSelectClientId={(id) => setValue('client_id', id)}
                             />
@@ -50,10 +51,10 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                 {/* Book Format Section */}
                 <div className="space-y-4 pt-2 pb-4 border-y border-border">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-zinc-400">Book Dimensions</h3>
+                        <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.bookDimensions}</h3>
                         {(openedWidth > 0 && openedHeight > 0) && (
                             <div className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-2">
-                                <span>Opened Format:</span>
+                                <span>{APP_COPY.form.openedFormat}</span>
                                 <span className="text-foreground">{openedWidth} x {openedHeight} mm</span>
                             </div>
                         )}
@@ -66,7 +67,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                             render={({ field }) => (
                                 <Input
                                     {...field}
-                                    label="Closed Width (mm)"
+                                    label={APP_COPY.form.closedWidth}
                                     type="number"
                                     onChange={(e) => {
                                         const val = e.target.value;
@@ -82,7 +83,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                             render={({ field }) => (
                                 <Input
                                     {...field}
-                                    label="Closed Height (mm)"
+                                    label={APP_COPY.form.closedHeight}
                                     type="number"
                                     onChange={(e) => {
                                         const val = e.target.value;
@@ -101,7 +102,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                         render={({ field }) => (
                             <Input
                                 {...field}
-                                label="Email Address"
+                                label={APP_COPY.form.emailAddress}
                                 error={errors.email?.message}
                             />
                         )}
@@ -112,7 +113,7 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                         render={({ field }) => (
                             <Input
                                 {...field}
-                                label="Quantity"
+                                label={APP_COPY.form.quantityLabel}
                                 type="number"
                                 onChange={(e) => {
                                     const val = e.target.value;

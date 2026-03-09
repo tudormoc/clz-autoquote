@@ -1,5 +1,5 @@
 import { Header } from '@/components/Header';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import Link from 'next/link';
 import { FileText, BarChart3, Database } from 'lucide-react';
 

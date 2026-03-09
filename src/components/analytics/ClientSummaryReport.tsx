@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getClientSummaryDataAction } from '@/app/analytics/analytics-actions';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';

@@ -1,7 +1,7 @@
 import { Header } from '@/components/Header';
 import { AnalyticsSidebar } from '@/components/analytics/AnalyticsSidebar';
 import { BarChart3 } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 export default function AnalyticsPage() {
     return (

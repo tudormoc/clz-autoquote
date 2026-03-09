@@ -3,7 +3,7 @@
 import React from 'react';
 import { ADMIN_TABLES, getTablesByCategory } from '@/config/adminTables';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 interface AdminSidebarProps {
     activeTable: string;

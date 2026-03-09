@@ -6,7 +6,7 @@ import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/ap
 import { SignatureType } from '@/lib/pricing/types';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 export function SignaturesManager() {
     const [signatures, setSignatures] = useState<SignatureType[]>([]);

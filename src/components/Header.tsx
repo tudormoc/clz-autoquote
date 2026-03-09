@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { BookOpen, Database, BarChart3, FileText, Settings } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import Link from 'next/link';
 
 export const Header = () => {

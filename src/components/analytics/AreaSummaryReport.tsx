@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
 import { generateAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';

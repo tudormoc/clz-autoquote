@@ -8,7 +8,7 @@ import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 export function DiscountTiersManager() {
     const [tiers, setTiers] = useState<DiscountTier[]>([]);
