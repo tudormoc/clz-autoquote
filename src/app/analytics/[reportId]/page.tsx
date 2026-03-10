@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { AnalyticsSidebar } from '@/components/analytics/AnalyticsSidebar';
 import { ANALYTICS_SECTIONS, REPORT_COMPONENTS } from '@/config/analyticsSections';
 import { BarChart3 } from 'lucide-react';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 interface AnalyticsReportPageProps {
     params: Promise<{

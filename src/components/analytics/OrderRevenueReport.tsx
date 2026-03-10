@@ -17,6 +17,7 @@ interface OrderRevenueRow {
     client_code: string;
     client_name: string;
     total_revenue: number;
+    delivered_revenue: number;
     total_cost: number;
     total_quantity: number;
     work_time: number;
@@ -44,7 +45,7 @@ export function OrderRevenueReport() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
-    
+
     const [filters, setFilters] = useState<Filters>({
         commessa: '',
         client: '',
@@ -73,7 +74,7 @@ export function OrderRevenueReport() {
             dateTo: appliedFilters.dateTo || undefined,
             includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
         }, sortConfig);
-        
+
         if (result.success) {
             setData(result.data);
             setTotal(result.pagination.total);
@@ -97,8 +98,8 @@ export function OrderRevenueReport() {
         if (sortConfig.column !== column) {
             return <ArrowUpDown size={14} className="opacity-50" />;
         }
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} /> : 
+        return sortConfig.direction === 'asc' ?
+            <ArrowUp size={14} /> :
             <ArrowDown size={14} />;
     };
 
@@ -141,14 +142,15 @@ export function OrderRevenueReport() {
                 const excelData = result.data.map(row => {
                     const totalCosts = row.total_cost + row.work_cost;
                     const margin = row.total_revenue - totalCosts;
-                    
+
                     return {
                         'Commessa': row.commessa_display,
                         'Descrizione': row.order_description || '',
                         'Codice Cliente': row.client_code,
                         'Nome Cliente': row.client_name,
                         'Quantità': row.total_quantity,
-                        'Fatturato': Number(row.total_revenue.toFixed(2)),
+                        'Fatturato (Valfatt)': Number(row.total_revenue.toFixed(2)),
+                        'Fatturato Consegnato (Valore)': Number(row.delivered_revenue.toFixed(2)),
                         'Costo Materiali': Number(row.total_cost.toFixed(2)),
                         'Ore Lavoro': Number(row.work_time.toFixed(2)),
                         'Costo Lavoro': Number(row.work_cost.toFixed(2)),
@@ -167,6 +169,7 @@ export function OrderRevenueReport() {
                     { wch: 35 },  // Nome Cliente
                     { wch: 12 },  // Quantità
                     { wch: 15 },  // Fatturato
+                    { wch: 15 },  // Fatturato Consegnato
                     { wch: 15 },  // Costo Materiali
                     { wch: 12 },  // Ore Lavoro
                     { wch: 15 },  // Costo Lavoro
@@ -177,7 +180,7 @@ export function OrderRevenueReport() {
                 XLSX.utils.book_append_sheet(wb, ws, 'Order Revenue');
 
                 const filename = `order_revenue_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
-                
+
                 XLSX.writeFile(wb, filename);
             }
         } catch (err) {
@@ -268,15 +271,14 @@ export function OrderRevenueReport() {
                             <Search size={16} />
                             Apply Filters
                         </Button>
-                        <Button 
-                            type="button" 
+                        <Button
+                            type="button"
                             onClick={() => setFilters({ ...filters, includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
                             variant={filters.includeAllRevenueForSplit ? "primary" : "secondary"}
-                            className={`flex items-center gap-1.5 transition-all ${
-                                filters.includeAllRevenueForSplit 
-                                    ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
-                                    : 'hover:border-warning-foreground/50'
-                            }`}
+                            className={`flex items-center gap-1.5 transition-all ${filters.includeAllRevenueForSplit
+                                ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20'
+                                : 'hover:border-warning-foreground/50'
+                                }`}
                             title={filters.includeAllRevenueForSplit ? "Showing full revenue for split orders" : "Click to include full revenue for split orders"}
                         >
                             <span className="text-base leading-none">⚠️</span>
@@ -334,181 +336,181 @@ export function OrderRevenueReport() {
                 {data.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
-                            <tr>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
-                                    onClick={() => handleSort('commessa')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        Commessa
-                                        {getSortIcon('commessa')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-48"
-                                    onClick={() => handleSort('client')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        Client
-                                        {getSortIcon('client')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('quantity')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Qty
-                                        {getSortIcon('quantity')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('revenue')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Revenue
-                                        {getSortIcon('revenue')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('cost')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Material Cost
-                                        {getSortIcon('cost')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('work_time')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Work Time
-                                        {getSortIcon('work_time')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('work_cost')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Labor Cost
-                                        {getSortIcon('work_cost')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('margin')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Margin
-                                        {getSortIcon('margin')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12"
-                                    title="Partial Revenue (outside date range)"
-                                >
-                                    <div className="flex items-center justify-center">
-                                        ⚠️
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-800">
-                            {loading ? (
+                            <thead className="bg-zinc-900 border-b border-zinc-800">
                                 <tr>
-                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
-                                    </td>
+                                    <th
+                                        className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
+                                        onClick={() => handleSort('commessa')}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {APP_COPY.analytics.orderRevenue.commessa}
+                                            {getSortIcon('commessa')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-48"
+                                        onClick={() => handleSort('client')}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {APP_COPY.analytics.orderRevenue.client}
+                                            {getSortIcon('client')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('revenue')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.invoicedValue}
+                                            {getSortIcon('revenue')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('delivered_revenue')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.deliveredValue}
+                                            {getSortIcon('delivered_revenue')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('cost')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.materialCost}
+                                            {getSortIcon('cost')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('work_time')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.workTime}
+                                            {getSortIcon('work_time')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('work_cost')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.laborCost}
+                                            {getSortIcon('work_cost')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleSort('margin')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            {APP_COPY.analytics.orderRevenue.margin}
+                                            {getSortIcon('margin')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12"
+                                        title="Partial Revenue (outside date range)"
+                                    >
+                                        <div className="flex items-center justify-center">
+                                            ⚠️
+                                        </div>
+                                    </th>
                                 </tr>
-                            ) : data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            ) : (
-                                data.map((row, idx) => {
-                                    const totalCosts = row.total_cost + row.work_cost;
-                                    const margin = row.total_revenue - totalCosts;
-                                    const marginPercent = row.total_revenue > 0 ? (margin / row.total_revenue) * 100 : 0;
-                                    
-                                    return (
-                                        <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm w-32">
-                                                <div className="font-mono text-primary truncate max-w-[8rem]">{row.commessa_display}</div>
-                                                <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.order_description}>{row.order_description}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm w-48">
-                                                <div className="font-mono text-zinc-400 truncate max-w-[12rem]">{row.client_code}</div>
-                                                <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {row.total_quantity.toLocaleString('it-IT')}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
-                                                {formatCurrency(row.total_revenue)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {formatCurrency(row.total_cost)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
-                                                {formatTime(row.work_time)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {formatCurrency(row.work_cost)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right">
-                                                <div className="font-mono text-white font-semibold">
-                                                    {formatCurrency(margin)}
-                                                </div>
-                                                <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-foreground' : marginPercent >= 10 ? 'text-warning-foreground' : 'text-destructive'}`}>
-                                                    {marginPercent.toFixed(1)}%
-                                                </div>
-                                            </td>
-                                            <td className="px-2 py-3 text-sm text-center w-12">
-                                                <span className={`font-mono text-xs ${row.has_split_revenue === 1 ? 'text-warning-foreground' : 'text-zinc-500'}`}>
-                                                    {row.has_split_revenue === 1 ? 'Y' : 'N'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-800">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                                            Loading...
+                                        </td>
+                                    </tr>
+                                ) : data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                                            {APP_COPY.analytics.empty}
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    data.map((row, idx) => {
+                                        const totalCosts = row.total_cost + row.work_cost;
+                                        const margin = row.total_revenue - totalCosts;
+                                        const marginPercent = row.total_revenue > 0 ? (margin / row.total_revenue) * 100 : 0;
+
+                                        return (
+                                            <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
+                                                <td className="px-4 py-3 text-sm w-32">
+                                                    <div className="font-mono text-primary truncate max-w-[8rem]">{row.commessa_display}</div>
+                                                    <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.order_description}>{row.order_description}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm w-48">
+                                                    <div className="font-mono text-zinc-400 truncate max-w-[12rem]">{row.client_code}</div>
+                                                    <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                                    {formatCurrency(row.total_revenue)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                                    {formatCurrency(row.delivered_revenue)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                                    {formatCurrency(row.total_cost)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                                    {formatTime(row.work_time)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                                    {formatCurrency(row.work_cost)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-right">
+                                                    <div className="font-mono text-white font-semibold">
+                                                        {formatCurrency(margin)}
+                                                    </div>
+                                                    <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-foreground' : marginPercent >= 10 ? 'text-warning-foreground' : 'text-destructive'}`}>
+                                                        {marginPercent.toFixed(1)}%
+                                                    </div>
+                                                </td>
+                                                <td className="px-2 py-3 text-sm text-center w-12">
+                                                    <span className={`font-mono text-xs ${row.has_split_revenue === 1 ? 'text-warning-foreground' : 'text-zinc-500'}`}>
+                                                        {row.has_split_revenue === 1 ? 'Y' : 'N'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 ) : (
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
-                                    <div className="flex items-center gap-2">Commessa</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.commessa}</div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-48">
-                                    <div className="flex items-center gap-2">Client</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.client}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Qty</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.invoicedValue}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Revenue</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.deliveredValue}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Material Cost</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.materialCost}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Work Time</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.workTime}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Labor Cost</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.laborCost}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Margin</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.margin}</div>
                                 </th>
                                 <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Partial Revenue">
                                     <div className="flex items-center justify-center">⚠️</div>

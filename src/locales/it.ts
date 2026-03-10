@@ -216,6 +216,7 @@ export const APP_COPY = {
       enterSearch: "Inserisci un numero commessa o una descrizione ordine",
       noResults: "Nessun ordine trovato corrispondente alla ricerca",
       orderTitle: "Ordine",
+      client: "Cliente: ",
       editions: "Edizioni",
       blockProduction: "Produzione Blocco",
       coverProduction: "Produzione Copertina",
@@ -263,6 +264,17 @@ export const APP_COPY = {
         page: "Pagina",
         of: "di",
       },
+    },
+    orderRevenue: {
+      commessa: "Commessa",
+      client: "Cliente",
+      invoicedValue: "Valore Fatturato",
+      deliveredValue: "Valore Consegnato",
+      materialCost: "Costo Materiali",
+      workTime: "Ore Lavoro",
+      laborCost: "Costo Lavoro",
+      margin: "Margine",
+      partialRevenue: "Fatturato Parziale",
     },
   }
 } as const;

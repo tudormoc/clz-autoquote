@@ -91,7 +91,7 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations
+    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations. 40=23+17, 37=20+17.
 
     // Company Information
     COMPANY_NAME: 'TM - CLZ',
@@ -100,7 +100,7 @@ export const APP_CONFIG = {
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
     PRODUCTION_FLOW: {
       // Flow A: Block/Internal Production (runs in parallel with Flow B)
-      FLOW_A_AREAS: ['TAGLIO CARTA', 'PIEGA', 'RACCOLTA', 'CUCITURA'],
+      FLOW_A_AREAS: ['TAGLIO CARTA', 'PIEGA', 'IMBAVATURA', 'RACCOLTA', 'ACCAVALLATURA', 'CUCITURA'],
 
       // Flow B: Cover Production (runs in parallel with Flow A)
       FLOW_B_AREAS: ['TAGLIO CARTONE', 'TAGLIO PLANCIA', 'COPERTINE'],
@@ -109,7 +109,7 @@ export const APP_CONFIG = {
       ASSEMBLY_AREAS: ['MESSA IN COLLA', 'INCASSATURA'],
 
       // Finishing Phase: Final operations after assembly
-      FINISHING_AREAS: ['ACCAVALLATURA', 'ACCAVALLATURA/ARROTONDATURA', 'IMBAVATURA', 'STAMPA A CALDO', 'FINISSAGGIO/LAVORI MANUALI', 'LAVORAZIONE ESTERNA', 'GENERICO'],
+      FINISHING_AREAS: ['ACCAVALLATURA/ARROTONDATURA', 'STAMPA A CALDO', 'FINISSAGGIO/LAVORI MANUALI', 'LAVORAZIONE ESTERNA', 'GENERICO'],
     },
 
     // Custom Machine Area Groupings for Analytics Dashboard

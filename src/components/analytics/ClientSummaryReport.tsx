@@ -322,15 +322,6 @@ export function ClientSummaryReport() {
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('orders')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Orders
-                                        {getSortIcon('orders')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('revenue')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -365,27 +356,18 @@ export function ClientSummaryReport() {
                                         {getSortIcon('margin')}
                                     </div>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('quantity')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Quantity
-                                        {getSortIcon('quantity')}
-                                    </div>
-                                </th>
                             <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Has split revenue (orders outside date range)"><div className="flex items-center justify-center">⚠️</div></th></tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -400,9 +382,6 @@ export function ClientSummaryReport() {
                                             <td className="px-4 py-3 text-sm w-48">
                                                 <div className="font-mono text-primary truncate max-w-[12rem]">{row.client_code}</div>
                                                 <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {row.total_orders}
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
                                                 {formatCurrency(row.total_revenue)}
@@ -421,9 +400,6 @@ export function ClientSummaryReport() {
                                                     {marginPercent.toFixed(1)}%
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {row.total_quantity.toLocaleString()}
-                                            </td>
                                         <td className="px-2 py-3 text-sm text-center w-12"><span className={`font-mono text-xs ${row.split_orders_count > 0 ? 'text-warning-foreground' : 'text-zinc-500'}`}>{row.split_orders_count > 0 ? 'Y' : 'N'}</span></td></tr>
                                     );
                                 })
@@ -439,9 +415,6 @@ export function ClientSummaryReport() {
                                     <div className="flex items-center gap-2">Client</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Orders</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
                                     <div className="flex items-center justify-end gap-2">Revenue</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
@@ -453,21 +426,21 @@ export function ClientSummaryReport() {
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
                                     <div className="flex items-center justify-end gap-2">Margin</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Quantity</div>
+                                <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Has split revenue">
+                                    <div className="flex items-center justify-center">⚠️</div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>

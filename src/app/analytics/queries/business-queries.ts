@@ -179,15 +179,16 @@ export async function getOrderRevenueDataAction(
                     MIN(dw.dw_commeca) as commessa_full,
                     MIN(an.an_conto) as client_code,
                     MAX(an.an_descr1) as client_name,
-                    SUM(dw.dw_valfatt) as total_revenue,
-                    SUM(dw.dw_collifatt) as total_quantity
+                    ISNULL(SUM(dw.dw_valfatt), 0) as total_revenue,
+                    ISNULL(SUM(dw.dw_valore), 0) as delivered_revenue,
+                    ISNULL(SUM(dw.dw_collifatt), 0) as total_quantity
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK) 
                     ON dw.dw_conto = an.an_conto 
                     AND dw.codditt = an.codditt
                 WHERE ${whereClause}
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
+                  AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
                 GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
             ),
             SupplierCosts AS (
@@ -214,7 +215,7 @@ export async function getOrderRevenueDataAction(
                 WHERE dw.dw_scenario = 1
                   AND dw.codditt = @codditt
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt > 0
+                  AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
                   AND dw.dw_commeca > 0
                   AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
             )
@@ -224,9 +225,10 @@ export async function getOrderRevenueDataAction(
                 co.co_descr1 as order_description,
                 cr.client_code,
                 cr.client_name,
-                cr.total_revenue,
+                ISNULL(cr.total_revenue, 0) as total_revenue,
+                ISNULL(cr.delivered_revenue, 0) as delivered_revenue,
                 ISNULL(sc.total_cost, 0) as total_cost,
-                cr.total_quantity,
+                ISNULL(cr.total_quantity, 0) as total_quantity,
                 CASE WHEN sr.commessa_display IS NOT NULL THEN 1 ELSE 0 END as has_split_revenue
             FROM ClientRevenue cr
             LEFT JOIN SupplierCosts sc ON cr.commessa_display = sc.commessa_display
@@ -248,7 +250,7 @@ export async function getOrderRevenueDataAction(
                 AND dw.codditt = an.codditt
             WHERE ${whereClause}
               AND an.an_tipo = 'C'
-              AND dw.dw_valfatt > 0
+              AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
         `;
 
         let allRecords: any[];
@@ -294,7 +296,7 @@ export async function getOrderRevenueDataAction(
 
             if (splitCommessas.length > 0) {
                 const ADJ_BATCH_SIZE = 50;
-                const adjustments: Record<string, number> = {};
+                const adjustments: Record<string, { rev: number, del: number }> = {};
 
                 const adjBatches: string[][] = [];
                 for (let i = 0; i < splitCommessas.length; i += ADJ_BATCH_SIZE) {
@@ -315,7 +317,8 @@ export async function getOrderRevenueDataAction(
                     const adjResult = await queryMSSQL(`
                         SELECT 
                             RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                            SUM(dw.dw_valfatt) as all_time_revenue
+                            ISNULL(SUM(dw.dw_valfatt), 0) as all_time_revenue,
+                            ISNULL(SUM(dw.dw_valore), 0) as all_time_delivered
                         FROM dwarehe dw WITH (NOLOCK)
                         INNER JOIN anagra an WITH (NOLOCK)
                             ON dw.dw_conto = an.an_conto
@@ -323,20 +326,24 @@ export async function getOrderRevenueDataAction(
                         WHERE dw.dw_scenario = 1
                           AND dw.codditt = @codditt
                           AND an.an_tipo = 'C'
-                          AND dw.dw_valfatt > 0
+                          AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
                           AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})
                         GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
                     `, adjParams, 'BUSINESS', queryTimeout);
 
                     adjResult.recordset.forEach(row => {
-                        adjustments[row.commessa_display] = row.all_time_revenue;
+                        adjustments[row.commessa_display] = {
+                            rev: row.all_time_revenue,
+                            del: row.all_time_delivered
+                        };
                     });
                 }));
 
                 // Replace period revenue with all-time revenue for split commessas
                 allRecords.forEach(record => {
-                    if (record.has_split_revenue === 1 && adjustments[record.commessa_display] !== undefined) {
-                        record.total_revenue = adjustments[record.commessa_display];
+                    if (record.has_split_revenue === 1 && adjustments[record.commessa_display]) {
+                        record.total_revenue = adjustments[record.commessa_display].rev;
+                        record.delivered_revenue = adjustments[record.commessa_display].del;
                     }
                 });
             }

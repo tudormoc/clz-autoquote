@@ -216,6 +216,7 @@ export const APP_COPY = {
       enterSearch: "Enter a commessa number or order description",
       noResults: "No orders found matching your search",
       orderTitle: "Order",
+      client: "Client: ",
       editions: "Editions",
       blockProduction: "Block Production",
       coverProduction: "Cover Production",
@@ -263,6 +264,17 @@ export const APP_COPY = {
         page: "Page",
         of: "of",
       },
+    },
+    orderRevenue: {
+      commessa: "Commessa",
+      client: "Client",
+      invoicedValue: "Invoiced Value",
+      deliveredValue: "Delivered Value",
+      materialCost: "Material Cost",
+      workTime: "Work Time",
+      laborCost: "Labor Cost",
+      margin: "Margin",
+      partialRevenue: "Partial Revenue",
     },
   }
 } as const;

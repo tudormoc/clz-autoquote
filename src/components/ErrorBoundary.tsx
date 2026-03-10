@@ -1,5 +1,5 @@
 import React, { ErrorInfo, ReactNode } from "react";
-import { APP_COPY } from "@/locales/en";
+import { APP_COPY } from "@/locales";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { getOrderOperationsAction } from '@/app/analytics/queries/order-operations-queries';
 import { APP_CONFIG } from '@/config/constants';
-import { APP_COPY } from '@/locales/en';
+import { APP_COPY } from '@/locales';
 
 // Locale shorthand for Order Operations strings
 const t = APP_COPY.analytics.orderOperations;
@@ -25,6 +25,7 @@ interface Edition {
     commessa_display: string;
     commessa_full: string;
     order_description: string;
+    client_name: string;
 }
 
 // Production flow config from constants (single source of truth)
@@ -235,6 +236,13 @@ export function OrderOperationsReport() {
                             <p className="text-muted-foreground mt-1 font-medium max-w-2xl">
                                 {orderInfo.order_description}
                             </p>
+
+                            {orderInfo.client_name && (
+                                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-800/30 border border-zinc-700/50">
+                                    <span className="text-xs text-zinc-400">{t.client}</span>
+                                    <span className="text-sm font-semibold text-zinc-200">{orderInfo.client_name}</span>
+                                </div>
+                            )}
 
                             {editions.length > 1 && (
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">

@@ -62,8 +62,10 @@ export async function getOrderOperationsAction(
             SELECT DISTINCT
                 SUBSTRING(ORD.COMMESSA, 4, 4) as commessa_display,
                 ORD.COMMESSA as commessa_full,
-                ORD.DESCRIZIONE as order_description
+                ORD.DESCRIZIONE as order_description,
+                ISNULL(CCA.descr, '') as client_name
             FROM ORDINI AS ORD WITH (NOLOCK)
+            LEFT JOIN cliente_commessa_attivita AS CCA WITH (NOLOCK) ON ORD.COMMESSA = CCA.commessa
             WHERE ORD.TIPO = 'MAKE'
               AND (
                 SUBSTRING(ORD.COMMESSA, 4, 4) LIKE @term
@@ -105,6 +107,14 @@ export async function getOrderOperationsAction(
             LEFT JOIN CENTRI AS CEN WITH (NOLOCK) ON TSK.MACCHINA = CEN.CENTRO
             LEFT JOIN AREE AS ARE WITH (NOLOCK) ON CEN.AREA = ARE.AREA
             WHERE ORD.TIPO = 'MAKE'
+              AND (
+                OPER.DESCRIZIONE01 IS NULL 
+                OR (
+                  RTRIM(OPER.DESCRIZIONE01) != 'NO'
+                  AND OPER.DESCRIZIONE01 NOT LIKE 'NO %'
+                  AND OPER.DESCRIZIONE01 NOT LIKE 'NO-%'
+                )
+              )
               AND (
                 SUBSTRING(ORD.COMMESSA, 4, 4) LIKE @term
                 OR ORD.DESCRIZIONE LIKE @term
