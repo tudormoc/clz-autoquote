@@ -26,7 +26,7 @@ export const APP_CONFIG = {
       BUTTON_PADDING_MD: 'px-4',
       BUTTON_PADDING_LG: 'px-6',
     },
-    
+
     // Typography scale
     TYPOGRAPHY: {
       HEADING_XL: 'text-xl font-semibold',
@@ -38,7 +38,7 @@ export const APP_CONFIG = {
       LABEL: 'text-xs font-medium',
       MONO: 'font-mono',
     },
-    
+
     // Border radius
     RADIUS: {
       CARD: 'rounded-lg',
@@ -46,7 +46,7 @@ export const APP_CONFIG = {
       BUTTON: 'rounded',
       SMALL: 'rounded',
     },
-    
+
     // Shadows (minimal)
     SHADOW: {
       CARD: 'shadow-none',           // No shadows for clean look
@@ -62,21 +62,21 @@ export const APP_CONFIG = {
     HEIGHT: 210,
     PAGES: 100,
     BOOK_NAME: 'My Book Project',
-    
+
     // Cover defaults
     COVER_TYPE: 'hardcover',
     SPINE_TYPE: 'square',
     BOARD_THICKNESS: 2.5,
     HEADBANDS_ENABLED: false,
     HEADBANDS_TYPE: 'politi',
-    
+
     // Internal sheet defaults
     SHEET_WIDTH: 700,
     SHEET_HEIGHT: 1000,
     SHEET_THICKNESS: 1.5,
     SHEET_WEIGHT: 170,
     SHEET_TYPE: 'coated_matte',
-    
+
     // Endpapers defaults
     ENDPAPERS_ENABLED: false,
     ENDPAPERS_WEIGHT: 170,
@@ -91,27 +91,27 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations
-    
+    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations
+
     // Company Information
     COMPANY_NAME: 'TM - CLZ',
-    
+
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
     PRODUCTION_FLOW: {
       // Flow A: Block/Internal Production (runs in parallel with Flow B)
-      FLOW_A_AREAS: ['Taglio Carta', 'Piega', 'Raccolta', 'Cucitura'],
-      
+      FLOW_A_AREAS: ['TAGLIO CARTA', 'PIEGA', 'RACCOLTA', 'CUCITURA'],
+
       // Flow B: Cover Production (runs in parallel with Flow A)
-      FLOW_B_AREAS: ['Taglio Cartone', 'Taglio Plancia', 'Copertine'],
-      
+      FLOW_B_AREAS: ['TAGLIO CARTONE', 'TAGLIO PLANCIA', 'COPERTINE'],
+
       // Assembly Phase: Requires both Flow A and Flow B to be complete
-      ASSEMBLY_AREAS: ['Messa in colla', 'Incassatura', 'Imbavatura'],
-      
+      ASSEMBLY_AREAS: ['MESSA IN COLLA', 'INCASSATURA'],
+
       // Finishing Phase: Final operations after assembly
-      FINISHING_AREAS: ['Accavallatura', 'Stampa a caldo', 'Finissaggio/lavori manuali', 'Lavorazione esterna', 'Generico'],
+      FINISHING_AREAS: ['ACCAVALLATURA', 'ACCAVALLATURA/ARROTONDATURA', 'IMBAVATURA', 'STAMPA A CALDO', 'FINISSAGGIO/LAVORI MANUALI', 'LAVORAZIONE ESTERNA', 'GENERICO'],
     },
-    
+
     // Custom Machine Area Groupings for Analytics Dashboard
     // Maps area names to machine codes for aggregated reporting
     // Machine codes are from NETPRO.SITUAZIONI.MACCHINA column
@@ -129,7 +129,7 @@ export const APP_CONFIG = {
       // 'Incollaggio': ['135', '137'],
       // 'Logistica e manutenzione': ['170', '171', '172', '173', '178', '179', '185'],
     } as const,
-    
+
     // Target Velocity (pieces per hour) for each area
     // Used to calculate efficiency: (actual velocity / target velocity) × 100%
     AREA_TARGET_VELOCITY: {
@@ -142,7 +142,7 @@ export const APP_CONFIG = {
       'Stampa a caldo': 1050,
       'Taglio': 3000,
     } as const,
-    
+
     // Efficiency thresholds for color coding
     EFFICIENCY_THRESHOLDS: {
       EXCELLENT: 60,  // >= 100% = Green (meeting or exceeding target)
@@ -193,10 +193,10 @@ export const PRICING_FORMULAS = {
   BLOCK: {
     // Density divisor for converting gsm to thickness factor
     DENSITY_DIVISOR: 1000,          // Converts gsm to proper density
-    
+
     // Pages to sheets conversion
     PAGES_PER_SHEET: 2,             // 2 pages per sheet (front + back)
-    
+
     // Endpapers configuration
     ENDPAPER_PAGES: 8,              // Endpapers add 8 pages (4 sheets) to block
   },

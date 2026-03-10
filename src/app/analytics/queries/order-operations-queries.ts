@@ -64,10 +64,11 @@ export async function getOrderOperationsAction(
                 ORD.COMMESSA as commessa_full,
                 ORD.DESCRIZIONE as order_description
             FROM ORDINI AS ORD WITH (NOLOCK)
-            WHERE (
+            WHERE ORD.TIPO = 'MAKE'
+              AND (
                 SUBSTRING(ORD.COMMESSA, 4, 4) LIKE @term
                 OR ORD.DESCRIZIONE LIKE @term
-            )
+              )
             ORDER BY ORD.COMMESSA
         `, { term }, 'NETPRO');
 
@@ -80,13 +81,14 @@ export async function getOrderOperationsAction(
             };
         }
 
-        // Get operations for all matching orders, grouped by machine area
-        // Use MAX/MIN aggregation with CASE to prioritize statuses
+        // Get operations for all matching orders, grouped by machine + area
+        // Area name fetched directly via CENTRI → AREE join (no post-fetch lookup needed)
         const result = await queryMSSQL(`
             SELECT 
                 TSK.MACCHINA as machine_code,
                 MAC.DESCRIZIONE as machine_name,
                 OPER.DESCRIZIONE as operation_name,
+                ISNULL(ARE.DESCRIZIONE, 'Unknown') as area_name,
                 -- Status priority: EXE > SUS > COM
                 CASE 
                     WHEN MAX(CASE WHEN OPER.STATO = 'EXE' THEN 1 ELSE 0 END) = 1 THEN 'EXE'
@@ -99,32 +101,20 @@ export async function getOrderOperationsAction(
             INNER JOIN JOBSET AS JBS WITH (NOLOCK) ON OPER.ID_OPER = JBS.ID_OPER 
             INNER JOIN TASKS AS TSK WITH (NOLOCK) ON JBS.TASK = TSK.TASK 
             INNER JOIN ORDINI AS ORD WITH (NOLOCK) ON ORD.ORDINE = OPER.ORDINE
-            INNER JOIN MACCHINE AS MAC WITH (NOLOCK) ON TSK.MACCHINA = MAC.MACCHINA 
-            WHERE (
+            INNER JOIN MACCHINE AS MAC WITH (NOLOCK) ON TSK.MACCHINA = MAC.MACCHINA
+            LEFT JOIN CENTRI AS CEN WITH (NOLOCK) ON TSK.MACCHINA = CEN.CENTRO
+            LEFT JOIN AREE AS ARE WITH (NOLOCK) ON CEN.AREA = ARE.AREA
+            WHERE ORD.TIPO = 'MAKE'
+              AND (
                 SUBSTRING(ORD.COMMESSA, 4, 4) LIKE @term
                 OR ORD.DESCRIZIONE LIKE @term
-            )
-            GROUP BY TSK.MACCHINA, MAC.DESCRIZIONE, OPER.DESCRIZIONE
+              )
+            GROUP BY TSK.MACCHINA, MAC.DESCRIZIONE, OPER.DESCRIZIONE, ARE.DESCRIZIONE
         `, { term }, 'NETPRO');
-
-        // Fetch area names from database and add to operations
-        const { getMachineArea, getMachineSortOrder } = await import('@/config/machines');
-        
-        // Get area names and sort orders for all machines
-        const enrichedOperations = await Promise.all(
-            result.recordset.map(async (op) => ({
-                ...op,
-                area_name: await getMachineArea(op.machine_code) || 'Unknown',
-                sort_order: await getMachineSortOrder(op.machine_code)
-            }))
-        );
-        
-        // Sort by production flow order
-        const sortedOperations = enrichedOperations.sort((a, b) => a.sort_order - b.sort_order);
 
         return {
             success: true,
-            data: sortedOperations,
+            data: result.recordset,
             editions: editionsResult.recordset,
             message: null
         };

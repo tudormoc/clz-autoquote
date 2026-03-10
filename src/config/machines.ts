@@ -27,10 +27,10 @@ async function fetchMachineData(): Promise<void> {
     // First, fetch area code to area name mapping from AREE table
     const areaResult = await queryMSSQL(`
       SELECT 
-        REPARTO as area_code,
+        AREA as area_code,
         DESCRIZIONE as area_name
       FROM AREE WITH (NOLOCK)
-      WHERE REPARTO IS NOT NULL
+      WHERE AREA IS NOT NULL
     `, {}, 'NETPRO');
 
     const areaNames: Record<string, string> = {};
@@ -42,7 +42,7 @@ async function fetchMachineData(): Promise<void> {
     const machineResult = await queryMSSQL(`
       SELECT 
         CENTRO as machine_code,
-        REPARTO as area_code,
+        AREA as area_code,
         DESCRIZIONE as machine_name
       FROM CENTRI WITH (NOLOCK)
       WHERE CENTRO IS NOT NULL
@@ -88,45 +88,4 @@ export async function getMachineName(machineCode: string): Promise<string | unde
 export async function getAllAreas(): Promise<string[]> {
   await fetchMachineData();
   return Array.from(new Set(Object.values(machineAreasCache || {}))).sort();
-}
-
-/**
- * Area Sort Order for Production Flow
- * Defines the logical order of production areas based on the 3-phase flow:
- * Phase 1: Parallel flows (Flow A: 10-40, Flow B: 10-40)
- * Phase 2: Assembly (50-60)
- * Phase 3: Finishing (70+)
- */
-export const AREA_SORT_ORDER: Record<string, number> = {
-  // Flow A: Block/Internal Production (10-40)
-  'Taglio Carta': 10,
-  'Piega': 20,
-  'Raccolta': 30,
-  'Cucitura': 40,
-  
-  // Flow B: Cover Production (10-40) - Same numbers as Flow A (parallel)
-  'Taglio Cartone': 10,
-  'Taglio Plancia': 20,
-  'Copertine': 30,
-  
-  // Assembly Phase (50-60)
-  'Messa in colla': 50,
-  'Incassatura': 60,
-  'Imbavatura': 65,
-  
-  // Finishing Phase (70+)
-  'Accavallatura': 70,
-  'Stampa a caldo': 75,
-  'Finissaggio/lavori manuali': 80,
-  'Lavorazione esterna': 90,
-  'Generico': 100,
-};
-
-/**
- * Get sort order for a machine code
- * Returns the area's sort order, or 999 if not found
- */
-export async function getMachineSortOrder(machineCode: string): Promise<number> {
-  const area = await getMachineArea(machineCode);
-  return area ? (AREA_SORT_ORDER[area] || 999) : 999;
 }

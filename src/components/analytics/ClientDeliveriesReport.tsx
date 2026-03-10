@@ -14,7 +14,6 @@ interface ClientDeliveryRow {
     client_code: string;
     client_name: string;
     delivered_value: number;
-    delivery_date: string;
 }
 
 interface Filters {
@@ -35,7 +34,7 @@ export function ClientDeliveriesReport() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
-    
+
     const [filters, setFilters] = useState<Filters>({
         client: '',
         dateFrom: getLastYearStart(),
@@ -60,14 +59,14 @@ export function ClientDeliveriesReport() {
             dateFrom: appliedFilters.dateFrom || undefined,
             dateTo: appliedFilters.dateTo || undefined
         }, sortConfig);
-        
+
         if (result.success) {
             setData(result.data);
             setTotal(result.pagination.total);
             setTotalPages(result.pagination.totalPages);
             setError(null);
         } else {
-            setError(result.error);
+            setError(result.error ?? null);
         }
         setLoading(false);
     };
@@ -84,8 +83,8 @@ export function ClientDeliveriesReport() {
         if (sortConfig.column !== column) {
             return <ArrowUpDown size={14} className="opacity-50" />;
         }
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} /> : 
+        return sortConfig.direction === 'asc' ?
+            <ArrowUp size={14} /> :
             <ArrowDown size={14} />;
     };
 
@@ -138,7 +137,7 @@ export function ClientDeliveriesReport() {
                 XLSX.utils.book_append_sheet(wb, ws, 'Client Deliveries');
 
                 const filename = `client_deliveries_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
-                
+
                 XLSX.writeFile(wb, filename);
             }
         } catch (err) {
@@ -268,7 +267,7 @@ export function ClientDeliveriesReport() {
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('client')}
                                 >
@@ -277,7 +276,7 @@ export function ClientDeliveriesReport() {
                                         {getSortIcon('client')}
                                     </div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('delivered_value')}
                                 >

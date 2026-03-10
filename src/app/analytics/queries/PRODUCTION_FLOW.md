@@ -11,80 +11,69 @@ Book production follows a **parallel flow** pattern where two independent workfl
 ### Flow A: Internal/Block Production
 Operations that prepare the book's internal pages:
 
-1. **TAGLIO** (10) - Cutting sheets
-2. **PIEGA** (20) - Folding sheets into signatures
-3. **RACCOLTA** (30) - Gathering signatures in order
-4. **CUCITURA** (40) - Sewing signatures together
+1. **Taglio Carta** - Cutting sheets
+2. **Piega** - Folding sheets into signatures
+3. **Raccolta** - Gathering signatures in order
+4. **Cucitura** - Sewing signatures together
 
 ### Flow B: Cover Production
 Operations that prepare the book's cover:
 
-1. **TAGLIO CARTONE** (10) - Cutting cardboard boards
-2. **TAGLIO PLANCIA** (20) - Cutting cover material
-3. **COPERTINE** (30) - Assembling cover (boards + material)
+1. **Taglio Cartone** - Cutting cardboard boards
+2. **Taglio Plancia** - Cutting cover material
+3. **Copertine** - Assembling cover (boards + material)
 
 ### Merge Point
 Both flows must be complete before these operations:
 
-5. **INCOLLATURA** (50) - Gluing spine/endpapers
-6. **INCASSATURA** (60) - Casing-in (attaching cover to block)
+5. **Messa in colla** - Gluing spine/endpapers
+6. **Incassatura** - Casing-in (attaching cover to block)
+7. **Imbavatura** - Edge trimming
 
 ### Finishing
 Final operations after assembly:
 
-7. **FINISSAGGIO** (70) - Finishing touches
-8. **CONFEZIONAMENTO** (80) - Packaging
+8. **Accavallatura** - Collating
+9. **Stampa a caldo** - Hot stamping
+10. **Finissaggio/lavori manuali** - Finishing touches
+11. **Lavorazione esterna** - External processing
+12. **Generico** - Generic operations
 
-## Sort Order Configuration
+## Single Source of Truth
 
-Operations are sorted using `APP_CONFIG.OPERATION_SORT_ORDER` in `src/config/constants.ts`:
+**All flow configuration lives in one place:**
+
+`src/config/constants.ts` → `APP_CONFIG.ANALYTICS.PRODUCTION_FLOW`
 
 ```typescript
-OPERATION_SORT_ORDER: {
-  // Parallel Flow A: Internal/Block (10-40)
-  'TAGLIO': 10,
-  'PIEGA': 20,
-  'RACCOLTA': 30,
-  'CUCITURA': 40,
-  
-  // Parallel Flow B: Cover (10-40)
-  'TAGLIO CARTONE': 10,
-  'TAGLIO PLANCIA': 20,
-  'COPERTINE': 30,
-  
-  // Merge Point (50-60)
-  'INCOLLATURA': 50,
-  'INCASSATURA': 60,
-  
-  // Finishing (70+)
-  'FINISSAGGIO': 70,
-  'CONFEZIONAMENTO': 80,
+PRODUCTION_FLOW: {
+  // Flow A: Block/Internal Production (runs in parallel with Flow B)
+  FLOW_A_AREAS: ['Taglio Carta', 'Piega', 'Raccolta', 'Cucitura'],
+
+  // Flow B: Cover Production (runs in parallel with Flow A)
+  FLOW_B_AREAS: ['Taglio Cartone', 'Taglio Plancia', 'Copertine'],
+
+  // Assembly Phase: Requires both Flow A and Flow B to be complete
+  ASSEMBLY_AREAS: ['Messa in colla', 'Incassatura', 'Imbavatura'],
+
+  // Finishing Phase: Final operations after assembly
+  FINISHING_AREAS: ['Accavallatura', 'Stampa a caldo', 'Finissaggio/lavori manuali', 'Lavorazione esterna', 'Generico'],
 }
 ```
 
-**Key principle:** Operations with the same number run in parallel and are displayed together.
+**The array order IS the display order.** To reorder operations within a phase, just reorder items in the array. To move an operation to a different phase, move it to a different array.
 
-## How Sorting Works
+### Machine → Area Mapping
+Machine codes are mapped to area names dynamically from the NETPRO database via `src/config/machines.ts`:
+- `getMachineArea(machineCode)` → area name (from CENTRI + AREE tables)
+- Data cached after first fetch
 
-### 1. Primary Sort: Production Flow Order
-Operations are sorted by their configured order number (10, 20, 30, etc.)
+## How It Works
 
-### 2. Secondary Sort: Sequence Number
-When multiple operations have the same order number (parallel operations), they are sorted by their SEQUENZA from the database.
-
-### 3. Fallback: Unknown Operations
-Operations not in the config are assigned order 999 and appear at the end.
-
-### Example Sort Logic
-```typescript
-const orderA = OPERATION_SORT_ORDER[operation_name] || 999;
-const orderB = OPERATION_SORT_ORDER[operation_name] || 999;
-
-if (orderA === orderB) {
-  return sequenceA - sequenceB; // Same order = sort by sequence
-}
-return orderA - orderB; // Different order = sort by flow
-```
+1. **Query** fetches operations and enriches each with its `area_name` via `getMachineArea()`
+2. **UI component** groups operations into sections using `PRODUCTION_FLOW` arrays
+3. **Within each section**, operations are sorted by their index position in the corresponding array
+4. **Unclassified operations** (area not in any array) appear in an "Other" section at the bottom
 
 ## Multiple Editions Handling
 
@@ -92,7 +81,6 @@ When an order has multiple editions (e.g., French + Polish versions):
 
 ### Grouping
 Operations are grouped by:
-- SEQUENZA (operation sequence)
 - DESCRIZIONE (operation name)
 - MACCHINA (machine name)
 
@@ -103,46 +91,12 @@ When grouping editions, the most critical status is shown:
 3. **COM** (Completed) - If ALL editions are completed
 4. **PENDING** - If none of the above
 
-### Why This Works
-Since all editions go through operations together (e.g., cutting all editions at once), showing the most advanced status gives accurate production state.
-
-## Adding New Operations
-
-To add a new operation to the sort order:
+## Adding / Reordering Operations
 
 1. Open `src/config/constants.ts`
-2. Add to `OPERATION_SORT_ORDER` with appropriate number:
-   - 10-40: Parallel operations (internal or cover)
-   - 50-60: Merge operations (require both flows)
-   - 70+: Finishing operations
-
-3. Example:
-```typescript
-'NEW_OPERATION': 45, // After cucitura, before merge
-```
-
-## Testing
-
-### Test Case 1: Parallel Operations Display Together
-Search for an order with both internal and cover operations.
-Expected: TAGLIO and TAGLIO CARTONE appear together (both order 10)
-
-### Test Case 2: Merge Operations After Parallel
-Expected order:
-1. All operations with order 10-40 (parallel)
-2. INCOLLATURA (50)
-3. INCASSATURA (60)
-4. Finishing operations (70+)
-
-### Test Case 3: Multiple Editions Status
-Create order with 2 editions:
-- Edition 1: Operation at EXE
-- Edition 2: Operation at SUS
-Expected: Operation shows as EXE (highest priority)
-
-### Test Case 4: Unknown Operation
-Add operation not in config.
-Expected: Appears at end of list (order 999)
+2. Find `PRODUCTION_FLOW` in the `ANALYTICS` section
+3. Add/move the area name to the desired array and position
+4. Done — the UI updates automatically
 
 ## Database Schema Reference
 
@@ -150,26 +104,28 @@ Expected: Appears at end of list (order 999)
 - **OPERAZIONI**: Operation details (SEQUENZA, DESCRIZIONE, STATO)
 - **ORDINI**: Order information (COMMESSA)
 - **JOBSET**: Links operations to tasks
-- **TASKS**: Task details (QTA_RICHIESTA)
+- **TASKS**: Task details (MACCHINA)
 - **MACCHINE**: Machine information (DESCRIZIONE)
+- **CENTRI**: Machine codes and area assignments (CENTRO, REPARTO)
+- **AREE**: Area names (REPARTO, DESCRIZIONE)
 
 ### Status Values
 - **EXE**: In work (currently being executed)
 - **SUS**: Suspended (started but paused)
-- **COM**: Completed (operation closed)
+- **COM**: Completed (operation is closed)
 
 ## File Locations
 
-- **Sort Configuration**: `src/config/constants.ts` → `APP_CONFIG.OPERATION_SORT_ORDER`
+- **Flow Config (single source of truth)**: `src/config/constants.ts` → `APP_CONFIG.ANALYTICS.PRODUCTION_FLOW`
+- **Machine → Area Mapping**: `src/config/machines.ts` → `getMachineArea()`
 - **Query Logic**: `src/app/analytics/queries/order-operations-queries.ts`
 - **UI Component**: `src/components/analytics/OrderOperationsReport.tsx`
 - **Section Config**: `src/config/analyticsSections.ts`
+- **Locale Strings**: `src/locales/en.ts` → `analytics.orderOperations`
 
 ## Visual Indicators
 
-- 🟢 Green circle with checkmark = Completed (COM)
-- 🔵 Blue circle with play icon (pulsing) = In Work (EXE)
-- 🟡 Yellow circle with pause icon = Suspended (SUS)
-- ⚪ White circle = Not Started (PENDING)
-
-Active operations also have blue background highlight for visibility.
+- 🟢 Green (success token) = Completed (COM)
+- 🔵 Blue (info token, pulsing) = In Work (EXE)
+- 🟡 Orange (warning token) = Suspended (SUS)
+- ⚪ Gray (muted) = Not Started (PENDING)
