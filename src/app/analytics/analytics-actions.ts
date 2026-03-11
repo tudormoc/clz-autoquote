@@ -93,5 +93,12 @@ import {
     getClientDeliveriesDataAction as getClientDeliveriesData
 } from './queries/client-deliveries-queries';
 
+import {
+    getPresenceDataAction as getPresenceData
+} from './queries/presence-queries';
+
 // Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
+
+// Export Presence action
+export const getPresenceDataAction = getPresenceData;

@@ -8,7 +8,7 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign, BarChart3 } from 'lucide-react';
+import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign, BarChart3, Clock } from 'lucide-react';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
@@ -16,6 +16,7 @@ import { ClientDeliveriesReport } from '@/components/analytics/ClientDeliveriesR
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
+import { PresenceReport } from '@/components/analytics/PresenceReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -78,6 +79,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         icon: DollarSign,
         category: 'revenue',
         description: 'Revenue analysis by order'
+    },
+    {
+        id: 'presence-report',
+        label: 'Presenza',
+        icon: Clock,
+        category: 'production',
+        description: 'Weekly presence hours by operator group'
     }
 ];
 
@@ -93,6 +101,7 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'client-summary': ClientSummaryReport,
     'client-deliveries': ClientDeliveriesReport,
     'order-revenue': OrderRevenueReport,
+    'presence-report': PresenceReport,
 };
 
 /**
