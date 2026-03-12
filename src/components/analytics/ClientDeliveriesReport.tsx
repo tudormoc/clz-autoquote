@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getClientDeliveriesDataAction } from '@/app/analytics/analytics-actions';
+import { getClientDeliveriesDataAction, getClientDeliveriesStatsAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import { SummaryCards } from '@/components/analytics/SummaryCards';
 
 interface ClientDeliveryRow {
     client_code: string;
@@ -34,6 +35,9 @@ export function ClientDeliveriesReport() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+
+    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
     const [filters, setFilters] = useState<Filters>({
         client: '',
@@ -91,6 +95,8 @@ export function ClientDeliveriesReport() {
     const handleApplyFilters = () => {
         setAppliedFilters(filters);
         setPage(1);
+        setSummaryData(null);
+        loadData();
     };
 
     const handleClearFilters = () => {
@@ -105,7 +111,22 @@ export function ClientDeliveriesReport() {
             column: 'delivered_value',
             direction: 'desc'
         });
+        setSummaryData(null);
         setPage(1);
+    };
+
+    const loadSummary = async () => {
+        setSummaryLoading(true);
+        const result = await getClientDeliveriesStatsAction(2024, {
+            client: appliedFilters.client || undefined,
+            dateFrom: appliedFilters.dateFrom || undefined,
+            dateTo: appliedFilters.dateTo || undefined
+        });
+
+        if (result.success) {
+            setSummaryData(result.data);
+        }
+        setSummaryLoading(false);
     };
 
     const handleExportExcel = async () => {
@@ -120,9 +141,9 @@ export function ClientDeliveriesReport() {
 
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => ({
-                    'Codice Cliente': row.client_code,
-                    'Nome Cliente': row.client_name,
-                    'Valore Consegnato': Number(row.delivered_value.toFixed(2))
+                    [APP_COPY.analytics.clientDeliveries.export.clientCode]: row.client_code,
+                    [APP_COPY.analytics.clientDeliveries.export.clientName]: row.client_name,
+                    [APP_COPY.analytics.clientDeliveries.export.deliveredValue]: Number(row.delivered_value.toFixed(2))
                 }));
 
                 const wb = XLSX.utils.book_new();
@@ -154,10 +175,27 @@ export function ClientDeliveriesReport() {
         }).format(value);
     };
 
+    const formatCurrencyRounded = (value: number) => {
+        return new Intl.NumberFormat('it-IT', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Math.round(value));
+    };
+
     const formatDate = (dateStr: string) => {
         if (!dateStr) return '-';
         return new Date(dateStr).toLocaleDateString('it-IT');
     };
+
+    const summaryItems = summaryData ? [
+        {
+            label: APP_COPY.analytics.clientDeliveries.summary,
+            value: formatCurrencyRounded(summaryData.total_value),
+            subItems: []
+        }
+    ] : [];
 
     if (loading && page === 1) {
         return (
@@ -183,7 +221,7 @@ export function ClientDeliveriesReport() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -192,7 +230,7 @@ export function ClientDeliveriesReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -201,11 +239,11 @@ export function ClientDeliveriesReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Client
+                                {APP_COPY.analytics.common.client}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.client}
                                 onChange={(e) => setFilters({ ...filters, client: e.target.value })}
                             />
@@ -214,26 +252,33 @@ export function ClientDeliveriesReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            {loading ? 'Exporting...' : 'Export Excel'}
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
             </div>
 
+            {/* Summary Cards */}
+            <SummaryCards
+                items={summaryItems}
+                loading={summaryLoading}
+                onLoad={loadSummary}
+            />
+
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -243,10 +288,10 @@ export function ClientDeliveriesReport() {
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -255,7 +300,7 @@ export function ClientDeliveriesReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -272,7 +317,7 @@ export function ClientDeliveriesReport() {
                                     onClick={() => handleSort('client')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Client
+                                        {APP_COPY.analytics.clientDeliveries.headers.client}
                                         {getSortIcon('client')}
                                     </div>
                                 </th>
@@ -281,7 +326,7 @@ export function ClientDeliveriesReport() {
                                     onClick={() => handleSort('delivered_value')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Valore Consegnato
+                                        {APP_COPY.analytics.clientDeliveries.headers.deliveredValue}
                                         {getSortIcon('delivered_value')}
                                     </div>
                                 </th>
@@ -291,7 +336,7 @@ export function ClientDeliveriesReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={2} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (

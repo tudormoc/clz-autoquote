@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getClientSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { getClientSummaryDataAction, getClientSummaryStatsAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import { SummaryCards } from '@/components/analytics/SummaryCards';
 
 interface ClientSummaryRow {
     client_code: string;
@@ -40,6 +41,9 @@ export function ClientSummaryReport() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    
+    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
     
     const [filters, setFilters] = useState<Filters>({
         client: '',
@@ -99,6 +103,7 @@ export function ClientSummaryReport() {
     const handleApplyFilters = () => {
         setAppliedFilters(filters);
         setPage(1);
+        setSummaryData(null);
         loadData();
     };
 
@@ -115,7 +120,23 @@ export function ClientSummaryReport() {
             column: 'revenue',
             direction: 'desc'
         });
+        setSummaryData(null);
         setPage(1);
+    };
+
+    const loadSummary = async () => {
+        setSummaryLoading(true);
+        const result = await getClientSummaryStatsAction(2024, {
+            client: appliedFilters.client || undefined,
+            dateFrom: appliedFilters.dateFrom || undefined,
+            dateTo: appliedFilters.dateTo || undefined,
+            includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
+        });
+
+        if (result.success) {
+            setSummaryData(result.data);
+        }
+        setSummaryLoading(false);
     };
 
     const handleExportExcel = async () => {
@@ -135,15 +156,15 @@ export function ClientSummaryReport() {
                     const margin = row.total_revenue - totalCosts;
                     
                     return {
-                        'Codice Cliente': row.client_code,
-                        'Nome Cliente': row.client_name,
-                        'Ordini Totali': row.total_orders,
-                        'Fatturato': Number(row.total_revenue.toFixed(2)),
-                        'Costo Materiali': Number(row.total_cost.toFixed(2)),
-                        'Costo Lavoro': Number(row.work_cost.toFixed(2)),
-                        'Margine': Number(margin.toFixed(2)),
-                        'Quantità': row.total_quantity,
-                        'Ordini con Fatturato Parziale': row.split_orders_count
+                        [APP_COPY.analytics.clientSummary.export.clientCode]: row.client_code,
+                        [APP_COPY.analytics.clientSummary.export.clientName]: row.client_name,
+                        [APP_COPY.analytics.clientSummary.export.totalOrders]: row.total_orders,
+                        [APP_COPY.analytics.clientSummary.export.revenue]: Number(row.total_revenue.toFixed(2)),
+                        [APP_COPY.analytics.clientSummary.export.materialCost]: Number(row.total_cost.toFixed(2)),
+                        [APP_COPY.analytics.clientSummary.export.laborCost]: Number(row.work_cost.toFixed(2)),
+                        [APP_COPY.analytics.clientSummary.export.margin]: Number(margin.toFixed(2)),
+                        [APP_COPY.analytics.clientSummary.export.quantity]: row.total_quantity,
+                        [APP_COPY.analytics.clientSummary.export.splitWarning]: row.split_orders_count
                     };
                 });
 
@@ -182,9 +203,26 @@ export function ClientSummaryReport() {
         }).format(value);
     };
 
+    const formatCurrencyRounded = (value: number) => {
+        return new Intl.NumberFormat('it-IT', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Math.round(value));
+    };
+
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('it-IT');
     };
+
+    const summaryItems = summaryData ? [
+        {
+            label: APP_COPY.analytics.common.totalRevenue,
+            value: formatCurrencyRounded(summaryData.total_value),
+            subItems: []
+        }
+    ] : [];
 
     if (loading && page === 1) {
         return (
@@ -210,7 +248,7 @@ export function ClientSummaryReport() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -219,7 +257,7 @@ export function ClientSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -228,11 +266,11 @@ export function ClientSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Client
+                                {APP_COPY.analytics.common.client}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.client}
                                 onChange={(e) => setFilters({ ...filters, client: e.target.value })}
                             />
@@ -241,7 +279,7 @@ export function ClientSummaryReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button 
                             type="button" 
@@ -252,31 +290,38 @@ export function ClientSummaryReport() {
                                     ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
                                     : 'hover:border-warning-foreground/50'
                             }`}
-                            title={filters.includeAllRevenueForSplit ? "Showing full revenue for clients with split orders" : "Click to include full revenue for clients with split orders"}
+                            title={filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFullTitle : APP_COPY.analytics.clientSummary.toggleSplitTitle}
                         >
                             <span className="text-base leading-none">⚠️</span>
                             <span className="text-sm font-medium">
-                                {filters.includeAllRevenueForSplit ? 'Full' : 'Split'}
+                                {filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFull : APP_COPY.analytics.clientSummary.toggleSplit}
                             </span>
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            {loading ? 'Exporting...' : 'Export Excel'}
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
             </div>
 
+            {/* Summary Cards */}
+            <SummaryCards
+                items={summaryItems}
+                loading={summaryLoading}
+                onLoad={loadSummary}
+            />
+
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -286,10 +331,10 @@ export function ClientSummaryReport() {
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -298,7 +343,7 @@ export function ClientSummaryReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -316,7 +361,7 @@ export function ClientSummaryReport() {
                                     onClick={() => handleSort('client')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Client
+                                        {APP_COPY.analytics.clientSummary.headers.client}
                                         {getSortIcon('client')}
                                     </div>
                                 </th>
@@ -325,7 +370,7 @@ export function ClientSummaryReport() {
                                     onClick={() => handleSort('revenue')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Revenue
+                                        {APP_COPY.analytics.clientSummary.headers.revenue}
                                         {getSortIcon('revenue')}
                                     </div>
                                 </th>
@@ -334,7 +379,7 @@ export function ClientSummaryReport() {
                                     onClick={() => handleSort('cost')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Material Cost
+                                        {APP_COPY.analytics.clientSummary.headers.materialCost}
                                         {getSortIcon('cost')}
                                     </div>
                                 </th>
@@ -343,7 +388,7 @@ export function ClientSummaryReport() {
                                     onClick={() => handleSort('work_cost')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Labor Cost
+                                        {APP_COPY.analytics.clientSummary.headers.laborCost}
                                         {getSortIcon('work_cost')}
                                     </div>
                                 </th>
@@ -352,7 +397,7 @@ export function ClientSummaryReport() {
                                     onClick={() => handleSort('margin')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Margin
+                                        {APP_COPY.analytics.clientSummary.headers.margin}
                                         {getSortIcon('margin')}
                                     </div>
                                 </th>
@@ -362,7 +407,7 @@ export function ClientSummaryReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
@@ -412,21 +457,21 @@ export function ClientSummaryReport() {
                         <thead className="bg-zinc-900 border-b border-zinc-800">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-48">
-                                    <div className="flex items-center gap-2">Client</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.clientSummary.headers.client}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Revenue</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.revenue}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Material Cost</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.materialCost}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Labor Cost</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.laborCost}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Margin</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.margin}</div>
                                 </th>
-                                <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Has split revenue">
+                                <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title={APP_COPY.analytics.clientSummary.headers.splitWarning}>
                                     <div className="flex items-center justify-center">⚠️</div>
                                 </th>
                             </tr>
@@ -435,7 +480,7 @@ export function ClientSummaryReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (

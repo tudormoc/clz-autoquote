@@ -127,12 +127,12 @@ export function AreaSummaryReport() {
 
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => ({
-                    'Area': row.area_name,
-                    'Quantità': row.requested_quantity,
-                    'Ore Lavorate': row.work_time.toFixed(2),
-                    'Velocità (pz/h)': row.velocity.toFixed(1),
-                    'Target (pz/h)': row.target_velocity,
-                    'Efficienza (%)': row.efficiency.toFixed(0)
+                    [APP_COPY.analytics.areaSummary.export.area]: row.area_name,
+                    [APP_COPY.analytics.areaSummary.export.quantity]: row.requested_quantity,
+                    [APP_COPY.analytics.areaSummary.export.workTime]: row.work_time.toFixed(2),
+                    [APP_COPY.analytics.areaSummary.export.velocity]: row.velocity.toFixed(1),
+                    [APP_COPY.analytics.areaSummary.export.target]: row.target_velocity,
+                    [APP_COPY.analytics.areaSummary.export.efficiency]: row.efficiency.toFixed(0)
                 }));
 
                 const ws = XLSX.utils.json_to_sheet(excelData);
@@ -221,7 +221,7 @@ export function AreaSummaryReport() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -230,7 +230,7 @@ export function AreaSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -239,11 +239,11 @@ export function AreaSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Area
+                                {APP_COPY.analytics.areaSummary.headers.area}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search area..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.area}
                                 onChange={(e) => setFilters({ ...filters, area: e.target.value })}
                             />
@@ -252,19 +252,19 @@ export function AreaSummaryReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            {loading ? 'Exporting...' : 'Export Excel'}
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                         <Button type="button" onClick={() => setShowMonthModal(true)} variant="secondary" className="flex items-center gap-2">
                             <FileText size={16} />
-                            Generate PDF Report
+                            {APP_COPY.analytics.areaSummary.pdfButton}
                         </Button>
                     </div>
                 </form>
@@ -273,22 +273,22 @@ export function AreaSummaryReport() {
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> areas
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
+                        <Button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1 || loading}
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -297,7 +297,7 @@ export function AreaSummaryReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -315,7 +315,7 @@ export function AreaSummaryReport() {
                                         onClick={() => handleSort('area_name')}
                                     >
                                         <div className="flex items-center gap-2">
-                                            Area
+                                            {APP_COPY.analytics.areaSummary.headers.area}
                                             {getSortIcon('area_name')}
                                         </div>
                                     </th>
@@ -324,7 +324,7 @@ export function AreaSummaryReport() {
                                         onClick={() => handleSort('requested_quantity')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
-                                            Quantity
+                                            {APP_COPY.analytics.areaSummary.headers.quantity}
                                             {getSortIcon('requested_quantity')}
                                         </div>
                                     </th>
@@ -333,7 +333,7 @@ export function AreaSummaryReport() {
                                         onClick={() => handleSort('work_time')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
-                                            Work Time
+                                            {APP_COPY.analytics.areaSummary.headers.workTime}
                                             {getSortIcon('work_time')}
                                         </div>
                                     </th>
@@ -342,7 +342,7 @@ export function AreaSummaryReport() {
                                         onClick={() => handleSort('velocity')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
-                                            Velocity
+                                            {APP_COPY.analytics.areaSummary.headers.velocity}
                                             {getSortIcon('velocity')}
                                         </div>
                                     </th>
@@ -351,7 +351,7 @@ export function AreaSummaryReport() {
                                         onClick={() => handleSort('efficiency')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
-                                            Efficiency
+                                            {APP_COPY.analytics.areaSummary.headers.efficiency}
                                             {getSortIcon('efficiency')}
                                         </div>
                                     </th>
@@ -394,7 +394,7 @@ export function AreaSummaryReport() {
                     </div>
                 ) : (
                     <div className="text-center py-12 text-zinc-500">
-                        No data found for the selected filters
+                        {APP_COPY.analytics.empty}
                     </div>
                 )}
             </div>

@@ -145,16 +145,16 @@ export function ProductionReport() {
                     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                     
                     return {
-                        'Data': dateOnly, // Excel date format without time
-                        'Commessa': Number(row.commessa_display),
-                        'Descrizione': row.order_description,
-                        'Macchina': Number(row.machine),
-                        'Nome Macchina': row.machine_name,
-                        'Operatore': Number(row.operator),
-                        'Nome Operatore': row.operator_name,
-                        'Ore Lavoro': Number(row.work_time.toFixed(2)), // Decimal number
-                        'Quantità Richiesta': row.qty_requested || 0,
-                        'Quantità Completata': row.qty_completed
+                        [APP_COPY.analytics.production.export.date]: dateOnly,
+                        [APP_COPY.analytics.production.export.commessa]: Number(row.commessa_display),
+                        [APP_COPY.analytics.production.export.description]: row.order_description,
+                        [APP_COPY.analytics.production.export.machine]: Number(row.machine),
+                        [APP_COPY.analytics.production.export.machineName]: row.machine_name,
+                        [APP_COPY.analytics.production.export.operator]: Number(row.operator),
+                        [APP_COPY.analytics.production.export.operatorName]: row.operator_name,
+                        [APP_COPY.analytics.production.export.workTime]: Number(row.work_time.toFixed(2)),
+                        [APP_COPY.analytics.production.export.qtyRequested]: row.qty_requested || 0,
+                        [APP_COPY.analytics.production.export.qtyCompleted]: row.qty_completed
                     };
                 });
 
@@ -252,7 +252,7 @@ export function ProductionReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -261,7 +261,7 @@ export function ProductionReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -270,33 +270,33 @@ export function ProductionReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Commessa
+                                {APP_COPY.analytics.production.headers.commessa}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.commessa}
                                 onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Machine
+                                {APP_COPY.analytics.production.headers.machine}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.machine}
                                 onChange={(e) => setFilters({ ...filters, machine: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Operator
+                                {APP_COPY.analytics.production.headers.operator}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.operator}
                                 onChange={(e) => setFilters({ ...filters, operator: e.target.value })}
                             />
@@ -305,15 +305,15 @@ export function ProductionReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
                             <Download size={16} />
-                            Export Excel
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
@@ -322,22 +322,22 @@ export function ProductionReport() {
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
+                        <Button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1 || loading}
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -346,7 +346,7 @@ export function ProductionReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -364,7 +364,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('date')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Date
+                                        {APP_COPY.analytics.production.headers.date}
                                         {getSortIcon('date')}
                                     </div>
                                 </th>
@@ -373,7 +373,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Commessa
+                                        {APP_COPY.analytics.production.headers.commessa}
                                         {getSortIcon('commessa')}
                                     </div>
                                 </th>
@@ -382,7 +382,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('machine')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Machine
+                                        {APP_COPY.analytics.production.headers.machine}
                                         {getSortIcon('machine')}
                                     </div>
                                 </th>
@@ -391,7 +391,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('operator')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Operator
+                                        {APP_COPY.analytics.production.headers.operator}
                                         {getSortIcon('operator')}
                                     </div>
                                 </th>
@@ -400,7 +400,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('time')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Time
+                                        {APP_COPY.analytics.production.headers.time}
                                         {getSortIcon('time')}
                                     </div>
                                 </th>
@@ -409,7 +409,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('qty_requested')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Qty Req
+                                        {APP_COPY.analytics.production.headers.qtyReq}
                                         {getSortIcon('qty_requested')}
                                     </div>
                                 </th>
@@ -418,7 +418,7 @@ export function ProductionReport() {
                                     onClick={() => handleSort('qty')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Qty Done
+                                        {APP_COPY.analytics.production.headers.qtyDone}
                                         {getSortIcon('qty')}
                                     </div>
                                 </th>
@@ -428,7 +428,7 @@ export function ProductionReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
@@ -473,27 +473,27 @@ export function ProductionReport() {
                 ) : (
                     <table className="w-full">
                         <thead className="bg-zinc-900 border-b border-zinc-800">
-                            <tr>
+                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-28">
-                                    <div className="flex items-center gap-2">Date</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.date}</div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-40">
-                                    <div className="flex items-center gap-2">Commessa</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.commessa}</div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
-                                    <div className="flex items-center gap-2">Machine</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.machine}</div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
-                                    <div className="flex items-center gap-2">Operator</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.operator}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Time</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.time}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Qty Req</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyReq}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Qty Done</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyDone}</div>
                                 </th>
                             </tr>
                         </thead>
@@ -501,7 +501,7 @@ export function ProductionReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (

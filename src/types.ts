@@ -105,3 +105,23 @@ export interface SignatureType {
 export interface PricingRule extends Operation, PricingConfig {
     operation_name: string; // Alias for Operation.name
 }
+
+export interface WeekDateRange {
+    weekNumber: number;
+    startDate: string;
+    endDate: string;
+}
+
+export interface WeeklyGroupData {
+    group: string;
+    [key: string]: number | string;
+}
+
+export interface PresenceData {
+    groups: WeeklyGroupData[];
+    weekTotals: {
+        [key: string]: number;
+    };
+    weekNumbers: number[];
+    weekDateRanges: WeekDateRange[];
+}

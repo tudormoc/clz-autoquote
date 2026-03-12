@@ -144,18 +144,18 @@ export function OrderRevenueReport() {
                     const margin = row.total_revenue - totalCosts;
 
                     return {
-                        'Commessa': row.commessa_display,
-                        'Descrizione': row.order_description || '',
-                        'Codice Cliente': row.client_code,
-                        'Nome Cliente': row.client_name,
-                        'Quantità': row.total_quantity,
-                        'Fatturato (Valfatt)': Number(row.total_revenue.toFixed(2)),
-                        'Fatturato Consegnato (Valore)': Number(row.delivered_revenue.toFixed(2)),
-                        'Costo Materiali': Number(row.total_cost.toFixed(2)),
-                        'Ore Lavoro': Number(row.work_time.toFixed(2)),
-                        'Costo Lavoro': Number(row.work_cost.toFixed(2)),
-                        'Margine': Number(margin.toFixed(2)),
-                        'Fatturato Parziale': row.has_split_revenue === 1 ? 'SI' : 'NO'
+                        [APP_COPY.analytics.orderRevenue.export.commessa]: row.commessa_display,
+                        [APP_COPY.analytics.orderRevenue.export.description]: row.order_description || '',
+                        [APP_COPY.analytics.orderRevenue.export.clientCode]: row.client_code,
+                        [APP_COPY.analytics.orderRevenue.export.clientName]: row.client_name,
+                        [APP_COPY.analytics.orderRevenue.export.quantity]: row.total_quantity,
+                        [APP_COPY.analytics.orderRevenue.export.invoicedValue]: Number(row.total_revenue.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.deliveredValue]: Number(row.delivered_revenue.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.materialCost]: Number(row.total_cost.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.workTime]: Number(row.work_time.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.laborCost]: Number(row.work_cost.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.margin]: Number(margin.toFixed(2)),
+                        [APP_COPY.analytics.orderRevenue.export.partialRevenue]: row.has_split_revenue === 1 ? 'SI' : 'NO'
                     };
                 });
 
@@ -227,7 +227,7 @@ export function OrderRevenueReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -236,7 +236,7 @@ export function OrderRevenueReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -249,7 +249,7 @@ export function OrderRevenueReport() {
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.commessa}
                                 onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
                             />
@@ -260,7 +260,7 @@ export function OrderRevenueReport() {
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.client}
                                 onChange={(e) => setFilters({ ...filters, client: e.target.value })}
                             />
@@ -269,7 +269,7 @@ export function OrderRevenueReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button
                             type="button"
@@ -279,20 +279,20 @@ export function OrderRevenueReport() {
                                 ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20'
                                 : 'hover:border-warning-foreground/50'
                                 }`}
-                            title={filters.includeAllRevenueForSplit ? "Showing full revenue for split orders" : "Click to include full revenue for split orders"}
+                            title={filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFullTitle : APP_COPY.analytics.clientSummary.toggleSplitTitle}
                         >
                             <span className="text-base leading-none">⚠️</span>
                             <span className="text-sm font-medium">
-                                {filters.includeAllRevenueForSplit ? 'Full' : 'Split'}
+                                {filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFull : APP_COPY.analytics.clientSummary.toggleSplit}
                             </span>
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            {loading ? 'Exporting...' : 'Export Excel'}
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
@@ -301,9 +301,9 @@ export function OrderRevenueReport() {
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -313,10 +313,10 @@ export function OrderRevenueReport() {
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -325,7 +325,7 @@ export function OrderRevenueReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -421,10 +421,10 @@ export function OrderRevenueReport() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-800">
-                                {loading ? (
+                            {loading ? (
                                     <tr>
                                         <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
-                                            Loading...
+                                            {APP_COPY.analytics.common.loading}
                                         </td>
                                     </tr>
                                 ) : data.length === 0 ? (
@@ -521,7 +521,7 @@ export function OrderRevenueReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (

@@ -46,6 +46,7 @@ import {
 
 import {
     getClientSummaryDataAction as getClientSummaryData,
+    getClientSummaryStatsAction as getClientSummaryStats,
     getOrderRevenueDataAction as getOrderRevenueData
 } from './queries/business-queries';
 
@@ -62,6 +63,7 @@ export const getProductionDataAction = getProductionData;
 export const getOrderSummaryDataAction = getOrderSummaryData;
 export const getAreaSummaryDataAction = getAreaSummaryData;
 export const getClientSummaryDataAction = getClientSummaryData;
+export const getClientSummaryStatsAction = getClientSummaryStats;
 export const getOrderRevenueDataAction = getOrderRevenueData;
 export const inspectSituazioniAction = inspectSituazioni;
 export const inspectOrdiniAction = inspectOrdini;
@@ -90,7 +92,8 @@ export async function getAnalyticsDataAction(reportId: string, params?: Record<s
 }
 
 import {
-    getClientDeliveriesDataAction as getClientDeliveriesData
+    getClientDeliveriesDataAction as getClientDeliveriesData,
+    getClientDeliveriesStatsAction as getClientDeliveriesStats
 } from './queries/client-deliveries-queries';
 
 import {
@@ -99,6 +102,7 @@ import {
 
 // Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
+export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 
 // Export Presence action
 export const getPresenceDataAction = getPresenceData;

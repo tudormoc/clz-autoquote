@@ -9,6 +9,7 @@
  */
 
 import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck } from 'lucide-react';
+import { APP_COPY } from '@/locales';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
@@ -34,63 +35,63 @@ export interface AnalyticsSectionConfig {
 export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
     {
         id: 'production-metrics',
-        label: 'Production Report',
+        label: APP_COPY.analytics.reports.productionMetrics,
         icon: Package,
         category: 'production',
         description: 'Production by operator and machine'
     },
     {
         id: 'order-summary',
-        label: 'Order Summary',
+        label: APP_COPY.analytics.reports.orderSummary,
         icon: FileText,
         category: 'production',
         description: 'Production grouped by machine'
     },
     {
         id: 'order-operations',
-        label: 'Order Operations',
+        label: APP_COPY.analytics.reports.orderOperations,
         icon: Calendar,
         category: 'production',
         description: 'Track operations progress per order'
     },
     {
         id: 'area-summary',
-        label: 'Area Summary',
+        label: APP_COPY.analytics.reports.areaSummary,
         icon: BarChart3,
         category: 'production',
         description: 'Work time summary by area'
     },
     {
         id: 'client-summary',
-        label: 'Client Summary',
+        label: APP_COPY.analytics.reports.clientSummary,
         icon: Users,
         category: 'clients',
         description: 'Client performance and history'
     },
     {
         id: 'client-deliveries',
-        label: 'Client Deliveries',
+        label: APP_COPY.analytics.reports.clientDeliveries,
         icon: Package,
         category: 'clients',
         description: 'Client deliveries by value'
     },
     {
         id: 'order-revenue',
-        label: 'Order Revenue',
+        label: APP_COPY.analytics.reports.orderRevenue,
         icon: DollarSign,
         category: 'revenue',
         description: 'Revenue analysis by order'
     },
     {
         id: 'supplier-summary',
-        label: 'Supplier Summary',
+        label: APP_COPY.analytics.reports.supplierSummary,
         icon: Truck,
         category: 'revenue',
         description: 'Supplier costs by order'
     },
     {
         id: 'presence-report',
-        label: 'Presenza',
+        label: APP_COPY.analytics.reports.presenceReport,
         icon: Clock,
         category: 'production',
         description: 'Weekly presence hours by operator group'

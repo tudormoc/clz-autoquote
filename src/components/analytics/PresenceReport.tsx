@@ -2,28 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
+import { APP_COPY } from '@/locales';
 import { Button } from '@/components/ui/Button';
+import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
 import { Clock, Copy } from 'lucide-react';
 
-interface WeekDateRange {
-    weekNumber: number;
-    startDate: string;
-    endDate: string;
-}
 
-interface WeeklyGroupData {
-    group: string;
-    [key: string]: number | string; // Dynamic week keys
-}
-
-interface PresenceData {
-    groups: WeeklyGroupData[];
-    weekTotals: {
-        [key: string]: number; // Dynamic week keys
-    };
-    weekNumbers: number[]; // Available week numbers
-    weekDateRanges: WeekDateRange[];
-}
 
 export function PresenceReport() {
     const [data, setData] = useState<PresenceData | null>(null);
@@ -33,9 +17,9 @@ export function PresenceReport() {
     const [filesProcessed, setFilesProcessed] = useState(0);
 
     const months = [
-        { value: 1, label: 'Gennaio' },
-        { value: 2, label: 'Febbraio' },
-        { value: 3, label: 'Marzo' }
+        { value: 1, label: APP_COPY.months.january },
+        { value: 2, label: APP_COPY.months.february },
+        { value: 3, label: APP_COPY.months.march }
     ];
 
     const loadData = async () => {
@@ -101,7 +85,7 @@ export function PresenceReport() {
             text += `${item.group}${tabs}${formatHours(item.hours)}\n`;
         });
         
-        text += `Totale\t\t${formatHours(weekTotal)}\n`;
+        text += `${APP_COPY.analytics.presence.total}\t\t${formatHours(weekTotal)}\n`;
         
         // Copy to clipboard silently
         navigator.clipboard.writeText(text).catch(err => {
@@ -114,9 +98,9 @@ export function PresenceReport() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold text-foreground">Presenza Settimanale</h2>
+                    <h2 className="text-2xl font-semibold text-foreground">{APP_COPY.analytics.presence.title}</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Ore ordinarie per gruppo operatori
+                        {APP_COPY.analytics.presence.subtitle}
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -133,7 +117,7 @@ export function PresenceReport() {
                     </select>
                     <Button onClick={loadData} disabled={loading}>
                         <Clock className="w-4 h-4 mr-2" />
-                        {loading ? 'Caricamento...' : 'Aggiorna'}
+                        {loading ? APP_COPY.analytics.common.loading : APP_COPY.analytics.common.refresh}
                     </Button>
                 </div>
             </div>
@@ -141,7 +125,7 @@ export function PresenceReport() {
             {/* Info */}
             {filesProcessed > 0 && (
                 <div className="text-sm text-muted-foreground">
-                    File elaborati: {filesProcessed}
+                    {APP_COPY.analytics.presence.filesProcessed}: {filesProcessed}
                 </div>
             )}
 
@@ -155,7 +139,7 @@ export function PresenceReport() {
             {/* Loading */}
             {loading && (
                 <div className="flex items-center justify-center py-12">
-                    <div className="text-muted-foreground">Caricamento dati...</div>
+                    <div className="text-muted-foreground">{APP_COPY.analytics.common.loading}</div>
                 </div>
             )}
 
@@ -179,7 +163,7 @@ export function PresenceReport() {
                             <div key={weekNum} className="border border-border rounded-lg overflow-hidden">
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-foreground">
-                                        Settimana {weekNum}
+                                        {APP_COPY.analytics.presence.week} {weekNum}
                                         {getWeekDateRange(weekNum) && (
                                             <span className="text-sm font-normal text-muted-foreground ml-2">
                                                 ({getWeekDateRange(weekNum)})
@@ -192,7 +176,7 @@ export function PresenceReport() {
                                         size="sm"
                                     >
                                         <Copy className="w-4 h-4 mr-2" />
-                                        Copia
+                                        {APP_COPY.analytics.presence.copy}
                                     </Button>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -210,7 +194,7 @@ export function PresenceReport() {
                                             ))}
                                             <tr className="bg-muted/50 font-semibold">
                                                 <td className="px-4 py-3 text-sm text-foreground">
-                                                    Totale
+                                                    {APP_COPY.analytics.presence.total}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-right text-foreground">
                                                     {formatHours(weekTotal)}
@@ -228,7 +212,7 @@ export function PresenceReport() {
             {/* Empty State */}
             {!loading && !error && !data && (
                 <div className="text-center py-12 text-muted-foreground">
-                    Nessun dato disponibile
+                    {APP_COPY.analytics.common.noData}
                 </div>
             )}
         </div>

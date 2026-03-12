@@ -131,13 +131,13 @@ export function OrderSummaryReport() {
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => {
                     return {
-                        'Commessa': Number(row.commessa_display),
-                        'Descrizione': row.order_description,
-                        'Macchina': Number(row.machine),
-                        'Nome Macchina': row.machine_name,
-                        'Ore Lavoro': Number(row.work_time.toFixed(2)),
-                        'Quantità Richiesta': row.qty_requested || 0,
-                        'Quantità Completata': row.qty_completed
+                        [APP_COPY.analytics.orderSummary.export.commessa]: Number(row.commessa_display),
+                        [APP_COPY.analytics.orderSummary.export.description]: row.order_description,
+                        [APP_COPY.analytics.orderSummary.export.machine]: Number(row.machine),
+                        [APP_COPY.analytics.orderSummary.export.machineName]: row.machine_name,
+                        [APP_COPY.analytics.orderSummary.export.workTime]: Number(row.work_time.toFixed(2)),
+                        [APP_COPY.analytics.orderSummary.export.qtyRequested]: row.qty_requested || 0,
+                        [APP_COPY.analytics.orderSummary.export.qtyCompleted]: row.qty_completed
                     };
                 });
 
@@ -217,7 +217,7 @@ export function OrderSummaryReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -226,7 +226,7 @@ export function OrderSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -235,22 +235,22 @@ export function OrderSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Commessa
+                                {APP_COPY.analytics.orderSummary.headers.commessa}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.commessa}
                                 onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Machine
+                                {APP_COPY.analytics.orderSummary.headers.machine}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.machine}
                                 onChange={(e) => setFilters({ ...filters, machine: e.target.value })}
                             />
@@ -259,15 +259,15 @@ export function OrderSummaryReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
                             <Download size={16} />
-                            Export Excel
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
@@ -276,22 +276,22 @@ export function OrderSummaryReport() {
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
+                        <Button
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1 || loading}
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -300,7 +300,7 @@ export function OrderSummaryReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -318,7 +318,7 @@ export function OrderSummaryReport() {
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Commessa
+                                        {APP_COPY.analytics.orderSummary.headers.commessa}
                                         {getSortIcon('commessa')}
                                     </div>
                                 </th>
@@ -327,7 +327,7 @@ export function OrderSummaryReport() {
                                     onClick={() => handleSort('machine')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Machine
+                                        {APP_COPY.analytics.orderSummary.headers.machine}
                                         {getSortIcon('machine')}
                                     </div>
                                 </th>
@@ -336,7 +336,7 @@ export function OrderSummaryReport() {
                                     onClick={() => handleSort('time')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Time
+                                        {APP_COPY.analytics.orderSummary.headers.time}
                                         {getSortIcon('time')}
                                     </div>
                                 </th>
@@ -345,7 +345,7 @@ export function OrderSummaryReport() {
                                     onClick={() => handleSort('qty_requested')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Qty Req
+                                        {APP_COPY.analytics.orderSummary.headers.qtyReq}
                                         {getSortIcon('qty_requested')}
                                     </div>
                                 </th>
@@ -354,7 +354,7 @@ export function OrderSummaryReport() {
                                     onClick={() => handleSort('qty')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Qty Done
+                                        {APP_COPY.analytics.orderSummary.headers.qtyDone}
                                         {getSortIcon('qty')}
                                     </div>
                                 </th>
@@ -364,7 +364,7 @@ export function OrderSummaryReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
@@ -401,22 +401,22 @@ export function OrderSummaryReport() {
                     </div>
                 ) : (
                     <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
-                            <tr>
+                         <thead>
+                            <tr className="bg-zinc-900 border-b border-zinc-800">
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-40">
-                                    <div className="flex items-center gap-2">Commessa</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderSummary.headers.commessa}</div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
-                                    <div className="flex items-center gap-2">Machine</div>
+                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderSummary.headers.machine}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Time</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.time}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Qty Req</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.qtyReq}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
-                                    <div className="flex items-center justify-end gap-2">Qty Done</div>
+                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.qtyDone}</div>
                                 </th>
                             </tr>
                         </thead>
@@ -424,7 +424,7 @@ export function OrderSummaryReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (

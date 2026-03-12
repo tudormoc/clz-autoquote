@@ -30,10 +30,10 @@ export default function AnalyticsPage() {
                         {/* Welcome Message */}
                         <div className="bg-card border border-zinc-800 rounded-lg p-8 text-center">
                             <p className="text-zinc-300 text-lg mb-2">
-                                Select a report from the sidebar to view analytics data
+                                {APP_COPY.analytics.sidebar.title}: {APP_COPY.analytics.sidebar.allReports}
                             </p>
                             <p className="text-zinc-500 text-sm">
-                                Choose from production metrics, order summaries, client analysis, and revenue reports
+                                {APP_COPY.analytics.subtitle}
                             </p>
                         </div>
                     </div>

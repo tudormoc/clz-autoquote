@@ -1,6 +1,6 @@
 /**
  * Client Deliveries Queries
- * Shows client deliveries with delivered value (dw_valore) and delivery date (dw_datmov2)
+ * Shows client deliveries with delivered value (dw_valore) and invoice/movement date (dw_datmov)
  */
 
 'use server';
@@ -62,13 +62,13 @@ export async function getClientDeliveriesDataAction(
         request.input('year', sql.Int, year);
         request.input('clientType', sql.VarChar, 'C');
 
-        // Date filters on dw_datmov2 (delivery date)
+        // Date filters on dw_datmov
         if (filters.dateFrom) {
-            conditions.push('dw.dw_datmov2 >= @dateFrom');
+            conditions.push('dw.dw_datmov >= @dateFrom');
             request.input('dateFrom', sql.Date, filters.dateFrom);
         }
         if (filters.dateTo) {
-            conditions.push('dw.dw_datmov2 <= @dateTo');
+            conditions.push('dw.dw_datmov <= @dateTo');
             request.input('dateTo', sql.Date, filters.dateTo);
         }
 
@@ -154,6 +154,88 @@ export async function getClientDeliveriesDataAction(
             success: false,
             data: [],
             pagination: { total: 0, page, limit, totalPages: 0 },
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
+ * Statistics for Client Deliveries
+ * Returns the total aggregated delivered value for the current filters
+ */
+export async function getClientDeliveriesStatsAction(
+    year: number,
+    filters: Filters = {}
+): Promise<{
+    success: boolean;
+    data: { total_value: number };
+    error?: string;
+}> {
+    try {
+        const pool = await getMSSQLPool('BUSINESS');
+        const request = pool.request();
+
+        // Build WHERE conditions (identical to main query)
+        const conditions: string[] = [
+            'dw.dw_scenario = 1',
+            'dw.codditt = @company',
+            'dw.dw_anno >= @year',
+            'an.an_tipo = @clientType',
+            'dw.dw_valore <> 0'
+        ];
+
+        request.input('company', sql.VarChar, 'COOPZANARDI');
+        request.input('year', sql.Int, year);
+        request.input('clientType', sql.VarChar, 'C');
+
+        if (filters.dateFrom) {
+            conditions.push('dw.dw_datmov >= @dateFrom');
+            request.input('dateFrom', sql.Date, filters.dateFrom);
+        }
+        if (filters.dateTo) {
+            conditions.push('dw.dw_datmov <= @dateTo');
+            request.input('dateTo', sql.Date, filters.dateTo);
+        }
+
+        if (filters.client) {
+            const clientCodes = filters.client.split(',').map(c => c.trim()).filter(Boolean);
+            if (clientCodes.length > 1) {
+                const clientParams = clientCodes.map((_, i) => `@client${i}`).join(', ');
+                conditions.push(`an.an_conto IN (${clientParams})`);
+                clientCodes.forEach((code, i) => {
+                    request.input(`client${i}`, sql.VarChar, code);
+                });
+            } else {
+                conditions.push('(an.an_conto LIKE @clientSearch OR an.an_descr1 LIKE @clientSearch)');
+                request.input('clientSearch', sql.VarChar, `%${filters.client}%`);
+            }
+        }
+
+        const whereClause = conditions.join(' AND ');
+
+        // Aggregate query
+        const query = `
+            SELECT SUM(dw.dw_valore) as total_value
+            FROM dwarehe dw WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK)
+                ON dw.dw_conto = an.an_conto
+                AND dw.codditt = an.codditt
+            WHERE ${whereClause}
+        `;
+
+        const result = await request.query(query);
+
+        return {
+            success: true,
+            data: {
+                total_value: result.recordset[0]?.total_value || 0
+            }
+        };
+    } catch (error) {
+        console.error('Client deliveries stats query error:', error);
+        return {
+            success: false,
+            data: { total_value: 0 },
             error: error instanceof Error ? error.message : 'Unknown error'
         };
     }

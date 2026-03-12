@@ -145,7 +145,7 @@ export function SupplierSummaryReport() {
 
     const summaryItems = summaryData ? [
         {
-            label: 'Total Delivered Value',
+            label: APP_COPY.analytics.supplierSummary.stats.totalValue,
             value: formatCurrencyRounded(summaryData.total_value),
             subItems: summaryData.suppliers.map((s: any) => ({
                 label: s.supplier_name,
@@ -153,7 +153,7 @@ export function SupplierSummaryReport() {
             }))
         },
         {
-            label: 'Equivalent Work Hours',
+            label: APP_COPY.analytics.supplierSummary.stats.workHours,
             value: `${Math.round(summaryData.total_value / 20)} hours`,
             subItems: []
         }
@@ -188,11 +188,11 @@ export function SupplierSummaryReport() {
 
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => ({
-                    'Codice Fornitore': row.supplier_code,
-                    'Nome Fornitore': row.supplier_name,
-                    'Commessa': row.commessa_display,
-                    'Descrizione': row.order_description || '',
-                    'Valore Consegnato': Number(row.total_value.toFixed(2))
+                    [APP_COPY.analytics.supplierSummary.export.supplierCode]: row.supplier_code,
+                    [APP_COPY.analytics.supplierSummary.export.supplierName]: row.supplier_name,
+                    [APP_COPY.analytics.supplierSummary.export.commessa]: row.commessa_display,
+                    [APP_COPY.analytics.supplierSummary.export.description]: row.order_description || '',
+                    [APP_COPY.analytics.supplierSummary.export.deliveredValue]: Number(row.total_value.toFixed(2))
                 }));
 
                 const wb = XLSX.utils.book_new();
@@ -241,7 +241,7 @@ export function SupplierSummaryReport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date From
+                                {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
                                 value={filters.dateFrom}
@@ -250,7 +250,7 @@ export function SupplierSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Date To
+                                {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
                                 value={filters.dateTo}
@@ -259,22 +259,22 @@ export function SupplierSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Commessa
+                                {APP_COPY.analytics.supplierSummary.headers.commessa}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.commessa}
                                 onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                Supplier
+                                {APP_COPY.analytics.supplierSummary.headers.supplier}
                             </label>
                             <Input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={APP_COPY.analytics.common.search}
                                 value={filters.supplier}
                                 onChange={(e) => setFilters({ ...filters, supplier: e.target.value })}
                             />
@@ -283,15 +283,15 @@ export function SupplierSummaryReport() {
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
                             <Search size={16} />
-                            Apply Filters
+                            {APP_COPY.analytics.common.apply}
                         </Button>
                         <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
                             <X size={16} />
-                            Clear
+                            {APP_COPY.analytics.common.clear}
                         </Button>
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
                             <Download size={16} />
-                            {loading ? 'Exporting...' : 'Export Excel'}
+                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
                         </Button>
                     </div>
                 </form>
@@ -307,9 +307,9 @@ export function SupplierSummaryReport() {
             {/* Stats */}
             <div className="flex items-center justify-between text-sm text-zinc-400">
                 <div>
-                    Showing <span className="text-white font-mono">{(page - 1) * limit + 1}</span> to{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="text-white font-mono">{total}</span> records
+                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -319,10 +319,10 @@ export function SupplierSummaryReport() {
                         className="flex items-center gap-1"
                     >
                         <ChevronLeft size={16} />
-                        Previous
+                        {APP_COPY.analytics.common.previous}
                     </Button>
                     <span className="text-zinc-400">
-                        Page <span className="text-white font-mono">{page}</span> of{' '}
+                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
                         <span className="text-white font-mono">{totalPages}</span>
                     </span>
                     <Button
@@ -331,7 +331,7 @@ export function SupplierSummaryReport() {
                         variant="secondary"
                         className="flex items-center gap-1"
                     >
-                        Next
+                        {APP_COPY.analytics.common.next}
                         <ChevronRight size={16} />
                     </Button>
                 </div>
@@ -348,7 +348,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('supplier')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Supplier
+                                        {APP_COPY.analytics.supplierSummary.headers.supplier}
                                         {getSortIcon('supplier')}
                                     </div>
                                 </th>
@@ -357,7 +357,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        Commessa
+                                        {APP_COPY.analytics.supplierSummary.headers.commessa}
                                         {getSortIcon('commessa')}
                                     </div>
                                 </th>
@@ -366,7 +366,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('value')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        Delivered Value
+                                        {APP_COPY.analytics.supplierSummary.headers.deliveredValue}
                                         {getSortIcon('value')}
                                     </div>
                                 </th>
@@ -376,7 +376,7 @@ export function SupplierSummaryReport() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={3} className="px-4 py-8 text-center text-zinc-400">
-                                        Loading...
+                                        {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (

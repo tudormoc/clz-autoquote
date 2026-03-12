@@ -26,6 +26,7 @@
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
 
 const NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
 
@@ -33,36 +34,6 @@ interface PresenceRow {
     week: number;
     group: string;
     hours: number;
-}
-
-interface WeeklyGroupData {
-    group: string;
-    week1: number;
-    week2: number;
-    week3: number;
-    week4: number;
-    week5: number;
-    total: number;
-}
-
-interface WeekDateRange {
-    weekNumber: number;
-    startDate: string; // ISO format YYYY-MM-DD
-    endDate: string;   // ISO format YYYY-MM-DD
-}
-
-interface PresenceData {
-    groups: WeeklyGroupData[];
-    weekTotals: {
-        week1: number;
-        week2: number;
-        week3: number;
-        week4: number;
-        week5: number;
-        total: number;
-    };
-    weekNumbers: number[];
-    weekDateRanges: WeekDateRange[];
 }
 
 /**
