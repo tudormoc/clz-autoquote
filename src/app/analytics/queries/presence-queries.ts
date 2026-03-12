@@ -45,6 +45,12 @@ interface WeeklyGroupData {
     total: number;
 }
 
+interface WeekDateRange {
+    weekNumber: number;
+    startDate: string; // ISO format YYYY-MM-DD
+    endDate: string;   // ISO format YYYY-MM-DD
+}
+
 interface PresenceData {
     groups: WeeklyGroupData[];
     weekTotals: {
@@ -55,6 +61,8 @@ interface PresenceData {
         week5: number;
         total: number;
     };
+    weekNumbers: number[];
+    weekDateRanges: WeekDateRange[];
 }
 
 /**
@@ -167,9 +175,48 @@ function parseExcelFile(filePath: string): PresenceRow[] {
 }
 
 /**
+ * Calculate date range for a given week number in a year
+ * Week 1 = first full week of the year (Monday to Sunday)
+ * Uses ISO 8601 week numbering standard
+ */
+function getWeekDateRange(year: number, weekNumber: number): WeekDateRange {
+    // January 4th is always in week 1 of the year (ISO 8601)
+    const jan4 = new Date(year, 0, 4);
+    
+    // Find the Monday of week 1 (the Monday of the week containing January 4th)
+    const jan4DayOfWeek = jan4.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = jan4DayOfWeek === 0 ? 6 : jan4DayOfWeek - 1; // Sunday = 6 days from Monday
+    
+    const firstMondayOfYear = new Date(jan4);
+    firstMondayOfYear.setDate(jan4.getDate() - daysFromMonday);
+    
+    // Calculate start date (Monday of the given week)
+    const startDate = new Date(firstMondayOfYear);
+    startDate.setDate(firstMondayOfYear.getDate() + (weekNumber - 1) * 7);
+    
+    // Calculate end date (Sunday of the given week)
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    
+    // Format as YYYY-MM-DD
+    const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    return {
+        weekNumber,
+        startDate: formatDate(startDate),
+        endDate: formatDate(endDate)
+    };
+}
+
+/**
  * Aggregate presence data by week and group
  */
-function aggregatePresenceData(rows: PresenceRow[]): PresenceData {
+function aggregatePresenceData(rows: PresenceRow[], year: number): PresenceData {
     const groupMap = new Map<string, WeeklyGroupData>();
     const weekNumbers = new Set<number>();
     
@@ -202,10 +249,14 @@ function aggregatePresenceData(rows: PresenceRow[]): PresenceData {
         });
     });
     
+    const sortedWeekNumbers = Array.from(weekNumbers).sort((a, b) => a - b);
+    const weekDateRanges = sortedWeekNumbers.map(weekNum => getWeekDateRange(year, weekNum));
+    
     return {
         groups: Array.from(groupMap.values()).sort((a, b) => a.group.localeCompare(b.group)),
         weekTotals,
-        weekNumbers: Array.from(weekNumbers).sort((a, b) => a - b)
+        weekNumbers: sortedWeekNumbers,
+        weekDateRanges
     };
 }
 
@@ -269,7 +320,7 @@ export async function getPresenceDataAction(
         }
         
         // Aggregate data
-        const aggregatedData = aggregatePresenceData(allRows);
+        const aggregatedData = aggregatePresenceData(allRows, year);
         
         return {
             success: true,

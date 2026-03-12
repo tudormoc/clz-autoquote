@@ -150,7 +150,7 @@ export function AreaSummaryReport() {
     const handleGeneratePDF = async (year: number, months: number[]) => {
         setPdfLoading(true);
         try {
-            const result = await generateAreaSummaryPDFAction(year, months);
+            const result = await generateAreaSummaryPDFAction(year, months, appliedFilters.area || undefined);
             
             if (result.success && result.pdf) {
                 // Convert base64 to blob and download

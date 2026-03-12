@@ -91,10 +91,14 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 37,  // €/hour - Default hourly rate for labor cost calculations. 40=23+17, 37=20+17.
+    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations. 40=23+17, 37=20+17.
+    PARTIAL_LABOR_RATE: 23,  // €/hour - Partial labor rate for supplier cost equivalence calculations.
 
     // Company Information
     COMPANY_NAME: 'TM - CLZ',
+
+    // Contropartita codes for supplier invoicing
+    SUPPLIER_CONTROPARTITA_CODES: [5093],
 
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
@@ -138,7 +142,7 @@ export const APP_CONFIG = {
       'Copertine': 2160,
       'Cucitura': 1120,
       'Incassatura normale': 2800,
-      'Incassatura veloce': 3800,
+      'Incassatura veloce': 4000,
       'Piega': 4200,
       'Raccolta': 1120,
       'Stampa a caldo': 1050,

@@ -5,6 +5,12 @@ import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
 import { Button } from '@/components/ui/Button';
 import { Clock, Copy } from 'lucide-react';
 
+interface WeekDateRange {
+    weekNumber: number;
+    startDate: string;
+    endDate: string;
+}
+
 interface WeeklyGroupData {
     group: string;
     [key: string]: number | string; // Dynamic week keys
@@ -16,6 +22,7 @@ interface PresenceData {
         [key: string]: number; // Dynamic week keys
     };
     weekNumbers: number[]; // Available week numbers
+    weekDateRanges: WeekDateRange[];
 }
 
 export function PresenceReport() {
@@ -59,6 +66,20 @@ export function PresenceReport() {
         return hours.toFixed(1);
     };
 
+    const formatDateRange = (startDate: string, endDate: string) => {
+        // Convert YYYY-MM-DD to DD/MM format
+        const formatShort = (dateStr: string) => {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}`;
+        };
+        return `${formatShort(startDate)} - ${formatShort(endDate)}`;
+    };
+
+    const getWeekDateRange = (weekNum: number): string => {
+        const range = data?.weekDateRanges?.find(r => r.weekNumber === weekNum);
+        return range ? formatDateRange(range.startDate, range.endDate) : '';
+    };
+
     const copyTableToClipboard = (weekNum: number) => {
         const weekKey = `week${weekNum}`;
         const weekData = data!.groups
@@ -69,9 +90,10 @@ export function PresenceReport() {
             .filter(d => d.hours > 0);
         
         const weekTotal = data!.weekTotals[weekKey] || 0;
+        const dateRange = getWeekDateRange(weekNum);
         
         // Build formatted text table with tabs for alignment
-        let text = `Settimana ${weekNum}\n`;
+        let text = `Settimana ${weekNum}${dateRange ? ` (${dateRange})` : ''}\n`;
         
         weekData.forEach((item, idx) => {
             // First row: 2 tabs, second row onwards: 1 tab
@@ -158,6 +180,11 @@ export function PresenceReport() {
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-foreground">
                                         Settimana {weekNum}
+                                        {getWeekDateRange(weekNum) && (
+                                            <span className="text-sm font-normal text-muted-foreground ml-2">
+                                                ({getWeekDateRange(weekNum)})
+                                            </span>
+                                        )}
                                     </h3>
                                     <Button
                                         onClick={() => copyTableToClipboard(weekNum)}

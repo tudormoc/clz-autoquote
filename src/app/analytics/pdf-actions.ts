@@ -13,7 +13,8 @@ interface MonthData {
 
 export async function generateAreaSummaryPDFAction(
     year: number,
-    months: number[] // Array of month numbers (1-12)
+    months: number[], // Array of month numbers (1-12)
+    areaFilter?: string // Optional area filter
 ) {
     try {
         // Fetch data for each selected month
@@ -26,7 +27,11 @@ export async function generateAreaSummaryPDFAction(
                 year,
                 1,
                 999999,
-                { dateFrom: monthStart, dateTo: monthEnd },
+                { 
+                    dateFrom: monthStart, 
+                    dateTo: monthEnd,
+                    machine: areaFilter || undefined // Pass area filter
+                },
                 { column: 'display_order', direction: 'asc' },
                 true
             );
@@ -44,7 +49,7 @@ export async function generateAreaSummaryPDFAction(
         const copy = APP_COPY.analytics.pdf;
 
         // Generate HTML for PDF
-        const html = generateReportHTML(monthsData);
+        const html = generateReportHTML(monthsData, areaFilter);
 
         // Launch Puppeteer and generate PDF
         const browser = await puppeteer.launch({
@@ -80,10 +85,11 @@ export async function generateAreaSummaryPDFAction(
         // Convert buffer to base64 for client download
         const base64PDF = Buffer.from(pdfBuffer).toString('base64');
 
+        const filenameSuffix = areaFilter ? `-${areaFilter.replace(/\s+/g, '-')}` : '';
         return {
             success: true,
             pdf: base64PDF,
-            filename: `area-report-${year}-${months.join('-')}.pdf`
+            filename: `area-report-${year}-${months.join('-')}${filenameSuffix}.pdf`
         };
     } catch (error) {
         console.error('PDF generation error:', error);
@@ -94,7 +100,7 @@ export async function generateAreaSummaryPDFAction(
     }
 }
 
-function generateReportHTML(monthsData: MonthData[]): string {
+function generateReportHTML(monthsData: MonthData[], areaFilter?: string): string {
     const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
     const copy = APP_COPY.analytics.pdf;
 
@@ -371,7 +377,7 @@ function generateReportHTML(monthsData: MonthData[]): string {
 </head>
 <body>
     <div class="header">
-        <h1>${copy.title}</h1>
+        <h1>${copy.title}${areaFilter ? ` - ${areaFilter}` : ''}</h1>
         <div class="period">${copy.period}: ${monthsData.map(m => `${m.month} ${m.year}`).join(', ')}</div>
         <div class="generated">${copy.generated}: ${new Date().toLocaleString('it-IT')}</div>
     </div>
@@ -400,6 +406,11 @@ function generateReportHTML(monthsData: MonthData[]): string {
     </div>
 
     ${(() => {
+        // Only show best/worst performers section when no area filter is applied
+        if (areaFilter) {
+            return '';
+        }
+
         // Top performers (by efficiency)
         const topPerformers = [...areaStats]
             .sort((a, b) => b.avgEfficiency - a.avgEfficiency)
