@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 
 interface SummaryItem {
-    label: string;
+    label: string | React.ReactNode;
     value: string | number;
-    subItems?: { label: string; value: string | number }[];
+    subItems?: { label: string | React.ReactNode; value: string | number }[];
 }
 
 interface SummaryCardsProps {
@@ -66,22 +66,28 @@ export function SummaryCards({ items, loading, onLoad, onCopy }: SummaryCardsPro
                         <div className="space-y-4">
                             {items.map((item, idx) => (
                                 <div key={idx}>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-zinc-400">
+                                    <div className="flex items-center justify-between gap-4 mb-2">
+                                        <span 
+                                            className="text-sm font-medium text-zinc-400 truncate flex-1"
+                                            title={typeof item.label === 'string' ? item.label : undefined}
+                                        >
                                             {item.label}
                                         </span>
-                                        <span className="text-lg font-semibold text-white font-mono">
+                                        <span className="text-lg font-semibold text-white font-mono shrink-0">
                                             {item.value}
                                         </span>
                                     </div>
                                     {item.subItems && item.subItems.length > 0 && (
                                         <div className="ml-4 space-y-1 border-l-2 border-zinc-800 pl-4">
                                             {item.subItems.map((subItem, subIdx) => (
-                                                <div key={subIdx} className="flex items-center justify-between">
-                                                    <span className="text-xs text-zinc-500">
+                                                <div key={subIdx} className="flex items-center justify-between gap-4">
+                                                    <span 
+                                                        className="text-xs text-zinc-500 truncate flex-1"
+                                                        title={typeof subItem.label === 'string' ? subItem.label : undefined}
+                                                    >
                                                         {subItem.label}
                                                     </span>
-                                                    <span className="text-sm font-mono text-zinc-300">
+                                                    <span className="text-sm font-mono text-zinc-300 shrink-0">
                                                         {subItem.value}
                                                     </span>
                                                 </div>

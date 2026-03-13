@@ -25,6 +25,7 @@ import {
     buildPaginationResult,
     buildProductionOrderBy,
     buildOrderSummaryOrderBy,
+    buildOrderAreaSummaryOrderBy,
     type SortConfig
 } from './shared/query-utils';
 
@@ -474,6 +475,220 @@ export async function getAreaSummaryDataAction(
         // Apply pagination
         const offset = calculateOffset(page, limit);
         const paginatedData = exportAll ? areaData : areaData.slice(offset, offset + limit);
+
+        return {
+            success: true,
+            data: paginatedData,
+            pagination: buildPaginationResult(page, limit, total)
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: [],
+            pagination: buildPaginationResult(page, limit, 0)
+        };
+    }
+}
+
+/**
+ * ============================================================================
+ * ORDER AREA SUMMARY REPORT
+ * ============================================================================
+ *
+ * Shows operator work time per commessa grouped by custom area.
+ * Uses the same OPE data as Order Summary but maps machines to areas
+ * defined in APP_CONFIG.ANALYTICS.MACHINE_AREAS.
+ *
+ * COLUMNS: commessa, area, ore_lavoro_atteso (null - TBD), ore_lavoro, qnta_richiesta
+ *
+ * FILTERS:
+ * - Date range (required)
+ * - Commessa code or description (fuzzy search)
+ * - Area name (fuzzy search, applied in app layer)
+ *
+ * GROUPING: By commessa + area (app-layer aggregation over machine groups)
+ *
+ * PERFORMANCE: Fast - single database, indexed columns
+ * ============================================================================
+ */
+export async function getOrderAreaSummaryDataAction(
+    year: number = 2024,
+    page: number = 1,
+    limit: number = 100,
+    filters?: {
+        commessa?: string;
+        area?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    },
+    sort?: SortConfig,
+    exportAll: boolean = false
+) {
+    try {
+        const startDate = filters?.dateFrom || `${year}-01-01`;
+        const endDate = filters?.dateTo || `${year + 2}-01-01`;
+
+        // Build WHERE conditions - OPE data (operator work time)
+        const conditions: string[] = [
+            'SIT.DATA >= @startDate',
+            'SIT.DATA <= @endDate',
+            'SIT.TIPO = @tipo',
+            'SIT.TIPO_OGGETTO = @tipoOggetto',
+            'ORD.COMMESSA IS NOT NULL',
+            'SUBSTRING(ORD.COMMESSA, 4, 4) NOT IN (\'9990\', \'9998\', \'9999\')'
+        ];
+
+        const params: Record<string, any> = {
+            startDate,
+            endDate,
+            tipo: 'WORK',
+            tipoOggetto: 'OPE',
+        };
+
+        // Apply commessa filter only (area filter is applied in app layer)
+        buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
+
+        const whereClause = conditions.join(' AND ');
+
+        // Build ORDER BY for the SQL query (pre-aggregation sort)
+        const orderByClause = buildOrderAreaSummaryOrderBy(
+            sort?.column || '',
+            sort?.direction || 'asc'
+        );
+
+        // Fetch raw data grouped by machine + commessa (same as order summary)
+        const rawResult = await queryMSSQL(`
+            SELECT
+                SIT.MACCHINA as machine_code,
+                SUM(SIT.LAVORO) as work_time,
+                MAX(JST.QTA_RICHIESTA) as qty_requested,
+                MIN(ORD.COMMESSA) as commessa_full,
+                SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_display,
+                MIN(ORD.DESCRIZIONE) as order_description
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            WHERE ${whereClause}
+            GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
+            ORDER BY ${orderByClause}
+        `, params, 'NETPRO');
+
+        // Load machine→area config
+        const { APP_CONFIG } = await import('@/config/constants');
+        const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
+        const areaOrderedList = Object.keys(MACHINE_AREAS);
+
+        // Build a reverse map: machine_code → { area_name, area_index }
+        const machineToArea = new Map<string, { name: string; index: number }>();
+        areaOrderedList.forEach((areaName, index) => {
+            const codes = MACHINE_AREAS[areaName as keyof typeof MACHINE_AREAS] as readonly string[];
+            codes.forEach(code => {
+                machineToArea.set(code, { name: areaName, index });
+            });
+        });
+
+        // Aggregate per commessa + area in app layer
+        // Key: `${commessa_display}__${area_name}`
+        const aggMap = new Map<string, {
+            commessa_full: string;
+            commessa_display: string;
+            order_description: string;
+            area_name: string;
+            area_index: number;
+            work_time: number;
+            qty_requested: number | null;
+        }>();
+
+        rawResult.recordset.forEach(row => {
+            const area = machineToArea.get(row.machine_code) || null;
+            if (!area) return; // Skip machines not mapped to any area
+
+            const key = `${row.commessa_display}__${area.name}`;
+            const existing = aggMap.get(key);
+            if (existing) {
+                existing.work_time += row.work_time || 0;
+                // Use max of qty_requested across machines for same commessa+area
+                if (row.qty_requested != null) {
+                    existing.qty_requested = Math.max(existing.qty_requested ?? 0, row.qty_requested);
+                }
+            } else {
+                aggMap.set(key, {
+                    commessa_full: row.commessa_full,
+                    commessa_display: row.commessa_display,
+                    order_description: row.order_description,
+                    area_name: area.name,
+                    area_index: area.index,
+                    work_time: row.work_time || 0,
+                    qty_requested: row.qty_requested ?? null,
+                });
+            }
+        });
+
+        // Aggregated per commessa + area in app layer
+        // Filter out areas with zero velocity as requested
+        const filteredAggMapEntries = Array.from(aggMap.values()).filter(row => {
+            const vilocity = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY[row.area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY] ?? 0;
+            return vilocity > 0;
+        });
+
+        // Convert to array
+        let resultData = filteredAggMapEntries;
+
+        // Apply area filter in app layer
+        if (filters?.area) {
+            const searchTerm = filters.area.toLowerCase();
+            resultData = resultData.filter(r =>
+                r.area_name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Sort in app layer
+        // If no sort column specified, sort by area_index (default area order) then commessa
+        const sortColumn = sort?.column || 'display_order';
+        const sortDirection = sort?.direction || 'asc';
+        
+        resultData.sort((a, b) => {
+            let aVal: string | number;
+            let bVal: string | number;
+
+            if (sortColumn === 'display_order') {
+                // Primary sort: Commessa (Ascending - chronological by number)
+                if (a.commessa_display !== b.commessa_display) {
+                    return a.commessa_display.localeCompare(b.commessa_display);
+                }
+                // Secondary sort: Area Index (Ascending - production flow)
+                return a.area_index - b.area_index;
+            }
+
+            if (sortColumn === 'area') {
+                aVal = a.area_name;
+                bVal = b.area_name;
+            } else if (sortColumn === 'time') {
+                aVal = a.work_time;
+                bVal = b.work_time;
+            } else if (sortColumn === 'qty_requested') {
+                aVal = a.qty_requested ?? 0;
+                bVal = b.qty_requested ?? 0;
+            } else {
+                // Default: commessa
+                aVal = a.commessa_display;
+                bVal = b.commessa_display;
+            }
+
+            if (typeof aVal === 'string') {
+                return sortDirection === 'asc'
+                    ? aVal.localeCompare(bVal as string)
+                    : (bVal as string).localeCompare(aVal);
+            }
+            return sortDirection === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
+        });
+
+        const total = resultData.length;
+
+        // Apply pagination in app layer
+        const offset = calculateOffset(page, limit);
+        const paginatedData = exportAll ? resultData : resultData.slice(offset, offset + limit);
 
         return {
             success: true,

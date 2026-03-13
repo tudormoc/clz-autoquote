@@ -101,6 +101,29 @@ export function buildOrderSummaryOrderBy(
 }
 
 /**
+ * Build ORDER BY clause for order area summary queries (NETPRO, grouped by machine + commessa).
+ * Area grouping is handled in the application layer (post-SQL), but pre-grouping sort is still needed.
+ */
+export function buildOrderAreaSummaryOrderBy(
+    sortColumn: string = '',
+    sortDirection: 'asc' | 'desc' = 'asc'
+): string {
+    const direction = sortDirection.toUpperCase();
+
+    switch (sortColumn) {
+        case 'commessa':
+            return `SUBSTRING(MIN(ORD.COMMESSA), 4, 4) ${direction}`;
+        case 'time':
+            return `SUM(SIT.LAVORO) ${direction}`;
+        case 'qty_requested':
+            return `MAX(JST.QTA_RICHIESTA) ${direction}`;
+        default:
+            // Natural order: by date (newest first) if no sort is specified
+            return `MIN(SIT.DATA) DESC, SIT.MACCHINA ASC`;
+    }
+}
+
+/**
  * Build ORDER BY clause for client summary queries (BUSINESS)
  */
 export function buildClientSummaryOrderBy(

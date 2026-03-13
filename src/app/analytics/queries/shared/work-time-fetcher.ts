@@ -142,3 +142,45 @@ export async function fetchWorkCostsForClients(
 
     return workCosts;
 }
+
+/**
+ * Fetch order value statistics (delivered vs billed) from BUSINESS database
+ * Returns a map of commessa_code -> { delivered, billed }
+ */
+export async function fetchOrderValueStats(
+    commessaCodes: string[]
+): Promise<Record<string, { delivered: number, billed: number }>> {
+    if (commessaCodes.length === 0) {
+        return {};
+    }
+
+    const params: Record<string, any> = { codditt: 'COOPZANARDI' };
+    const placeholders = commessaCodes.map((code, i) => {
+        params[`code${i}`] = code;
+        return `@code${i}`;
+    }).join(', ');
+
+    // We use dw_valore for delivered and dw_valfatt for total billed/ordered reference
+    const result = await queryMSSQL(`
+        SELECT 
+            RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_code,
+            ISNULL(SUM(dw.dw_valore), 0) as delivered,
+            ISNULL(SUM(dw.dw_valfatt), 0) as billed
+        FROM dwarehe dw WITH (NOLOCK)
+        WHERE dw.dw_scenario = 1
+          AND dw.codditt = @codditt
+          AND dw.dw_commeca > 0
+          AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})
+        GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
+    `, params, 'BUSINESS');
+
+    const stats: Record<string, { delivered: number, billed: number }> = {};
+    result.recordset.forEach(row => {
+        stats[row.commessa_code] = {
+            delivered: row.delivered || 0,
+            billed: row.billed || 0
+        };
+    });
+
+    return stats;
+}

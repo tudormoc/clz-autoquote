@@ -149,6 +149,21 @@ export const APP_CONFIG = {
       'Taglio': 3000,
     } as const,
 
+    // Expected velocity (pieces per hour) per area — used in Order Area Summary report (Ore Attese)
+    // Represents the planned/standard velocity expected per area for an order
+    // Units: pieces per hour (pz/h)
+    AREA_EXPECTED_VELOCITY: {
+      'Cellofanatura': 479,
+      'Copertine': 852,
+      'Cucitura': 472,
+      'Incassatura normale': 698,
+      'Incassatura veloce': 1292,
+      'Piega': 0,
+      'Raccolta': 595,
+      'Stampa a caldo': 323,
+      'Taglio': 756,
+    } as const,
+
     // Efficiency thresholds for color coding
     EFFICIENCY_THRESHOLDS: {
       EXCELLENT: 60,  // >= 100% = Green (meeting or exceeding target)

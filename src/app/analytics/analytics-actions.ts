@@ -41,7 +41,8 @@
 import {
     getProductionDataAction as getProductionData,
     getOrderSummaryDataAction as getOrderSummaryData,
-    getAreaSummaryDataAction as getAreaSummaryData
+    getAreaSummaryDataAction as getAreaSummaryData,
+    getOrderAreaSummaryDataAction as getOrderAreaSummaryData
 } from './queries/netpro-queries';
 
 import {
@@ -62,6 +63,7 @@ import {
 export const getProductionDataAction = getProductionData;
 export const getOrderSummaryDataAction = getOrderSummaryData;
 export const getAreaSummaryDataAction = getAreaSummaryData;
+export const getOrderAreaSummaryDataAction = getOrderAreaSummaryData;
 export const getClientSummaryDataAction = getClientSummaryData;
 export const getClientSummaryStatsAction = getClientSummaryStats;
 export const getOrderRevenueDataAction = getOrderRevenueData;

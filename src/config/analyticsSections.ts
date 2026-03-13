@@ -8,10 +8,11 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck } from 'lucide-react';
+import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck, Table2 } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
+import { OrderAreaSummaryReport } from '@/components/analytics/OrderAreaSummaryReport';
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
 import { ClientDeliveriesReport } from '@/components/analytics/ClientDeliveriesReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
@@ -46,6 +47,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         icon: FileText,
         category: 'production',
         description: 'Production grouped by machine'
+    },
+    {
+        id: 'order-area-summary',
+        label: APP_COPY.analytics.reports.orderAreaSummary,
+        icon: Table2,
+        category: 'production',
+        description: 'Production grouped by area'
     },
     {
         id: 'order-operations',
@@ -105,6 +113,7 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
 export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
+    'order-area-summary': OrderAreaSummaryReport,
     'order-operations': OrderOperationsReport,
     'area-summary': AreaSummaryReport,
     'client-summary': ClientSummaryReport,

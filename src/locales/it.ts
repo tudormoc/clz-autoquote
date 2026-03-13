@@ -217,6 +217,7 @@ export const APP_COPY = {
       orderSummary: "Sommario Ordini",
       orderOperations: "Operazioni Ordine",
       areaSummary: "Sommario Area",
+      orderAreaSummary: "Sommario Ordini per Area",
       clientSummary: "Sommario Clienti",
       clientDeliveries: "Consegne Clienti",
       orderRevenue: "Ricavo Ordini",
@@ -465,6 +466,28 @@ export const APP_COPY = {
       stats: {
         totalCost: "Costo Totale Lavorazioni",
         workHours: "Ore Lavoro Equivalenti",
+      }
+    },
+    orderAreaSummary: {
+      headers: {
+        commessa: "Commessa",
+        area: "Area",
+        timeExpected: "Ore Attese",
+        time: "Ore Lavoro",
+        qtyReq: "Qta Richiesta",
+      },
+      export: {
+        commessa: "Commessa",
+        description: "Descrizione",
+        area: "Area",
+        timeExpected: "Ore Attese",
+        workTime: "Ore Lavoro",
+        qtyRequested: "Quantità Richiesta",
+      },
+      stats: {
+        timeExpected: "Ore Attese",
+        timeWorked: "Ore Lavoro",
+        summary: "Sommario Commesse",
       }
     }
   }
