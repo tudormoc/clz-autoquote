@@ -147,35 +147,51 @@ export function AreaSummaryReport() {
         }
     };
 
-    const handleGeneratePDF = async (year: number, months: number[]) => {
+    const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean) => {
         setPdfLoading(true);
         try {
-            const result = await generateAreaSummaryPDFAction(year, months, appliedFilters.area || undefined);
-            
-            if (result.success && result.pdf) {
-                // Convert base64 to blob and download
-                const byteCharacters = atob(result.pdf);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // If separateByArea is true and no specific area filter is active, 
+            // generate one PDF for each area visible in the current results.
+            const areasToProcess = (separateByArea && !appliedFilters.area)
+                ? data.map(row => row.area_name)
+                : [appliedFilters.area || undefined];
+
+            for (const area of areasToProcess) {
+                const result = await generateAreaSummaryPDFAction(year, months, area);
+                
+                if (result.success && result.pdf) {
+                    // Convert base64 to blob and download
+                    const byteCharacters = atob(result.pdf);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Cleanup
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100);
+
+                    // Add a small delay between multiple downloads to avoid browser blocking
+                    if (areasToProcess.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 600));
+                    }
+                } else {
+                    console.error(`PDF generation failed for area ${area}:`, result.error);
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: 'application/pdf' });
-                
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = result.filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                setShowMonthModal(false);
-            } else {
-                console.error('PDF generation failed:', result.error);
-                alert('Failed to generate PDF: ' + result.error);
             }
+            
+            setShowMonthModal(false);
         } catch (err) {
             console.error('PDF generation error:', err);
             alert('Failed to generate PDF');

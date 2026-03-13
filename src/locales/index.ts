@@ -1,5 +1,3 @@
-// Central language configuration
-// Change the import below to switch the entire application language
-// Options: './en' or './it'
+// Central language configuration - Italian Only
 
-export { APP_COPY } from './it'; // Default: Italian
+export { APP_COPY } from './it';

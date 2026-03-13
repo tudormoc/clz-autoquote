@@ -8,7 +8,7 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, TrendingUp, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck } from 'lucide-react';
+import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
@@ -18,7 +18,7 @@ import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { PresenceReport } from '@/components/analytics/PresenceReport';
-import { SupplierSummaryReport } from '@/components/analytics/SupplierSummaryReport';
+import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -83,11 +83,11 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Revenue analysis by order'
     },
     {
-        id: 'supplier-summary',
-        label: APP_COPY.analytics.reports.supplierSummary,
+        id: 'external-work',
+        label: APP_COPY.analytics.reports.externalWork,
         icon: Truck,
         category: 'revenue',
-        description: 'Supplier costs by order'
+        description: 'External work costs by order'
     },
     {
         id: 'presence-report',
@@ -110,7 +110,7 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'client-summary': ClientSummaryReport,
     'client-deliveries': ClientDeliveriesReport,
     'order-revenue': OrderRevenueReport,
-    'supplier-summary': SupplierSummaryReport,
+    'external-work': ExternalWorkReport,
     'presence-report': PresenceReport,
 };
 

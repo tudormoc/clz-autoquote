@@ -220,7 +220,7 @@ export const APP_COPY = {
       clientSummary: "Sommario Clienti",
       clientDeliveries: "Consegne Clienti",
       orderRevenue: "Ricavo Ordini",
-      supplierSummary: "Sommario Fornitori",
+      externalWork: "Lavorazioni Esterne",
       presenceReport: "Report Presenze",
     },
     categories: {
@@ -257,6 +257,9 @@ export const APP_COPY = {
       noResults: "Nessun risultato trovato",
       refresh: "Aggiorna",
       noData: "Nessun dato disponibile",
+      copy: "Copia",
+      showSummary: "Mostra Riepilogo",
+      hideSummary: "Nascondi Riepilogo",
     },
     orderOperations: {
       searchPlaceholder: "Cerca per numero commessa (es. 8923) o descrizione ordine...",
@@ -396,8 +399,10 @@ export const APP_COPY = {
         target: "Target (pz/h)",
         efficiency: "Efficienza (%)",
       },
-      pdfTitle: "Report Sommario Area",
-      pdfButton: "Genera Report PDF",
+        pdfTitle: "Report Sommario Area",
+        pdfButton: "Genera Report PDF",
+        separateReports: "Report separati per area",
+        separateReportsDescription: "Scarica un file PDF distinto per ogni area selezionata",
     },
     presence: {
       title: "Presenza Settimanale",
@@ -444,21 +449,21 @@ export const APP_COPY = {
       },
       summary: "Valore Consegnato Totale",
     },
-    supplierSummary: {
+    externalWork: {
       headers: {
         supplier: "Fornitore",
         commessa: "Commessa",
-        deliveredValue: "Valore Consegnato",
+        cost: "Costo Lavorazione",
       },
       export: {
         supplierCode: "Codice Fornitore",
         supplierName: "Nome Fornitore",
         commessa: "Commessa",
         description: "Descrizione",
-        deliveredValue: "Valore Consegnato",
+        cost: "Costo Lavorazione",
       },
       stats: {
-        totalValue: "Valore Consegnato Totale",
+        totalCost: "Costo Totale Lavorazioni",
         workHours: "Ore Lavoro Equivalenti",
       }
     }

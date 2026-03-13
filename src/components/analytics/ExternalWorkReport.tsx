@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSupplierSummaryAction, getSupplierSummaryStatsAction } from '@/app/analytics/queries/supplier-queries';
+import { getExternalWorkDataAction, getExternalWorkStatsAction } from '@/app/analytics/queries/external-work-queries';
 import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
 
-interface SupplierRow {
+interface ExternalWorkRow {
     commessa_display: string;
     commessa_full: string;
     order_description: string;
@@ -32,8 +32,8 @@ interface SortConfig {
     direction: 'asc' | 'desc';
 }
 
-export function SupplierSummaryReport() {
-    const [data, setData] = useState<SupplierRow[]>([]);
+export function ExternalWorkReport() {
+    const [data, setData] = useState<ExternalWorkRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
@@ -63,7 +63,7 @@ export function SupplierSummaryReport() {
 
     const loadData = async () => {
         setLoading(true);
-        const result = await getSupplierSummaryAction(2024, page, limit, {
+        const result = await getExternalWorkDataAction(2024, page, limit, {
             commessa: appliedFilters.commessa || undefined,
             supplier: appliedFilters.supplier || undefined,
             dateFrom: appliedFilters.dateFrom || undefined,
@@ -107,7 +107,7 @@ export function SupplierSummaryReport() {
 
     const loadSummary = async () => {
         setSummaryLoading(true);
-        const result = await getSupplierSummaryStatsAction(2024, {
+        const result = await getExternalWorkStatsAction(2024, {
             commessa: appliedFilters.commessa || undefined,
             supplier: appliedFilters.supplier || undefined,
             dateFrom: appliedFilters.dateFrom || undefined,
@@ -137,15 +137,9 @@ export function SupplierSummaryReport() {
         }).format(Math.round(value));
     };
 
-    const formatTime = (hours: number) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
-    };
-
     const summaryItems = summaryData ? [
         {
-            label: APP_COPY.analytics.supplierSummary.stats.totalValue,
+            label: APP_COPY.analytics.externalWork.stats.totalCost,
             value: formatCurrencyRounded(summaryData.total_value),
             subItems: summaryData.suppliers.map((s: any) => ({
                 label: s.supplier_name,
@@ -153,11 +147,30 @@ export function SupplierSummaryReport() {
             }))
         },
         {
-            label: APP_COPY.analytics.supplierSummary.stats.workHours,
-            value: `${Math.round(summaryData.total_value / 20)} hours`,
+            label: APP_COPY.analytics.externalWork.stats.workHours,
+            value: `${Math.round(summaryData.total_value / 20)} ore`,
             subItems: []
         }
     ] : [];
+
+    const handleCopySummary = () => {
+        if (!summaryData) return;
+
+        let text = `${APP_COPY.analytics.externalWork.stats.totalCost}: ${formatCurrencyRounded(summaryData.total_value)}\n\n`;
+        
+        if (summaryData.suppliers && summaryData.suppliers.length > 0) {
+            summaryData.suppliers.forEach((s: any) => {
+                text += `${s.supplier_name}\t${formatCurrencyRounded(s.total_value)}\n`;
+            });
+        }
+
+        const workHours = Math.round(summaryData.total_value / 20);
+        text += `\n${APP_COPY.analytics.externalWork.stats.workHours}: ${workHours} ore`;
+
+        navigator.clipboard.writeText(text).catch(err => {
+            console.error('Failed to copy summary:', err);
+        });
+    };
 
     const handleClearFilters = () => {
         const clearedFilters = {
@@ -179,7 +192,7 @@ export function SupplierSummaryReport() {
         if (loading) return;
         setLoading(true);
         try {
-            const result = await getSupplierSummaryAction(2024, 1, 999999, {
+            const result = await getExternalWorkDataAction(2024, 1, 999999, {
                 commessa: appliedFilters.commessa || undefined,
                 supplier: appliedFilters.supplier || undefined,
                 dateFrom: appliedFilters.dateFrom || undefined,
@@ -188,11 +201,11 @@ export function SupplierSummaryReport() {
 
             if (result.success && result.data.length > 0) {
                 const excelData = result.data.map(row => ({
-                    [APP_COPY.analytics.supplierSummary.export.supplierCode]: row.supplier_code,
-                    [APP_COPY.analytics.supplierSummary.export.supplierName]: row.supplier_name,
-                    [APP_COPY.analytics.supplierSummary.export.commessa]: row.commessa_display,
-                    [APP_COPY.analytics.supplierSummary.export.description]: row.order_description || '',
-                    [APP_COPY.analytics.supplierSummary.export.deliveredValue]: Number(row.total_value.toFixed(2))
+                    [APP_COPY.analytics.externalWork.export.supplierCode]: row.supplier_code,
+                    [APP_COPY.analytics.externalWork.export.supplierName]: row.supplier_name,
+                    [APP_COPY.analytics.externalWork.export.commessa]: row.commessa_display,
+                    [APP_COPY.analytics.externalWork.export.description]: row.order_description || '',
+                    [APP_COPY.analytics.externalWork.export.cost]: Number(row.total_value.toFixed(2))
                 }));
 
                 const wb = XLSX.utils.book_new();
@@ -203,12 +216,12 @@ export function SupplierSummaryReport() {
                     { wch: 35 },  // Nome Fornitore
                     { wch: 10 },  // Commessa
                     { wch: 40 },  // Descrizione
-                    { wch: 18 }   // Valore Consegnato
+                    { wch: 18 }   // Costo Lavorazione
                 ];
 
-                XLSX.utils.book_append_sheet(wb, ws, 'Supplier Summary');
+                XLSX.utils.book_append_sheet(wb, ws, 'External Work');
 
-                const filename = `supplier_summary_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
+                const filename = `external_work_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
                 XLSX.writeFile(wb, filename);
             }
         } catch (err) {
@@ -259,7 +272,7 @@ export function SupplierSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                {APP_COPY.analytics.supplierSummary.headers.commessa}
+                                {APP_COPY.analytics.externalWork.headers.commessa}
                             </label>
                             <Input
                                 type="text"
@@ -270,7 +283,7 @@ export function SupplierSummaryReport() {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-zinc-400 mb-2">
-                                {APP_COPY.analytics.supplierSummary.headers.supplier}
+                                {APP_COPY.analytics.externalWork.headers.supplier}
                             </label>
                             <Input
                                 type="text"
@@ -302,6 +315,7 @@ export function SupplierSummaryReport() {
                 items={summaryItems}
                 loading={summaryLoading}
                 onLoad={loadSummary}
+                onCopy={handleCopySummary}
             />
 
             {/* Stats */}
@@ -348,7 +362,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('supplier')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.supplierSummary.headers.supplier}
+                                        {APP_COPY.analytics.externalWork.headers.supplier}
                                         {getSortIcon('supplier')}
                                     </div>
                                 </th>
@@ -357,7 +371,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.supplierSummary.headers.commessa}
+                                        {APP_COPY.analytics.externalWork.headers.commessa}
                                         {getSortIcon('commessa')}
                                     </div>
                                 </th>
@@ -366,7 +380,7 @@ export function SupplierSummaryReport() {
                                     onClick={() => handleSort('value')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.supplierSummary.headers.deliveredValue}
+                                        {APP_COPY.analytics.externalWork.headers.cost}
                                         {getSortIcon('value')}
                                     </div>
                                 </th>

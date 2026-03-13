@@ -1,11 +1,11 @@
 /**
- * SUPPLIER QUERIES
+ * EXTERNAL WORK QUERIES
  * 
- * Track supplier invoicing by order (commessa).
+ * Track external work (lavorazioni esterne) by order (commessa).
  * Shows which suppliers were used for each order and their costs.
  * 
  * DATA SOURCE: BUSINESS database
- * - dwarehe: Supplier invoicing data
+ * - dwarehe: External work invoicing data
  * - anagra: Supplier names
  * - commess: Order descriptions
  */
@@ -29,10 +29,10 @@ interface SortConfig {
 
 /**
  * ============================================================================
- * SUPPLIER SUMMARY BY ORDER
+ * EXTERNAL WORK SUMMARY BY ORDER
  * ============================================================================
  * 
- * Shows supplier costs grouped by commessa (order).
+ * Shows external work costs grouped by commessa (order).
  * One commessa can have multiple suppliers.
  * 
  * COLUMNS:
@@ -47,11 +47,10 @@ interface SortConfig {
  * - dw_contropis IN (5093, 5096, 5095) - Contropartita codes
  * - an_tipo = 'F' - Only suppliers (Fornitori)
  * - dw_scenario = 1 - Actual data
- * - dw_commeca > 0 - Exclude general expenses
  * 
  * ============================================================================
  */
-export async function getSupplierSummaryAction(
+export async function getExternalWorkDataAction(
     year: number,
     page: number = 1,
     limit: number = 100,
@@ -68,7 +67,6 @@ export async function getSupplierSummaryAction(
             "dw.codditt = 'COOPZANARDI'",
             'dw.dw_anno >= @year',
             "an.an_tipo = 'F'",
-            'dw.dw_commeca > 0',
             'dw.dw_acqvalore <> 0',
             `dw.dw_controp IN (${APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES.join(', ')})`
         ];
@@ -191,10 +189,10 @@ export async function getSupplierSummaryAction(
 
 /**
  * ============================================================================
- * SUPPLIER SUMMARY STATISTICS
+ * EXTERNAL WORK STATISTICS
  * ============================================================================
  * 
- * Calculates aggregated statistics for filtered supplier data.
+ * Calculates aggregated statistics for filtered external work data.
  * 
  * RETURNS:
  * - total_value: Overall sum of all delivered values
@@ -203,7 +201,7 @@ export async function getSupplierSummaryAction(
  * Uses same filters as main query for consistency.
  * ============================================================================
  */
-export async function getSupplierSummaryStatsAction(
+export async function getExternalWorkStatsAction(
     year: number,
     filters?: SupplierFilters
 ) {
@@ -216,7 +214,6 @@ export async function getSupplierSummaryStatsAction(
             "dw.codditt = 'COOPZANARDI'",
             'dw.dw_anno >= @year',
             "an.an_tipo = 'F'",
-            'dw.dw_commeca > 0',
             'dw.dw_acqvalore <> 0',
             `dw.dw_controp IN (${APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES.join(', ')})`
         ];

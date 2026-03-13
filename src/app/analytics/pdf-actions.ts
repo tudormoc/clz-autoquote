@@ -85,11 +85,17 @@ export async function generateAreaSummaryPDFAction(
         // Convert buffer to base64 for client download
         const base64PDF = Buffer.from(pdfBuffer).toString('base64');
 
-        const filenameSuffix = areaFilter ? `-${areaFilter.replace(/\s+/g, '-')}` : '';
+        // Create a descriptive filename
+        const sanitize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
+        const areaSuffix = areaFilter ? `-${sanitize(areaFilter)}` : '-tutte-le-aree';
+        const monthsSuffix = months.length > 3 
+            ? `${months[0]}-to-${months[months.length - 1]}`
+            : months.join('-');
+            
         return {
             success: true,
             pdf: base64PDF,
-            filename: `area-report-${year}-${months.join('-')}${filenameSuffix}.pdf`
+            filename: `report-aree-${year}-${monthsSuffix}${areaSuffix}.pdf`
         };
     } catch (error) {
         console.error('PDF generation error:', error);

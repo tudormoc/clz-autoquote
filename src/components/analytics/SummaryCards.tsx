@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, BarChart3, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { APP_COPY } from '@/locales';
 
 interface SummaryItem {
     label: string;
@@ -14,9 +15,10 @@ interface SummaryCardsProps {
     items: SummaryItem[];
     loading?: boolean;
     onLoad: () => void;
+    onCopy?: () => void;
 }
 
-export function SummaryCards({ items, loading, onLoad }: SummaryCardsProps) {
+export function SummaryCards({ items, loading, onLoad, onCopy }: SummaryCardsProps) {
     const [isVisible, setIsVisible] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -30,21 +32,35 @@ export function SummaryCards({ items, loading, onLoad }: SummaryCardsProps) {
 
     return (
         <div className="space-y-3">
-            <Button
-                onClick={handleToggle}
-                variant="secondary"
-                className="flex items-center gap-2"
-            >
-                <BarChart3 size={16} />
-                {isVisible ? 'Hide Summary' : 'Show Summary'}
-                {isVisible ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button
+                    onClick={handleToggle}
+                    variant="secondary"
+                    className="flex items-center gap-2"
+                >
+                    <BarChart3 size={16} />
+                    {isVisible ? APP_COPY.analytics.common.hideSummary : APP_COPY.analytics.common.showSummary}
+                    {isVisible ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </Button>
+
+                {isVisible && onCopy && !loading && (
+                    <Button
+                        onClick={onCopy}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 border-zinc-800 text-zinc-400 hover:text-white"
+                    >
+                        <Copy size={14} />
+                        {APP_COPY.analytics.common.copy}
+                    </Button>
+                )}
+            </div>
 
             {isVisible && (
                 <div className="bg-card border border-zinc-800 rounded-lg p-4">
                     {loading ? (
                         <div className="text-center py-4 text-zinc-400">
-                            Loading summary...
+                            {APP_COPY.analytics.common.loading}
                         </div>
                     ) : (
                         <div className="space-y-4">
