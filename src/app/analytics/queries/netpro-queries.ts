@@ -109,6 +109,7 @@ export async function getProductionDataAction(
                 LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
                 WHERE ${whereClause}
                 GROUP BY SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, SUBSTRING(ORD.COMMESSA, 4, 4)
+                HAVING SUM(SIT.LAVORO) > 0.1
             ) AS grouped_data
         `, params, 'NETPRO');
 
@@ -135,6 +136,7 @@ export async function getProductionDataAction(
             LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
             WHERE ${whereClause}
             GROUP BY SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, SUBSTRING(ORD.COMMESSA, 4, 4)
+            HAVING SUM(SIT.LAVORO) > 0.1
             ORDER BY ${orderByClause}
             ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
         `, params, 'NETPRO');
@@ -231,6 +233,7 @@ export async function getOrderSummaryDataAction(
                 LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
                 WHERE ${whereClause}
                 GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
+                HAVING SUM(SIT.LAVORO) > 0.1
             ) AS grouped_data
         `, params, 'NETPRO');
 
@@ -253,6 +256,7 @@ export async function getOrderSummaryDataAction(
             LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
             WHERE ${whereClause}
             GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
+            HAVING SUM(SIT.LAVORO) > 0.1
             ORDER BY ${orderByClause}
             ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
         `, params, 'NETPRO');
@@ -571,6 +575,7 @@ export async function getOrderAreaSummaryDataAction(
             LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
             WHERE ${whereClause}
             GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
+            HAVING SUM(SIT.LAVORO) > 0.1
             ORDER BY ${orderByClause}
         `, params, 'NETPRO');
 

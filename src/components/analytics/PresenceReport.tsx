@@ -47,7 +47,7 @@ export function PresenceReport() {
     }, [selectedMonth]);
 
     const formatHours = (hours: number) => {
-        return hours.toFixed(1);
+        return Math.round(hours).toString();
     };
 
     const formatDateRange = (startDate: string, endDate: string) => {
