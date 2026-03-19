@@ -876,7 +876,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
 
     <div class="summary-grid">
         <div class="summary-card">
-            <div class="label">Totale Commesse</div>
+            <div class="label">Totale Commesse Analizzate</div>
             <div class="value">${totalOrders}</div>
         </div>
         <div class="summary-card">
