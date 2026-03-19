@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { getOrderAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { generateOrderAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { MonthSelectorModal } from './MonthSelectorModal';
+import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { APP_CONFIG } from '@/config/constants';
@@ -17,12 +19,20 @@ const AREA_EXPECTED_VELOCITY = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY;
 
 /**
  * Calculates expected hours for a commessa+area row.
- * Formula: qty_requested / AREA_EXPECTED_VELOCITY[area_name]
- * Returns null if velocity is 0 or qty_requested is null.
+ * For 'Piega': fogli / AREA_EXPECTED_VELOCITY
+ * For others: qty_requested / AREA_EXPECTED_VELOCITY
+ * Returns null if velocity is 0 or target value is null.
  */
-function calcExpectedHours(areaName: string, qtyRequested: number | null): number | null {
+function calcExpectedHours(areaName: string, qtyRequested: number | null, fogli: number | null = null): number | null {
     const velocity = AREA_EXPECTED_VELOCITY[areaName as keyof typeof AREA_EXPECTED_VELOCITY] ?? 0;
-    if (!velocity || qtyRequested == null) return null;
+    if (!velocity) return null;
+
+    if (areaName === 'Piega') {
+        if (fogli == null) return null;
+        return fogli / velocity;
+    }
+
+    if (qtyRequested == null) return null;
     return qtyRequested / velocity;
 }
 
@@ -33,13 +43,17 @@ interface OrderAreaSummaryRow {
     area_name: string;
     work_time: number;
     qty_requested: number | null;
+    pages: number | null;
+    composition: string | null;
+    fogli: number | null;
+    client_name: string | null;
 }
-
 interface Filters {
     commessa: string;
     area: string;
     dateFrom: string;
     dateTo: string;
+    complexOnly: boolean;
 }
 
 interface SortConfig {
@@ -55,6 +69,8 @@ export function OrderAreaSummaryReport() {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [showMonthModal, setShowMonthModal] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
 
     const [summaryData, setSummaryData] = useState<any>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
@@ -63,7 +79,8 @@ export function OrderAreaSummaryReport() {
         commessa: '',
         area: '',
         dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+        dateTo: getLastYearEnd(),
+        complexOnly: false
     });
     const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -86,6 +103,7 @@ export function OrderAreaSummaryReport() {
             area: appliedFilters.area || undefined,
             dateFrom: appliedFilters.dateFrom || undefined,
             dateTo: appliedFilters.dateTo || undefined,
+            complexOnly: appliedFilters.complexOnly
         }, activeSort);
 
         if (result.success) {
@@ -98,6 +116,64 @@ export function OrderAreaSummaryReport() {
         }
         setLoading(false);
     };
+
+    const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => {
+        setPdfLoading(true);
+        try {
+            // If separateByArea is true and no specific area filter is active, 
+            // generate one PDF for each area visible in the current results.
+            const areasToProcess = (separateByArea && !appliedFilters.area)
+                ? Array.from(new Set(data.map(row => row.area_name)))
+                : [appliedFilters.area || undefined];
+
+            for (const area of areasToProcess) {
+                const result = await generateOrderAreaSummaryPDFAction(
+                    year, 
+                    months, 
+                    appliedFilters.commessa || undefined, 
+                    area,
+                    format,
+                    appliedFilters.complexOnly
+                );
+                
+                if (result.success && result.pdf) {
+                    const byteCharacters = atob(result.pdf);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100);
+
+                    if (areasToProcess.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 600));
+                    }
+                } else {
+                    console.error(`PDF generation failed for area ${area}:`, result.error);
+                }
+            }
+            
+            setShowMonthModal(false);
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            alert('Failed to generate PDF');
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
 
     const handleSort = (column: string) => {
         setSortConfig(prev => ({
@@ -128,7 +204,8 @@ export function OrderAreaSummaryReport() {
             commessa: '',
             area: '',
             dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
+            dateTo: getLastYearEnd(),
+            complexOnly: false
         };
         setFilters(cleared);
         setAppliedFilters(cleared);
@@ -154,9 +231,13 @@ export function OrderAreaSummaryReport() {
                 const excelData = rows.map(row => ({
                     [APP_COPY.analytics.orderAreaSummary.export.commessa]: Number(row.commessa_display),
                     [APP_COPY.analytics.orderAreaSummary.export.description]: row.order_description,
+                    [APP_COPY.analytics.common.client]: row.client_name ?? '',
                     [APP_COPY.analytics.orderAreaSummary.export.area]: row.area_name,
+                    [APP_COPY.analytics.orderAreaSummary.export.composition]: row.composition ?? '',
+                    [APP_COPY.analytics.orderAreaSummary.export.fogli]: row.fogli ?? '',
+                    [APP_COPY.analytics.orderAreaSummary.export.pages]: row.pages ?? '',
                     [APP_COPY.analytics.orderAreaSummary.export.timeExpected]: (() => {
-                        const h = calcExpectedHours(row.area_name, row.qty_requested);
+                        const h = calcExpectedHours(row.area_name, row.qty_requested, row.fogli);
                         return h != null ? Number(h.toFixed(2)) : '';
                     })(),
                     [APP_COPY.analytics.orderAreaSummary.export.workTime]: Number(row.work_time.toFixed(2)),
@@ -169,7 +250,11 @@ export function OrderAreaSummaryReport() {
                 ws['!cols'] = [
                     { wch: 10 },
                     { wch: 30 },
+                    { wch: 25 }, // client
                     { wch: 20 },
+                    { wch: 20 },
+                    { wch: 10 },
+                    { wch: 10 },
                     { wch: 12 },
                     { wch: 12 },
                     { wch: 15 },
@@ -223,6 +308,7 @@ export function OrderAreaSummaryReport() {
                         grouped.set(key, {
                             display: row.commessa_display,
                             description: row.order_description,
+                            client: row.client_name ?? '',
                             total_time: 0,
                             total_expected: 0,
                             areas: []
@@ -232,7 +318,7 @@ export function OrderAreaSummaryReport() {
                     const group = grouped.get(key);
                     group.total_time += row.work_time;
                     
-                    const expectedHours = calcExpectedHours(row.area_name, row.qty_requested);
+                    const expectedHours = calcExpectedHours(row.area_name, row.qty_requested, row.fogli);
                     if (expectedHours != null) {
                        group.total_expected += expectedHours;
                     }
@@ -258,8 +344,13 @@ export function OrderAreaSummaryReport() {
     const summaryItems = summaryData ? summaryData.map((group: any) => ({
         label: (
             <div className="flex flex-col min-w-0">
-                <span className="font-mono text-primary truncate" title={group.display}>{group.display}</span>
-                <span className="text-[10px] text-zinc-500 truncate" title={group.description}>{group.description}</span>
+                <span className="font-mono text-primary truncate" title={`${group.display}${group.client ? ' - ' + group.client : ''}`}>
+                    {group.display}
+                    {group.client ? <span className="font-sans text-zinc-400 font-medium ml-2">- {group.client}</span> : null}
+                </span>
+                <span className="text-[10px] text-zinc-500 truncate" title={group.description}>
+                    {group.description}
+                </span>
             </div>
         ),
         value: `${APP_COPY.analytics.orderAreaSummary.stats.timeWorked}: ${formatTime(group.total_time)} | ${APP_COPY.analytics.orderAreaSummary.stats.timeExpected}: ${formatTime(group.total_expected)}`,
@@ -275,7 +366,8 @@ export function OrderAreaSummaryReport() {
         let text = `${APP_COPY.analytics.orderAreaSummary.stats.summary}\n\n`;
         
         summaryData.forEach((group: any) => {
-            text += `${group.display} - ${group.description}\n`;
+            const clientStr = group.client ? ` - ${group.client}` : '';
+            text += `${group.display}${clientStr} - ${group.description}\n`;
             text += `${APP_COPY.analytics.orderAreaSummary.stats.timeWorked}: ${formatTime(group.total_time)} | ${APP_COPY.analytics.orderAreaSummary.stats.timeExpected}: ${formatTime(group.total_expected)}\n`;
             group.areas.forEach((area: any) => {
                  text += `  - ${area.label}:\t${APP_COPY.analytics.orderAreaSummary.stats.timeWorked}: ${formatTime(area.time)} | ${APP_COPY.analytics.orderAreaSummary.stats.timeExpected}: ${area.expected != null ? formatTime(area.expected) : '—'}\n`;
@@ -313,7 +405,11 @@ export function OrderAreaSummaryReport() {
 
     const columns: Column[] = [
         { key: 'commessa', label: APP_COPY.analytics.orderAreaSummary.headers.commessa, align: 'left' },
+        { key: 'client_name', label: APP_COPY.analytics.common.client, align: 'left' },
         { key: 'area', label: APP_COPY.analytics.orderAreaSummary.headers.area, align: 'left' },
+        { key: 'composition', label: APP_COPY.analytics.orderAreaSummary.headers.composition, align: 'left' },
+        { key: 'fogli', label: APP_COPY.analytics.orderAreaSummary.headers.fogli, align: 'right' },
+        { key: 'pages', label: APP_COPY.analytics.orderAreaSummary.headers.pages, align: 'right' },
         { key: 'time_expected', label: APP_COPY.analytics.orderAreaSummary.headers.timeExpected, align: 'right', noSort: true },
         { key: 'time', label: APP_COPY.analytics.orderAreaSummary.headers.time, align: 'right' },
         { key: 'qty_requested', label: APP_COPY.analytics.orderAreaSummary.headers.qtyReq, align: 'right' },
@@ -339,7 +435,15 @@ export function OrderAreaSummaryReport() {
     );
 
     return (
-        <div className="space-y-4">
+        <>
+            <MonthSelectorModal
+                isOpen={showMonthModal}
+                onClose={() => setShowMonthModal(false)}
+                onGenerate={handleGeneratePDF}
+                loading={pdfLoading}
+                title={APP_COPY.analytics.orderAreaSummary.pdfTitle}
+            />
+            <div className="space-y-4">
             {/* Filters */}
             <div className="bg-card border border-zinc-800 rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
@@ -384,6 +488,18 @@ export function OrderAreaSummaryReport() {
                                 onChange={(e) => setFilters({ ...filters, area: e.target.value })}
                             />
                         </div>
+                        <div className="flex items-center gap-2 mt-6">
+                            <input
+                                type="checkbox"
+                                id="complexOnly"
+                                checked={filters.complexOnly}
+                                onChange={(e) => setFilters({ ...filters, complexOnly: e.target.checked })}
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="complexOnly" className="text-xs font-medium text-zinc-400 cursor-pointer select-none">
+                                Solo Progetti Complessi (3+ aree)
+                            </label>
+                        </div>
                     </div>
                     <div className="flex gap-2 mt-4">
                         <Button type="submit" className="flex items-center gap-2">
@@ -397,6 +513,10 @@ export function OrderAreaSummaryReport() {
                         <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
                             <Download size={16} />
                             {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
+                        </Button>
+                        <Button type="button" onClick={() => setShowMonthModal(true)} variant="secondary" className="flex items-center gap-2" disabled={pdfLoading}>
+                            <FileText size={16} />
+                            {APP_COPY.analytics.orderAreaSummary.pdfButton}
                         </Button>
                     </div>
                 </form>
@@ -470,16 +590,36 @@ export function OrderAreaSummaryReport() {
                                                 <div className="font-mono text-primary truncate max-w-[10rem]">{row.commessa_display}</div>
                                                 <div className="text-xs text-zinc-500 truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
                                             </td>
+                                            {/* Cliente */}
+                                            <td className="px-4 py-3 text-sm text-zinc-300">
+                                                <div className="truncate max-w-[12rem]" title={row.client_name ?? ''}>
+                                                    {row.client_name ?? '—'}
+                                                </div>
+                                            </td>
                                             {/* Area */}
                                             <td className="px-4 py-3 text-sm text-zinc-300">
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-800 text-zinc-300">
                                                     {row.area_name}
                                                 </span>
                                             </td>
-                                            {/* Ore Attese: qty_requested / AREA_EXPECTED_VELOCITY[area] */}
+                                            {/* Composizione */}
+                                            <td className="px-4 py-3 text-sm text-zinc-300">
+                                                <div className="text-xs truncate max-w-[12rem]" title={row.composition ?? ''}>
+                                                    {row.composition ?? '—'}
+                                                </div>
+                                            </td>
+                                            {/* Fogli */}
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                                {row.fogli?.toLocaleString() ?? '—'}
+                                            </td>
+                                            {/* Pagine */}
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                                {row.pages ?? '—'}
+                                            </td>
+                                            {/* Ore Attese */}
                                             <td className="px-4 py-3 text-sm font-mono text-right text-zinc-400">
                                                 {(() => {
-                                                    const h = calcExpectedHours(row.area_name, row.qty_requested);
+                                                    const h = calcExpectedHours(row.area_name, row.qty_requested, row.fogli);
                                                     return h != null ? formatTime(h) : '—';
                                                 })()}
                                             </td>
@@ -519,5 +659,6 @@ export function OrderAreaSummaryReport() {
                 )}
             </div>
         </div>
+        </>
     );
 }

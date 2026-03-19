@@ -184,3 +184,43 @@ export async function fetchOrderValueStats(
 
     return stats;
 }
+
+/**
+ * Fetch order pages (mo_misura3) and composition (mo_matric) from BUSINESS database
+ * Returns a map of commessa_code -> { pages, composition }
+ */
+export async function fetchOrderBusinessData(
+    commessaCodes: string[]
+): Promise<Record<string, { pages: number, composition: string }>> {
+    if (commessaCodes.length === 0) {
+        return {};
+    }
+
+    const params: Record<string, any> = { codditt: 'COOPZANARDI' };
+    const placeholders = commessaCodes.map((code, i) => {
+        params[`code${i}`] = code;
+        return `@code${i}`;
+    }).join(', ');
+
+    const result = await queryMSSQL(`
+        SELECT 
+            SUBSTRING(CAST(mo_commeca AS VARCHAR), 4, 4) as commessa_code,
+            MAX(mo_misura3) as order_pages,
+            MAX(mo_matric) as order_composition
+        FROM movord WITH (NOLOCK)
+        WHERE codditt = @codditt
+          AND mo_commeca > 0
+          AND SUBSTRING(CAST(mo_commeca AS VARCHAR), 4, 4) IN (${placeholders})
+        GROUP BY SUBSTRING(CAST(mo_commeca AS VARCHAR), 4, 4)
+    `, params, 'BUSINESS');
+
+    const dataMap: Record<string, { pages: number, composition: string }> = {};
+    result.recordset.forEach(row => {
+        dataMap[row.commessa_code] = {
+            pages: row.order_pages || 0,
+            composition: (row.order_composition || '').trim()
+        };
+    });
+
+    return dataMap;
+}

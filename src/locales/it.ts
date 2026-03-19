@@ -475,6 +475,9 @@ export const APP_COPY = {
         timeExpected: "Ore Attese",
         time: "Ore Lavoro",
         qtyReq: "Qta Richiesta",
+        pages: "Pagine",
+        composition: "Composizione",
+        fogli: "Fogli",
       },
       export: {
         commessa: "Commessa",
@@ -483,12 +486,17 @@ export const APP_COPY = {
         timeExpected: "Ore Attese",
         workTime: "Ore Lavoro",
         qtyRequested: "Quantità Richiesta",
+        pages: "Pagine",
+        composition: "Composizione",
+        fogli: "Fogli",
       },
       stats: {
         timeExpected: "Ore Attese",
         timeWorked: "Ore Lavoro",
         summary: "Sommario Commesse",
-      }
+      },
+      pdfTitle: "Report Commesse per Macro Area",
+      pdfButton: "Genera Report PDF",
     }
   }
 } as const;

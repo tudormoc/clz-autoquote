@@ -20,6 +20,7 @@ import {
     buildMachineFilter,
     buildOperatorFilter
 } from './shared/filter-builders';
+import { fetchOrderBusinessData } from './shared/work-time-fetcher';
 import {
     calculateOffset,
     buildPaginationResult,
@@ -525,6 +526,7 @@ export async function getOrderAreaSummaryDataAction(
         area?: string;
         dateFrom?: string;
         dateTo?: string;
+        complexOnly?: boolean;
     },
     sort?: SortConfig,
     exportAll: boolean = false
@@ -569,10 +571,12 @@ export async function getOrderAreaSummaryDataAction(
                 MAX(JST.QTA_RICHIESTA) as qty_requested,
                 MIN(ORD.COMMESSA) as commessa_full,
                 SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_display,
-                MIN(ORD.DESCRIZIONE) as order_description
+                MIN(ORD.DESCRIZIONE) as order_description,
+                MAX(CCA.descr) as client_name
             FROM SITUAZIONI SIT WITH (NOLOCK)
             LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
             LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            LEFT JOIN cliente_commessa_attivita CCA WITH (NOLOCK) ON ORD.COMMESSA = CCA.commessa
             WHERE ${whereClause}
             GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
             HAVING SUM(SIT.LAVORO) > 0.1
@@ -603,6 +607,7 @@ export async function getOrderAreaSummaryDataAction(
             area_index: number;
             work_time: number;
             qty_requested: number | null;
+            client_name: string | null;
         }>();
 
         rawResult.recordset.forEach(row => {
@@ -617,6 +622,9 @@ export async function getOrderAreaSummaryDataAction(
                 if (row.qty_requested != null) {
                     existing.qty_requested = Math.max(existing.qty_requested ?? 0, row.qty_requested);
                 }
+                if (row.client_name) {
+                    existing.client_name = row.client_name;
+                }
             } else {
                 aggMap.set(key, {
                     commessa_full: row.commessa_full,
@@ -626,19 +634,68 @@ export async function getOrderAreaSummaryDataAction(
                     area_index: area.index,
                     work_time: row.work_time || 0,
                     qty_requested: row.qty_requested ?? null,
+                    client_name: row.client_name || null,
                 });
             }
         });
 
         // Aggregated per commessa + area in app layer
-        // Filter out areas with zero velocity as requested
+        // Filter by minimum work time and exclude zero velocity areas
+        const minTimeHours = APP_CONFIG.ANALYTICS.MIN_WORK_TIME_MINUTES / 60;
         const filteredAggMapEntries = Array.from(aggMap.values()).filter(row => {
-            const vilocity = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY[row.area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY] ?? 0;
-            return vilocity > 0;
+            const velocity = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY[row.area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY] ?? 0;
+            return velocity > 0 && row.work_time >= minTimeHours;
         });
 
         // Convert to array
         let resultData = filteredAggMapEntries;
+
+        // Fetch business data from BUSINESS DB for all unique commessas
+        const uniqueCommessas = Array.from(new Set(resultData.map(r => r.commessa_display)));
+        let businessDataMap: Record<string, { pages: number, composition: string }> = {};
+        if (uniqueCommessas.length > 0) {
+            businessDataMap = await fetchOrderBusinessData(uniqueCommessas);
+        }
+
+        // Add pages and composition to resultData
+        const enrichedResultData = resultData.map(r => {
+            const bData = businessDataMap[r.commessa_display];
+            const comp = bData?.composition || null;
+            
+            // Calculate fogli
+            let fogli: number | null = null;
+            if (comp) {
+                const regex = /(\d+)\s*\//g;
+                let sum = 0;
+                let found = false;
+                let match;
+                while ((match = regex.exec(comp)) !== null) {
+                    sum += parseInt(match[1], 10);
+                    found = true;
+                }
+                if (found && r.qty_requested != null) {
+                    fogli = sum * r.qty_requested;
+                }
+            }
+
+            return {
+                ...r,
+                pages: bData?.pages ?? null,
+                composition: comp,
+                fogli: fogli
+            };
+        });
+        
+        resultData = enrichedResultData;
+
+        // Filter by number of areas per commessa (Complex projects only)
+        if (filters?.complexOnly) {
+            const commessaAreaCounts = new Map<string, number>();
+            resultData.forEach(r => {
+                commessaAreaCounts.set(r.commessa_display, (commessaAreaCounts.get(r.commessa_display) || 0) + 1);
+            });
+            resultData = resultData.filter(r => (commessaAreaCounts.get(r.commessa_display) || 0) > 2);
+        }
 
         // Apply area filter in app layer
         if (filters?.area) {
@@ -675,6 +732,18 @@ export async function getOrderAreaSummaryDataAction(
             } else if (sortColumn === 'qty_requested') {
                 aVal = a.qty_requested ?? 0;
                 bVal = b.qty_requested ?? 0;
+            } else if (sortColumn === 'pages') {
+                aVal = (a as any).pages ?? 0;
+                bVal = (b as any).pages ?? 0;
+            } else if (sortColumn === 'composition') {
+                aVal = (a as any).composition ?? '';
+                bVal = (b as any).composition ?? '';
+            } else if (sortColumn === 'fogli') {
+                aVal = (a as any).fogli ?? 0;
+                bVal = (b as any).fogli ?? 0;
+            } else if (sortColumn === 'client_name') {
+                aVal = a.client_name ?? '';
+                bVal = b.client_name ?? '';
             } else {
                 // Default: commessa
                 aVal = a.commessa_display;

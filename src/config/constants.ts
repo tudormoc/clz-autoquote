@@ -158,7 +158,7 @@ export const APP_CONFIG = {
       'Cucitura': 472,
       'Incassatura normale': 698,
       'Incassatura veloce': 1292,
-      'Piega': 0,
+      'Piega': 2098,
       'Raccolta': 595,
       'Stampa a caldo': 323,
       'Taglio': 756,
@@ -170,6 +170,10 @@ export const APP_CONFIG = {
       ACCEPTABLE: 40,  // >= 80% = Yellow (below target but acceptable)
       // < 80% = Red (significantly below target)
     } as const,
+
+    // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
+    // Used to filter out short/insignificant tasks (noise)
+    MIN_WORK_TIME_MINUTES: 30,
   },
 
   // Blueprint Preview Defaults

@@ -8,8 +8,9 @@ import { APP_COPY } from '@/locales';
 interface MonthSelectorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (year: number, months: number[], separateByArea: boolean) => void;
+    onGenerate: (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => void;
     loading?: boolean;
+    title?: string;
 }
 
 const MONTHS = [
@@ -27,11 +28,12 @@ const MONTHS = [
     { num: 12, name: 'Dicembre' }
 ];
 
-export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading }: MonthSelectorModalProps) {
+export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title }: MonthSelectorModalProps) {
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
     const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
     const [separateByArea, setSeparateByArea] = useState<boolean>(false);
+    const [pageFormat, setPageFormat] = useState<'A4' | 'A3'>('A4');
 
     // Generate available years (2024 to current year + 1)
     const availableYears = Array.from(
@@ -50,9 +52,11 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading }: Mon
     };
 
     const handleGenerate = () => {
-        if (selectedMonths.length > 0) {
-            onGenerate(selectedYear, selectedMonths, separateByArea);
-        }
+        const monthsToGenerate = selectedMonths.length > 0 
+            ? selectedMonths 
+            : MONTHS.map(m => m.num);
+            
+        onGenerate(selectedYear, monthsToGenerate, separateByArea, pageFormat);
     };
 
     const handleYearChange = (year: number) => {
@@ -67,7 +71,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading }: Mon
             <div className="bg-card border border-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-4">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                    <h2 className="text-lg font-semibold text-white">{copy.pdfTitle}</h2>
+                    <h2 className="text-lg font-semibold text-white">{title || copy.pdfTitle}</h2>
                     <button
                         onClick={onClose}
                         className="text-zinc-400 hover:text-white transition-colors"
@@ -135,6 +139,32 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading }: Mon
                         </div>
                     </div>
 
+                    {/* Page Format Selector */}
+                    <div className="mb-4">
+                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            Formato Pagina
+                        </label>
+                        <div className="flex gap-2">
+                            {['A4', 'A3'].map(fmt => (
+                                <button
+                                    key={fmt}
+                                    onClick={() => setPageFormat(fmt as 'A4' | 'A3')}
+                                    disabled={loading}
+                                    className={`
+                                        flex-1 px-4 py-2 rounded text-sm font-medium transition-all border
+                                        ${pageFormat === fmt
+                                            ? 'bg-primary border-primary text-primary-foreground'
+                                            : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                                        }
+                                        ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                                    `}
+                                >
+                                    {fmt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Separate PDFs Toggle */}
                     <div className="mb-4 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
                         <label className="flex items-start gap-3 cursor-pointer group">
@@ -178,9 +208,9 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading }: Mon
                     <Button
                         onClick={handleGenerate}
                         className="flex-1"
-                        disabled={selectedMonths.length === 0 || loading}
+                        disabled={loading}
                     >
-                        {loading ? 'Generazione...' : 'Genera PDF'}
+                        {loading ? 'Generazione...' : (selectedMonths.length === 0 ? 'Genera Tutto Anno' : 'Genera PDF')}
                     </Button>
                 </div>
             </div>

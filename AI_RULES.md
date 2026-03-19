@@ -77,6 +77,14 @@
 *   **Server Actions:**
     *   Keep server actions pure and separated in `src/app/*-actions.ts`.
     *   Always wrap DB calls in try/catch blocks with standard error return types.
+*   **BUSINESS Database Schema (NTS Informatica):**
+    *   **Global SQL Prefix Rule:** Every physical table has a strictly enforced 2 to 3-letter prefix, and *all columns* inside that table start with that exact prefix. Instead of searching blindly, find the root field name and apply the table's prefix.
+    *   **Common Tables:**
+        *   **Registry/Master Data:** `anagra` (Clients) ➔ `an_*` | `artico` (Items) ➔ `ar_*`
+        *   **Orders/Commitments:** Table `movord` ➔ columns `mo_*` (e.g., `mo_matric`)
+        *   **Invoices/DDTs:** Table `movmag` ➔ columns `mm_*` (e.g., `mm_matric`)
+        *   **Quotes/Offers:** Table `movoff` ➔ columns `of_*`
+    *   **UI Abstraction Exception:** The `ec_` prefix seen in the Business UI (e.g., `ec_matric`, `ec_codart`) is a UI-only abstraction for document lines. It does NOT exist in the database. Replace `ec_` with the physical target table's prefix (`mo_`, `mm_`, `of_`) when writing SQL queries.
 
 ## 6. PRICING MODULE ARCHITECTURE
 
