@@ -301,6 +301,7 @@ export const APP_COPY = {
       columns: {
         area: "Area",
         month: "Mese",
+        week: "Settimana",
         quantity: "Quantità",
         hours: "Ore",
         velocity: "Velocità",
@@ -437,6 +438,8 @@ export const APP_COPY = {
       toggleSplit: "Parziale",
       toggleFullTitle: "Visualizzazione fatturato intero per clienti con ordini parziali",
       toggleSplitTitle: "Clicca per includere il fatturato intero per i clienti con ordini parziali",
+      pdfTitle: "Report Sommario Clienti",
+      pdfButton: "Genera Report PDF",
     },
     clientDeliveries: {
       headers: {

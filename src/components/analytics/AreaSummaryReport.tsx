@@ -11,6 +11,7 @@ import { MonthSelectorModal } from './MonthSelectorModal';
 import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import { APP_CONFIG } from '@/config/constants';
 
 interface AreaSummaryRow {
     area_name: string;
@@ -147,18 +148,25 @@ export function AreaSummaryReport() {
         }
     };
 
-    const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean) => {
+    const handleGeneratePDF = async (
+        year: number,
+        months: number[],
+        separateByArea: boolean,
+        _format: 'A4' | 'A3',
+        mode: 'months' | 'weeks' = 'months',
+        weeks: number[] = []
+    ) => {
         setPdfLoading(true);
         try {
-            // If separateByArea is true and no specific area filter is active, 
+            // If separateByArea is true and no specific area filter is active,
             // generate one PDF for each area visible in the current results.
             const areasToProcess = (separateByArea && !appliedFilters.area)
                 ? data.map(row => row.area_name)
                 : [appliedFilters.area || undefined];
 
             for (const area of areasToProcess) {
-                const result = await generateAreaSummaryPDFAction(year, months, area);
-                
+                const result = await generateAreaSummaryPDFAction(year, months, area, mode, weeks);
+
                 if (result.success && result.pdf) {
                     // Convert base64 to blob and download
                     const byteCharacters = atob(result.pdf);
@@ -168,21 +176,21 @@ export function AreaSummaryReport() {
                     }
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/pdf' });
-                    
+
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = result.filename;
                     document.body.appendChild(a);
                     a.click();
-                    
+
                     // Cleanup
                     setTimeout(() => {
                         window.URL.revokeObjectURL(url);
                         document.body.removeChild(a);
                     }, 100);
 
-                    // Add a small delay between multiple downloads to avoid browser blocking
+                    // Small delay between multiple downloads to avoid browser blocking
                     if (areasToProcess.length > 1) {
                         await new Promise(resolve => setTimeout(resolve, 600));
                     }
@@ -190,7 +198,7 @@ export function AreaSummaryReport() {
                     console.error(`PDF generation failed for area ${area}:`, result.error);
                 }
             }
-            
+
             setShowMonthModal(false);
         } catch (err) {
             console.error('PDF generation error:', err);
@@ -229,6 +237,7 @@ export function AreaSummaryReport() {
                 onClose={() => setShowMonthModal(false)}
                 onGenerate={handleGeneratePDF}
                 loading={pdfLoading}
+                showWeekMode
             />
             <div className="space-y-4">
             {/* Filters */}
@@ -375,8 +384,6 @@ export function AreaSummaryReport() {
                             </thead>
                             <tbody className="divide-y divide-zinc-800">
                                 {data.map((row, idx) => {
-                                    // Import thresholds from constants
-                                    const { APP_CONFIG } = require('@/config/constants');
                                     const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
                                     
                                     const efficiencyColor = 

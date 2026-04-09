@@ -257,7 +257,7 @@ export async function getOrderRevenueDataAction(
         }
 
         const allCommessaCodes = allRecords.map(row => row.commessa_display);
-        let workTimes = await fetchWorkTimesForCommessas(allCommessaCodes);
+        const workTimes = await fetchWorkTimesForCommessas(allCommessaCodes);
 
         const { APP_CONFIG } = await import('@/config/constants');
         const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
@@ -329,7 +329,7 @@ export async function getClientSummaryDataAction(
                     an.an_conto as client_code,
                     an.an_descr1 as client_name,
                     COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) END) as total_orders,
-                    SUM(dw.dw_valfatt) as total_revenue,
+                    SUM(dw.dw_valore) as total_revenue,
                     SUM(dw.dw_collifatt) as total_quantity
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK) 
@@ -337,36 +337,37 @@ export async function getClientSummaryDataAction(
                     AND dw.codditt = an.codditt
                 WHERE ${whereClause}
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt <> 0
+                  AND dw.dw_valore <> 0
                 GROUP BY an.an_conto, an.an_descr1
             ),
             SupplierCosts AS (
                 SELECT 
-                    dw.dw_commeca,
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core,
                     SUM(dw.dw_acqvalore) as commessa_cost
                 FROM dwarehe dw WITH (NOLOCK)
                 WHERE dw.dw_scenario = 1
                   AND dw.codditt = @codditt
                   AND dw.dw_acqvalore <> 0
                   AND dw.dw_commeca > 0
-                GROUP BY dw.dw_commeca
+                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
             ),
             ClientCommessas AS (
                 SELECT DISTINCT
                     an.an_conto as client_code,
-                    dw.dw_commeca
+                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK)
                     ON dw.dw_conto = an.an_conto
                     AND dw.codditt = an.codditt
                 WHERE ${whereClause}
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt <> 0
+                  AND dw.dw_valore <> 0
+                  AND dw.dw_commeca > 0
             ),
             SplitRevenue AS (
                 SELECT 
                     an.an_conto as client_code,
-                    COUNT(DISTINCT dw.dw_commeca) as split_count
+                    COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as split_count
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK)
                     ON dw.dw_conto = an.an_conto
@@ -374,7 +375,8 @@ export async function getClientSummaryDataAction(
                 WHERE dw.dw_scenario = 1
                   AND dw.codditt = @codditt
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt <> 0
+                  AND dw.dw_valore <> 0
+                  AND dw.dw_commeca > 0
                   AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
                 GROUP BY an.an_conto
             )
@@ -388,7 +390,7 @@ export async function getClientSummaryDataAction(
                 ISNULL(sr.split_count, 0) as split_orders_count
             FROM ClientRevenue cr
             LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
-            LEFT JOIN SupplierCosts sc ON cc.dw_commeca = sc.dw_commeca
+            LEFT JOIN SupplierCosts sc ON cc.commessa_core = sc.commessa_core
             LEFT JOIN SplitRevenue sr ON cr.client_code = sr.client_code
             GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity, ISNULL(sr.split_count, 0)
             ORDER BY ${orderByClause}
@@ -403,7 +405,7 @@ export async function getClientSummaryDataAction(
                 AND dw.codditt = an.codditt
             WHERE ${whereClause}
               AND an.an_tipo = 'C'
-              AND dw.dw_valfatt <> 0
+              AND dw.dw_valore <> 0
         `;
 
         const [countResult, result] = await Promise.all([
@@ -411,7 +413,7 @@ export async function getClientSummaryDataAction(
             queryMSSQL(mainQuery, params, 'BUSINESS', queryTimeout)
         ]);
 
-        let allRecords = result.recordset;
+        const allRecords = result.recordset;
         const total = countResult.recordset[0].total;
 
         if (includeAllRevenue && allRecords.length > 0) {
@@ -422,16 +424,19 @@ export async function getClientSummaryDataAction(
                     const adjParams = { codditt: 'COOPZANARDI', year, startDate, endDate, client: code };
                     const adjResult = await queryMSSQL(`
                         WITH PeriodCommessas AS (
-                            SELECT DISTINCT dw.dw_commeca
+                            SELECT DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
                             FROM dwarehe dw WITH (NOLOCK)
                             WHERE dw.dw_scenario = 1 AND dw.codditt = @codditt AND dw.dw_anno >= @year
                               AND dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate
-                              AND dw.dw_conto = @client AND dw.dw_valfatt <> 0
+                              AND dw.dw_conto = @client AND dw.dw_valore <> 0
+                              AND dw.dw_commeca > 0
                         )
-                        SELECT SUM(dw.dw_valfatt) - SUM(CASE WHEN dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year THEN dw.dw_valfatt ELSE 0 END) as adjustment
+                        SELECT SUM(dw.dw_valore) - SUM(CASE WHEN dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year THEN dw.dw_valore ELSE 0 END) as adjustment
                         FROM dwarehe dw WITH (NOLOCK)
-                        INNER JOIN PeriodCommessas pc ON dw.dw_commeca = pc.dw_commeca
-                        WHERE dw.dw_scenario = 1 AND dw.codditt = @codditt AND dw.dw_valfatt <> 0
+                        INNER JOIN PeriodCommessas pc ON RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = pc.commessa_core
+                        WHERE dw.dw_scenario = 1 AND dw.codditt = @codditt
+                          AND dw.dw_conto = @client
+                          AND dw.dw_valore <> 0
                     `, adjParams, 'BUSINESS');
                     adjustments[code] = adjResult.recordset[0]?.adjustment || 0;
                 }));
@@ -491,14 +496,14 @@ export async function getClientSummaryStatsAction(
         const whereClause = conditions.join(' AND ');
 
         const result = await queryMSSQL(`
-            SELECT ISNULL(SUM(dw.dw_valfatt), 0) as total_revenue
+            SELECT ISNULL(SUM(dw.dw_valore), 0) as total_revenue
             FROM dwarehe dw WITH (NOLOCK)
             INNER JOIN anagra an WITH (NOLOCK) 
                 ON dw.dw_conto = an.an_conto 
                 AND dw.codditt = an.codditt
             WHERE ${whereClause}
               AND an.an_tipo = 'C'
-              AND dw.dw_valfatt <> 0
+              AND dw.dw_valore <> 0
         `, params, 'BUSINESS');
 
         let totalRevenue = result.recordset[0]?.total_revenue || 0;
@@ -506,29 +511,30 @@ export async function getClientSummaryStatsAction(
         if (includeAllRevenue && totalRevenue > 0) {
             const adjResult = await queryMSSQL(`
                 WITH PeriodCommessas AS (
-                    SELECT DISTINCT dw.dw_commeca
+                    SELECT DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
                     FROM dwarehe dw WITH (NOLOCK)
                     INNER JOIN anagra an WITH (NOLOCK)
                         ON dw.dw_conto = an.an_conto
                         AND dw.codditt = an.codditt
                     WHERE ${whereClause}
                       AND an.an_tipo = 'C'
-                      AND dw.dw_valfatt <> 0
+                      AND dw.dw_valore <> 0
+                      AND dw.dw_commeca > 0
                 )
                 SELECT 
-                    ISNULL(SUM(dw.dw_valfatt), 0) - ISNULL(SUM(CASE 
+                    ISNULL(SUM(dw.dw_valore), 0) - ISNULL(SUM(CASE 
                         WHEN dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year
-                        THEN dw.dw_valfatt ELSE 0 
+                        THEN dw.dw_valore ELSE 0 
                     END), 0) as revenue_adjustment
                 FROM dwarehe dw WITH (NOLOCK)
                 INNER JOIN anagra an WITH (NOLOCK)
                     ON dw.dw_conto = an.an_conto
                     AND dw.codditt = an.codditt
-                INNER JOIN PeriodCommessas pc ON dw.dw_commeca = pc.dw_commeca
+                INNER JOIN PeriodCommessas pc ON RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = pc.commessa_core
                 WHERE dw.dw_scenario = 1
                   AND dw.codditt = @codditt
                   AND an.an_tipo = 'C'
-                  AND dw.dw_valfatt <> 0
+                  AND dw.dw_valore <> 0
             `, params, 'BUSINESS');
             
             totalRevenue += (adjResult.recordset[0]?.revenue_adjustment || 0);

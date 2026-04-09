@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { getClientSummaryDataAction, getClientSummaryStatsAction } from '@/app/analytics/analytics-actions';
+import { generateClientSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { APP_COPY } from '@/locales';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
+import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
 
 interface ClientSummaryRow {
     client_code: string;
@@ -44,6 +46,9 @@ export function ClientSummaryReport() {
     
     const [summaryData, setSummaryData] = useState<any>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
+    
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const [showMonthModal, setShowMonthModal] = useState(false);
     
     const [filters, setFilters] = useState<Filters>({
         client: '',
@@ -139,6 +144,36 @@ export function ClientSummaryReport() {
         setSummaryLoading(false);
     };
 
+    const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => {
+        setPdfLoading(true);
+        try {
+            const result = await generateClientSummaryPDFAction(
+                year,
+                months,
+                appliedFilters.client || undefined,
+                appliedFilters.includeAllRevenueForSplit,
+                format
+            );
+
+            if (result.success && result.pdf) {
+                const linkSource = `data:application/pdf;base64,${result.pdf}`;
+                const downloadLink = document.createElement('a');
+                downloadLink.href = linkSource;
+                downloadLink.download = result.filename || 'report.pdf';
+                downloadLink.click();
+                setShowMonthModal(false);
+            } else {
+                console.error('Failed to generate PDF:', result.error);
+                alert('Errore durante la generazione del PDF');
+            }
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+            alert('Errore imprevisto durante la generazione del PDF');
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
     const handleExportExcel = async () => {
         if (loading) return; // Prevent multiple clicks
         setLoading(true);
@@ -159,10 +194,11 @@ export function ClientSummaryReport() {
                         [APP_COPY.analytics.clientSummary.export.clientCode]: row.client_code,
                         [APP_COPY.analytics.clientSummary.export.clientName]: row.client_name,
                         [APP_COPY.analytics.clientSummary.export.totalOrders]: row.total_orders,
-                        [APP_COPY.analytics.clientSummary.export.revenue]: Number(row.total_revenue.toFixed(2)),
-                        [APP_COPY.analytics.clientSummary.export.materialCost]: Number(row.total_cost.toFixed(2)),
-                        [APP_COPY.analytics.clientSummary.export.laborCost]: Number(row.work_cost.toFixed(2)),
-                        [APP_COPY.analytics.clientSummary.export.margin]: Number(margin.toFixed(2)),
+                        [APP_COPY.analytics.clientSummary.export.revenue]: Math.round(row.total_revenue),
+                        [APP_COPY.analytics.clientSummary.export.materialCost]: Math.round(row.total_cost),
+                        [APP_COPY.analytics.clientSummary.export.laborCost]: Math.round(row.work_cost),
+                        'Costo Totale': Math.round(totalCosts),
+                        [APP_COPY.analytics.clientSummary.export.margin]: Math.round(margin),
                         [APP_COPY.analytics.clientSummary.export.quantity]: row.total_quantity,
                         [APP_COPY.analytics.clientSummary.export.splitWarning]: row.split_orders_count
                     };
@@ -178,6 +214,7 @@ export function ClientSummaryReport() {
                     { wch: 15 },  // Fatturato
                     { wch: 15 },  // Costo Materiali
                     { wch: 15 },  // Costo Lavoro
+                    { wch: 15 },  // Costo Totale
                     { wch: 15 },  // Margine
                     { wch: 10 },  // Quantità
                     { wch: 28 }   // Ordini con Fatturato Parziale
@@ -301,10 +338,22 @@ export function ClientSummaryReport() {
                             <X size={16} />
                             {APP_COPY.analytics.common.clear}
                         </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
-                            <Download size={16} />
-                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
-                        </Button>
+                        <div className="flex gap-2 ml-auto">
+                            <Button 
+                                type="button" 
+                                onClick={() => setShowMonthModal(true)} 
+                                variant="secondary" 
+                                className="flex items-center gap-2" 
+                                disabled={pdfLoading}
+                            >
+                                <FileText size={16} />
+                                {APP_COPY.analytics.clientSummary.pdfButton}
+                            </Button>
+                            <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2" disabled={loading}>
+                                <Download size={16} />
+                                {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
+                            </Button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -392,6 +441,11 @@ export function ClientSummaryReport() {
                                         {getSortIcon('work_cost')}
                                     </div>
                                 </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">
+                                        Costo Totale
+                                    </div>
+                                </th>
                                 <th 
                                     className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('margin')}
@@ -412,7 +466,7 @@ export function ClientSummaryReport() {
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -429,17 +483,20 @@ export function ClientSummaryReport() {
                                                 <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
-                                                {formatCurrency(row.total_revenue)}
+                                                {formatCurrencyRounded(row.total_revenue)}
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {formatCurrency(row.total_cost)}
+                                                {formatCurrencyRounded(row.total_cost)}
                                             </td>
                                             <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                                {formatCurrency(row.work_cost)}
+                                                {formatCurrencyRounded(row.work_cost)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                                {formatCurrencyRounded(totalCosts)}
                                             </td>
                                             <td className="px-4 py-3 text-sm text-right">
                                                 <div className="font-mono text-white font-semibold">
-                                                    {formatCurrency(margin)}
+                                                    {formatCurrencyRounded(margin)}
                                                 </div>
                                                 <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-foreground' : marginPercent >= 10 ? 'text-warning-foreground' : 'text-destructive'}`}>
                                                     {marginPercent.toFixed(1)}%
@@ -469,6 +526,9 @@ export function ClientSummaryReport() {
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.laborCost}</div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                    <div className="flex items-center justify-end gap-2">Costo Totale</div>
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.margin}</div>
                                 </th>
                                 <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title={APP_COPY.analytics.clientSummary.headers.splitWarning}>
@@ -479,13 +539,13 @@ export function ClientSummaryReport() {
                         <tbody className="divide-y divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -494,6 +554,15 @@ export function ClientSummaryReport() {
                     </table>
                 )}
             </div>
+
+            <MonthSelectorModal
+                isOpen={showMonthModal}
+                onClose={() => setShowMonthModal(false)}
+                onGenerate={handleGeneratePDF}
+                loading={pdfLoading}
+                title={APP_COPY.analytics.clientSummary.pdfTitle}
+                hideSeparateToggle={true}
+            />
         </div>
     );
 }

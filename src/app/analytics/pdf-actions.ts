@@ -1,57 +1,89 @@
 'use server';
 
 import puppeteer from 'puppeteer';
-import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction } from './analytics-actions';
+import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
 
 interface MonthData {
-    month: string;
+    month: string; // period label: month name ("Gennaio") or week label ("S3")
     year: number;
     data: any[];
 }
 
+// ---------------------------------------------------------------------------
+// ISO week utilities — used for weeks-mode PDF generation
+// ---------------------------------------------------------------------------
+
+/** Returns the Monday (start) of ISO week `week` in `year`. */
+function getISOWeekStart(year: number, week: number): Date {
+    // Jan 4 is always in ISO week 1
+    const jan4 = new Date(year, 0, 4);
+    const dayOfWeek = jan4.getDay() || 7; // Sunday (0) → 7
+    const week1Monday = new Date(jan4);
+    week1Monday.setDate(jan4.getDate() - (dayOfWeek - 1));
+    const target = new Date(week1Monday);
+    target.setDate(week1Monday.getDate() + (week - 1) * 7);
+    return target;
+}
+
+/** Formats a Date as YYYY-MM-DD for DB queries. */
+function formatDateYMD(date: Date): string {
+    return date.toISOString().split('T')[0];
+}
+
 export async function generateAreaSummaryPDFAction(
     year: number,
-    months: number[], // Array of month numbers (1-12)
-    areaFilter?: string // Optional area filter
+    months: number[],          // Month numbers 1-12 (used when mode === 'months')
+    areaFilter?: string,       // Optional area name filter
+    mode: 'months' | 'weeks' = 'months',
+    weeks: number[] = []       // ISO week numbers 1-53 (used when mode === 'weeks')
 ) {
     try {
-        // Fetch data for each selected month
-        const monthDataPromises = months.map(async (month) => {
-            const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-            const lastDay = new Date(year, month, 0).getDate();
-            const monthEnd = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+        // Build one data entry per period (month or ISO week)
+        const periodDataPromises = mode === 'weeks'
+            ? weeks.map(async (week) => {
+                const weekStart = getISOWeekStart(year, week);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6); // Sunday of that week
 
-            const result = await getAreaSummaryDataAction(
-                year,
-                1,
-                999999,
-                { 
-                    dateFrom: monthStart, 
-                    dateTo: monthEnd,
-                    machine: areaFilter || undefined // Pass area filter
-                },
-                { column: 'display_order', direction: 'asc' },
-                true
-            );
+                const result = await getAreaSummaryDataAction(
+                    year, 1, 999999,
+                    { dateFrom: formatDateYMD(weekStart), dateTo: formatDateYMD(weekEnd), machine: areaFilter || undefined },
+                    { column: 'display_order', direction: 'asc' },
+                    true
+                );
 
-            return {
-                month: new Date(year, month - 1).toLocaleString('it-IT', { month: 'long' }),
-                year,
-                data: result.success ? result.data : []
-            };
-        });
+                return {
+                    month: `S${week}`, // period label reused throughout report HTML
+                    year,
+                    data: result.success ? result.data : []
+                };
+            })
+            : months.map(async (month) => {
+                const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+                const lastDay = new Date(year, month, 0).getDate();
+                const monthEnd = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
 
-        const monthsData = await Promise.all(monthDataPromises);
+                const result = await getAreaSummaryDataAction(
+                    year, 1, 999999,
+                    { dateFrom: monthStart, dateTo: monthEnd, machine: areaFilter || undefined },
+                    { column: 'display_order', direction: 'asc' },
+                    true
+                );
 
-        // Get copy for footer template
+                return {
+                    month: new Date(year, month - 1).toLocaleString('it-IT', { month: 'long' }),
+                    year,
+                    data: result.success ? result.data : []
+                };
+            });
+
+        const monthsData = await Promise.all(periodDataPromises);
+
         const copy = APP_COPY.analytics.pdf;
+        const html = generateReportHTML(monthsData, areaFilter, mode);
 
-        // Generate HTML for PDF
-        const html = generateReportHTML(monthsData, areaFilter);
-
-        // Launch Puppeteer and generate PDF
         const browser = await puppeteer.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -72,30 +104,33 @@ export async function generateAreaSummaryPDFAction(
                     <div style="text-align: right;">${copy.footer.page} <span class="pageNumber"></span> ${copy.footer.of} <span class="totalPages"></span></div>
                 </div>
             `,
-            margin: {
-                top: '20mm',
-                right: '15mm',
-                bottom: '25mm',
-                left: '15mm'
-            }
+            margin: { top: '20mm', right: '15mm', bottom: '25mm', left: '15mm' }
         });
 
         await browser.close();
 
-        // Convert buffer to base64 for client download
         const base64PDF = Buffer.from(pdfBuffer).toString('base64');
-
-        // Create a descriptive filename
         const sanitize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
         const areaSuffix = areaFilter ? `-${sanitize(areaFilter)}` : '-tutte-le-aree';
-        const monthsSuffix = months.length > 3 
-            ? `${months[0]}-to-${months[months.length - 1]}`
-            : months.join('-');
-            
+
+        // Build descriptive period suffix for filename
+        let periodSuffix: string;
+        if (mode === 'weeks') {
+            periodSuffix = weeks.length > 3
+                ? `S${weeks[0]}-S${weeks[weeks.length - 1]}`
+                : weeks.map(w => `S${w}`).join('-');
+        } else {
+            periodSuffix = months.length > 3
+                ? `${months[0]}-to-${months[months.length - 1]}`
+                : months.join('-');
+        }
+
+        const filePrefix = mode === 'weeks' ? `report-aree-settimane-${year}` : `report-aree-${year}`;
+
         return {
             success: true,
             pdf: base64PDF,
-            filename: `report-aree-${year}-${monthsSuffix}${areaSuffix}.pdf`
+            filename: `${filePrefix}-${periodSuffix}${areaSuffix}.pdf`
         };
     } catch (error) {
         console.error('PDF generation error:', error);
@@ -106,7 +141,7 @@ export async function generateAreaSummaryPDFAction(
     }
 }
 
-function generateReportHTML(monthsData: MonthData[], areaFilter?: string): string {
+function generateReportHTML(monthsData: MonthData[], areaFilter?: string, mode: 'months' | 'weeks' = 'months'): string {
     const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
     const copy = APP_COPY.analytics.pdf;
 
@@ -208,6 +243,21 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
         return '#6b7280';
     };
 
+    // Period display string for report header
+    const periodDisplay = (() => {
+        if (mode === 'weeks') {
+            const labels = monthsData.map(m => m.month); // ["S1", "S2", ...]
+            const yr = monthsData[0]?.year ?? '';
+            return labels.length > 4
+                ? `Settimane ${labels[0]}\u2013${labels[labels.length - 1]}, ${yr}`
+                : `Settimane ${labels.join(', ')} \u2014 ${yr}`;
+        }
+        return monthsData.map(m => `${m.month} ${m.year}`).join(', ');
+    })();
+
+    // Column header for period column: "Mese" or "Settimana"
+    const periodColumnHeader = mode === 'weeks' ? copy.columns.week : copy.columns.month;
+
     return `
 <!DOCTYPE html>
 <html>
@@ -257,22 +307,22 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 3px solid #3b82f6;
         }
         .header h1 {
-            font-size: 24pt;
+            font-size: 18pt;
             color: #1e40af;
-            margin-bottom: 8px;
-        }
-        .header .period {
-            font-size: 12pt;
-            color: #6b7280;
             margin-bottom: 4px;
         }
+        .header .period {
+            font-size: 10pt;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
         .header .generated {
-            font-size: 9pt;
+            font-size: 8pt;
             color: #9ca3af;
         }
         .section {
@@ -280,7 +330,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
             page-break-inside: avoid;
         }
         .section.summary-overview {
-            margin-bottom: 50px;
+            margin-bottom: 20px;
         }
         .section-title {
             font-size: 13pt;
@@ -293,12 +343,12 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         .summary-card {
             background: #f9fafb;
-            padding: 12px;
+            padding: 8px 10px;
             border-radius: 6px;
             border-left: 4px solid #3b82f6;
         }
@@ -318,7 +368,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
-            page-break-inside: avoid;
+            ${areaFilter ? '' : 'page-break-inside: avoid;'}
         }
         .area-header {
             display: flex;
@@ -384,7 +434,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
 <body>
     <div class="header">
         <h1>${copy.title}${areaFilter ? ` - ${areaFilter}` : ''}</h1>
-        <div class="period">${copy.period}: ${monthsData.map(m => `${m.month} ${m.year}`).join(', ')}</div>
+        <div class="period">${copy.period}: ${periodDisplay}</div>
         <div class="generated">${copy.generated}: ${new Date().toLocaleString('it-IT')}</div>
     </div>
 
@@ -543,7 +593,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string): strin
                 <table>
                     <thead>
                         <tr>
-                            <th>${copy.columns.month}</th>
+                            <th>${periodColumnHeader}</th>
                             <th class="right">${copy.columns.quantity}</th>
                             <th class="right">${copy.columns.hours}</th>
                             <th class="right">${copy.columns.velocity}</th>
@@ -701,9 +751,8 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
     };
 
     const getEfficiencyColor = (eff: number) => {
-        if (eff >= thresholds.EXCELLENT) return '#10b981';
-        if (eff >= thresholds.ACCEPTABLE) return '#f59e0b';
-        return '#ef4444';
+        if (eff >= 100) return '#10b981';
+        return '#f59e0b';
     };
 
     // Group all data by commessa and area
@@ -784,6 +833,60 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
     const totalExpected = commessaList.reduce((sum, c) => sum + c.total_expected, 0);
     const overallEfficiency = totalHours > 0 ? (totalExpected / totalHours) * 100 : 0;
 
+    // --- NEW KPIs ---
+    let ordersInTarget = 0;
+    let ordersOutTarget = 0;
+    let hoursGained = 0;
+    let hoursLost = 0;
+
+    commessaList.forEach(order => {
+        const eff = order.total_time > 0 ? (order.total_expected / order.total_time) * 100 : 0;
+        if (eff >= 100) ordersInTarget++;
+        else ordersOutTarget++;
+
+        const delta = order.total_expected - order.total_time;
+        if (delta > 0) hoursGained += delta;
+        else if (delta < 0) hoursLost += Math.abs(delta);
+    });
+
+    const netDelta = hoursGained - hoursLost;
+
+    // Client Aggregation
+    const clientStatsMap = new Map<string, { time: number, expected: number }>();
+    commessaList.forEach(c => {
+        const clientName = c.client || 'Sconosciuto';
+        if (!clientStatsMap.has(clientName)) {
+            clientStatsMap.set(clientName, { time: 0, expected: 0 });
+        }
+        const s = clientStatsMap.get(clientName)!;
+        s.time += c.total_time;
+        s.expected += c.total_expected;
+    });
+
+    const clientStatsList = Array.from(clientStatsMap.entries())
+        .map(([client, stats]) => ({
+            client,
+            ...stats,
+            efficiency: stats.time > 0 ? (stats.expected / stats.time) * 100 : 0
+        }))
+        .filter(c => c.expected > 0);
+
+    // Filter significant clients (at least 2 hours expected) for accurate efficiency ranking
+    const significantClients = clientStatsList.filter(c => c.expected >= 2);
+    const clientsToRank = significantClients.length >= 5 ? significantClients : clientStatsList;
+    
+    // Best clients: strictly >= 100%, sorted highest to lowest
+    const bestClients = [...clientsToRank]
+        .filter(c => c.efficiency >= 100)
+        .sort((a, b) => b.efficiency - a.efficiency)
+        .slice(0, 5);
+        
+    // Worst clients: strictly < 100%, sorted lowest to highest (worst first)
+    const worstClients = [...clientsToRank]
+        .filter(c => c.efficiency < 100)
+        .sort((a, b) => a.efficiency - b.efficiency)
+        .slice(0, 5);
+
     // Sort commessa list chronologically for display
     commessaList.sort((a, b) => a.display.localeCompare(b.display));
 
@@ -834,6 +937,19 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         .right { text-align: right; }
         .mono { font-family: 'Courier New', monospace; font-size: 7.5pt; }
         .font-semibold { font-weight: 600; }
+        
+        /* New KPI Widgets */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .kpi-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+        .kpi-row:last-child { border-bottom: none; }
+        .kpi-label { font-size: 8pt; color: #475569; }
+        .kpi-val { font-size: 8.5pt; font-weight: 600; text-align: right; }
+        
+        .client-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
+        .client-row:last-child { border-bottom: none; }
+        .client-name { font-size: 7.5pt; font-weight: 600; color: #1e40af; width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .client-vol { font-size: 7pt; color: #64748b; font-family: monospace; width: 60px; text-align: right; }
+        .client-eff { font-size: 8pt; font-weight: 700; width: 45px; text-align: right; }
         
         /* Order Header Row */
         .order-row-header { background: #f8fafc; font-weight: 700; border-top: 2px solid #e2e8f0; }
@@ -899,9 +1015,13 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         ${areaStatsList.map(area => {
             const color = getEfficiencyColor(area.efficiency);
             const barWidth = Math.min(area.efficiency, 120); // Cap visual bar at 120%
+            const targetVelocity = AREA_EXPECTED_VELOCITY[area.label as keyof typeof AREA_EXPECTED_VELOCITY] || '-';
             return `
             <div class="chart-row">
-                <div class="chart-label">${area.label}</div>
+                <div class="chart-label">
+                    ${area.label}
+                    <div style="font-size: 6pt; color: #94a3b8; font-weight: normal; margin-top: 1px;">Atteso: ${targetVelocity}</div>
+                </div>
                 <div class="chart-bar-bg">
                     <div class="chart-bar-fill" style="width: ${barWidth}%; background-color: ${color};"></div>
                 </div>
@@ -911,6 +1031,76 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
             `;
         }).join('')}
     </div>
+
+    <!-- New KPI Sections -->
+    <div class="dashboard-grid">
+        <div class="dashboard-section" style="margin-bottom: 0;">
+            <div class="dashboard-title">Bilancio Ore & Volume</div>
+            
+            <div class="kpi-row">
+                <div class="kpi-label">Ordini a Target (≥ 100%)</div>
+                <div class="kpi-val" style="color: #10b981;">${ordersInTarget}</div>
+            </div>
+            <div class="kpi-row">
+                <div class="kpi-label">Ordini fuori Target (< 100%)</div>
+                <div class="kpi-val" style="color: #f59e0b;">${ordersOutTarget}</div>
+            </div>
+            
+            <div style="margin: 10px 0; border-top: 2px dashed #e2e8f0;"></div>
+
+            <div class="kpi-row">
+                <div class="kpi-label">Ore Guadagnate</div>
+                <div class="kpi-val" style="color: #10b981;">+${formatTime(hoursGained)}</div>
+            </div>
+            <div class="kpi-row">
+                <div class="kpi-label">Ore Perse</div>
+                <div class="kpi-val" style="color: #ef4444;">-${formatTime(hoursLost)}</div>
+            </div>
+            <div class="kpi-row" style="background: #f8fafc; padding: 6px; border-radius: 4px; margin-top: 4px;">
+                <div class="kpi-label" style="font-weight: bold;">Bilancio Netto Ore</div>
+                <div class="kpi-val" style="color: ${netDelta >= 0 ? '#10b981' : '#ef4444'}; font-size: 9pt;">
+                    ${netDelta > 0 ? '+' : ''}${formatTime(netDelta)}
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <!-- Best Clients -->
+            <div class="dashboard-section" style="margin-bottom: 0;">
+                <div class="dashboard-title" style="color: #10b981;">Top Clienti (Maggiore Efficienza)</div>
+                ${bestClients.length > 0 ? bestClients.map(client => {
+                    const color = getEfficiencyColor(client.efficiency);
+                    return `
+                    <div class="client-row">
+                        <div class="client-name">${client.client}</div>
+                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatTime(client.time)} / ${formatTime(client.expected)}</div>
+                        <div class="client-eff" style="color: ${color};">${client.efficiency.toFixed(1)}%</div>
+                    </div>
+                    `;
+                }).join('') : '<div style="font-size: 7.5pt; color: #64748b;">Dati insufficienti</div>'}
+            </div>
+
+            <!-- Worst Clients -->
+            ${worstClients.length > 0 ? `
+            <div class="dashboard-section" style="margin-bottom: 0;">
+                <div class="dashboard-title" style="color: #ef4444;">Clienti Lenti (Minore Efficienza)</div>
+                ${worstClients.map(client => {
+                    const color = getEfficiencyColor(client.efficiency);
+                    return `
+                    <div class="client-row">
+                        <div class="client-name">${client.client}</div>
+                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatTime(client.time)} / ${formatTime(client.expected)}</div>
+                        <div class="client-eff" style="color: ${color};">${client.efficiency.toFixed(1)}%</div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+            ` : ''}
+        </div>
+    </div>
+
+    <!-- Force a page break before the individual orders -->
+    <div style="page-break-before: always;"></div>
 
     <div class="column-layout">
         ${commessaList.map(order => {
@@ -961,3 +1151,217 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
 </html>
     `;
 }
+
+/**
+ * ============================================================================
+ * CLIENT SUMMARY PDF GENERATION
+ * ============================================================================
+ */
+
+export async function generateClientSummaryPDFAction(
+    year: number,
+    months: number[],
+    clientFilter?: string,
+    includeAllRevenueForSplit: boolean = false,
+    format: 'A4' | 'A3' = 'A4'
+) {
+    try {
+        // Query the full combined date range in a single call (same as the dashboard).
+        // Per-month queries caused double-counting: with the "Intero" toggle ON, a split
+        // order spanning multiple months had its full revenue fetched once per month query.
+        const sortedMonths = [...months].sort((a, b) => a - b);
+        const firstMonth = sortedMonths[0];
+        const lastMonth = sortedMonths[sortedMonths.length - 1];
+        const dateFrom = `${year}-${String(firstMonth).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, lastMonth, 0).getDate();
+        const dateTo = `${year}-${String(lastMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        // Build the period label for the PDF header
+        const periodLabels = sortedMonths.map(m =>
+            `${new Date(year, m - 1).toLocaleString('it-IT', { month: 'long' })} ${year}`
+        );
+
+        const result = await getClientSummaryDataAction(
+            year,
+            1,
+            999999, // Max limit
+            {
+                dateFrom,
+                dateTo,
+                client: clientFilter || undefined,
+                includeAllRevenueForSplit
+            },
+            undefined,
+            true // exportAll
+        );
+
+        const combinedData = result.success ? [...result.data] : [];
+        
+        // Filter out excluded clients from PDF
+        // Note: client_code comes from DB as number, so convert to string for comparison
+        const filteredData = combinedData.filter(row => {
+            const codeAsString = String(row.client_code);
+            const isExcluded = APP_CONFIG.ANALYTICS.EXCLUDED_CLIENTS_PDF.includes(codeAsString);
+            if (isExcluded) {
+                console.log(`Excluding client: ${codeAsString} - ${row.client_name}`);
+            }
+            return !isExcluded;
+        });
+        
+        console.log(`Total clients: ${combinedData.length}, After filter: ${filteredData.length}`);
+        
+        filteredData.sort((a, b) => b.total_revenue - a.total_revenue);
+
+        const html = generateClientSummaryReportHTML(filteredData, periodLabels, clientFilter, includeAllRevenueForSplit, format);
+
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+
+        const copy = APP_COPY.analytics.pdf;
+        const pdfBuffer = await page.pdf({
+            format: format as any,
+            printBackground: true,
+            displayHeaderFooter: true,
+            headerTemplate: '<div></div>',
+            footerTemplate: `
+                <div style="width: 100%; font-size: 8pt; padding: 0 15mm; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; color: #6b7280;">
+                    <div style="font-weight: 600; color: #1e40af;">${APP_CONFIG.ANALYTICS.COMPANY_NAME}</div>
+                    <div style="text-align: center;">${APP_COPY.analytics.clientSummary.pdfTitle}</div>
+                    <div style="text-align: right;">${copy.footer.page} <span class="pageNumber"></span> ${copy.footer.of} <span class="totalPages"></span></div>
+                </div>
+            `,
+            margin: { top: '20mm', right: '15mm', bottom: '25mm', left: '15mm' }
+        });
+
+        await browser.close();
+
+        const base64PDF = Buffer.from(pdfBuffer).toString('base64');
+        const sanitize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
+        const suffix = clientFilter ? `-${sanitize(clientFilter)}` : '';
+        
+        return {
+            success: true,
+            pdf: base64PDF,
+            filename: `report-sommario-clienti-${format.toLowerCase()}-${year}-${months.join('-')}${suffix}.pdf`
+        };
+    } catch (error) {
+        console.error('Client Summary PDF generation error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to generate PDF' };
+    }
+}
+
+function generateClientSummaryReportHTML(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, format: 'A4' | 'A3' = 'A4'): string {
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('it-IT', { 
+            style: 'currency', 
+            currency: 'EUR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Math.round(amount));
+    };
+
+    const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
+    const totalCost = data.reduce((sum, r) => sum + r.total_cost, 0);
+    const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);
+    const totalMargin = totalRevenue - (totalCost + totalWorkCost);
+    const overallMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @page { margin: 15mm 10mm 15mm 10mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 8pt; line-height: 1.3; color: #1f2937; }
+        .header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; }
+        .header h1 { font-size: 16pt; color: #1e40af; margin-bottom: 4px; }
+        .period { font-size: 10pt; color: #6b7280; }
+        .generated { font-size: 8pt; color: #9ca3af; margin-top: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
+        th { background: #f9fafb; padding: 8px 6px; text-align: left; font-size: 8pt; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 8px 6px; border-bottom: 1px solid #f3f4f6; font-size: 8pt; vertical-align: middle; }
+        th.right, td.right { text-align: right; }
+        .mono { font-family: 'Courier New', monospace; font-size: 8pt; }
+        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+        ${format === 'A4' ? `
+            .col-client { width: 30%; }
+            .col-rev { width: 14%; }
+            .col-cost { width: 11%; }
+            .col-work { width: 11%; }
+            .col-total { width: 12%; }
+            .col-margin { width: 14%; }
+            .col-percent { width: 8%; }
+        ` : `
+            .col-client { width: 32%; }
+            .col-rev { width: 13%; }
+            .col-cost { width: 10%; }
+            .col-work { width: 10%; }
+            .col-total { width: 11%; }
+            .col-margin { width: 13%; }
+            .col-percent { width: 8%; }
+        `}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${APP_COPY.analytics.clientSummary.pdfTitle}${clientFilter ? ` (${clientFilter})` : ''}</h1>
+        <div class="period">${APP_COPY.analytics.pdf.period}: ${periods.join(', ')}</div>
+        <div class="generated">${includeAllRevenueForSplit ? '(Incluso fatturato per ordini parziali) - ' : ''}${APP_COPY.analytics.pdf.generated}: ${new Date().toLocaleString('it-IT')}</div>
+    </div>
+
+    <div style="margin-bottom: 20px; padding: 12px; background: #f9fafb; border-left: 3px solid #3b82f6; border-radius: 4px; display: flex; justify-content: space-between;">
+        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Totale Fatturato</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalRevenue)}</div></div>
+        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Materiali</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalCost)}</div></div>
+        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Manodopera</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalWorkCost)}</div></div>
+        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Margine</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalMargin)}</div></div>
+        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">% Margine</div><div style="font-size: 11pt; font-weight: 600; color: ${overallMarginPercent >= 20 ? '#10b981' : overallMarginPercent >= 10 ? '#f59e0b' : '#ef4444'}">${overallMarginPercent.toFixed(1)}%</div></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="col-client">${APP_COPY.analytics.common.client}</th>
+                <th class="col-rev right">${APP_COPY.analytics.clientSummary.headers.revenue}</th>
+                <th class="col-cost right">${APP_COPY.analytics.clientSummary.headers.materialCost}</th>
+                <th class="col-work right">${APP_COPY.analytics.clientSummary.headers.laborCost}</th>
+                <th class="col-total right">Costo Totale</th>
+                <th class="col-margin right">${APP_COPY.analytics.clientSummary.headers.margin}</th>
+                <th class="col-percent right">%</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.map(row => {
+                const costs = row.total_cost + row.work_cost;
+                const margin = row.total_revenue - costs;
+                const marginPct = row.total_revenue > 0 ? (margin / row.total_revenue) * 100 : 0;
+                
+                return `
+                <tr>
+                    <td class="col-client">
+                        <div style="font-size: 8pt; color: #1f2937;" class="truncate">${row.client_name}</div>
+                    </td>
+                    <td class="col-rev right mono" style="font-weight: 600;">${formatCurrency(row.total_revenue)}</td>
+                    <td class="col-cost right mono">${formatCurrency(row.total_cost)}</td>
+                    <td class="col-work right mono">${formatCurrency(row.work_cost)}</td>
+                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrency(costs)}</td>
+                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrency(margin)}</td>
+                    <td class="col-percent right mono" style="font-size: 8pt; font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
+                </tr>
+                `;
+            }).join('')}
+        </tbody>
+    </table>
+</body>
+</html>
+    `;
+}
+

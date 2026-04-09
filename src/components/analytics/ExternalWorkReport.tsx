@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getExternalWorkDataAction, getExternalWorkStatsAction } from '@/app/analytics/queries/external-work-queries';
 import { APP_COPY } from '@/locales';
+import { APP_CONFIG } from '@/config/constants';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -148,7 +149,7 @@ export function ExternalWorkReport() {
         },
         {
             label: APP_COPY.analytics.externalWork.stats.workHours,
-            value: `${Math.round(summaryData.total_value / 20)} ore`,
+            value: `${Math.round(summaryData.total_value / APP_CONFIG.ANALYTICS.PARTIAL_LABOR_RATE)} ore`,
             subItems: []
         }
     ] : [];
@@ -164,7 +165,7 @@ export function ExternalWorkReport() {
             });
         }
 
-        const workHours = Math.round(summaryData.total_value / 20);
+        const workHours = Math.round(summaryData.total_value / APP_CONFIG.ANALYTICS.PARTIAL_LABOR_RATE);
         text += `\n${APP_COPY.analytics.externalWork.stats.workHours}: ${workHours} ore`;
 
         navigator.clipboard.writeText(text).catch(err => {

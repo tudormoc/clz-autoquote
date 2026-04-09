@@ -100,6 +100,10 @@ export const APP_CONFIG = {
     // Contropartita codes for supplier invoicing
     SUPPLIER_CONTROPARTITA_CODES: [5093],
 
+    // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
+    // Add client codes here to hide them from exported PDF reports
+    EXCLUDED_CLIENTS_PDF: ['9010384', '9010194', '9010250', '9010365', '9010262', '9010065', '9010283', '9010013', '9010382', '9010035'] as string[],
+
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
     PRODUCTION_FLOW: {
