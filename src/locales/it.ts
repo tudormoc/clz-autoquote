@@ -223,6 +223,8 @@ export const APP_COPY = {
       orderRevenue: "Ricavo Ordini",
       externalWork: "Lavorazioni Esterne",
       presenceReport: "Report Presenze",
+      rimanenze: "Rimanenze (Materiali)",
+      rimanenzeLabor: "Rimanenze (Lavoro)",
     },
     categories: {
       clients: "Clienti",
@@ -500,6 +502,40 @@ export const APP_COPY = {
       },
       pdfTitle: "Report Commesse per Macro Area",
       pdfButton: "Genera Report PDF",
+    },
+    rimanenze: {
+      headers: {
+        commessa: "Commessa",
+        client: "Cliente",
+        materialCost: "Costo Materiali",
+        workTime: "Ore Lavoro",
+        laborCost: "Costo Lavoro",
+        totalInvested: "Valore Investito",
+      },
+      export: {
+        commessa: "Commessa",
+        description: "Descrizione",
+        clientCode: "Codice Cliente",
+        clientName: "Nome Cliente",
+        materialCost: "Costo Materiali",
+        workTime: "Ore Lavoro",
+        laborCost: "Costo Lavoro",
+        totalInvested: "Valore Investito",
+      },
+      filters: {
+        commessa: "Commessa",
+        client: "Cliente",
+        dateTo: "Rimanenze fino al",
+      },
+      summary: {
+        totalValue: "Valore Totale Rimanenze (Materiali)",
+        totalOrders: "Ordini in Rimanenza",
+      },
+      laborSummary: {
+        totalValue: "Valore Totale Rimanenze (Lavoro)",
+        totalHours: "Ore Totali Lavoro",
+        totalOrders: "Ordini in Rimanenza",
+      }
     }
   }
 } as const;

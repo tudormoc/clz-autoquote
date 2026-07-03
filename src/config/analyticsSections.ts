@@ -8,7 +8,7 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck, Table2 } from 'lucide-react';
+import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck, Table2, Archive, Briefcase } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
@@ -20,6 +20,8 @@ import { OrderOperationsReport } from '@/components/analytics/OrderOperationsRep
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { PresenceReport } from '@/components/analytics/PresenceReport';
 import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
+import { RimanenzeReport } from '@/components/analytics/RimanenzeReport';
+import { RimanenzeLaborReport } from '@/components/analytics/RimanenzeLaborReport';
 
 export interface AnalyticsSectionConfig {
     id: string;
@@ -103,6 +105,20 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         icon: Clock,
         category: 'production',
         description: 'Weekly presence hours by operator group'
+    },
+    {
+        id: 'rimanenze',
+        label: APP_COPY.analytics.reports.rimanenze,
+        icon: Archive,
+        category: 'other',
+        description: 'Inventory material costs'
+    },
+    {
+        id: 'rimanenze-labor',
+        label: APP_COPY.analytics.reports.rimanenzeLabor,
+        icon: Briefcase,
+        category: 'other',
+        description: 'Inventory labor costs'
     }
 ];
 
@@ -121,6 +137,8 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'order-revenue': OrderRevenueReport,
     'external-work': ExternalWorkReport,
     'presence-report': PresenceReport,
+    'rimanenze': RimanenzeReport,
+    'rimanenze-labor': RimanenzeLaborReport,
 };
 
 /**

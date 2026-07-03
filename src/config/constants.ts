@@ -102,7 +102,7 @@ export const APP_CONFIG = {
 
     // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
     // Add client codes here to hide them from exported PDF reports
-    EXCLUDED_CLIENTS_PDF: ['9010384', '9010194', '9010250', '9010365', '9010262', '9010065', '9010283', '9010013', '9010382', '9010035'] as string[],
+    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365'] as string[],
 
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
@@ -132,6 +132,7 @@ export const APP_CONFIG = {
       'Stampa a caldo': ['167'],
       'Incassatura normale': ['159'],
       'Incassatura veloce': ['114'],
+      'Incassatura manuale': ['113'],
       'Cellofanatura': ['169', '180'],
       // 'Campioni': ['176'],
       // 'Finissaggio': ['100', '117', '118', '119', '121', '123', '124', '126', '127', '128', '129', '130', '131', '134', '136', '138', '175', '198'],
@@ -147,6 +148,7 @@ export const APP_CONFIG = {
       'Cucitura': 1120,
       'Incassatura normale': 2800,
       'Incassatura veloce': 4000,
+      'Incassatura manuale': 350,
       'Piega': 4200,
       'Raccolta': 1120,
       'Stampa a caldo': 1050,
@@ -178,6 +180,11 @@ export const APP_CONFIG = {
     // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
     // Used to filter out short/insignificant tasks (noise)
     MIN_WORK_TIME_MINUTES: 30,
+
+    // Rimanenze Exclusion List
+    // Order numbers (commessa display format - 4 digits) to exclude from rimanenze reports
+    // These are typically internal orders, test orders, or special cases that should not be counted as inventory
+    RIMANENZE_EXCLUDED_ORDERS: ['9994', '9993', '9990', '9998', '9997', '0'] as string[],
   },
 
   // Blueprint Preview Defaults

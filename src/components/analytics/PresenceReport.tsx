@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
+import { getPresenceDataAction, getAvailableMonthsAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY } from '@/locales';
 import { Button } from '@/components/ui/Button';
 import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
@@ -13,14 +13,46 @@ export function PresenceReport() {
     const [data, setData] = useState<PresenceData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number>(3); // Default: March
+    const [selectedMonth, setSelectedMonth] = useState<number>(4); // Default: April
     const [filesProcessed, setFilesProcessed] = useState(0);
+    const [availableMonths, setAvailableMonths] = useState<number[]>([]);
 
-    const months = [
+    const allMonths = [
         { value: 1, label: APP_COPY.months.january },
         { value: 2, label: APP_COPY.months.february },
-        { value: 3, label: APP_COPY.months.march }
+        { value: 3, label: APP_COPY.months.march },
+        { value: 4, label: APP_COPY.months.april },
+        { value: 5, label: APP_COPY.months.may },
+        { value: 6, label: APP_COPY.months.june },
+        { value: 7, label: APP_COPY.months.july },
+        { value: 8, label: APP_COPY.months.august },
+        { value: 9, label: APP_COPY.months.september },
+        { value: 10, label: APP_COPY.months.october },
+        { value: 11, label: APP_COPY.months.november },
+        { value: 12, label: APP_COPY.months.december }
     ];
+
+    const months = allMonths.filter(m => availableMonths.includes(m.value));
+
+    const checkAvailableMonths = async () => {
+        // Fast check - only looks at file existence, doesn't parse data
+        try {
+            const result = await getAvailableMonthsAction(2026);
+            
+            if (result.success && result.months.length > 0) {
+                setAvailableMonths(result.months);
+                
+                // Set default to latest available month
+                if (!result.months.includes(selectedMonth)) {
+                    setSelectedMonth(result.months[result.months.length - 1]);
+                }
+            }
+        } catch (err) {
+            console.error('Error checking available months:', err);
+            // Fallback to showing all months
+            setAvailableMonths([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -43,8 +75,14 @@ export function PresenceReport() {
     };
 
     useEffect(() => {
-        loadData();
-    }, [selectedMonth]);
+        checkAvailableMonths();
+    }, []);
+
+    useEffect(() => {
+        if (availableMonths.includes(selectedMonth)) {
+            loadData();
+        }
+    }, [selectedMonth, availableMonths]);
 
     const formatHours = (hours: number) => {
         return Math.round(hours).toString();

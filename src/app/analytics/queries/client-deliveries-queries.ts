@@ -55,12 +55,14 @@ export async function getClientDeliveriesDataAction(
             'dw.codditt = @company',
             'dw.dw_anno >= @year',
             'an.an_tipo = @clientType',
-            'dw.dw_valore <> 0'
+            'dw.dw_valore <> 0',
+            'dw.dw_tipork = @tipoRec'
         ];
 
         request.input('company', sql.VarChar, 'COOPZANARDI');
         request.input('year', sql.Int, year);
         request.input('clientType', sql.VarChar, 'C');
+        request.input('tipoRec', sql.VarChar, 'B');
 
         // Date filters on dw_datmov
         if (filters.dateFrom) {
@@ -99,14 +101,19 @@ export async function getClientDeliveriesDataAction(
         const sortColumn = sortColumns[sortConfig.column] || 'SUM(dw.dw_valore)';
         const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
 
-        // Count query - count distinct clients
+        // Count query - count distinct clients with non-zero totals
         const countQuery = `
-            SELECT COUNT(DISTINCT an.an_conto) as total
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK)
-                ON dw.dw_conto = an.an_conto
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
+            SELECT COUNT(*) as total
+            FROM (
+                SELECT an.an_conto
+                FROM dwarehe dw WITH (NOLOCK)
+                INNER JOIN anagra an WITH (NOLOCK)
+                    ON dw.dw_conto = an.an_conto
+                    AND dw.codditt = an.codditt
+                WHERE ${whereClause}
+                GROUP BY an.an_conto
+                HAVING SUM(dw.dw_valore) <> 0
+            ) AS filtered_clients
         `;
 
         const countResult = await request.query(countQuery);
@@ -128,6 +135,7 @@ export async function getClientDeliveriesDataAction(
                 AND dw.codditt = an.codditt
             WHERE ${whereClause}
             GROUP BY an.an_conto
+            HAVING SUM(dw.dw_valore) <> 0
             ORDER BY ${sortColumn} ${sortDirection}
             OFFSET @offset ROWS
             FETCH NEXT @limit ROWS ONLY
@@ -181,12 +189,14 @@ export async function getClientDeliveriesStatsAction(
             'dw.codditt = @company',
             'dw.dw_anno >= @year',
             'an.an_tipo = @clientType',
-            'dw.dw_valore <> 0'
+            'dw.dw_valore <> 0',
+            'dw.dw_tipork = @tipoRec'
         ];
 
         request.input('company', sql.VarChar, 'COOPZANARDI');
         request.input('year', sql.Int, year);
         request.input('clientType', sql.VarChar, 'C');
+        request.input('tipoRec', sql.VarChar, 'B');
 
         if (filters.dateFrom) {
             conditions.push('dw.dw_datmov >= @dateFrom');

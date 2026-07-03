@@ -114,7 +114,8 @@ export async function fetchWorkCostsForClients(
           AND dw.dw_datmov >= @startDate
           AND dw.dw_datmov <= @endDate
           AND an.an_tipo = 'C'
-          AND dw.dw_valfatt > 0
+          AND dw.dw_valore <> 0
+          AND dw.dw_tipork = 'B'
           AND dw.dw_commeca > 0
           AND an.an_conto IN (${clientPlaceholders})
     `, commessaParams, 'BUSINESS');

@@ -99,8 +99,19 @@ import {
 } from './queries/client-deliveries-queries';
 
 import {
-    getPresenceDataAction as getPresenceData
+    getPresenceDataAction as getPresenceData,
+    getAvailableMonthsAction as getAvailableMonths
 } from './queries/presence-queries';
+
+import {
+    getRimanenzeDataAction as getRimanenzeData,
+    getRimanenzeStatsAction as getRimanenzeStats
+} from './queries/rimanenze-queries';
+
+import {
+    getRimanenzeLaborDataAction as getRimanenzeLaborData,
+    getRimanenzeLaborStatsAction as getRimanenzeLaborStats
+} from './queries/rimanenze-labor-queries';
 
 // Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
@@ -108,3 +119,12 @@ export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 
 // Export Presence action
 export const getPresenceDataAction = getPresenceData;
+export const getAvailableMonthsAction = getAvailableMonths;
+
+// Export Rimanenze action
+export const getRimanenzeDataAction = getRimanenzeData;
+export const getRimanenzeStatsAction = getRimanenzeStats;
+
+// Export Rimanenze Labor action
+export const getRimanenzeLaborDataAction = getRimanenzeLaborData;
+export const getRimanenzeLaborStatsAction = getRimanenzeLaborStats;

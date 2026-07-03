@@ -353,7 +353,7 @@ export function ClientDeliveriesReport() {
                                             <div className="text-xs text-zinc-500 truncate max-w-xs" title={row.client_name}>{row.client_name}</div>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
-                                            {formatCurrency(row.delivered_value)}
+                                            {formatCurrencyRounded(row.delivered_value)}
                                         </td>
                                     </tr>
                                 ))

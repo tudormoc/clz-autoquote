@@ -30,6 +30,11 @@ import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
 
 const NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
 
+const MONTH_NAMES = [
+    'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+    'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'
+];
+
 interface PresenceRow {
     week: number;
     group: string;
@@ -305,6 +310,51 @@ export async function getPresenceDataAction(
             success: false,
             error: err.message,
             data: null
+        };
+    }
+}
+
+/**
+ * Get list of available months (fast - only checks file existence)
+ */
+export async function getAvailableMonthsAction(year: number = 2026) {
+    try {
+        // Check if network path exists
+        if (!fs.existsSync(NETWORK_PATH)) {
+            return {
+                success: false,
+                error: `Network path not accessible: ${NETWORK_PATH}`,
+                months: []
+            };
+        }
+        
+        // Get all Excel files in directory
+        const files = fs.readdirSync(NETWORK_PATH)
+            .filter(file => file.endsWith('.xlsx') && file.includes('Produzione'))
+            .filter(file => file.includes(String(year)));
+        
+        // Extract month numbers from filenames
+        const availableMonths: number[] = [];
+        
+        for (let monthNum = 1; monthNum <= 12; monthNum++) {
+            const monthName = MONTH_NAMES[monthNum - 1];
+            const hasFile = files.some(file => file.toLowerCase().includes(monthName));
+            if (hasFile) {
+                availableMonths.push(monthNum);
+            }
+        }
+        
+        return {
+            success: true,
+            months: availableMonths
+        };
+        
+    } catch (err: any) {
+        console.error('Error in getAvailableMonthsAction:', err);
+        return {
+            success: false,
+            error: err.message,
+            months: []
         };
     }
 }

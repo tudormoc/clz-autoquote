@@ -73,7 +73,8 @@ export async function getOrderRevenueDataAction(
             'dw.dw_anno >= @year',
             'dw.dw_datmov >= @startDate',
             'dw.dw_datmov <= @endDate',
-            'dw.dw_commeca > 0'
+            'dw.dw_commeca > 0',
+            'dw.dw_tipork = @tipoRec'
         ];
 
         const params: Record<string, any> = {
@@ -82,7 +83,8 @@ export async function getOrderRevenueDataAction(
             startDate,
             endDate,
             offset,
-            limit
+            limit,
+            tipoRec: 'B'
         };
 
         buildCommessaFilterBUSINESS(filters?.commessa, conditions, params, true);
@@ -306,7 +308,8 @@ export async function getClientSummaryDataAction(
             'dw.codditt = @codditt',
             'dw.dw_anno >= @year',
             'dw.dw_datmov >= @startDate',
-            'dw.dw_datmov <= @endDate'
+            'dw.dw_datmov <= @endDate',
+            'dw.dw_tipork = @tipoRec'
         ];
 
         const params: Record<string, any> = {
@@ -315,13 +318,15 @@ export async function getClientSummaryDataAction(
             startDate,
             endDate,
             offset,
-            limit
+            limit,
+            tipoRec: 'B'
         };
 
         buildClientFilter(filters?.client, conditions, params);
         const whereClause = conditions.join(' AND ');
         const orderByClause = buildClientSummaryOrderBy(sort?.column || 'revenue', sort?.direction || 'desc');
-        const queryTimeout = exportAll ? 30000 : undefined;
+        // Increase timeout significantly for this complex query
+        const queryTimeout = exportAll ? 60000 : 45000;
 
         const mainQuery = `
             WITH ClientRevenue AS (
@@ -444,6 +449,7 @@ export async function getClientSummaryDataAction(
             }
         }
 
+        // Fetch work costs
         const clientCodes = allRecords.map(row => row.client_code);
         const { APP_CONFIG } = await import('@/config/constants');
         const workCosts = await fetchWorkCostsForClients(clientCodes, year, startDate, endDate, APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE);
@@ -482,14 +488,16 @@ export async function getClientSummaryStatsAction(
             'dw.codditt = @codditt',
             'dw.dw_anno >= @year',
             'dw.dw_datmov >= @startDate',
-            'dw.dw_datmov <= @endDate'
+            'dw.dw_datmov <= @endDate',
+            'dw.dw_tipork = @tipoRec'
         ];
 
         const params: Record<string, any> = {
             codditt: 'COOPZANARDI',
             year,
             startDate,
-            endDate
+            endDate,
+            tipoRec: 'B'
         };
 
         buildClientFilter(filters?.client, conditions, params);
