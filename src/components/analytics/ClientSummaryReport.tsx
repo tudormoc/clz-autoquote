@@ -153,6 +153,7 @@ export function ClientSummaryReport() {
     };
 
     const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => {
+        if (!appliedFilters) return;
         setPdfLoading(true);
         try {
             const result = await generateClientSummaryPDFAction(
