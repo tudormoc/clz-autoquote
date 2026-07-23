@@ -6,10 +6,10 @@ REM Get commit message from first argument, default to "update"
 set "message=%~1"
 if "%~1"=="" set "message=update"
 
-REM Check if there are any changes to commit
+REM Check if there are any changes to commit (tracked + untracked)
 echo Checking for changes...
-git diff --quiet && git diff --cached --quiet
-if %errorlevel% equ 0 (
+git status --porcelain | findstr /r "." >nul 2>&1
+if %errorlevel% neq 0 (
     echo No changes to commit.
     exit /b 0
 )
