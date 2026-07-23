@@ -263,8 +263,10 @@ export async function updateOperatorAction(
  * Auto-exit: find all operators with an ENT event today but no EXT event,
  * then create an EXT event at the configured time based on the day of the week.
  * Sunday is always skipped.
+ *
+ * @param testOperator - Optional: limit to a single operator code (for testing)
  */
-export async function runAutoExitAction() {
+export async function runAutoExitAction(testOperator?: string) {
     try {
         const now = new Date();
         const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
@@ -282,6 +284,11 @@ export async function runAutoExitAction() {
         // Format today as YYYY-MM-DD for MSSQL date comparison
         const todayStr = now.toISOString().slice(0, 10);
 
+        // Optional single-operator filter (for testing via ?operator=98)
+        const operatorClause = testOperator ? 'AND EVT.OGGETTO = @testOperator' : '';
+        const params: Record<string, any> = { today: todayStr };
+        if (testOperator) params.testOperator = testOperator;
+
         // Find operators with ENT today but zero EXT today
         const findQuery = `
             SELECT DISTINCT EVT.OGGETTO
@@ -289,6 +296,7 @@ export async function runAutoExitAction() {
             WHERE EVT.TASK = 'presenza'
               AND CAST(EVT.ORA_EVENTO AS DATE) = @today
               AND EVT.EVENTO = 'ENT'
+              ${operatorClause}
               AND NOT EXISTS (
                 SELECT 1 FROM EVENTI EVT2 WITH (NOLOCK)
                 WHERE EVT2.TASK = 'presenza'
@@ -298,7 +306,7 @@ export async function runAutoExitAction() {
               )
         `;
 
-        const found = await queryMSSQL(findQuery, { today: todayStr }, 'NETPRO');
+        const found = await queryMSSQL(findQuery, params, 'NETPRO');
         const operators: string[] = found.recordset.map((r: any) => r.OGGETTO as string);
 
         if (operators.length === 0) {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Search, X, ArrowUpDown, ArrowUp, ArrowDown, Save, X as XIcon, Trash2, Plus } from 'lucide-react';
 import { getTodayDate } from '@/lib/dateUtils';
@@ -122,11 +123,17 @@ export function DailyEventsTable() {
         return dataToSort.sort((a, b) => {
             const aVal = a[config.column];
             const bVal = b[config.column];
-            
+
             if (aVal === null || aVal === undefined) return 1;
             if (bVal === null || bVal === undefined) return -1;
-            
-            const comparison = String(aVal).localeCompare(String(bVal));
+
+            let comparison: number;
+            if (config.column === 'ORA_EVENTO') {
+                // Use numeric timestamp comparison — localeCompare breaks on JS Date objects
+                comparison = new Date(aVal).getTime() - new Date(bVal).getTime();
+            } else {
+                comparison = String(aVal).localeCompare(String(bVal));
+            }
             return config.direction === 'asc' ? comparison : -comparison;
         });
     };
@@ -313,11 +320,13 @@ export function DailyEventsTable() {
                             <label className="block text-xs font-medium text-zinc-400 mb-1">
                                 Evento
                             </label>
-                            <Input
-                                type="text"
+                            <Select
                                 value={newEvento}
                                 onChange={(e) => setNewEvento(e.target.value)}
-                                placeholder="ENT or EXT"
+                                options={[
+                                    { label: 'ENT', value: 'ENT' },
+                                    { label: 'EXT', value: 'EXT' }
+                                ]}
                             />
                         </div>
                         <div>
