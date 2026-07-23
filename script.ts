@@ -7,29 +7,28 @@ if (fs.existsSync(envPath)) {
     envFile.split('\n').forEach(line => {
         const match = line.match(/^([^=]+)=(.*)$/);
         if (match) {
-            process.env[match[1]] = match[2];
+            process.env[match[1].trim()] = match[2].trim();
         }
     });
 }
-const { queryMSSQL } = require('./src/lib/mssql.ts');
+const { queryMSSQL } = require('./src/lib/mssql');
 
 async function main() {
     try {
-        const res = await queryMSSQL(`
-            SELECT TOP 10 
-                dw_scenario,
-                SUM(dw_valfatt) as fatt,
-                SUM(dw_valore) as valore,
-                COUNT(*) as row_count
-            FROM dwarehe 
-            WITH (NOLOCK) 
-            WHERE dw_valore > 0 OR dw_valfatt > 0
-            GROUP BY dw_scenario
-            ORDER BY dw_scenario
-        `, {}, 'BUSINESS');
-        console.table(res.recordset);
+        await queryMSSQL(`
+            UPDATE EVENTI
+            SET TIPO_OGGETTO = 'OPE',
+                SOURCE = 'WS',
+                UTENTE = 'ADMIN',
+                OPERATORE = '98'
+            WHERE OGGETTO = '98' 
+              AND EVENTO = 'EXT' 
+              AND CAST(ORA_EVENTO AS DATE) = '2026-07-22'
+        `, {}, 'NETPRO');
+        console.log("Updated test EXT row for 98 with NetPro metadata!");
         process.exit(0);
     } catch (e) {
+        console.error("ERROR:", e);
         process.exit(1);
     }
 }

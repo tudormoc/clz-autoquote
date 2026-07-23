@@ -1,7 +1,7 @@
 import { Header } from '@/components/Header';
 import { APP_COPY } from '@/locales';
 import Link from 'next/link';
-import { FileText, BarChart3, Database } from 'lucide-react';
+import { FileText, BarChart3, Database, Users } from 'lucide-react';
 
 export default function Home() {
     const navigationCards = [
@@ -16,6 +16,12 @@ export default function Home() {
             icon: BarChart3,
             title: APP_COPY.home.cards.analytics.title,
             description: APP_COPY.home.cards.analytics.description,
+        },
+        {
+            href: '/presence',
+            icon: Users,
+            title: 'Operator Presence',
+            description: 'Manage and monitor operator presence events',
         },
         {
             href: '/db-test',
@@ -40,7 +46,7 @@ export default function Home() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
                     {navigationCards.map((card) => {
                         const Icon = card.icon;
                         return (

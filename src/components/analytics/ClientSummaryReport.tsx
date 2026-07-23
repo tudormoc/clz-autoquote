@@ -56,7 +56,7 @@ export function ClientSummaryReport() {
         dateTo: getLastYearEnd(),
         includeAllRevenueForSplit: false
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: 'revenue',
         direction: 'desc'
@@ -65,10 +65,14 @@ export function ClientSummaryReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         const result = await getClientSummaryDataAction(2024, page, limit, {
             client: appliedFilters.client || undefined,
@@ -120,7 +124,10 @@ export function ClientSummaryReport() {
             includeAllRevenueForSplit: false
         };
         setFilters(clearedFilters);
-        setAppliedFilters(clearedFilters);
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
         setSortConfig({
             column: 'revenue',
             direction: 'desc'
@@ -261,7 +268,7 @@ export function ClientSummaryReport() {
         }
     ] : [];
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

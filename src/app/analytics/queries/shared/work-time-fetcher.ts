@@ -30,30 +30,41 @@ export async function fetchWorkTimesForCommessas(
         return {};
     }
 
-    const timeParams: Record<string, any> = {};
-    const placeholders = commessaCodes.map((code, i) => {
-        timeParams[`code${i}`] = code;
-        return `@code${i}`;
-    }).join(', ');
-
-    const timeResult = await queryMSSQL(`
-        SELECT 
-            SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
-            SUM(SIT.LAVORO) as total_work_time
-        FROM SITUAZIONI SIT WITH (NOLOCK)
-        LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-        LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-        WHERE SIT.TIPO = 'WORK'
-          AND SIT.TIPO_OGGETTO = 'OPE'
-          AND ORD.COMMESSA IS NOT NULL
-          AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
-        GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
-    `, timeParams, 'NETPRO');
-
+    // Batch queries if too many commessas to avoid SQL parameter limits
+    const BATCH_SIZE = 500;
     const workTimes: Record<string, number> = {};
-    timeResult.recordset.forEach(row => {
-        workTimes[row.commessa_code] = row.total_work_time || 0;
-    });
+
+    for (let i = 0; i < commessaCodes.length; i += BATCH_SIZE) {
+        const batch = commessaCodes.slice(i, i + BATCH_SIZE);
+        const timeParams: Record<string, any> = {};
+        const placeholders = batch.map((code, idx) => {
+            timeParams[`code${idx}`] = code;
+            return `@code${idx}`;
+        }).join(', ');
+
+        try {
+            const timeResult = await queryMSSQL(`
+                SELECT 
+                    SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
+                    SUM(SIT.LAVORO) as total_work_time
+                FROM SITUAZIONI SIT WITH (NOLOCK)
+                LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+                LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+                WHERE SIT.TIPO = 'WORK'
+                  AND SIT.TIPO_OGGETTO = 'OPE'
+                  AND ORD.COMMESSA IS NOT NULL
+                  AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
+                GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
+            `, timeParams, 'NETPRO', 15000); // 15 second timeout
+
+            timeResult.recordset.forEach(row => {
+                workTimes[row.commessa_code] = row.total_work_time || 0;
+            });
+        } catch (err: any) {
+            console.error(`Work time fetch error for batch ${i / BATCH_SIZE + 1}:`, err.message);
+            // Continue with other batches even if one fails
+        }
+    }
 
     return workTimes;
 }

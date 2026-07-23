@@ -223,6 +223,7 @@ export const APP_COPY = {
       orderRevenue: "Ricavo Ordini",
       externalWork: "Lavorazioni Esterne",
       presenceReport: "Report Presenze",
+      annualPresenceReport: "Presenze Annuali",
       rimanenze: "Rimanenze (Materiali)",
       rimanenzeLabor: "Rimanenze (Lavoro)",
     },
@@ -411,10 +412,25 @@ export const APP_COPY = {
     presence: {
       title: "Presenza Settimanale",
       subtitle: "Ore ordinarie per gruppo operatori",
+      annualTitle: "Presenza Annuale 2026",
+      annualSubtitle: "Ore ordinarie per gruppo operatori - Anno completo",
       week: "Settimana",
       total: "Totale",
       copy: "Copia",
       filesProcessed: "File elaborati",
+    },
+    operators: {
+      title: "Operatori",
+      subtitle: "Anagrafica operatori con stato fisico e badge",
+      searchPlaceholder: "es. OP01 o Mario, o OP01,OP02",
+      headers: {
+        id: "Operatore",
+        nome: "Nome",
+        badge: "Badge",
+        statoFisico: "Stato Fisico",
+      },
+      noResults: "Nessun operatore trovato.",
+      loading: "Caricamento operatori...",
     },
     clientSummary: {
       headers: {

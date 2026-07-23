@@ -102,7 +102,7 @@ export const APP_CONFIG = {
 
     // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
     // Add client codes here to hide them from exported PDF reports
-    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365'] as string[],
+    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365', '9010382', '9010179'] as string[],
 
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing

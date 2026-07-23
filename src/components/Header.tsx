@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, Database, BarChart3, FileText, Settings } from 'lucide-react';
+import { BookOpen, Database, BarChart3, FileText, Settings, Users } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import Link from 'next/link';
 
@@ -37,6 +37,13 @@ export const Header = () => {
                         title="Analytics Dashboard"
                     >
                         <BarChart3 className="h-5 w-5" />
+                    </Link>
+                    <Link
+                        href="/presence"
+                        className="p-2 text-zinc-400 hover:text-primary hover:bg-zinc-800 rounded-md transition-all"
+                        title="Operator Presence"
+                    >
+                        <Users className="h-5 w-5" />
                     </Link>
                     <Link
                         href="/settings"

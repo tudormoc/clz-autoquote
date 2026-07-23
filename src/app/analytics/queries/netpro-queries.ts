@@ -412,7 +412,9 @@ export async function getAreaSummaryDataAction(
         // Convert to array format and sum unique commessa quantities
         let areaData = Array.from(areaMap.entries()).map(([area_name, data], index) => {
             const totalQty = Array.from(data.commessas.values()).reduce((sum, qty) => sum + qty, 0);
-            const velocity = data.work_time > 0 ? totalQty / data.work_time : 0;
+            // Apply 2% excess for velocity calculation
+            const adjustedQty = totalQty * 1.02;
+            const velocity = data.work_time > 0 ? adjustedQty / data.work_time : 0;
             
             // Get target velocity and calculate efficiency
             const targetVelocity = APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY[area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY] || 0;

@@ -8,7 +8,7 @@
  * 3. Import and add to REPORT_COMPONENTS map
  */
 
-import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck, Table2, Archive, Briefcase } from 'lucide-react';
+import { LucideIcon, Users, Package, Calendar, FileText, DollarSign, BarChart3, Clock, Truck, Table2, Archive, Briefcase, CalendarDays } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { ProductionReport } from '@/components/analytics/ProductionReport';
 import { OrderSummaryReport } from '@/components/analytics/OrderSummaryReport';
@@ -19,6 +19,7 @@ import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { PresenceReport } from '@/components/analytics/PresenceReport';
+import { AnnualPresenceReport } from '@/components/analytics/AnnualPresenceReport';
 import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
 import { RimanenzeReport } from '@/components/analytics/RimanenzeReport';
 import { RimanenzeLaborReport } from '@/components/analytics/RimanenzeLaborReport';
@@ -107,6 +108,13 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'Weekly presence hours by operator group'
     },
     {
+        id: 'annual-presence-report',
+        label: APP_COPY.analytics.reports.annualPresenceReport,
+        icon: CalendarDays,
+        category: 'production',
+        description: 'Full year presence hours by operator group'
+    },
+    {
         id: 'rimanenze',
         label: APP_COPY.analytics.reports.rimanenze,
         icon: Archive,
@@ -137,6 +145,7 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'order-revenue': OrderRevenueReport,
     'external-work': ExternalWorkReport,
     'presence-report': PresenceReport,
+    'annual-presence-report': AnnualPresenceReport,
     'rimanenze': RimanenzeReport,
     'rimanenze-labor': RimanenzeLaborReport,
 };
