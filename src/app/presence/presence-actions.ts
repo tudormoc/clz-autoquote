@@ -1,6 +1,7 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
+import { APP_CONFIG } from '@/config/constants';
 
 export async function getDailyEventsAction(
     dateFrom: string, 
@@ -254,6 +255,87 @@ export async function updateOperatorAction(
         return {
             success: false,
             error: err.message as string
+        };
+    }
+}
+
+/**
+ * Auto-exit: find all operators with an ENT event today but no EXT event,
+ * then create an EXT event at the configured time based on the day of the week.
+ * Sunday is always skipped.
+ */
+export async function runAutoExitAction() {
+    try {
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+        // Skip Sundays
+        if (dayOfWeek === 0) {
+            return { success: true, skipped: true, reason: 'Sunday — no auto-exit', processed: 0 };
+        }
+
+        // Pick the correct exit time based on day
+        const exitTime = dayOfWeek === 6
+            ? APP_CONFIG.PRESENCE.AUTO_EXIT_TIME_SATURDAY
+            : APP_CONFIG.PRESENCE.AUTO_EXIT_TIME_WEEKDAY;
+
+        // Format today as YYYY-MM-DD for MSSQL date comparison
+        const todayStr = now.toISOString().slice(0, 10);
+
+        // Find operators with ENT today but zero EXT today
+        const findQuery = `
+            SELECT DISTINCT EVT.OGGETTO
+            FROM EVENTI EVT WITH (NOLOCK)
+            WHERE EVT.TASK = 'presenza'
+              AND CAST(EVT.ORA_EVENTO AS DATE) = @today
+              AND EVT.EVENTO = 'ENT'
+              AND NOT EXISTS (
+                SELECT 1 FROM EVENTI EVT2 WITH (NOLOCK)
+                WHERE EVT2.TASK = 'presenza'
+                  AND EVT2.OGGETTO = EVT.OGGETTO
+                  AND CAST(EVT2.ORA_EVENTO AS DATE) = @today
+                  AND EVT2.EVENTO = 'EXT'
+              )
+        `;
+
+        const found = await queryMSSQL(findQuery, { today: todayStr }, 'NETPRO');
+        const operators: string[] = found.recordset.map((r: any) => r.OGGETTO as string);
+
+        if (operators.length === 0) {
+            return { success: true, skipped: false, processed: 0, operators: [] };
+        }
+
+        // Build the full datetime string for the EXT event: YYYY-MM-DD HH:MM:SS.000
+        const oraEvento = `${todayStr} ${exitTime}.000`;
+
+        // Create EXT event and update STATO_FISICO for each operator
+        for (const oggetto of operators) {
+            await queryMSSQL(
+                `INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
+                 VALUES (@oggetto, 'EXT', @oraEvento, 'presenza', 'OPE', 'WS', 'AUTO', @oggetto)`,
+                { oggetto, oraEvento },
+                'NETPRO'
+            );
+            await queryMSSQL(
+                `UPDATE OPERATORI SET STATO_FISICO = 'OUT' WHERE OPERATORE = @oggetto`,
+                { oggetto },
+                'NETPRO'
+            );
+        }
+
+        return {
+            success: true,
+            skipped: false,
+            processed: operators.length,
+            operators,
+            exitTime,
+            date: todayStr,
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message as string,
+            processed: 0,
         };
     }
 }

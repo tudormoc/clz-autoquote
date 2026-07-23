@@ -193,6 +193,16 @@ export const APP_CONFIG = {
     TURN_IN: 18,         // mm - Wrap around material
     BLEED: 0,            // mm - Extra print margin
   },
+
+  // Presence / Auto-Exit Configuration
+  PRESENCE: {
+    // Time used for auto-generated EXT events on weekdays (Mon–Fri)
+    AUTO_EXIT_TIME_WEEKDAY: '15:30:00',
+    // Time used for auto-generated EXT events on Saturdays
+    AUTO_EXIT_TIME_SATURDAY: '11:00:00',
+    // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
+    TRIGGER_HOUR: 19,
+  },
 } as const;
 
 // ============================================================================
