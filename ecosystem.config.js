@@ -3,8 +3,8 @@ module.exports = {
         {
             // Main Next.js application
             name: 'clz-autoquote',
-            script: './node_modules/next/dist/bin/next',
-            args: 'start',
+            script: 'node',
+            args: './node_modules/next/dist/bin/next start',
             cwd: './',
             instances: 1,
             autorestart: true,

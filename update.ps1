@@ -3,6 +3,7 @@
 # Usage: .\update.ps1
 
 Write-Host "`n[1/4] Pulling latest changes from Git..." -ForegroundColor Cyan
+git checkout -- next-env.d.ts 2>$null
 git pull
 
 Write-Host "`n[2/4] Installing dependencies (new packages)..." -ForegroundColor Cyan
