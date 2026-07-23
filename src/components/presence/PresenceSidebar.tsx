@@ -3,22 +3,18 @@
 import { ChevronLeft, ChevronRight, Calendar, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { APP_COPY } from '@/locales';
 
 interface PresenceSidebarProps {
     activeSection: string;
 }
 
+const copy = APP_COPY.analytics;
+
+// Nav sections — labels from locale, no hardcoded strings
 const PRESENCE_SECTIONS = [
-    {
-        id: 'operators',
-        label: 'Operatori',
-        icon: Users,
-    },
-    {
-        id: 'daily-events',
-        label: 'Daily Events',
-        icon: Calendar,
-    },
+    { id: 'operators',    label: copy.operators.title,    icon: Users },
+    { id: 'daily-events', label: copy.dailyEvents.title,  icon: Calendar },
 ];
 
 export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {
@@ -35,8 +31,8 @@ export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {
                 {/* Header */}
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                     {!isCollapsed && (
-                        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
-                            Dashboards
+                        <h2 className="text-sm font-semibold text-zinc-400">
+                            {copy.presenceSidebar.heading}
                         </h2>
                     )}
                     <button
@@ -87,12 +83,12 @@ export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {
                                 ? 'bg-primary/10 text-primary'
                                 : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
                         }`}
-                        title={isCollapsed ? 'Impostazioni' : undefined}
+                        title={isCollapsed ? copy.presenceSidebar.settings : undefined}
                     >
                         <Settings size={18} className="flex-shrink-0" />
                         {!isCollapsed && (
                             <span className="text-sm font-medium truncate">
-                                Impostazioni
+                                {copy.presenceSidebar.settings}
                             </span>
                         )}
                     </Link>

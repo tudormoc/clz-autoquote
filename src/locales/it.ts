@@ -432,6 +432,14 @@ export const APP_COPY = {
       noResults: "Nessun operatore trovato.",
       loading: "Caricamento operatori...",
     },
+    dailyEvents: {
+      title: "Daily Events",
+      subtitle: "Visualizza e modifica gli eventi di presenza degli operatori per oggi",
+    },
+    presenceSidebar: {
+      heading: "Dashboards",
+      settings: "Impostazioni",
+    },
     presenceSettings: {
       title: "Impostazioni Presenze",
       subtitle: "Parametri di configurazione, orari di auto-uscita e regole sistema presenze",

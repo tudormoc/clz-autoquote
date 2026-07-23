@@ -2,8 +2,11 @@ import { Header } from '@/components/Header';
 import { PresenceSidebar } from '@/components/presence/PresenceSidebar';
 import { DailyEventsTable } from '@/components/presence/DailyEventsTable';
 import { Calendar } from 'lucide-react';
+import { APP_COPY } from '@/locales';
 
 export default function DailyEventsPage() {
+    const copy = APP_COPY.analytics.dailyEvents;
+
     return (
         <div className="h-screen flex flex-col bg-background overflow-hidden">
             <Header />
@@ -18,13 +21,11 @@ export default function DailyEventsPage() {
                         <div className="mb-6">
                             <div className="flex items-center gap-3 mb-2">
                                 <Calendar className="text-primary" size={24} />
-                                <h1 className="text-2xl font-bold text-white">
-                                    Daily Events
+                                <h1 className="text-2xl font-bold text-zinc-100">
+                                    {copy.title}
                                 </h1>
                             </div>
-                            <p className="text-zinc-400">
-                                View and edit operator presence events for today
-                            </p>
+                            <p className="text-zinc-400">{copy.subtitle}</p>
                         </div>
 
                         {/* Dashboard content */}
