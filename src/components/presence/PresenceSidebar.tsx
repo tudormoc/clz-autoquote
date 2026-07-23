@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Calendar, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -19,15 +19,11 @@ const PRESENCE_SECTIONS = [
         label: 'Daily Events',
         icon: Calendar,
     },
-    {
-        id: 'badge-timbrature',
-        label: 'Badge Timbrature',
-        icon: Calendar,
-    },
 ];
 
 export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const isSettingsActive = activeSection === 'settings';
 
     return (
         <aside
@@ -81,6 +77,26 @@ export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {
                         })}
                     </div>
                 </nav>
+
+                {/* Bottom Settings Link */}
+                <div className="p-2 border-t border-zinc-800 mt-auto">
+                    <Link
+                        href="/presence/settings"
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
+                            isSettingsActive
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                        }`}
+                        title={isCollapsed ? 'Impostazioni' : undefined}
+                    >
+                        <Settings size={18} className="flex-shrink-0" />
+                        {!isCollapsed && (
+                            <span className="text-sm font-medium truncate">
+                                Impostazioni
+                            </span>
+                        )}
+                    </Link>
+                </div>
             </div>
         </aside>
     );

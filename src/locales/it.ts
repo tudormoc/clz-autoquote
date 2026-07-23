@@ -432,6 +432,17 @@ export const APP_COPY = {
       noResults: "Nessun operatore trovato.",
       loading: "Caricamento operatori...",
     },
+    presenceSettings: {
+      title: "Impostazioni Presenze",
+      subtitle: "Parametri di configurazione, orari di auto-uscita e regole sistema presenze",
+      autoExitSection: "Configurazione Auto-Uscita (EXT)",
+      autoExitWeekday: "Orario Auto-Uscita Feriale (Lun-Ven)",
+      autoExitSaturday: "Orario Auto-Uscita Sabato",
+      triggerHour: "Ora Esecuzione Controllo (24h)",
+      systemInfo: "Informazioni Sistema Presenze",
+      activeStatus: "Stato Regole Presenze",
+      activeDesc: "Le uscite automatiche vengono generate ogni giorno alle ore specificate per le timbrature mancanti.",
+    },
     clientSummary: {
       headers: {
         client: "Cliente",

@@ -213,29 +213,53 @@ export function DailyEventsTable() {
         const rawVal = row.ORA_EVENTO as any;
         const rawStr = rawVal instanceof Date ? rawVal.toISOString() : String(row.ORA_EVENTO);
         const rowDate = rawStr.slice(0, 10);
+        const rowTimeMs = new Date(row.ORA_EVENTO).getTime();
         
-        // Find all events for this operator on the same day in the loaded data
-        const siblingEvents = data.filter(item => {
-            const itemVal = item.ORA_EVENTO as any;
-            const itemStr = itemVal instanceof Date ? itemVal.toISOString() : String(item.ORA_EVENTO);
-            return item.OGGETTO === row.OGGETTO && itemStr.slice(0, 10) === rowDate;
-        });
+        // Find all events for this operator on the same day, sorted chronologically
+        const dayEvents = data
+            .filter(item => {
+                const itemVal = item.ORA_EVENTO as any;
+                const itemStr = itemVal instanceof Date ? itemVal.toISOString() : String(item.ORA_EVENTO);
+                return item.OGGETTO === row.OGGETTO && itemStr.slice(0, 10) === rowDate;
+            })
+            .sort((a, b) => new Date(a.ORA_EVENTO).getTime() - new Date(b.ORA_EVENTO).getTime());
 
-        const eventsListStr = siblingEvents
-            .map(e => `• ${e.EVENTO} at ${formatDateTime(e.ORA_EVENTO)}`)
-            .join('\n');
-
-        const confirmMsg = `Operator ${row.OGGETTO} has ${siblingEvents.length} event(s) on this date:\n${eventsListStr}\n\nClick OK to delete ALL matching events (entire pair) for today.\nClick CANCEL to delete ONLY this single ${row.EVENTO} event.`;
-
-        const deletePair = confirm(confirmMsg);
-
-        let proceedSingle = true;
-        if (!deletePair) {
-            proceedSingle = confirm(`Are you sure you want to delete ONLY this single ${row.EVENTO} event (${formatDateTime(row.ORA_EVENTO)})?`);
-            if (!proceedSingle) return;
+        // Find closest partner event (nearest ENT before EXT, or nearest EXT after ENT)
+        let partnerEvent: EventRow | undefined = undefined;
+        if (row.EVENTO === 'EXT') {
+            // Find closest ENT preceding this EXT
+            partnerEvent = dayEvents
+                .filter(e => e.EVENTO === 'ENT' && new Date(e.ORA_EVENTO).getTime() <= rowTimeMs)
+                .pop();
+        } else if (row.EVENTO === 'ENT') {
+            // Find closest EXT following this ENT
+            partnerEvent = dayEvents
+                .find(e => e.EVENTO === 'EXT' && new Date(e.ORA_EVENTO).getTime() >= rowTimeMs);
         }
 
-        const result = await deleteEventAction(row.OGGETTO, row.ORA_EVENTO, deletePair);
+        let confirmMsg = `Deleting ${row.EVENTO} event (${formatDateTime(row.ORA_EVENTO)}).\n\n`;
+
+        if (partnerEvent) {
+            confirmMsg += `Found paired ${partnerEvent.EVENTO} event at ${formatDateTime(partnerEvent.ORA_EVENTO)}.\n\n`;
+            confirmMsg += `Click OK to delete BOTH paired events (${row.EVENTO} + ${partnerEvent.EVENTO}).\n`;
+            confirmMsg += `Click CANCEL to delete ONLY this single ${row.EVENTO} event.`;
+        } else {
+            confirmMsg += `No paired event found on this date.\nAre you sure you want to delete this event?`;
+        }
+
+        const deletePair = partnerEvent ? confirm(confirmMsg) : false;
+
+        let proceed = true;
+        if (partnerEvent && !deletePair) {
+            proceed = confirm(`Are you sure you want to delete ONLY this single ${row.EVENTO} event?`);
+        } else if (!partnerEvent) {
+            proceed = confirm(confirmMsg);
+        }
+
+        if (!proceed) return;
+
+        const pairedOra = (deletePair && partnerEvent) ? partnerEvent.ORA_EVENTO : null;
+        const result = await deleteEventAction(row.OGGETTO, row.ORA_EVENTO, pairedOra);
         if (result.success) {
             handleApplyFilters();
         } else {

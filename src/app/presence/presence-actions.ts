@@ -106,21 +106,25 @@ export async function updateEventAction(
     }
 }
 
-export async function deleteEventAction(oggetto: string, oraEvento: any, deletePair: boolean = false) {
+export async function deleteEventAction(
+    oggetto: string,
+    oraEvento: any,
+    pairedOraEvento?: string | null
+) {
     try {
         const rawOraVal = oraEvento as any;
         const rawOraStr = rawOraVal instanceof Date ? rawOraVal.toISOString() : String(oraEvento);
         const todayStr = rawOraStr.slice(0, 10);
 
-        if (deletePair) {
-            // Delete ALL events for this operator on this date to keep pair intact
+        if (pairedOraEvento) {
+            // Delete specifically the selected event AND its paired event
             const deletePairQuery = `
                 DELETE FROM EVENTI
                 WHERE OGGETTO = @oggetto
-                  AND CAST(ORA_EVENTO AS DATE) = @today
                   AND TASK = 'presenza'
+                  AND (ORA_EVENTO = @oraEvento OR ORA_EVENTO = @pairedOraEvento)
             `;
-            await queryMSSQL(deletePairQuery, { oggetto, today: todayStr }, 'NETPRO');
+            await queryMSSQL(deletePairQuery, { oggetto, oraEvento, pairedOraEvento }, 'NETPRO');
         } else {
             // Delete only single event
             const query = `
