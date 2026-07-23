@@ -210,12 +210,14 @@ export function DailyEventsTable() {
     };
 
     const handleDeleteEvent = async (row: EventRow) => {
-        const rawStr = row.ORA_EVENTO instanceof Date ? (row.ORA_EVENTO as Date).toISOString() : String(row.ORA_EVENTO);
+        const rawVal = row.ORA_EVENTO as any;
+        const rawStr = rawVal instanceof Date ? rawVal.toISOString() : String(row.ORA_EVENTO);
         const rowDate = rawStr.slice(0, 10);
         
         // Find all events for this operator on the same day in the loaded data
         const siblingEvents = data.filter(item => {
-            const itemStr = item.ORA_EVENTO instanceof Date ? (item.ORA_EVENTO as Date).toISOString() : String(item.ORA_EVENTO);
+            const itemVal = item.ORA_EVENTO as any;
+            const itemStr = itemVal instanceof Date ? itemVal.toISOString() : String(item.ORA_EVENTO);
             return item.OGGETTO === row.OGGETTO && itemStr.slice(0, 10) === rowDate;
         });
 

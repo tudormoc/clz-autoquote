@@ -106,9 +106,10 @@ export async function updateEventAction(
     }
 }
 
-export async function deleteEventAction(oggetto: string, oraEvento: string | Date, deletePair: boolean = false) {
+export async function deleteEventAction(oggetto: string, oraEvento: any, deletePair: boolean = false) {
     try {
-        const rawOraStr = oraEvento instanceof Date ? oraEvento.toISOString() : String(oraEvento);
+        const rawOraVal = oraEvento as any;
+        const rawOraStr = rawOraVal instanceof Date ? rawOraVal.toISOString() : String(oraEvento);
         const todayStr = rawOraStr.slice(0, 10);
 
         if (deletePair) {
