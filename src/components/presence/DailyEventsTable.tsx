@@ -356,7 +356,7 @@ export function DailyEventsTable() {
             {appliedFilters !== null && data.length > 0 && (
                 <div className="flex items-center justify-between text-sm text-zinc-400">
                     <span>
-                        {APP_COPY.analytics.common.showing} <strong className="text-primary">{data.length}</strong> {APP_COPY.analytics.common.results}
+                        {APP_COPY.analytics.common.showing} <strong className="text-primary">{data.length}</strong> {APP_COPY.analytics.common.records}
                     </span>
                     <span className="text-xs text-zinc-500">
                         Click on ORA_EVENTO cells to edit

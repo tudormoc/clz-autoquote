@@ -324,7 +324,7 @@ export async function getAvailableMonthsAction(year: number = 2026) {
             return {
                 success: false,
                 error: `Network path not accessible: ${NETWORK_PATH}`,
-                months: []
+                months: [] as number[]
             };
         }
         
@@ -354,7 +354,7 @@ export async function getAvailableMonthsAction(year: number = 2026) {
         return {
             success: false,
             error: err.message,
-            months: []
+            months: [] as number[]
         };
     }
 }

@@ -184,7 +184,7 @@ export function ClientSummaryReport() {
     };
 
     const handleExportExcel = async () => {
-        if (loading) return; // Prevent multiple clicks
+        if (!appliedFilters || loading) return; // Prevent multiple clicks
         setLoading(true);
         try {
             const result = await getClientSummaryDataAction(2024, 1, 999999, {
