@@ -11,8 +11,8 @@ npm install
 Write-Host "`n[3/4] Building production bundle..." -ForegroundColor Cyan
 npm run build
 
-Write-Host "`n[4/4] Reloading PM2 processes..." -ForegroundColor Cyan
-pm2 reload ecosystem.config.js --update-env
+Write-Host "`n[4/4] Restarting PM2 processes..." -ForegroundColor Cyan
+pm2 restart ecosystem.config.js --update-env
 pm2 save
 
 Write-Host "`n✅ Done! App updated and running." -ForegroundColor Green
