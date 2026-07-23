@@ -137,6 +137,7 @@ export function ClientSummaryReport() {
     };
 
     const loadSummary = async () => {
+        if (!appliedFilters) return;
         setSummaryLoading(true);
         const result = await getClientSummaryStatsAction(2024, {
             client: appliedFilters.client || undefined,
