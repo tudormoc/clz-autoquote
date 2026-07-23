@@ -28,7 +28,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
 
-const NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
+const PRIMARY_NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
+const FALLBACK_MAPPED_PATH = 'Z:\\';
+
+function getValidPath(): string | null {
+    if (fs.existsSync(PRIMARY_NETWORK_PATH)) return PRIMARY_NETWORK_PATH;
+    if (fs.existsSync(FALLBACK_MAPPED_PATH)) return FALLBACK_MAPPED_PATH;
+    return null;
+}
 
 const MONTH_NAMES = [
     'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
@@ -244,17 +251,17 @@ export async function getPresenceDataAction(
     months: number[] = [] // Empty = all months, or [1,2,3] for specific months
 ) {
     try {
-        // Check if network path exists
-        if (!fs.existsSync(NETWORK_PATH)) {
+        const activePath = getValidPath();
+        if (!activePath) {
             return {
                 success: false,
-                error: `Network path not accessible: ${NETWORK_PATH}`,
+                error: `Network path not accessible: ${PRIMARY_NETWORK_PATH} or ${FALLBACK_MAPPED_PATH}`,
                 data: null
             };
         }
         
         // Get all Excel files in directory
-        const files = fs.readdirSync(NETWORK_PATH)
+        const files = fs.readdirSync(activePath)
             .filter(file => file.endsWith('.xlsx') && file.includes('Produzione'))
             .filter(file => file.includes(String(year)));
         
@@ -282,7 +289,7 @@ export async function getPresenceDataAction(
         const allRows: PresenceRow[] = [];
         
         for (const file of filesToProcess) {
-            const filePath = path.join(NETWORK_PATH, file);
+            const filePath = path.join(activePath, file);
             const rows = parseExcelFile(filePath);
             allRows.push(...rows);
         }
@@ -319,17 +326,17 @@ export async function getPresenceDataAction(
  */
 export async function getAvailableMonthsAction(year: number = 2026) {
     try {
-        // Check if network path exists
-        if (!fs.existsSync(NETWORK_PATH)) {
+        const activePath = getValidPath();
+        if (!activePath) {
             return {
                 success: false,
-                error: `Network path not accessible: ${NETWORK_PATH}`,
+                error: `Network path not accessible: ${PRIMARY_NETWORK_PATH} or ${FALLBACK_MAPPED_PATH}`,
                 months: [] as number[]
             };
         }
         
         // Get all Excel files in directory
-        const files = fs.readdirSync(NETWORK_PATH)
+        const files = fs.readdirSync(activePath)
             .filter(file => file.endsWith('.xlsx') && file.includes('Produzione'))
             .filter(file => file.includes(String(year)));
         
