@@ -106,20 +106,57 @@ export async function updateEventAction(
     }
 }
 
-export async function deleteEventAction(oggetto: string, oraEvento: string) {
+export async function deleteEventAction(oggetto: string, oraEvento: string | Date, deletePair: boolean = false) {
     try {
-        const query = `
-            DELETE FROM EVENTI
-            WHERE OGGETTO = @oggetto
-              AND ORA_EVENTO = @oraEvento
-              AND TASK = 'presenza'
-        `;
+        const rawOraStr = oraEvento instanceof Date ? oraEvento.toISOString() : String(oraEvento);
+        const todayStr = rawOraStr.slice(0, 10);
 
-        await queryMSSQL(query, { oggetto, oraEvento }, 'NETPRO');
+        if (deletePair) {
+            // Delete ALL events for this operator on this date to keep pair intact
+            const deletePairQuery = `
+                DELETE FROM EVENTI
+                WHERE OGGETTO = @oggetto
+                  AND CAST(ORA_EVENTO AS DATE) = @today
+                  AND TASK = 'presenza'
+            `;
+            await queryMSSQL(deletePairQuery, { oggetto, today: todayStr }, 'NETPRO');
+        } else {
+            // Delete only single event
+            const query = `
+                DELETE FROM EVENTI
+                WHERE OGGETTO = @oggetto
+                  AND ORA_EVENTO = @oraEvento
+                  AND TASK = 'presenza'
+            `;
+            await queryMSSQL(query, { oggetto, oraEvento }, 'NETPRO');
+        }
+
+        // Recalculate latest status for operator based on remaining events today
+        const latestEventQuery = `
+            SELECT TOP 1 EVENTO
+            FROM EVENTI WITH (NOLOCK)
+            WHERE OGGETTO = @oggetto
+              AND TASK = 'presenza'
+              AND CAST(ORA_EVENTO AS DATE) = @today
+            ORDER BY ORA_EVENTO DESC
+        `;
+        const latestRes = await queryMSSQL(latestEventQuery, { oggetto, today: todayStr }, 'NETPRO');
+        
+        let newStatus = 'OUT';
+        if (latestRes.recordset.length > 0) {
+            const lastEvt = String(latestRes.recordset[0].EVENTO).trim().toUpperCase();
+            newStatus = lastEvt === 'ENT' ? 'IN' : 'OUT';
+        }
+
+        await queryMSSQL(
+            `UPDATE OPERATORI SET STATO_FISICO = @newStatus WHERE OPERATORE = @oggetto`,
+            { newStatus, oggetto },
+            'NETPRO'
+        );
 
         return {
             success: true,
-            message: 'Event deleted successfully'
+            message: 'Event deleted and status updated successfully'
         };
     } catch (err: any) {
         return {

@@ -8,7 +8,7 @@ import Link from 'next/link';
 export const Header = () => {
     return (
         <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
-            <div className="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div className="w-full px-6 h-14 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <div className="bg-primary p-1.5 rounded text-primary-foreground">
                         <BookOpen className="h-5 w-5" strokeWidth={2.5} />

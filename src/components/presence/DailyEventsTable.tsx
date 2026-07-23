@@ -210,11 +210,30 @@ export function DailyEventsTable() {
     };
 
     const handleDeleteEvent = async (row: EventRow) => {
-        if (!confirm(`Are you sure you want to delete event for ${row.OGGETTO} at ${formatDateTime(row.ORA_EVENTO)}?`)) {
-            return;
+        const rawStr = row.ORA_EVENTO instanceof Date ? (row.ORA_EVENTO as Date).toISOString() : String(row.ORA_EVENTO);
+        const rowDate = rawStr.slice(0, 10);
+        
+        // Find all events for this operator on the same day in the loaded data
+        const siblingEvents = data.filter(item => {
+            const itemStr = item.ORA_EVENTO instanceof Date ? (item.ORA_EVENTO as Date).toISOString() : String(item.ORA_EVENTO);
+            return item.OGGETTO === row.OGGETTO && itemStr.slice(0, 10) === rowDate;
+        });
+
+        const eventsListStr = siblingEvents
+            .map(e => `• ${e.EVENTO} at ${formatDateTime(e.ORA_EVENTO)}`)
+            .join('\n');
+
+        const confirmMsg = `Operator ${row.OGGETTO} has ${siblingEvents.length} event(s) on this date:\n${eventsListStr}\n\nClick OK to delete ALL matching events (entire pair) for today.\nClick CANCEL to delete ONLY this single ${row.EVENTO} event.`;
+
+        const deletePair = confirm(confirmMsg);
+
+        let proceedSingle = true;
+        if (!deletePair) {
+            proceedSingle = confirm(`Are you sure you want to delete ONLY this single ${row.EVENTO} event (${formatDateTime(row.ORA_EVENTO)})?`);
+            if (!proceedSingle) return;
         }
 
-        const result = await deleteEventAction(row.OGGETTO, row.ORA_EVENTO);
+        const result = await deleteEventAction(row.OGGETTO, row.ORA_EVENTO, deletePair);
         if (result.success) {
             handleApplyFilters();
         } else {
