@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { APP_CONFIG } from '@/config/constants';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
+import { copyToClipboard } from '@/lib/clipboard';
 
 // Lookup table for expected velocity per area — sourced from constants (single source of truth)
 const AREA_EXPECTED_VELOCITY = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY;
@@ -375,7 +376,7 @@ export function OrderAreaSummaryReport() {
             text += '\n';
         });
         
-        navigator.clipboard.writeText(text).catch(err => {
+        copyToClipboard(text).catch(err => {
             console.error('Failed to copy summary:', err);
         });
     };

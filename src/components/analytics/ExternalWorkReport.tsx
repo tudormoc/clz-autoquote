@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, 
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
+import { copyToClipboard } from '@/lib/clipboard';
 
 interface ExternalWorkRow {
     commessa_display: string;
@@ -168,7 +169,7 @@ export function ExternalWorkReport() {
         const workHours = Math.round(summaryData.total_value / APP_CONFIG.ANALYTICS.PARTIAL_LABOR_RATE);
         text += `\n${APP_COPY.analytics.externalWork.stats.workHours}: ${workHours} ore`;
 
-        navigator.clipboard.writeText(text).catch(err => {
+        copyToClipboard(text).catch(err => {
             console.error('Failed to copy summary:', err);
         });
     };

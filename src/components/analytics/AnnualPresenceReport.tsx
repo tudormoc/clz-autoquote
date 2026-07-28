@@ -6,6 +6,7 @@ import { APP_COPY } from '@/locales';
 import { Button } from '@/components/ui/Button';
 import { PresenceData } from '@/types';
 import { Clock, Copy } from 'lucide-react';
+import { copyToClipboard } from '@/lib/clipboard';
 
 export function AnnualPresenceReport() {
     const [data, setData] = useState<PresenceData | null>(null);
@@ -80,7 +81,7 @@ export function AnnualPresenceReport() {
         text += `${APP_COPY.analytics.presence.total}\t\t${formatHours(weekTotal)}\n`;
         
         // Copy to clipboard silently
-        navigator.clipboard.writeText(text).catch(err => {
+        copyToClipboard(text).catch(err => {
             console.error('Failed to copy:', err);
         });
     };
