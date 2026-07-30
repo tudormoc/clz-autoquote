@@ -106,27 +106,64 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             </td>
                         </tr>
 
-                        {/* OPENING SUB-ROWS (PER BANK ACCOUNT) */}
-                        {expandedOpening && sampleBreakdown.map((bank, bIdx) => (
-                            <tr key={`op_${bIdx}`} className="bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/20 transition-colors text-[10px]">
-                                <td className="pl-6 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                    └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                </td>
-                                {shortMonths.map((_, mIdx) => {
-                                    const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                    const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                    const val = item && item.hasBankData && bankItem ? bankItem.opening : null;
-                                    return (
-                                        <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono">
-                                            {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                        {/* OPENING SUB-ROWS (PER BANK ACCOUNT ORGANIZED BY ATTIVO & PASSIVO) */}
+                        {expandedOpening && (
+                            <>
+                                {/* Attivo Sub-Header */}
+                                <tr className="bg-emerald-950/20 text-emerald-400 font-sans font-bold uppercase tracking-wider text-[9px]">
+                                    <td className="pl-6 py-0.5" colSpan={14}>
+                                        └ ATTIVO (+)
+                                    </td>
+                                </tr>
+                                {sampleBreakdown.filter(b => [9020021, 9020037, 12010004, 12010002].includes(b.accountCode)).map((bank, bIdx) => (
+                                    <tr key={`op_att_${bIdx}`} className="bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/20 transition-colors text-[10px]">
+                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
+                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
                                         </td>
-                                    );
-                                })}
-                                <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                    -
-                                </td>
-                            </tr>
-                        ))}
+                                        {shortMonths.map((_, mIdx) => {
+                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
+                                            const val = item && item.hasBankData && bankItem ? bankItem.opening : null;
+                                            return (
+                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-emerald-300/80">
+                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
+                                            -
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {/* Passivo Sub-Header */}
+                                <tr className="bg-rose-950/20 text-rose-400 font-sans font-bold uppercase tracking-wider text-[9px]">
+                                    <td className="pl-6 py-0.5" colSpan={14}>
+                                        └ PASSIVO (-)
+                                    </td>
+                                </tr>
+                                {sampleBreakdown.filter(b => [12010001, 12010003, 20110015].includes(b.accountCode)).map((bank, bIdx) => (
+                                    <tr key={`op_pass_${bIdx}`} className="bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/20 transition-colors text-[10px]">
+                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
+                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
+                                        </td>
+                                        {shortMonths.map((_, mIdx) => {
+                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
+                                            const val = item && item.hasBankData && bankItem ? bankItem.opening : null;
+                                            return (
+                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-rose-300/80">
+                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
+                                            -
+                                        </td>
+                                    </tr>
+                                ))}
+                            </>
+                        )}
 
                         {/* 2. CASH IN MAIN ROW (ENTRATE) */}
                         <tr 
@@ -267,27 +304,64 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             </td>
                         </tr>
 
-                        {/* CLOSING SUB-ROWS (PER BANK ACCOUNT) */}
-                        {expandedClosing && sampleBreakdown.map((bank, bIdx) => (
-                            <tr key={`cl_${bIdx}`} className="bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/20 transition-colors text-[10px]">
-                                <td className="pl-6 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                    └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                </td>
-                                {shortMonths.map((_, mIdx) => {
-                                    const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                    const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                    const val = item && item.hasBankData && bankItem ? bankItem.closing : null;
-                                    return (
-                                        <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono">
-                                            {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                        {/* CLOSING SUB-ROWS (PER BANK ACCOUNT ORGANIZED BY ATTIVO & PASSIVO) */}
+                        {expandedClosing && (
+                            <>
+                                {/* Attivo Sub-Header */}
+                                <tr className="bg-emerald-950/20 text-emerald-400 font-sans font-bold uppercase tracking-wider text-[9px]">
+                                    <td className="pl-6 py-0.5" colSpan={14}>
+                                        └ ATTIVO (+)
+                                    </td>
+                                </tr>
+                                {sampleBreakdown.filter(b => [9020021, 9020037, 12010004, 12010002].includes(b.accountCode)).map((bank, bIdx) => (
+                                    <tr key={`cl_att_${bIdx}`} className="bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/20 transition-colors text-[10px]">
+                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
+                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
                                         </td>
-                                    );
-                                })}
-                                <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                    -
-                                </td>
-                            </tr>
-                        ))}
+                                        {shortMonths.map((_, mIdx) => {
+                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
+                                            const val = item && item.hasBankData && bankItem ? bankItem.closing : null;
+                                            return (
+                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-emerald-300/80">
+                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
+                                            -
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {/* Passivo Sub-Header */}
+                                <tr className="bg-rose-950/20 text-rose-400 font-sans font-bold uppercase tracking-wider text-[9px]">
+                                    <td className="pl-6 py-0.5" colSpan={14}>
+                                        └ PASSIVO (-)
+                                    </td>
+                                </tr>
+                                {sampleBreakdown.filter(b => [12010001, 12010003, 20110015].includes(b.accountCode)).map((bank, bIdx) => (
+                                    <tr key={`cl_pass_${bIdx}`} className="bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/20 transition-colors text-[10px]">
+                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
+                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
+                                        </td>
+                                        {shortMonths.map((_, mIdx) => {
+                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
+                                            const val = item && item.hasBankData && bankItem ? bankItem.closing : null;
+                                            return (
+                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-rose-300/80">
+                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
+                                            -
+                                        </td>
+                                    </tr>
+                                ))}
+                            </>
+                        )}
                     </tbody>
                 </table>
             </div>

@@ -171,6 +171,141 @@ export async function deleteEventAction(
     }
 }
 
+/**
+ * Helper: Checks if the operator currently has an active production event (EVENTO = 'EXE').
+ * If so, inserts two SUS (suspended) events in EVENTI at the exact exit timestamp:
+ * 1) TIPO_OGGETTO = 'OPE' (for the operator)
+ * 2) TIPO_OGGETTO = 'MAC' (for the machine)
+ */
+async function suspendActiveExecutionIfAny(operatorCode: string, exitTimeStr: string) {
+    try {
+        const formattedTime = exitTimeStr.includes('.') ? exitTimeStr : `${exitTimeStr}.000`;
+        
+        // Find the latest active production start event for this operator (exclude 'presenza' and 'stato')
+        const latestQuery = `
+            SELECT TOP 1 
+                EVT.TASK, EVT.TIPO_OGGETTO, EVT.OGGETTO, EVT.EVENTO, EVT.MACCHINA, EVT.OPERATORE, EVT.PART_NUMBER, EVT.INFO1, EVT.INFO2, EVT.INFO3,
+                TSK.STATO as TASK_STATO, OPE.STATO_LOGICO as OPERATOR_STATO_LOGICO
+            FROM EVENTI EVT WITH (NOLOCK)
+            LEFT JOIN TASKS TSK WITH (NOLOCK) ON EVT.TASK = TSK.TASK
+            LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON (EVT.OPERATORE = OPE.OPERATORE OR (EVT.OGGETTO = OPE.OPERATORE AND EVT.TIPO_OGGETTO = 'OPE'))
+            WHERE EVT.TASK NOT IN ('presenza', 'stato')
+              AND EVT.EVENTO IN ('OPN', 'EXE', 'WORK', 'REW', 'REL')
+              AND (EVT.OPERATORE = @operatorCode OR (EVT.OGGETTO = @operatorCode AND EVT.TIPO_OGGETTO = 'OPE'))
+            ORDER BY EVT.ORA_EVENTO DESC
+        `;
+
+        const result = await queryMSSQL(latestQuery, { operatorCode }, 'NETPRO');
+        if (!result.recordset || result.recordset.length === 0) {
+            return;
+        }
+
+        const lastEvent = result.recordset[0];
+        const taskStato = String(lastEvent.TASK_STATO || '').trim().toUpperCase();
+        const opStatoLogico = String(lastEvent.OPERATOR_STATO_LOGICO || '').trim().toUpperCase();
+
+        const activeStatuses = ['EXE', 'OPN', 'WORK', 'REW', 'REL'];
+        const isCurrentlyActive = activeStatuses.includes(taskStato) || opStatoLogico === 'WORK';
+
+        // Only suspend if the operator is currently in an active production task
+        if (isCurrentlyActive) {
+            const task = lastEvent.TASK;
+            const machine = lastEvent.MACCHINA;
+            const partNumber = lastEvent.PART_NUMBER || null;
+            const info1 = lastEvent.INFO1 || null;
+            const info2 = lastEvent.INFO2 || 'NO';
+            const info3 = lastEvent.INFO3 || null;
+
+            // 1. Insert SUS event for Operator (TIPO_OGGETTO = 'OPE') on the real job TASK
+            await queryMSSQL(`
+                INSERT INTO EVENTI (
+                    TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, 
+                    MACCHINA, OPERATORE, PART_NUMBER, SOURCE, UTENTE, INFO1, INFO2, INFO3
+                )
+                VALUES (
+                    @task, 'OPE', @operatorCode, 'SUS', @formattedTime,
+                    @machine, @operatorCode, @partNumber, 'WS', 'ADMIN', @info1, @info2, @info3
+                )
+            `, {
+                task,
+                operatorCode,
+                formattedTime,
+                machine,
+                partNumber,
+                info1,
+                info2,
+                info3
+            }, 'NETPRO');
+
+            // 2. Update TASKS table to set task status to 'SUS'
+            if (task) {
+                await queryMSSQL(`
+                    UPDATE TASKS
+                    SET STATO = 'SUS'
+                    WHERE TASK = @task
+                `, { task }, 'NETPRO');
+            }
+
+            // 3. Update OPERATORI table to set logical state to 'IDLE'
+            await queryMSSQL(`
+                UPDATE OPERATORI
+                SET STATO_LOGICO = 'IDLE',
+                    ORA_ST_LOGICO = @formattedTime
+                WHERE OPERATORE = @operatorCode
+            `, { operatorCode, formattedTime }, 'NETPRO');
+
+            // 4. Insert SUS event for Machine (TIPO_OGGETTO = 'MAC') on the real job TASK and update MACCHINE table
+            if (machine) {
+                await queryMSSQL(`
+                    INSERT INTO EVENTI (
+                        TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, 
+                        MACCHINA, OPERATORE, PART_NUMBER, SOURCE, UTENTE, INFO1, INFO2, INFO3
+                    )
+                    VALUES (
+                        @task, 'MAC', @machine, 'SUS', @formattedTime,
+                        @machine, @operatorCode, @partNumber, 'WS', 'ADMIN', @info1, @info2, @info3
+                    )
+                `, {
+                    task,
+                    machine,
+                    formattedTime,
+                    operatorCode,
+                    partNumber,
+                    info1,
+                    info2,
+                    info3
+                }, 'NETPRO');
+
+                // 5. Insert IDLE status event for the machine (TASK = 'stato')
+                await queryMSSQL(`
+                    INSERT INTO EVENTI (
+                        TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, 
+                        MACCHINA, OPERATORE, SOURCE, UTENTE
+                    )
+                    VALUES (
+                        'stato', 'MAC', @machine, 'IDLE', @formattedTime,
+                        @machine, @operatorCode, 'WS', 'ADMIN'
+                    )
+                `, {
+                    machine,
+                    formattedTime,
+                    operatorCode
+                }, 'NETPRO');
+
+                // 6. Update MACCHINE table to set logical state to 'IDLE'
+                await queryMSSQL(`
+                    UPDATE MACCHINE
+                    SET STATO_LOGICO = 'IDLE',
+                        ORA_ST_LOGICO = @formattedTime
+                    WHERE MACCHINA = @machine
+                `, { machine, formattedTime }, 'NETPRO');
+            }
+        }
+    } catch (err) {
+        console.error('Error suspending active execution for operator:', operatorCode, err);
+    }
+}
+
 export async function createEventAction(
     oggetto: string,
     evento: string,
@@ -197,6 +332,11 @@ export async function createEventAction(
                 { newStatus, oggetto },
                 'NETPRO'
             );
+        }
+
+        // If the event is an exit (EXT), suspend any active machine task for this operator
+        if (upperEvt === 'EXT') {
+            await suspendActiveExecutionIfAny(oggetto, oraEvento);
         }
 
         return {
@@ -371,6 +511,7 @@ export async function runAutoExitAction(testOperator?: string) {
                 { oggetto },
                 'NETPRO'
             );
+            await suspendActiveExecutionIfAny(oggetto, oraEvento);
         }
 
         return {

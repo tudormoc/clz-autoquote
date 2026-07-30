@@ -597,6 +597,8 @@ export const APP_COPY = {
       },
       pdfTitle: "Report Commesse per Macro Area",
       pdfButton: "Genera Report PDF",
+      topClientsTitle: "Clienti con Maggior Efficienza",
+      worstClientsTitle: "Clienti con Minor Efficienza",
     },
     rimanenze: {
       headers: {

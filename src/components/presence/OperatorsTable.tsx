@@ -63,7 +63,10 @@ export function OperatorsTable() {
                 setData(sorted);
                 if (result.allStati.length > 0) {
                     setAllStati(result.allStati);
-                    setActiveStati(new Set(result.allStati));
+                    // Only initialize activeStati if empty (first load)
+                    if (activeStati.size === 0) {
+                        setActiveStati(new Set(result.allStati));
+                    }
                 }
             } else {
                 setError(result.error ?? 'Errore sconosciuto');

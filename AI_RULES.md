@@ -1,12 +1,14 @@
 # AI RULES — CLZ Autoquote
 
-> **READ THIS ENTIRE FILE BEFORE DOING ANYTHING.**
+> **CRITICAL MANDATORY RULE:**
+> **ALWAYS GIVE VERY SHORT ANSWERS.**
+> **NEVER output detailed summaries, multi-step explanations, or long walkthroughs unless the user explicitly requests one.**
 
 ---
 
 ## 🤖 AGENT BEHAVIOR
 
-1. **Short answers.** No summaries unless asked.
+1. **VERY SHORT ANSWERS ONLY.** Maximum 1–3 sentences unless user explicitly asks for a summary/detail.
 2. **Study first.** Before touching anything, read the relevant existing pages, components, actions, and locale keys. Match those patterns exactly.
 3. **Propose, don't act.** Show your plan, wait for explicit approval, then execute.
 4. **Reuse everything.** Global components, CSS tokens, locale keys, constants. Never duplicate.

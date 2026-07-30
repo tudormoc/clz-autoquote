@@ -887,8 +887,25 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         .sort((a, b) => a.efficiency - b.efficiency)
         .slice(0, 5);
 
-    // Sort commessa list chronologically for display
-    commessaList.sort((a, b) => a.display.localeCompare(b.display));
+    // Group commessa list by client (alphabetically) and sort orders inside each client by efficiency descending
+    const groupedOrders: Record<string, typeof commessaList> = {};
+    for (const order of commessaList) {
+        const clientKey = (order.client && order.client.trim()) ? order.client.trim() : 'Senza Cliente';
+        if (!groupedOrders[clientKey]) {
+            groupedOrders[clientKey] = [];
+        }
+        groupedOrders[clientKey].push(order);
+    }
+
+    const sortedClientNames = Object.keys(groupedOrders).sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+
+    for (const clientName of sortedClientNames) {
+        groupedOrders[clientName].sort((a, b) => {
+            const effA = a.total_time > 0 ? (a.total_expected / a.total_time) * 100 : 0;
+            const effB = b.total_time > 0 ? (b.total_expected / b.total_time) * 100 : 0;
+            return effB - effA;
+        });
+    }
 
     return `
 <!DOCTYPE html>
@@ -977,10 +994,22 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
             column-gap: 20px;
             column-fill: auto;
         }
+        .client-group-header {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #1e40af;
+            background: #eff6ff;
+            border-left: 3px solid #3b82f6;
+            padding: 5px 8px;
+            margin: 12px 0 8px 0;
+            border-radius: 2px;
+            break-after: avoid;
+            break-inside: avoid;
+        }
         .order-table {
             break-inside: avoid-column;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -1015,13 +1044,9 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         ${areaStatsList.map(area => {
             const color = getEfficiencyColor(area.efficiency);
             const barWidth = Math.min(area.efficiency, 120); // Cap visual bar at 120%
-            const targetVelocity = AREA_EXPECTED_VELOCITY[area.label as keyof typeof AREA_EXPECTED_VELOCITY] || '-';
             return `
             <div class="chart-row">
-                <div class="chart-label">
-                    ${area.label}
-                    <div style="font-size: 6pt; color: #94a3b8; font-weight: normal; margin-top: 1px;">Atteso: ${targetVelocity}</div>
-                </div>
+                <div class="chart-label">${area.label}</div>
                 <div class="chart-bar-bg">
                     <div class="chart-bar-fill" style="width: ${barWidth}%; background-color: ${color};"></div>
                 </div>
@@ -1067,7 +1092,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         <div style="display: flex; flex-direction: column; gap: 15px;">
             <!-- Best Clients -->
             <div class="dashboard-section" style="margin-bottom: 0;">
-                <div class="dashboard-title" style="color: #10b981;">Top Clienti (Maggiore Efficienza)</div>
+                <div class="dashboard-title" style="color: #10b981;">${orderCopy.topClientsTitle}</div>
                 ${bestClients.length > 0 ? bestClients.map(client => {
                     const color = getEfficiencyColor(client.efficiency);
                     return `
@@ -1083,7 +1108,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
             <!-- Worst Clients -->
             ${worstClients.length > 0 ? `
             <div class="dashboard-section" style="margin-bottom: 0;">
-                <div class="dashboard-title" style="color: #ef4444;">Clienti Lenti (Minore Efficienza)</div>
+                <div class="dashboard-title" style="color: #ef4444;">${orderCopy.worstClientsTitle}</div>
                 ${worstClients.map(client => {
                     const color = getEfficiencyColor(client.efficiency);
                     return `
@@ -1103,49 +1128,52 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
     <div style="page-break-before: always;"></div>
 
     <div class="column-layout">
-        ${commessaList.map(order => {
-            const orderEff = order.total_time > 0 ? (order.total_expected / order.total_time) * 100 : 0;
-            return `
-            <table class="order-table">
-                <thead>
-                    <tr>
-                        <th style="width: 45%; font-size: 7pt;">Commessa / Area</th>
-                        <th class="right" style="width: 15%; font-size: 7pt;">Attese</th>
-                        <th class="right" style="width: 15%; font-size: 7pt;">Lavoro</th>
-                        <th class="right" style="width: 25%; font-size: 7pt;">Efficiency</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="order-row-header">
-                        <td>
-                            <div class="order-meta-row">
-                                <span class="order-display">${order.display}</span>
-                                ${order.client ? `<span class="order-client">${order.client}</span>` : ''}
-                            </div>
-                            <div class="order-desc">${order.description}</div>
-                        </td>
-                        <td class="right mono">${formatTime(order.total_expected)}</td>
-                        <td class="right mono">${formatTime(order.total_time)}</td>
-                        <td class="right" style="color: ${getEfficiencyColor(orderEff)}; font-weight: bold; font-size: 9pt;">
-                            ${orderEff.toFixed(1)}%
-                        </td>
-                    </tr>
-                    ${order.areas.map((area: any) => `
+        ${sortedClientNames.map(clientName => `
+            <div class="client-group-header">CLIENTE: ${clientName} (${groupedOrders[clientName].length} commesse)</div>
+            ${groupedOrders[clientName].map(order => {
+                const orderEff = order.total_time > 0 ? (order.total_expected / order.total_time) * 100 : 0;
+                return `
+                <table class="order-table">
+                    <thead>
                         <tr>
-                            <td class="area-label">${area.label}</td>
-                            <td class="right mono" style="color: #64748b;">${area.expected != null ? formatTime(area.expected) : '—'}</td>
-                            <td class="right mono font-semibold">${formatTime(area.time)}</td>
-                            <td class="right">
-                                <span style="font-weight: 600; color: ${getEfficiencyColor(area.efficiency)};">
-                                    ${area.expected != null ? `${area.efficiency.toFixed(1)}%` : '—'}
-                                </span>
+                            <th style="width: 45%; font-size: 7pt;">Commessa / Area</th>
+                            <th class="right" style="width: 15%; font-size: 7pt;">Attese</th>
+                            <th class="right" style="width: 15%; font-size: 7pt;">Lavoro</th>
+                            <th class="right" style="width: 25%; font-size: 7pt;">Efficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="order-row-header">
+                            <td>
+                                <div class="order-meta-row">
+                                    <span class="order-display">${order.display}</span>
+                                    ${order.client ? `<span class="order-client">${order.client}</span>` : ''}
+                                </div>
+                                <div class="order-desc">${order.description}</div>
+                            </td>
+                            <td class="right mono">${formatTime(order.total_expected)}</td>
+                            <td class="right mono">${formatTime(order.total_time)}</td>
+                            <td class="right" style="color: ${getEfficiencyColor(orderEff)}; font-weight: bold; font-size: 9pt;">
+                                ${orderEff.toFixed(1)}%
                             </td>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            `;
-        }).join('')}
+                        ${order.areas.map((area: any) => `
+                            <tr>
+                                <td class="area-label">${area.label}</td>
+                                <td class="right mono" style="color: #64748b;">${area.expected != null ? formatTime(area.expected) : '—'}</td>
+                                <td class="right mono font-semibold">${formatTime(area.time)}</td>
+                                <td class="right">
+                                    <span style="font-weight: 600; color: ${getEfficiencyColor(area.efficiency)};">
+                                        ${area.expected != null ? `${area.efficiency.toFixed(1)}%` : '—'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                `;
+            }).join('')}
+        `).join('')}
     </div>
 </body>
 </html>
