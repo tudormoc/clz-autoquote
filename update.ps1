@@ -4,7 +4,12 @@
 
 Write-Host "`n[1/4] Pulling latest changes from Git..." -ForegroundColor Cyan
 git checkout -- next-env.d.ts 2>$null
+git checkout -- package-lock.json 2>$null
 git pull
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`n❌ Git pull failed! Aborting update." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "`n[2/4] Installing dependencies (new packages)..." -ForegroundColor Cyan
 npm install
