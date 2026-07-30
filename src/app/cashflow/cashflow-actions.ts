@@ -1,12 +1,20 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
+import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 
 export interface MonthlyBankBreakdownItem {
     accountCode: number;
     name: string;
     opening: number;
     closing: number;
+}
+
+export interface ClientMonthlyBreakdownItem {
+    accountCode: number;
+    name: string;
+    monthlyAmounts: Record<number, number>; // month 1-12 -> amount
+    totalAmount: number;
 }
 
 export interface MonthlyFinancialItem {
@@ -56,6 +64,7 @@ export interface CashflowDataResult {
     grandNetCashflow: number;
     // Breakdowns
     monthlyBreakdown: MonthlyFinancialItem[];
+    clientMonthlySummary: ClientMonthlyBreakdownItem[];
     topClients: CounterpartySummary[];
     topSuppliers: CounterpartySummary[];
     error?: string;
@@ -73,6 +82,27 @@ const MONTH_NAMES = [
 export async function getCashflowMonthlyDataAction(year: number = 2026): Promise<CashflowDataResult> {
     try {
         // 0. Fetch real Bank Balances from General Ledger (prinot)
+        const enabledCodes = CASHFLOW_CONFIG.getEnabledAccountCodes();
+        if (enabledCodes.length === 0) {
+            return {
+                success: true,
+                year,
+                bankBalances: [],
+                totalBankBalance: 0,
+                grandTotalIncome: 0,
+                grandOpenIncome: 0,
+                totalIncomeInvoicesCount: 0,
+                grandTotalExpense: 0,
+                grandOpenExpense: 0,
+                totalExpenseInvoicesCount: 0,
+                grandNetCashflow: 0,
+                monthlyBreakdown: [],
+                clientMonthlySummary: [],
+                topClients: [],
+                topSuppliers: [],
+            };
+        }
+
         const bankQuery = `
             SELECT 
                 p.pn_conto AS account_code,
@@ -83,7 +113,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             JOIN anagra a WITH (NOLOCK) 
               ON p.pn_conto = a.an_conto AND p.codditt = a.codditt
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
             GROUP BY p.pn_conto, a.an_descr1
             ORDER BY p.pn_conto
         `;
@@ -163,7 +193,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             SELECT MAX(MONTH(p.pn_datreg)) as max_month
             FROM prinot p WITH (NOLOCK)
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
         `;
         const maxBankMonthRes = await queryMSSQL(maxBankMonthQuery, { year }, 'BUSINESS');
@@ -178,7 +208,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 COUNT(*) as row_count
             FROM prinot p WITH (NOLOCK)
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY MONTH(p.pn_datreg)
             ORDER BY month_num ASC
@@ -200,7 +230,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 ISNULL(SUM(p.pn_importo), 0) as start_balance
             FROM prinot p WITH (NOLOCK)
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) < @year
         `;
         const priorBankRes = await queryMSSQL(priorBankQuery, { year }, 'BUSINESS');
@@ -215,7 +245,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             FROM prinot p WITH (NOLOCK)
             JOIN anagra a WITH (NOLOCK) ON p.pn_conto = a.an_conto AND p.codditt = a.codditt
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) < @year
             GROUP BY p.pn_conto, a.an_descr1
             ORDER BY p.pn_conto
@@ -237,7 +267,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 ISNULL(SUM(p.pn_importo), 0) as net_change
             FROM prinot p WITH (NOLOCK)
             WHERE p.codditt = 'COOPZANARDI'
-              AND p.pn_conto IN (12010001, 12010002, 12010003, 12010004, 9020021, 9020037, 20110015)
+              AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
         `;
@@ -393,6 +423,50 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             count: Number(row.count || 0),
         }));
 
+        // 6. Fetch all Clients grouped monthly for Matrix expand
+        const clientMonthlyQuerySQL = `
+            SELECT 
+                sc.sc_conto as account_code,
+                ISNULL(an.an_descr1, 'CLIENTE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
+                MONTH(sc.sc_datsca) as month_num,
+                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount
+            FROM scaden sc WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON sc.sc_conto = an.an_conto 
+               AND sc.codditt = an.codditt
+            WHERE sc.codditt = 'COOPZANARDI'
+              AND sc.sc_darave = 'D'
+              AND an.an_tipo = 'C'
+              AND YEAR(sc.sc_datsca) = @year
+            GROUP BY sc.sc_conto, an.an_descr1, MONTH(sc.sc_datsca)
+            ORDER BY sc.sc_conto, month_num
+        `;
+
+        const clientMonthlyRes = await queryMSSQL(clientMonthlyQuerySQL, { year }, 'BUSINESS');
+        const clientMap = new Map<number, ClientMonthlyBreakdownItem>();
+
+        clientMonthlyRes.recordset.forEach((row: any) => {
+            const accCode = Number(row.account_code);
+            const clientName = String(row.name).trim();
+            const monthNum = Number(row.month_num);
+            const amount = Number(row.total_amount || 0);
+
+            if (!clientMap.has(accCode)) {
+                clientMap.set(accCode, {
+                    accountCode: accCode,
+                    name: clientName,
+                    monthlyAmounts: {},
+                    totalAmount: 0,
+                });
+            }
+
+            const item = clientMap.get(accCode)!;
+            item.monthlyAmounts[monthNum] = amount;
+            item.totalAmount += amount;
+        });
+
+        const clientMonthlySummary = Array.from(clientMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+
         return {
             success: true,
             year,
@@ -406,6 +480,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             totalExpenseInvoicesCount,
             grandNetCashflow: grandTotalIncome - grandTotalExpense,
             monthlyBreakdown,
+            clientMonthlySummary,
             topClients,
             topSuppliers,
         };
@@ -424,6 +499,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             totalExpenseInvoicesCount: 0,
             grandNetCashflow: 0,
             monthlyBreakdown: [],
+            clientMonthlySummary: [],
             topClients: [],
             topSuppliers: [],
             error: err.message || 'Failed to fetch cashflow data',

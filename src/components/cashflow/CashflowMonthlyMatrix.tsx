@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { CalendarRange, ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import { MonthlyFinancialItem } from '@/app/cashflow/cashflow-actions';
+import { MonthlyFinancialItem, ClientMonthlyBreakdownItem } from '@/app/cashflow/cashflow-actions';
 
 interface CashflowMonthlyMatrixProps {
     monthlyData?: MonthlyFinancialItem[];
+    clientMonthlySummary?: ClientMonthlyBreakdownItem[];
     grandTotalIncome?: number;
     grandTotalExpense?: number;
     grandNetCashflow?: number;
@@ -26,6 +27,7 @@ const formatCompactEUR = (amount?: number) => {
 
 export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
     monthlyData = [],
+    clientMonthlySummary = [],
     grandTotalIncome = 0,
     grandTotalExpense = 0,
     grandNetCashflow = 0,
@@ -37,6 +39,7 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
 
     const [expandedOpening, setExpandedOpening] = useState<boolean>(false);
     const [expandedIncomes, setExpandedIncomes] = useState<boolean>(false);
+    const [expandedClientIncomes, setExpandedClientIncomes] = useState<boolean>(false);
     const [expandedExpenses, setExpandedExpenses] = useState<boolean>(false);
     const [expandedClosing, setExpandedClosing] = useState<boolean>(false);
 
@@ -189,25 +192,64 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             </td>
                         </tr>
 
-                        {/* CASH IN SUB-ROW: Incassi da Clienti */}
+                        {/* CASH IN SUB-ROWS (2-Level Hierarchy) */}
                         {expandedIncomes && (
-                            <tr className="hover:bg-zinc-800/30 transition-colors text-[10px]">
-                                <td className="pl-6 pr-2 py-1.5 font-sans font-medium text-zinc-300 truncate" title={m.clientIncomes}>
-                                    └ {m.clientIncomes}
-                                </td>
-                                {shortMonths.map((_, mIdx) => {
-                                    const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                    const val = item ? item.incomeAmount : 0;
-                                    return (
-                                        <td key={mIdx} className="px-0.5 py-1.5 text-right text-emerald-300/80 font-mono truncate">
-                                            {loading ? '...' : formatCompactEUR(val)}
-                                        </td>
-                                    );
-                                })}
-                                <td className="px-1.5 py-1.5 text-right font-mono text-emerald-400/80 bg-zinc-800/20 border-l border-zinc-800 truncate">
-                                    {loading ? '...' : formatCompactEUR(grandTotalIncome)}
-                                </td>
-                            </tr>
+                            <>
+                                {/* Level 1 Sub-Row: Incassi da Clienti (Fatturato) */}
+                                <tr 
+                                    onClick={() => setExpandedClientIncomes(!expandedClientIncomes)}
+                                    className="hover:bg-zinc-800/40 transition-colors text-[10px] bg-emerald-950/20 font-semibold cursor-pointer border-t border-b border-zinc-800/40"
+                                >
+                                    <td className="pl-6 pr-2 py-1.5 font-sans text-emerald-300 flex items-center gap-1 truncate" title={m.clientIncomes}>
+                                        {expandedClientIncomes ? <ChevronDown size={13} className="text-emerald-400 shrink-0" /> : <ChevronRight size={13} className="text-emerald-400 shrink-0" />}
+                                        └ {m.clientIncomes}
+                                    </td>
+                                    {shortMonths.map((_, mIdx) => {
+                                        const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                        const val = item ? item.incomeAmount : 0;
+                                        return (
+                                            <td key={mIdx} className="px-0.5 py-1.5 text-right text-emerald-300 font-mono truncate">
+                                                {loading ? '...' : formatCompactEUR(val)}
+                                            </td>
+                                        );
+                                    })}
+                                    <td className="px-1.5 py-1.5 text-right font-mono text-emerald-400 font-bold bg-zinc-800/30 border-l border-zinc-800 truncate">
+                                        {loading ? '...' : formatCompactEUR(grandTotalIncome)}
+                                    </td>
+                                </tr>
+
+                                {/* Level 2 Sub-Rows: Client List (Nested under Incassi da Clienti) */}
+                                {expandedClientIncomes && (
+                                    <>
+                                        {clientMonthlySummary.length > 0 ? (
+                                            clientMonthlySummary.map((client, cIdx) => (
+                                                <tr key={`client_${cIdx}`} className="hover:bg-zinc-800/50 transition-colors text-[10px] bg-zinc-900/40">
+                                                    <td className="pl-10 pr-2 py-1 font-sans text-zinc-300 truncate" title={client.name}>
+                                                        └ {client.name}
+                                                    </td>
+                                                    {shortMonths.map((_, mIdx) => {
+                                                        const val = client.monthlyAmounts[mIdx + 1] || 0;
+                                                        return (
+                                                            <td key={mIdx} className="px-0.5 py-1 text-right text-emerald-300/70 font-mono truncate">
+                                                                {loading ? '...' : (val > 0 ? formatCompactEUR(val) : '-')}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    <td className="px-1.5 py-1 text-right font-mono text-emerald-400/90 font-medium bg-zinc-800/20 border-l border-zinc-800 truncate">
+                                                        {loading ? '...' : formatCompactEUR(client.totalAmount)}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr className="hover:bg-zinc-800/30 transition-colors text-[10px]">
+                                                <td className="pl-10 pr-2 py-1.5 font-sans font-medium text-zinc-500 truncate" colSpan={14}>
+                                                    └ Nessun cliente registrato per l'anno
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
+                                )}
+                            </>
                         )}
 
                         {/* 3. CASH OUT MAIN ROW (USCITE) */}

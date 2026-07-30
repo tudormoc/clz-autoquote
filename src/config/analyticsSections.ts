@@ -105,7 +105,7 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         label: APP_COPY.analytics.reports.presenceReport,
         icon: Clock,
         category: 'production',
-        description: 'Weekly presence hours by operator group'
+        description: 'Monthly presence hours by operator group'
     },
     {
         id: 'annual-presence-report',

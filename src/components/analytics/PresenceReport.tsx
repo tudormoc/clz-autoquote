@@ -1,56 +1,52 @@
 'use client'
 
-import { useState, useEffect } from 'react';
-import { getPresenceDataAction, getAvailableMonthsAction } from '@/app/analytics/analytics-actions';
+import { useState, useEffect, useMemo } from 'react';
+import { getMonthlyPresenceDataAction, getAvailableMonthsAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY } from '@/locales';
 import { Button } from '@/components/ui/Button';
-import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
+import { MonthlyPresenceData } from '@/types';
 import { Clock, Copy } from 'lucide-react';
 import { copyToClipboard } from '@/lib/clipboard';
 
-
-
 export function PresenceReport() {
-    const [data, setData] = useState<PresenceData | null>(null);
+    const [data, setData] = useState<MonthlyPresenceData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number>(4); // Default: April
+    const [selectedMonth, setSelectedMonth] = useState<number>(0); // 0 = All months
     const [filesProcessed, setFilesProcessed] = useState(0);
     const [availableMonths, setAvailableMonths] = useState<number[]>([]);
 
-    const allMonths = [
-        { value: 1, label: APP_COPY.months.january },
-        { value: 2, label: APP_COPY.months.february },
-        { value: 3, label: APP_COPY.months.march },
-        { value: 4, label: APP_COPY.months.april },
-        { value: 5, label: APP_COPY.months.may },
-        { value: 6, label: APP_COPY.months.june },
-        { value: 7, label: APP_COPY.months.july },
-        { value: 8, label: APP_COPY.months.august },
-        { value: 9, label: APP_COPY.months.september },
-        { value: 10, label: APP_COPY.months.october },
-        { value: 11, label: APP_COPY.months.november },
-        { value: 12, label: APP_COPY.months.december }
-    ];
+    const monthNamesMap = useMemo<Record<number, string>>(() => ({
+        1: APP_COPY.months.january,
+        2: APP_COPY.months.february,
+        3: APP_COPY.months.march,
+        4: APP_COPY.months.april,
+        5: APP_COPY.months.may,
+        6: APP_COPY.months.june,
+        7: APP_COPY.months.july,
+        8: APP_COPY.months.august,
+        9: APP_COPY.months.september,
+        10: APP_COPY.months.october,
+        11: APP_COPY.months.november,
+        12: APP_COPY.months.december
+    }), []);
 
-    const months = allMonths.filter(m => availableMonths.includes(m.value));
+    const allMonths = useMemo(() => [
+        { value: 0, label: APP_COPY.analytics.presence.allMonths },
+        ...availableMonths.map(num => ({
+            value: num,
+            label: monthNamesMap[num] || `Mese ${num}`
+        }))
+    ], [availableMonths, monthNamesMap]);
 
     const checkAvailableMonths = async () => {
-        // Fast check - only looks at file existence, doesn't parse data
         try {
             const result = await getAvailableMonthsAction(2026);
-            
             if (result.success && result.months.length > 0) {
                 setAvailableMonths(result.months);
-                
-                // Set default to latest available month
-                if (!result.months.includes(selectedMonth)) {
-                    setSelectedMonth(result.months[result.months.length - 1]);
-                }
             }
         } catch (err) {
             console.error('Error checking available months:', err);
-            // Fallback to showing all months
             setAvailableMonths([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
         }
     };
@@ -60,7 +56,8 @@ export function PresenceReport() {
         setError(null);
         
         try {
-            const result = await getPresenceDataAction(2026, [selectedMonth]);
+            const monthsFilter = selectedMonth === 0 ? [] : [selectedMonth];
+            const result = await getMonthlyPresenceDataAction(2026, monthsFilter);
             
             if (result.success && result.data) {
                 setData(result.data);
@@ -80,51 +77,41 @@ export function PresenceReport() {
     }, []);
 
     useEffect(() => {
-        if (availableMonths.includes(selectedMonth)) {
-            loadData();
-        }
-    }, [selectedMonth, availableMonths]);
+        loadData();
+    }, [selectedMonth]);
 
     const formatHours = (hours: number) => {
         return Math.round(hours).toString();
     };
 
-    const formatDateRange = (startDate: string, endDate: string) => {
-        // Convert YYYY-MM-DD to DD/MM format
-        const formatShort = (dateStr: string) => {
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}`;
-        };
-        return `${formatShort(startDate)} - ${formatShort(endDate)}`;
+    const getMonthName = (monthNum: number): string => {
+        return monthNamesMap[monthNum] || `Mese ${monthNum}`;
     };
 
-    const getWeekDateRange = (weekNum: number): string => {
-        const range = data?.weekDateRanges?.find(r => r.weekNumber === weekNum);
-        return range ? formatDateRange(range.startDate, range.endDate) : '';
-    };
+    const copyTableToClipboard = (monthNum: number) => {
+        if (!data) return;
 
-    const copyTableToClipboard = (weekNum: number) => {
-        const weekKey = `week${weekNum}`;
-        const weekData = data!.groups
+        const monthKey = `month${monthNum}`;
+        const monthData = data.groups
             .map(g => ({
                 group: g.group,
-                hours: (g[weekKey] as number) || 0
+                hours: (g[monthKey] as number) || 0
             }))
             .filter(d => d.hours > 0);
         
-        const weekTotal = data!.weekTotals[weekKey] || 0;
-        const dateRange = getWeekDateRange(weekNum);
+        const monthTotal = data.monthTotals[monthKey] || 0;
+        const monthName = getMonthName(monthNum);
         
         // Build formatted text table with tabs for alignment
-        let text = `Settimana ${weekNum}${dateRange ? ` (${dateRange})` : ''}\n`;
+        let text = `${monthName} 2026\n`;
         
-        weekData.forEach((item, idx) => {
+        monthData.forEach((item, idx) => {
             // First row: 2 tabs, second row onwards: 1 tab
             const tabs = idx === 0 ? '\t\t' : '\t';
             text += `${item.group}${tabs}${formatHours(item.hours)}\n`;
         });
         
-        text += `${APP_COPY.analytics.presence.total}\t\t${formatHours(weekTotal)}\n`;
+        text += `${APP_COPY.analytics.presence.total}\t\t${formatHours(monthTotal)}\n`;
         
         // Copy to clipboard silently
         copyToClipboard(text).catch(err => {
@@ -148,7 +135,7 @@ export function PresenceReport() {
                         onChange={(e) => setSelectedMonth(Number(e.target.value))}
                         className="px-3 py-2 bg-card border border-border rounded-md text-foreground"
                     >
-                        {months.map(month => (
+                        {allMonths.map(month => (
                             <option key={month.value} value={month.value}>
                                 {month.label}
                             </option>
@@ -182,35 +169,30 @@ export function PresenceReport() {
                 </div>
             )}
 
-            {/* Data Tables - One per week */}
-            {!loading && data && data.weekNumbers && (
+            {/* Data Tables - One per month */}
+            {!loading && data && data.monthNumbers && (
                 <div className="space-y-6">
-                    {data.weekNumbers.map(weekNum => {
-                        const weekKey = `week${weekNum}`;
-                        const weekData = data.groups
+                    {data.monthNumbers.map(monthNum => {
+                        const monthKey = `month${monthNum}`;
+                        const monthData = data.groups
                             .map(g => ({
                                 group: g.group,
-                                hours: (g[weekKey] as number) || 0
+                                hours: (g[monthKey] as number) || 0
                             }))
                             .filter(d => d.hours > 0);
                         
-                        const weekTotal = data.weekTotals[weekKey] || 0;
+                        const monthTotal = data.monthTotals[monthKey] || 0;
                         
-                        if (weekTotal === 0) return null;
+                        if (monthTotal === 0) return null;
                         
                         return (
-                            <div key={weekNum} className="border border-border rounded-lg overflow-hidden">
+                            <div key={monthNum} className="border border-border rounded-lg overflow-hidden">
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-foreground">
-                                        {APP_COPY.analytics.presence.week} {weekNum}
-                                        {getWeekDateRange(weekNum) && (
-                                            <span className="text-sm font-normal text-muted-foreground ml-2">
-                                                ({getWeekDateRange(weekNum)})
-                                            </span>
-                                        )}
+                                        {getMonthName(monthNum)} 2026
                                     </h3>
                                     <Button
-                                        onClick={() => copyTableToClipboard(weekNum)}
+                                        onClick={() => copyTableToClipboard(monthNum)}
                                         variant="outline"
                                         size="sm"
                                     >
@@ -221,7 +203,7 @@ export function PresenceReport() {
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <tbody className="divide-y divide-border">
-                                            {weekData.map((item, idx) => (
+                                            {monthData.map((item, idx) => (
                                                 <tr key={idx} className="hover:bg-muted/30">
                                                     <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                         {item.group}
@@ -236,7 +218,7 @@ export function PresenceReport() {
                                                     {APP_COPY.analytics.presence.total}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-right text-foreground">
-                                                    {formatHours(weekTotal)}
+                                                    {formatHours(monthTotal)}
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -249,7 +231,7 @@ export function PresenceReport() {
             )}
 
             {/* Empty State */}
-            {!loading && !error && !data && (
+            {!loading && !error && (!data || !data.monthNumbers || data.monthNumbers.length === 0) && (
                 <div className="text-center py-12 text-muted-foreground">
                     {APP_COPY.analytics.common.noData}
                 </div>

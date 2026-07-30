@@ -26,7 +26,7 @@
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PresenceData, WeeklyGroupData, WeekDateRange } from '@/types';
+import { PresenceData, WeeklyGroupData, WeekDateRange, MonthlyPresenceData, MonthlyGroupData } from '@/types';
 
 const PRIMARY_NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
 const FALLBACK_MAPPED_PATH = 'Z:\\';
@@ -43,6 +43,7 @@ const MONTH_NAMES = [
 ];
 
 interface PresenceRow {
+    month: number;
     week: number;
     group: string;
     hours: number;
@@ -113,6 +114,16 @@ function parseExcelFile(filePath: string): PresenceRow[] {
             }
         }
         
+        // Extract month index from filename
+        const fileNameLower = path.basename(filePath).toLowerCase();
+        let fileMonth = 1;
+        for (let mIdx = 0; mIdx < MONTH_NAMES.length; mIdx++) {
+            if (fileNameLower.includes(MONTH_NAMES[mIdx])) {
+                fileMonth = mIdx + 1;
+                break;
+            }
+        }
+        
         // Skip header row, start from row 1
         let validRows = 0;
         const weekNumbers = new Set<number>();
@@ -138,6 +149,7 @@ function parseExcelFile(filePath: string): PresenceRow[] {
                     
                     // Use actual week number directly (don't map)
                     rows.push({
+                        month: fileMonth,
                         week: weekNum,
                         group: String(group).trim(),
                         hours: hoursNum
@@ -240,6 +252,51 @@ function aggregatePresenceData(rows: PresenceRow[], year: number): PresenceData 
         weekTotals,
         weekNumbers: sortedWeekNumbers,
         weekDateRanges
+    };
+}
+
+/**
+ * Aggregate presence data by month and group
+ */
+function aggregateMonthlyPresenceData(rows: PresenceRow[]): MonthlyPresenceData {
+    const groupMap = new Map<string, MonthlyGroupData>();
+    const monthNumbers = new Set<number>();
+    
+    // Collect all unique month numbers
+    rows.forEach(row => monthNumbers.add(row.month));
+    
+    // Aggregate by group and month
+    rows.forEach(row => {
+        if (!groupMap.has(row.group)) {
+            groupMap.set(row.group, {
+                group: row.group
+            });
+        }
+        
+        const groupData = groupMap.get(row.group)!;
+        const monthKey = `month${row.month}`;
+        
+        groupData[monthKey] = (groupData[monthKey] as number || 0) + row.hours;
+    });
+    
+    // Calculate month totals
+    const monthTotals: { [key: string]: number } = {};
+    
+    monthNumbers.forEach(monthNum => {
+        const monthKey = `month${monthNum}`;
+        monthTotals[monthKey] = 0;
+        
+        groupMap.forEach(groupData => {
+            monthTotals[monthKey] += (groupData[monthKey] as number || 0);
+        });
+    });
+    
+    const sortedMonthNumbers = Array.from(monthNumbers).sort((a, b) => a - b);
+    
+    return {
+        groups: Array.from(groupMap.values()).sort((a, b) => a.group.localeCompare(b.group)),
+        monthTotals,
+        monthNumbers: sortedMonthNumbers
     };
 }
 
@@ -365,3 +422,78 @@ export async function getAvailableMonthsAction(year: number = 2026) {
         };
     }
 }
+
+/**
+ * Get monthly presence data from Excel files
+ */
+export async function getMonthlyPresenceDataAction(
+    year: number = 2026,
+    months: number[] = [] // Empty = all months, or [1,2,3] for specific months
+) {
+    try {
+        const activePath = getValidPath();
+        if (!activePath) {
+            return {
+                success: false,
+                error: `Network path not accessible: ${PRIMARY_NETWORK_PATH} or ${FALLBACK_MAPPED_PATH}`,
+                data: null
+            };
+        }
+        
+        // Get all Excel files in directory
+        const files = fs.readdirSync(activePath)
+            .filter(file => file.endsWith('.xlsx') && file.includes('Produzione'))
+            .filter(file => file.includes(String(year)));
+        
+        // Filter by specific months if provided
+        let filesToProcess = files;
+        if (months.length > 0) {
+            filesToProcess = files.filter(file => {
+                return months.some(m => file.toLowerCase().includes(MONTH_NAMES[m - 1]));
+            });
+        }
+        
+        if (filesToProcess.length === 0) {
+            return {
+                success: false,
+                error: `No Excel files found for year ${year}`,
+                data: null
+            };
+        }
+        
+        // Parse all files and collect rows
+        const allRows: PresenceRow[] = [];
+        
+        for (const file of filesToProcess) {
+            const filePath = path.join(activePath, file);
+            const rows = parseExcelFile(filePath);
+            allRows.push(...rows);
+        }
+        
+        if (allRows.length === 0) {
+            return {
+                success: false,
+                error: 'No valid data found in Excel files',
+                data: null
+            };
+        }
+        
+        // Aggregate monthly data
+        const aggregatedData = aggregateMonthlyPresenceData(allRows);
+        
+        return {
+            success: true,
+            data: aggregatedData,
+            filesProcessed: filesToProcess.length
+        };
+        
+    } catch (err: any) {
+        console.error('Error in getMonthlyPresenceDataAction:', err);
+        return {
+            success: false,
+            error: err.message,
+            data: null
+        };
+    }
+}
+

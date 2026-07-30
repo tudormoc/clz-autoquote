@@ -100,7 +100,8 @@ import {
 
 import {
     getPresenceDataAction as getPresenceData,
-    getAvailableMonthsAction as getAvailableMonths
+    getAvailableMonthsAction as getAvailableMonths,
+    getMonthlyPresenceDataAction as getMonthlyPresenceData
 } from './queries/presence-queries';
 
 import {
@@ -120,6 +121,7 @@ export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 // Export Presence action
 export const getPresenceDataAction = getPresenceData;
 export const getAvailableMonthsAction = getAvailableMonths;
+export const getMonthlyPresenceDataAction = getMonthlyPresenceData;
 
 // Export Rimanenze action
 export const getRimanenzeDataAction = getRimanenzeData;

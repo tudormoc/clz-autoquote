@@ -75,10 +75,9 @@ export default function CashflowPage() {
                     </div>
 
                     {/* Monthly Executive Cashflow Matrix (Gennaio - Dicembre) */}
-
-                    {/* Monthly Executive Cashflow Matrix (Gennaio - Dicembre) */}
                     <CashflowMonthlyMatrix
                         monthlyData={cashflowData?.monthlyBreakdown}
+                        clientMonthlySummary={cashflowData?.clientMonthlySummary}
                         grandTotalIncome={cashflowData?.grandTotalIncome}
                         grandTotalExpense={cashflowData?.grandTotalExpense}
                         grandNetCashflow={cashflowData?.grandNetCashflow}

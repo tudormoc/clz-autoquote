@@ -125,3 +125,17 @@ export interface PresenceData {
     weekNumbers: number[];
     weekDateRanges: WeekDateRange[];
 }
+
+export interface MonthlyGroupData {
+    group: string;
+    [key: string]: number | string;
+}
+
+export interface MonthlyPresenceData {
+    groups: MonthlyGroupData[];
+    monthTotals: {
+        [key: string]: number;
+    };
+    monthNumbers: number[];
+}
+
