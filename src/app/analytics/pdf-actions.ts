@@ -1252,7 +1252,8 @@ export async function generateClientSummaryPDFAction(
 
         const copy = APP_COPY.analytics.pdf;
         const pdfBuffer = await page.pdf({
-            format: format as any,
+            format: 'A4',
+            landscape: false,
             printBackground: true,
             displayHeaderFooter: true,
             headerTemplate: '<div></div>',
@@ -1260,10 +1261,11 @@ export async function generateClientSummaryPDFAction(
                 <div style="width: 100%; font-size: 8pt; padding: 0 15mm; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; color: #6b7280;">
                     <div style="font-weight: 600; color: #1e40af;">${APP_CONFIG.ANALYTICS.COMPANY_NAME}</div>
                     <div style="text-align: center;">${APP_COPY.analytics.clientSummary.pdfTitle}</div>
-                    <div style="text-align: right;">${copy.footer.page} <span class="pageNumber"></span> ${copy.footer.of} <span class="totalPages"></span></div>
+                    <div style="text-align: right;">${new Date().toLocaleDateString('it-IT')}</div>
                 </div>
             `,
-            margin: { top: '20mm', right: '15mm', bottom: '25mm', left: '15mm' }
+            margin: { top: '15mm', right: '12mm', bottom: '20mm', left: '12mm' },
+            pageRanges: '1'
         });
 
         await browser.close();
@@ -1299,6 +1301,57 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
     const totalMargin = totalRevenue - (totalCost + totalWorkCost);
     const overallMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
+    // Always A4 portrait — dynamically shrink to fit all rows on one page.
+    // A4 portrait usable height ≈ 247mm (297 - 35mm margins - 15mm footer).
+    // Approximate row height budgets to determine tier:
+    //   > 80 rows → ultra-compact   (~2.5mm/row)
+    //   > 60 rows → very compact    (~3mm/row)
+    //   > 40 rows → compact         (~4mm/row)
+    //   > 25 rows → slightly tight  (~5mm/row)
+    //   ≤ 25 rows → normal          (~6mm/row)
+    const rowCount = data.length;
+    let fontSize = '8pt';
+    let headerFontSize = '8pt';
+    let cellPadding = '5px 4px';
+    let headerPadding = '6px 4px';
+    let summaryPadding = '10px';
+    let summaryFontSize = '10pt';
+    let marginBottom = '12px';
+
+    if (rowCount > 80) {
+        fontSize = '5.5pt';
+        headerFontSize = '6pt';
+        cellPadding = '1.5px 3px';
+        headerPadding = '2px 3px';
+        summaryPadding = '5px';
+        summaryFontSize = '7.5pt';
+        marginBottom = '6px';
+    } else if (rowCount > 60) {
+        fontSize = '6pt';
+        headerFontSize = '6.5pt';
+        cellPadding = '2px 3px';
+        headerPadding = '3px 3px';
+        summaryPadding = '6px';
+        summaryFontSize = '8pt';
+        marginBottom = '8px';
+    } else if (rowCount > 40) {
+        fontSize = '7pt';
+        headerFontSize = '7pt';
+        cellPadding = '3px 4px';
+        headerPadding = '4px 4px';
+        summaryPadding = '7px';
+        summaryFontSize = '9pt';
+        marginBottom = '10px';
+    } else if (rowCount > 25) {
+        fontSize = '7.5pt';
+        headerFontSize = '7.5pt';
+        cellPadding = '4px 4px';
+        headerPadding = '5px 4px';
+        summaryPadding = '8px';
+        summaryFontSize = '9.5pt';
+        marginBottom = '11px';
+    }
+
     return `
 <!DOCTYPE html>
 <html>
@@ -1306,21 +1359,62 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
     <meta charset="UTF-8">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        @page { margin: 15mm 10mm 15mm 10mm; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 8pt; line-height: 1.3; color: #1f2937; }
-        .header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; }
-        .header h1 { font-size: 16pt; color: #1e40af; margin-bottom: 4px; }
-        .period { font-size: 10pt; color: #6b7280; }
-        .generated { font-size: 8pt; color: #9ca3af; margin-top: 4px; }
+        @page { 
+            size: A4 portrait;
+            margin: 14mm 13mm 18mm 13mm;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+            font-size: ${fontSize}; 
+            line-height: 1.2; 
+            color: #1f2937; 
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: ${marginBottom}; 
+            padding-bottom: ${rowCount > 60 ? '5px' : '8px'}; 
+            border-bottom: 2px solid #3b82f6; 
+        }
+        .header h1 { 
+            font-size: ${rowCount > 60 ? '12pt' : '15pt'}; 
+            color: #1e40af; 
+            margin-bottom: 3px; 
+        }
+        .period { 
+            font-size: ${rowCount > 60 ? '7.5pt' : '9.5pt'}; 
+            color: #6b7280; 
+        }
+        .generated { 
+            font-size: ${rowCount > 60 ? '6pt' : '7.5pt'}; 
+            color: #9ca3af; 
+            margin-top: 2px; 
+        }
         
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
-        th { background: #f9fafb; padding: 8px 6px; text-align: left; font-size: 8pt; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
-        td { padding: 8px 6px; border-bottom: 1px solid #f3f4f6; font-size: 8pt; vertical-align: middle; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            table-layout: fixed; 
+        }
+        th { 
+            background: #f9fafb; 
+            padding: ${headerPadding}; 
+            text-align: left; 
+            font-size: ${headerFontSize}; 
+            font-weight: 600; 
+            color: #6b7280; 
+            border-bottom: 1px solid #e5e7eb; 
+        }
+        td { 
+            padding: ${cellPadding}; 
+            border-bottom: 1px solid #f3f4f6; 
+            font-size: ${fontSize}; 
+            vertical-align: middle; 
+        }
         th.right, td.right { text-align: right; }
-        .mono { font-family: 'Courier New', monospace; font-size: 8pt; }
+        .mono { font-family: 'Courier New', monospace; }
         .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-        ${format === 'A4' ? `
+        /* A4 portrait column widths */
             .col-client { width: 30%; }
             .col-rev { width: 14%; }
             .col-cost { width: 11%; }
@@ -1328,15 +1422,26 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
             .col-total { width: 12%; }
             .col-margin { width: 14%; }
             .col-percent { width: 8%; }
-        ` : `
-            .col-client { width: 32%; }
-            .col-rev { width: 13%; }
-            .col-cost { width: 10%; }
-            .col-work { width: 10%; }
-            .col-total { width: 11%; }
-            .col-margin { width: 13%; }
-            .col-percent { width: 8%; }
-        `}
+        
+        .summary-box { 
+            margin-bottom: ${marginBottom}; 
+            padding: ${summaryPadding}; 
+            background: #f9fafb; 
+            border-left: 3px solid #3b82f6; 
+            border-radius: 4px; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+        .summary-item { flex: 1; text-align: center; }
+        .summary-label { 
+            color: #6b7280; 
+            font-size: ${rowCount > 60 ? '6pt' : '7.5pt'}; 
+            margin-bottom: 2px; 
+        }
+        .summary-value { 
+            font-size: ${summaryFontSize}; 
+            font-weight: 600; 
+        }
     </style>
 </head>
 <body>
@@ -1346,12 +1451,31 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
         <div class="generated">${includeAllRevenueForSplit ? '(Incluso fatturato per ordini parziali) - ' : ''}${APP_COPY.analytics.pdf.generated}: ${new Date().toLocaleString('it-IT')}</div>
     </div>
 
-    <div style="margin-bottom: 20px; padding: 12px; background: #f9fafb; border-left: 3px solid #3b82f6; border-radius: 4px; display: flex; justify-content: space-between;">
-        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Totale Fatturato</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalRevenue)}</div></div>
-        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Materiali</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalCost)}</div></div>
-        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Manodopera</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalWorkCost)}</div></div>
-        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">Margine</div><div style="font-size: 11pt; font-weight: 600;">${formatCurrency(totalMargin)}</div></div>
-        <div><div style="color: #6b7280; font-size: 7.5pt; margin-bottom: 2px;">% Margine</div><div style="font-size: 11pt; font-weight: 600; color: ${overallMarginPercent >= 20 ? '#10b981' : overallMarginPercent >= 10 ? '#f59e0b' : '#ef4444'}">${overallMarginPercent.toFixed(1)}%</div></div>
+    <div class="summary-box">
+        <div class="summary-item">
+            <div class="summary-label">Totale Fatturato</div>
+            <div class="summary-value">${formatCurrency(totalRevenue)}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Materiali</div>
+            <div class="summary-value">${formatCurrency(totalCost)}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Manodopera</div>
+            <div class="summary-value">${formatCurrency(totalWorkCost)}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Margine</div>
+            <div class="summary-value">${formatCurrency(totalMargin)}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">% Margine</div>
+            <div class="summary-value" style="color: ${overallMarginPercent >= 20 ? '#10b981' : overallMarginPercent >= 10 ? '#f59e0b' : '#ef4444'}">${overallMarginPercent.toFixed(1)}%</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Costo Orario Manodopera</div>
+            <div class="summary-value">${APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE} €/h</div>
+        </div>
     </div>
 
     <table>
@@ -1375,14 +1499,14 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
                 return `
                 <tr>
                     <td class="col-client">
-                        <div style="font-size: 8pt; color: #1f2937;" class="truncate">${row.client_name}</div>
+                        <div class="truncate">${row.client_name}</div>
                     </td>
                     <td class="col-rev right mono" style="font-weight: 600;">${formatCurrency(row.total_revenue)}</td>
                     <td class="col-cost right mono">${formatCurrency(row.total_cost)}</td>
                     <td class="col-work right mono">${formatCurrency(row.work_cost)}</td>
                     <td class="col-total right mono" style="font-weight: 600;">${formatCurrency(costs)}</td>
                     <td class="col-margin right mono" style="font-weight: 600;">${formatCurrency(margin)}</td>
-                    <td class="col-percent right mono" style="font-size: 8pt; font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
+                    <td class="col-percent right mono" style="font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
                 </tr>
                 `;
             }).join('')}

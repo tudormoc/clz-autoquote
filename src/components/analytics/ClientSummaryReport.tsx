@@ -38,7 +38,7 @@ interface SortConfig {
 
 export function ClientSummaryReport() {
     const [data, setData] = useState<ClientSummaryRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -153,14 +153,15 @@ export function ClientSummaryReport() {
     };
 
     const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => {
-        if (!appliedFilters) return;
+        // Use appliedFilters if available, otherwise fall back to current form filters
+        const activeFilters = appliedFilters ?? filters;
         setPdfLoading(true);
         try {
             const result = await generateClientSummaryPDFAction(
                 year,
                 months,
-                appliedFilters.client || undefined,
-                appliedFilters.includeAllRevenueForSplit,
+                activeFilters.client || undefined,
+                activeFilters.includeAllRevenueForSplit,
                 format
             );
 
@@ -571,6 +572,7 @@ export function ClientSummaryReport() {
                 loading={pdfLoading}
                 title={APP_COPY.analytics.clientSummary.pdfTitle}
                 hideSeparateToggle={true}
+                hideFormatSelector={true}
             />
         </div>
     );

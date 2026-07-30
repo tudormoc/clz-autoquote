@@ -14,6 +14,8 @@ interface MonthSelectorModalProps {
     hideSeparateToggle?: boolean;
     /** Opt-in: shows Mesi / Settimane toggle — only used by area-summary */
     showWeekMode?: boolean;
+    /** When true, hides the A4/A3 page format selector (e.g. client summary always uses A4 portrait) */
+    hideFormatSelector?: boolean;
 }
 
 const MONTHS = [
@@ -39,7 +41,7 @@ const getISOWeeksInYear = (year: number): number => {
     return (jan1Day === 4 || dec31Day === 4) ? 53 : 52;
 };
 
-export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title, hideSeparateToggle, showWeekMode }: MonthSelectorModalProps) {
+export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title, hideSeparateToggle, showWeekMode, hideFormatSelector }: MonthSelectorModalProps) {
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
     const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
@@ -229,7 +231,8 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                         </div>
                     )}
 
-                    {/* Page Format Selector */}
+                    {/* Page Format Selector — hidden when report always uses a fixed format */}
+                    {!hideFormatSelector && (
                     <div className="mb-4">
                         <label className="block text-xs font-medium text-zinc-400 mb-2">
                             Formato Pagina
@@ -254,6 +257,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                             ))}
                         </div>
                     </div>
+                    )}
 
                     {/* Separate PDFs Toggle */}
                     {!hideSeparateToggle && (
