@@ -78,8 +78,13 @@ export default function CashflowPage() {
                     <CashflowMonthlyMatrix
                         monthlyData={cashflowData?.monthlyBreakdown}
                         clientMonthlySummary={cashflowData?.clientMonthlySummary}
+                        payrollMonthlyBreakdown={cashflowData?.payrollMonthlyBreakdown}
+                        extraExpenseBreakdown={cashflowData?.extraExpenseBreakdown}
+                        supplierCostGroupBreakdown={cashflowData?.supplierCostGroupBreakdown}
                         grandTotalIncome={cashflowData?.grandTotalIncome}
                         grandTotalExpense={cashflowData?.grandTotalExpense}
+                        grandTotalPayroll={cashflowData?.grandTotalPayroll}
+                        grandTotalExtraExpenses={cashflowData?.grandTotalExtraExpenses}
                         grandNetCashflow={cashflowData?.grandNetCashflow}
                         year={selectedYear}
                         loading={loading || isPending}

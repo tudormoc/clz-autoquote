@@ -3,13 +3,19 @@
 import React, { useState } from 'react';
 import { CalendarRange, ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import { MonthlyFinancialItem, ClientMonthlyBreakdownItem } from '@/app/cashflow/cashflow-actions';
+import { MonthlyFinancialItem, ClientMonthlyBreakdownItem, PayrollMonthlyBreakdown, ExtraExpenseCategoryBreakdown, SupplierCostGroupBreakdown } from '@/app/cashflow/cashflow-actions';
+import { ExpandableMatrixCategory } from './ExpandableMatrixCategory';
 
 interface CashflowMonthlyMatrixProps {
     monthlyData?: MonthlyFinancialItem[];
     clientMonthlySummary?: ClientMonthlyBreakdownItem[];
+    payrollMonthlyBreakdown?: PayrollMonthlyBreakdown[];
+    extraExpenseBreakdown?: ExtraExpenseCategoryBreakdown[];
+    supplierCostGroupBreakdown?: SupplierCostGroupBreakdown[];
     grandTotalIncome?: number;
     grandTotalExpense?: number;
+    grandTotalPayroll?: number;
+    grandTotalExtraExpenses?: number;
     grandNetCashflow?: number;
     year?: number;
     loading?: boolean;
@@ -28,8 +34,13 @@ const formatCompactEUR = (amount?: number) => {
 export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
     monthlyData = [],
     clientMonthlySummary = [],
+    payrollMonthlyBreakdown = [],
+    extraExpenseBreakdown = [],
+    supplierCostGroupBreakdown = [],
     grandTotalIncome = 0,
     grandTotalExpense = 0,
+    grandTotalPayroll = 0,
+    grandTotalExtraExpenses = 0,
     grandNetCashflow = 0,
     year = 2026,
     loading = false,
@@ -41,7 +52,15 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
     const [expandedIncomes, setExpandedIncomes] = useState<boolean>(false);
     const [expandedClientIncomes, setExpandedClientIncomes] = useState<boolean>(false);
     const [expandedExpenses, setExpandedExpenses] = useState<boolean>(false);
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
     const [expandedClosing, setExpandedClosing] = useState<boolean>(false);
+
+    const toggleCategory = (key: string) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
 
     const shortMonths = [
         'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
@@ -264,7 +283,7 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             </td>
                             {shortMonths.map((_, mIdx) => {
                                 const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                const val = item ? item.expenseAmount : 0;
+                                const val = item ? (item.expenseAmount + item.payrollAmount + item.extraExpenseAmount) : 0;
                                 return (
                                     <td key={mIdx} className="px-0.5 py-2 text-right text-rose-300 font-mono font-bold truncate">
                                         {loading ? '...' : formatCompactEUR(val)}
@@ -272,29 +291,67 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                                 );
                             })}
                             <td className="px-1.5 py-2 text-right font-bold font-mono text-rose-400 bg-rose-950/50 border-l border-zinc-800 truncate">
-                                {loading ? '...' : formatCompactEUR(grandTotalExpense)}
+                                {loading ? '...' : formatCompactEUR(grandTotalExpense + grandTotalPayroll + grandTotalExtraExpenses)}
                             </td>
                         </tr>
 
-                        {/* CASH OUT SUB-ROW: Pagamenti Fornitori */}
+                        {/* CASH OUT SUB-ROWS */}
                         {expandedExpenses && (
-                            <tr className="hover:bg-zinc-800/30 transition-colors text-[10px]">
-                                <td className="pl-6 pr-2 py-1.5 font-sans font-medium text-zinc-300 truncate" title={m.supplierExpenses}>
-                                    └ {m.supplierExpenses}
-                                </td>
-                                {shortMonths.map((_, mIdx) => {
-                                    const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                    const val = item ? item.expenseAmount : 0;
-                                    return (
-                                        <td key={mIdx} className="px-0.5 py-1.5 text-right text-rose-300/80 font-mono truncate">
-                                            {loading ? '...' : formatCompactEUR(val)}
-                                        </td>
-                                    );
-                                })}
-                                <td className="px-1.5 py-1.5 text-right font-mono text-rose-400/80 bg-zinc-800/20 border-l border-zinc-800 truncate">
-                                    {loading ? '...' : formatCompactEUR(grandTotalExpense)}
-                                </td>
-                            </tr>
+                            <>
+                                {/* Level 1: Fornitori Materie Prime (expandable by cost group) */}
+                                <ExpandableMatrixCategory
+                                    title={m.supplierExpenses}
+                                    items={supplierCostGroupBreakdown.map(g => ({
+                                        accountCode: g.costAccountCode,
+                                        label: g.label,
+                                        monthlyAmounts: g.monthlyAmounts,
+                                        totalAmount: g.totalAmount,
+                                    }))}
+                                    isExpanded={expandedCategories['suppliers'] || false}
+                                    onToggle={() => toggleCategory('suppliers')}
+                                    totalAmount={grandTotalExpense}
+                                    shortMonths={shortMonths}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                />
+
+                                {/* Level 1: Stipendi & Costo del Personale (expandable) */}
+                                <ExpandableMatrixCategory
+                                    title={m.payrollExpenses}
+                                    items={payrollMonthlyBreakdown.map(p => ({
+                                        accountCode: p.accountCode,
+                                        label: m[p.localeKey] || p.localeKey,
+                                        monthlyAmounts: p.monthlyAmounts,
+                                        totalAmount: p.totalAmount
+                                    }))}
+                                    isExpanded={expandedCategories['payroll'] || false}
+                                    onToggle={() => toggleCategory('payroll')}
+                                    totalAmount={grandTotalPayroll}
+                                    shortMonths={shortMonths}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                />
+
+                                {/* Extra Expense Categories (Taxes, Financing, Leasing, Bank Fees) */}
+                                {extraExpenseBreakdown.map((cat) => (
+                                    <ExpandableMatrixCategory
+                                        key={`extra_cat_${cat.key}`}
+                                        title={cat.label}
+                                        items={cat.accounts.map(acc => ({
+                                            accountCode: acc.accountCode,
+                                            label: acc.label,
+                                            monthlyAmounts: acc.monthlyAmounts,
+                                            totalAmount: acc.totalAmount
+                                        }))}
+                                        isExpanded={expandedCategories[cat.key] || false}
+                                        onToggle={() => toggleCategory(cat.key)}
+                                        totalAmount={cat.totalAmount}
+                                        shortMonths={shortMonths}
+                                        loading={loading}
+                                        formatCompactEUR={formatCompactEUR}
+                                    />
+                                ))}
+                            </>
                         )}
 
                         {/* 4. NET CASH FLOW ROW */}
@@ -317,6 +374,36 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             })}
                             <td className="px-1.5 py-2.5 text-right font-bold text-emerald-400 bg-zinc-800/40 border-l border-zinc-800 truncate">
                                 {loading ? '...' : formatCompactEUR(grandNetCashflow)}
+                            </td>
+                        </tr>
+
+                        {/* 4.5 RECONCILIATION DISCREPANCY ROW */}
+                        <tr className="bg-zinc-950 font-semibold text-[10px] text-zinc-400 border-b border-zinc-800">
+                            <td className="px-2 py-1.5 font-sans truncate text-amber-400/90" title="Scostamento tra Flusso Netto Atteso (Opening + Net Flow) e Saldo Finale Reale in Banca">
+                                ⚠ Scostamento Banca (Non tracciato)
+                            </td>
+                            {shortMonths.map((_, mIdx) => {
+                                const item = monthlyData.find((i) => i.month === mIdx + 1);
+                                if (!item || !item.hasBankData || item.openingBalance === null || item.openingBalance === undefined || item.closingBalance === null || item.closingBalance === undefined) {
+                                    return <td key={mIdx} className="px-0.5 py-1.5 text-right font-mono text-zinc-600">-</td>;
+                                }
+                                const expectedClosing = item.openingBalance + item.netAmount;
+                                const diff = item.closingBalance - expectedClosing;
+                                const isZero = Math.abs(diff) < 1;
+                                return (
+                                    <td 
+                                        key={mIdx} 
+                                        className={`px-0.5 py-1.5 text-right font-mono truncate ${
+                                            isZero ? 'text-zinc-500' : diff > 0 ? 'text-emerald-400/80' : 'text-rose-400/80'
+                                        }`}
+                                        title={`Atteso: ${formatCompactEUR(expectedClosing)} | Reale: ${formatCompactEUR(item.closingBalance)}`}
+                                    >
+                                        {loading ? '...' : (diff > 0 ? `+${formatCompactEUR(diff)}` : formatCompactEUR(diff))}
+                                    </td>
+                                );
+                            })}
+                            <td className="px-1.5 py-1.5 text-right font-mono text-zinc-500 bg-zinc-900 border-l border-zinc-800 truncate">
+                                -
                             </td>
                         </tr>
 

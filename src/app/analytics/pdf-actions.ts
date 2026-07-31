@@ -1250,6 +1250,19 @@ export async function generateClientSummaryPDFAction(
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
 
+        // Measure actual content height and shrink to fit a single A4 page.
+        // A4 = 297mm; usable height ≈ 297 - 15 (top) - 20 (bottom) = 262mm ≈ 990px at 96dpi.
+        const A4_USABLE_HEIGHT_PX = 990;
+        const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
+        if (bodyHeight > A4_USABLE_HEIGHT_PX) {
+            const scale = A4_USABLE_HEIGHT_PX / bodyHeight;
+            await page.evaluate((s: number) => {
+                document.body.style.zoom = `${s}`;
+            }, scale);
+            // Allow the browser to re-layout after zoom
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        }
+
         const copy = APP_COPY.analytics.pdf;
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -1264,8 +1277,7 @@ export async function generateClientSummaryPDFAction(
                     <div style="text-align: right;">${new Date().toLocaleDateString('it-IT')}</div>
                 </div>
             `,
-            margin: { top: '15mm', right: '12mm', bottom: '20mm', left: '12mm' },
-            pageRanges: '1'
+            margin: { top: '15mm', right: '12mm', bottom: '20mm', left: '12mm' }
         });
 
         await browser.close();
