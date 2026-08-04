@@ -106,46 +106,127 @@ export async function updateEventAction(
     }
 }
 
-export async function deleteEventAction(
+export async function getConnectedEventsAction(
     oggetto: string,
-    oraEvento: any,
+    oraEvento: string,
     pairedOraEvento?: string | null
 ) {
     try {
-        const rawOraVal = oraEvento as any;
-        const rawOraStr = rawOraVal instanceof Date ? rawOraVal.toISOString() : String(oraEvento);
-        const todayStr = rawOraStr.slice(0, 10);
+        const t1 = new Date(oraEvento).getTime();
+        const t2 = pairedOraEvento ? new Date(pairedOraEvento).getTime() : t1;
+        const startTime = new Date(Math.min(t1, t2)).toISOString().replace('T', ' ').replace('Z', '');
+        const endTime = new Date(Math.max(t1, t2)).toISOString().replace('T', ' ').replace('Z', '');
+        const dateStr = startTime.slice(0, 10);
 
-        if (pairedOraEvento) {
-            // Delete specifically the selected event AND its paired event
-            const deletePairQuery = `
-                DELETE FROM EVENTI
-                WHERE OGGETTO = @oggetto
-                  AND TASK = 'presenza'
-                  AND (ORA_EVENTO = @oraEvento OR ORA_EVENTO = @pairedOraEvento)
-            `;
-            await queryMSSQL(deletePairQuery, { oggetto, oraEvento, pairedOraEvento }, 'NETPRO');
-        } else {
-            // Delete only single event
-            const query = `
-                DELETE FROM EVENTI
-                WHERE OGGETTO = @oggetto
-                  AND ORA_EVENTO = @oraEvento
-                  AND TASK = 'presenza'
-            `;
-            await queryMSSQL(query, { oggetto, oraEvento }, 'NETPRO');
+        // Fetch all events for this operator or related machine in the timeframe
+        const query = `
+            SELECT TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO
+            FROM EVENTI WITH (NOLOCK)
+            WHERE (
+                OPERATORE = @oggetto 
+                OR OGGETTO = @oggetto 
+                OR (TIPO_OGGETTO = 'MAC' AND OGGETTO IN (
+                    SELECT DISTINCT MACCHINA FROM EVENTI WITH (NOLOCK) 
+                    WHERE OPERATORE = @oggetto AND CAST(ORA_EVENTO AS DATE) = @dateStr
+                ))
+            )
+            AND ORA_EVENTO >= @startTime
+            AND ORA_EVENTO <= @endTime
+            ORDER BY ORA_EVENTO ASC
+        `;
+
+        const result = await queryMSSQL(query, { oggetto, startTime, endTime, dateStr }, 'NETPRO');
+        return {
+            success: true,
+            data: result.recordset
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message,
+            data: []
+        };
+    }
+}
+
+export async function deleteEventsAction(
+    operatorCode: string,
+    eventsToDelete: { task: string; tipoOggetto: string; oggetto: string; evento: string; oraEvento: string }[]
+) {
+    try {
+        if (!eventsToDelete || eventsToDelete.length === 0) {
+            return { success: true, message: 'No events to delete' };
         }
 
-        // Recalculate latest status for operator based on remaining events today
+        const firstEventTime = eventsToDelete[0].oraEvento;
+        const todayStr = new Date(firstEventTime).toISOString().slice(0, 10);
+
+        for (const item of eventsToDelete) {
+            const formattedTime = item.oraEvento.includes('.') ? item.oraEvento : `${item.oraEvento}.000`;
+
+            // 1. Delete this specific event log from EVENTI
+            await queryMSSQL(`
+                DELETE FROM EVENTI
+                WHERE TASK = @task
+                  AND TIPO_OGGETTO = @tipoOggetto
+                  AND OGGETTO = @oggetto
+                  AND EVENTO = @evento
+                  AND ORA_EVENTO = @formattedTime
+            `, {
+                task: item.task,
+                tipoOggetto: item.tipoOggetto,
+                oggetto: item.oggetto,
+                evento: item.evento,
+                formattedTime
+            }, 'NETPRO');
+
+            // 2. If we are deleting a SUS event, restore active task/operation/operator state back to EXE/WORK
+            if (item.evento === 'SUS' && item.task !== 'presenza') {
+                // Restore Task status
+                await queryMSSQL(`
+                    UPDATE TASKS
+                    SET STATO = 'EXE'
+                    WHERE TASK = @task AND STATO = 'SUS'
+                `, { task: item.task }, 'NETPRO');
+
+                // Restore Operation status
+                await queryMSSQL(`
+                    UPDATE OPERAZIONI
+                    SET STATO = 'EXE'
+                    WHERE ID_OPER = @task AND STATO = 'SUS'
+                `, { task: item.task }, 'NETPRO');
+
+                // Restore Operator logical state
+                await queryMSSQL(`
+                    UPDATE OPERATORI
+                    SET STATO_LOGICO = 'WORK'
+                    WHERE OPERATORE = @operatorCode AND STATO_LOGICO = 'IDLE'
+                `, { operatorCode }, 'NETPRO');
+            }
+
+            // 3. If we are deleting a machine IDLE/SUS state, restore MACCHINE state back to WORK
+            if ((item.evento === 'IDLE' && item.task === 'stato') || (item.evento === 'SUS' && item.tipoOggetto === 'MAC')) {
+                const machineCode = item.tipoOggetto === 'MAC' ? item.oggetto : (item.task === 'stato' ? item.oggetto : null);
+                if (machineCode) {
+                    await queryMSSQL(`
+                        UPDATE MACCHINE
+                        SET STATO_LOGICO = 'WORK'
+                        WHERE MACCHINA = @machineCode AND STATO_LOGICO = 'IDLE'
+                    `, { machineCode }, 'NETPRO');
+                }
+            }
+        }
+
+        // 4. Recalculate latest presence status for operator based on remaining presence events today
         const latestEventQuery = `
             SELECT TOP 1 EVENTO
             FROM EVENTI WITH (NOLOCK)
-            WHERE OGGETTO = @oggetto
+            WHERE OGGETTO = @operatorCode
               AND TASK = 'presenza'
               AND CAST(ORA_EVENTO AS DATE) = @today
             ORDER BY ORA_EVENTO DESC
         `;
-        const latestRes = await queryMSSQL(latestEventQuery, { oggetto, today: todayStr }, 'NETPRO');
+        const latestRes = await queryMSSQL(latestEventQuery, { operatorCode, today: todayStr }, 'NETPRO');
         
         let newStatus = 'OUT';
         if (latestRes.recordset.length > 0) {
@@ -154,14 +235,14 @@ export async function deleteEventAction(
         }
 
         await queryMSSQL(
-            `UPDATE OPERATORI SET STATO_FISICO = @newStatus WHERE OPERATORE = @oggetto`,
-            { newStatus, oggetto },
+            `UPDATE OPERATORI SET STATO_FISICO = @newStatus WHERE OPERATORE = @operatorCode`,
+            { newStatus, operatorCode },
             'NETPRO'
         );
 
         return {
             success: true,
-            message: 'Event deleted and status updated successfully'
+            message: 'Events deleted and states restored successfully'
         };
     } catch (err: any) {
         return {
@@ -237,12 +318,13 @@ async function suspendActiveExecutionIfAny(operatorCode: string, exitTimeStr: st
                 info3
             }, 'NETPRO');
 
-            // 2. Update TASKS table to set task status to 'SUS'
+            // 2. Update TASKS and OPERAZIONI to set status to 'SUS'
             if (task) {
                 await queryMSSQL(`
-                    UPDATE TASKS
-                    SET STATO = 'SUS'
-                    WHERE TASK = @task
+                    UPDATE TASKS SET STATO = 'SUS' WHERE TASK = @task
+                `, { task }, 'NETPRO');
+                await queryMSSQL(`
+                    UPDATE OPERAZIONI SET STATO = 'SUS' WHERE ID_OPER = @task
                 `, { task }, 'NETPRO');
             }
 
@@ -466,26 +548,22 @@ export async function runAutoExitAction(testOperator?: string) {
         // Format today as YYYY-MM-DD for MSSQL date comparison
         const todayStr = now.toISOString().slice(0, 10);
 
-        // Optional single-operator filter (for testing via ?operator=98)
-        const operatorClause = testOperator ? 'AND EVT.OGGETTO = @testOperator' : '';
         const params: Record<string, any> = { today: todayStr };
         if (testOperator) params.testOperator = testOperator;
 
-        // Find operators with ENT today but zero EXT today
+        // Find operators whose LAST presence event today is ENT (handles multiple ENT/EXT pairs)
+        const operatorWhere = testOperator ? `AND OGGETTO = @testOperator` : '';
         const findQuery = `
-            SELECT DISTINCT EVT.OGGETTO
-            FROM EVENTI EVT WITH (NOLOCK)
-            WHERE EVT.TASK = 'presenza'
-              AND CAST(EVT.ORA_EVENTO AS DATE) = @today
-              AND EVT.EVENTO = 'ENT'
-              ${operatorClause}
-              AND NOT EXISTS (
-                SELECT 1 FROM EVENTI EVT2 WITH (NOLOCK)
-                WHERE EVT2.TASK = 'presenza'
-                  AND EVT2.OGGETTO = EVT.OGGETTO
-                  AND CAST(EVT2.ORA_EVENTO AS DATE) = @today
-                  AND EVT2.EVENTO = 'EXT'
-              )
+            SELECT OGGETTO
+            FROM (
+                SELECT OGGETTO, EVENTO,
+                       ROW_NUMBER() OVER (PARTITION BY OGGETTO ORDER BY ORA_EVENTO DESC) AS rn
+                FROM EVENTI WITH (NOLOCK)
+                WHERE TASK = 'presenza'
+                  AND CAST(ORA_EVENTO AS DATE) = @today
+                  ${operatorWhere}
+            ) ranked
+            WHERE rn = 1 AND EVENTO = 'ENT'
         `;
 
         const found = await queryMSSQL(findQuery, params, 'NETPRO');

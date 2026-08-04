@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Search, X, ArrowUpDown, ArrowUp, ArrowDown, Save, X as XIcon, Trash2, Plus } from 'lucide-react';
 import { getTodayDate } from '@/lib/dateUtils';
-import { getDailyEventsAction, updateEventAction, deleteEventAction, createEventAction } from '@/app/presence/presence-actions';
+import { getDailyEventsAction, updateEventAction, getConnectedEventsAction, deleteEventsAction, createEventAction } from '@/app/presence/presence-actions';
 import { APP_COPY } from '@/locales';
 
 interface EventRow {
@@ -52,6 +52,18 @@ export function DailyEventsTable() {
     const [editDateValue, setEditDateValue] = useState('');
     const [editTimeValue, setEditTimeValue] = useState('');
     const [saving, setSaving] = useState(false);
+
+    // Delete modal state
+    interface DeleteModalItem {
+        label: string;
+        oraEvento: string;
+        oggetto: string;
+        task: string;
+        tipoOggetto: string;
+        evento: string;
+    }
+    const [deleteModal, setDeleteModal] = useState<{ items: DeleteModalItem[]; checked: boolean[] } | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     // New event state
     const [showAddForm, setShowAddForm] = useState(false);
@@ -214,7 +226,7 @@ export function DailyEventsTable() {
         const rawStr = rawVal instanceof Date ? rawVal.toISOString() : String(row.ORA_EVENTO);
         const rowDate = rawStr.slice(0, 10);
         const rowTimeMs = new Date(row.ORA_EVENTO).getTime();
-        
+
         // Find all events for this operator on the same day, sorted chronologically
         const dayEvents = data
             .filter(item => {
@@ -224,47 +236,86 @@ export function DailyEventsTable() {
             })
             .sort((a, b) => new Date(a.ORA_EVENTO).getTime() - new Date(b.ORA_EVENTO).getTime());
 
-        // Find closest partner event (nearest ENT before EXT, or nearest EXT after ENT)
+        // Find closest partner event
         let partnerEvent: EventRow | undefined = undefined;
         if (row.EVENTO === 'EXT') {
-            // Find closest ENT preceding this EXT
             partnerEvent = dayEvents
                 .filter(e => e.EVENTO === 'ENT' && new Date(e.ORA_EVENTO).getTime() <= rowTimeMs)
                 .pop();
         } else if (row.EVENTO === 'ENT') {
-            // Find closest EXT following this ENT
             partnerEvent = dayEvents
                 .find(e => e.EVENTO === 'EXT' && new Date(e.ORA_EVENTO).getTime() >= rowTimeMs);
         }
 
-        let confirmMsg = `Deleting ${row.EVENTO} event (${formatDateTime(row.ORA_EVENTO)}).\n\n`;
+        // Fetch all connected events in this timeframe from the database
+        const res = await getConnectedEventsAction(row.OGGETTO, row.ORA_EVENTO, partnerEvent?.ORA_EVENTO);
+        if (res.success && res.data) {
+            const items = res.data.map((evt: any) => {
+                const isPresenza = evt.TASK === 'presenza';
+                const isStato = evt.TASK === 'stato';
+                const eventType = String(evt.EVENTO).trim();
 
-        if (partnerEvent) {
-            confirmMsg += `Found paired ${partnerEvent.EVENTO} event at ${formatDateTime(partnerEvent.ORA_EVENTO)}.\n\n`;
-            confirmMsg += `Click OK to delete BOTH paired events (${row.EVENTO} + ${partnerEvent.EVENTO}).\n`;
-            confirmMsg += `Click CANCEL to delete ONLY this single ${row.EVENTO} event.`;
+                // Build a user-friendly label
+                let description = '';
+                if (isPresenza) {
+                    description = eventType === 'ENT' ? 'Entry' : 'Exit';
+                } else if (isStato) {
+                    description = `Machine State: ${eventType}`;
+                } else {
+                    description = `${eventType} (Job: ${evt.TASK})`;
+                }
+
+                return {
+                    label: `${evt.TASK}  –  ${formatDateTime(evt.ORA_EVENTO)}  –  ${description}`,
+                    oraEvento: evt.ORA_EVENTO,
+                    oggetto: evt.OGGETTO,
+                    task: evt.TASK,
+                    tipoOggetto: evt.TIPO_OGGETTO,
+                    evento: evt.EVENTO
+                };
+            });
+
+            setDeleteModal({ items, checked: items.map(() => true) });
         } else {
-            confirmMsg += `No paired event found on this date.\nAre you sure you want to delete this event?`;
+            // Fallback to simple local items
+            const items = [
+                {
+                    label: `${row.EVENTO}  –  ${formatDateTime(row.ORA_EVENTO)}  –  ${row.EVENTO === 'ENT' ? 'Entry' : 'Exit'}`,
+                    oraEvento: row.ORA_EVENTO,
+                    oggetto: row.OGGETTO,
+                    task: 'presenza',
+                    tipoOggetto: 'OPE',
+                    evento: row.EVENTO
+                }
+            ];
+            if (partnerEvent) {
+                items.push({
+                    label: `${partnerEvent.EVENTO}  –  ${formatDateTime(partnerEvent.ORA_EVENTO)}  –  ${partnerEvent.EVENTO === 'ENT' ? 'Entry' : 'Exit'}`,
+                    oraEvento: partnerEvent.ORA_EVENTO,
+                    oggetto: partnerEvent.OGGETTO,
+                    task: 'presenza',
+                    tipoOggetto: 'OPE',
+                    evento: partnerEvent.EVENTO
+                });
+            }
+            setDeleteModal({ items, checked: items.map(() => true) });
         }
+    };
 
-        const deletePair = partnerEvent ? confirm(confirmMsg) : false;
-
-        let proceed = true;
-        if (partnerEvent && !deletePair) {
-            proceed = confirm(`Are you sure you want to delete ONLY this single ${row.EVENTO} event?`);
-        } else if (!partnerEvent) {
-            proceed = confirm(confirmMsg);
-        }
-
-        if (!proceed) return;
-
-        const pairedOra = (deletePair && partnerEvent) ? partnerEvent.ORA_EVENTO : null;
-        const result = await deleteEventAction(row.OGGETTO, row.ORA_EVENTO, pairedOra);
+    const handleConfirmDelete = async () => {
+        if (!deleteModal || !data.length) return;
+        setDeleting(true);
+        const toDelete = deleteModal.items.filter((_, i) => deleteModal.checked[i]);
+        
+        // Call batch delete action
+        const result = await deleteEventsAction(data[0].OGGETTO, toDelete);
         if (result.success) {
+            setDeleteModal(null);
             handleApplyFilters();
         } else {
             alert(`Error: ${result.error}`);
         }
+        setDeleting(false);
     };
 
     const formatDateTime = (dateTime: string) => {
@@ -291,6 +342,7 @@ export function DailyEventsTable() {
     }
 
     return (
+        <>
         <div className="space-y-4">
             {/* Filters */}
             <div className="bg-card border border-zinc-800 rounded-lg p-4">
@@ -556,5 +608,50 @@ export function DailyEventsTable() {
                 </div>
             )}
         </div>
+
+        {/* Delete confirmation modal */}
+        {deleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+                    <h3 className="text-base font-semibold text-white mb-1">Delete events</h3>
+                    <p className="text-xs text-zinc-400 mb-4">Select the events to delete, then press OK.</p>
+                    <div className="space-y-2 mb-6">
+                        {deleteModal.items.map((item, i) => (
+                            <label key={i} className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={deleteModal.checked[i]}
+                                    onChange={() => {
+                                        const next = [...deleteModal.checked];
+                                        next[i] = !next[i];
+                                        setDeleteModal({ ...deleteModal, checked: next });
+                                    }}
+                                    className="w-4 h-4 accent-red-500 cursor-pointer"
+                                />
+                                <span className="text-sm text-zinc-200 group-hover:text-white transition-colors font-mono">
+                                    {item.label}
+                                </span>
+                            </label>
+                        ))}
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                        <button
+                            onClick={() => setDeleteModal(null)}
+                            className="px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleConfirmDelete}
+                            disabled={deleting || deleteModal.checked.every(c => !c)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                        >
+                            {deleting ? 'Deleting...' : 'OK'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }
