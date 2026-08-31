@@ -60,7 +60,10 @@ export interface MonthlyFinancialItem {
     payrollAmount: number;
     /** Extra non-vendor cash-out (taxes, financing, fees, leasing) for that month */
     extraExpenseAmount: number;
+    /** Net flow (income - expenses - payroll - extraExpenses) */
     netAmount: number;
+    /** Cash flow (opening + net flow) */
+    cashFlow: number;
     incomeCount: number;
     expenseCount: number;
     openingBalance?: number | null;
@@ -459,7 +462,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             const expenseAmt = expData.total;
             const payrollAmt = payrollByMonth.get(m) || 0;
             const extraExpenseAmt = extraExpenseByMonth.get(m) || 0;
-            // Net Flow includes supplier expenses, payroll, and extra expenses
+            // Cash Flow includes opening balance + net inflows/outflows
             const netAmount = incomeAmt - expenseAmt - payrollAmt - extraExpenseAmt;
 
             let monthOpening: number | null = null;
@@ -486,6 +489,11 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 }
             }
 
+            // Cash Flow = Opening Balance + Net Amount (when bank data available)
+            const cashFlow = (monthOpening !== null && monthOpening !== undefined) 
+                ? monthOpening + netAmount 
+                : netAmount;
+
             grandTotalIncome += incomeAmt;
             grandOpenIncome += incData.open;
             totalIncomeInvoicesCount += incData.count;
@@ -502,6 +510,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 payrollAmount: payrollAmt,
                 extraExpenseAmount: extraExpenseAmt,
                 netAmount,
+                cashFlow,
                 incomeCount: incData.count,
                 expenseCount: expData.count,
                 openingBalance: monthOpening,

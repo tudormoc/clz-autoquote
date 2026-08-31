@@ -90,7 +90,7 @@ export async function generateAreaSummaryPDFAction(
         });
 
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -683,7 +683,7 @@ export async function generateOrderAreaSummaryPDFAction(
         });
 
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
         const copy = APP_COPY.analytics.pdf;
         const pdfBuffer = await page.pdf({
@@ -1248,7 +1248,7 @@ export async function generateClientSummaryPDFAction(
         });
 
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
         // Measure actual content height and shrink to fit a single A4 page.
         // A4 = 297mm; usable height ≈ 297 - 15 (top) - 20 (bottom) = 262mm ≈ 990px at 96dpi.

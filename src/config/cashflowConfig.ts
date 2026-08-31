@@ -86,7 +86,7 @@ export const CASHFLOW_CONFIG = {
         {
             key: 'financing',
             label: 'Mutui & Finanziamenti',
-            enabled: true,
+            enabled: false,
             accounts: [
                 { accountCode: 20020018, label: 'Mutuo CFI EX DM 04/01/2021' },
             ]
@@ -94,7 +94,7 @@ export const CASHFLOW_CONFIG = {
         {
             key: 'leasing',
             label: 'Leasing & Canoni',
-            enabled: true,
+            enabled: false,
             accounts: [
                 { accountCode: 62010021, label: 'Alba Leasing' },
             ]

@@ -1,7 +1,7 @@
 import { Header } from '@/components/Header';
 import { APP_COPY } from '@/locales';
 import Link from 'next/link';
-import { FileText, BarChart3, Database, Users, Wallet } from 'lucide-react';
+import { FileText, BarChart3, Database, Users, Wallet, Workflow } from 'lucide-react';
 
 export default function Home() {
     const navigationCards = [
@@ -12,6 +12,12 @@ export default function Home() {
             description: APP_COPY.home.cards.quotes.description,
         },
         {
+            href: '/work-progress',
+            icon: Workflow,
+            title: APP_COPY.home.cards.workProgress.title,
+            description: APP_COPY.home.cards.workProgress.description,
+        },
+        {
             href: '/analytics',
             icon: BarChart3,
             title: APP_COPY.home.cards.analytics.title,
@@ -20,8 +26,8 @@ export default function Home() {
         {
             href: '/presence',
             icon: Users,
-            title: 'Operator Presence',
-            description: 'Manage and monitor operator presence events',
+            title: APP_COPY.home.cards.presence.title,
+            description: APP_COPY.home.cards.presence.description,
         },
         {
             href: '/cashflow',
@@ -52,7 +58,7 @@ export default function Home() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
                     {navigationCards.map((card) => {
                         const Icon = card.icon;
                         return (

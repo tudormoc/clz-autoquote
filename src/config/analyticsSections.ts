@@ -16,7 +16,6 @@ import { OrderAreaSummaryReport } from '@/components/analytics/OrderAreaSummaryR
 import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport';
 import { ClientDeliveriesReport } from '@/components/analytics/ClientDeliveriesReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
-import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { PresenceReport } from '@/components/analytics/PresenceReport';
 import { AnnualPresenceReport } from '@/components/analytics/AnnualPresenceReport';
@@ -57,13 +56,6 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         icon: Table2,
         category: 'production',
         description: 'Production grouped by area'
-    },
-    {
-        id: 'order-operations',
-        label: APP_COPY.analytics.reports.orderOperations,
-        icon: Calendar,
-        category: 'production',
-        description: 'Track operations progress per order'
     },
     {
         id: 'area-summary',
@@ -138,7 +130,6 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
     'order-area-summary': OrderAreaSummaryReport,
-    'order-operations': OrderOperationsReport,
     'area-summary': AreaSummaryReport,
     'client-summary': ClientSummaryReport,
     'client-deliveries': ClientDeliveriesReport,

@@ -197,11 +197,17 @@ export const APP_CONFIG = {
   // Presence / Auto-Exit Configuration
   PRESENCE: {
     // Time used for auto-generated EXT events on weekdays (Mon–Fri)
-    AUTO_EXIT_TIME_WEEKDAY: '15:30:00',
+    AUTO_EXIT_TIME_WEEKDAY: '16:30:00',
     // Time used for auto-generated EXT events on Saturdays
     AUTO_EXIT_TIME_SATURDAY: '11:00:00',
     // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
     TRIGGER_HOUR: 19,
+  },
+
+  // External Report Services
+  REPORTS: {
+    NETPRO_PDF_ENDPOINT: 'http://192.168.1.91/SFCClient/Attachment/getPDFReport',
+    COMMESSA_REPORT_NAME: 'BSORGCOMM2_NP.RPT',
   },
 } as const;
 

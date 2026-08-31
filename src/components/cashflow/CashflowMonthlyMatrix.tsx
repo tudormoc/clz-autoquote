@@ -354,12 +354,12 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                             </>
                         )}
 
-                        {/* 4. NET CASH FLOW ROW */}
+                        {/* 4. CASH FLOW ROW */}
                         <tr className="bg-zinc-900 font-bold border-t border-b border-zinc-700 text-zinc-100 text-xs">
-                            <td className="px-2 py-2.5 font-sans truncate">Flusso Netto (Net Flow)</td>
+                            <td className="px-2 py-2.5 font-sans truncate" title="Saldo Iniziale + Entrate - Uscite">Flusso di Cassa (Cash Flow)</td>
                             {shortMonths.map((_, mIdx) => {
                                 const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                const val = item ? item.netAmount : 0;
+                                const val = item ? item.cashFlow : 0;
                                 const isPositive = val >= 0;
                                 return (
                                     <td
@@ -379,7 +379,7 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
 
                         {/* 4.5 RECONCILIATION DISCREPANCY ROW */}
                         <tr className="bg-zinc-950 font-semibold text-[10px] text-zinc-400 border-b border-zinc-800">
-                            <td className="px-2 py-1.5 font-sans truncate text-amber-400/90" title="Scostamento tra Flusso Netto Atteso (Opening + Net Flow) e Saldo Finale Reale in Banca">
+                            <td className="px-2 py-1.5 font-sans truncate text-amber-400/90" title="Scostamento tra Flusso di Cassa Calcolato e Saldo Finale Reale in Banca">
                                 ⚠ Scostamento Banca (Non tracciato)
                             </td>
                             {shortMonths.map((_, mIdx) => {
@@ -387,7 +387,8 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                                 if (!item || !item.hasBankData || item.openingBalance === null || item.openingBalance === undefined || item.closingBalance === null || item.closingBalance === undefined) {
                                     return <td key={mIdx} className="px-0.5 py-1.5 text-right font-mono text-zinc-600">-</td>;
                                 }
-                                const expectedClosing = item.openingBalance + item.netAmount;
+                                // Expected closing = cash flow (which already includes opening + net)
+                                const expectedClosing = item.cashFlow;
                                 const diff = item.closingBalance - expectedClosing;
                                 const isZero = Math.abs(diff) < 1;
                                 return (
