@@ -262,7 +262,7 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                                         ) : (
                                             <tr className="hover:bg-zinc-800/30 transition-colors text-[10px]">
                                                 <td className="pl-10 pr-2 py-1.5 font-sans font-medium text-zinc-500 truncate" colSpan={14}>
-                                                    └ Nessun cliente registrato per l'anno
+                                                    └ Nessun cliente registrato per l&apos;anno
                                                 </td>
                                             </tr>
                                         )}

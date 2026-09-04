@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Calendar, Users, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Users, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { APP_COPY } from '@/locales';
@@ -13,8 +13,9 @@ const copy = APP_COPY.analytics;
 
 // Nav sections — labels from locale, no hardcoded strings
 const PRESENCE_SECTIONS = [
-    { id: 'operators',    label: copy.operators.title,    icon: Users },
-    { id: 'daily-events', label: copy.dailyEvents.title,  icon: Calendar },
+    { id: 'operators',        label: copy.operators.title,       icon: Users },
+    { id: 'daily-events',     label: copy.dailyEvents.title,     icon: Calendar },
+    { id: 'monthly-summary',  label: copy.monthlySummary.title,  icon: CalendarDays },
 ];
 
 export function PresenceSidebar({ activeSection }: PresenceSidebarProps) {

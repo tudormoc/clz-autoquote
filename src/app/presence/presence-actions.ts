@@ -633,3 +633,316 @@ export async function runAutoExitAction(testOperator?: string) {
         };
     }
 }
+
+import type { OperatorHoursRow, PresenceSettingRow } from '@/types';
+
+export async function getMonthlyHoursAction(
+    dateFrom: string,
+    dateTo: string,
+    operatorFilter?: string
+) {
+    try {
+        const conditions: string[] = [
+            "SIT.TIPO_OGGETTO = 'OPE'",
+            "SIT.TIPO = 'CLCK'",
+            "CAST(SIT.DATA AS DATE) >= @dateFrom",
+            "CAST(SIT.DATA AS DATE) <= @dateTo",
+        ];
+
+        // Load all 5 PRESENZE params in a single query
+        let pauseMinutes = 60;
+        let stdStart = '08:00';
+        let stdEnd = '17:00';
+        let specStart = '06:00';
+        let specEnd = '15:00';
+
+        try {
+            const paramsRes = await queryMSSQL(
+                `SELECT PARAMETRO, VALORE, FVALUE01
+                 FROM VALORI_TABELLE WITH (NOLOCK)
+                 WHERE TABELLA = 'PRESENZE'
+                   AND PARAMETRO IN ('PAUSA_MINUTI','STD_START','STD_END','SPEC_START','SPEC_END')`,
+                {},
+                'NETPRO'
+            );
+            for (const row of paramsRes.recordset) {
+                const v = (row.VALORE ?? '').trim();
+                switch (row.PARAMETRO) {
+                    case 'PAUSA_MINUTI': {
+                        const n = row.FVALUE01 ?? parseFloat(v);
+                        if (!isNaN(n)) pauseMinutes = n;
+                        break;
+                    }
+                    case 'STD_START': if (v) stdStart = v; break;
+                    case 'STD_END':   if (v) stdEnd   = v; break;
+                    case 'SPEC_START': if (v) specStart = v; break;
+                    case 'SPEC_END':   if (v) specEnd   = v; break;
+                }
+            }
+        } catch {
+            // Use hardcoded defaults if DB read fails
+        }
+
+        // Helper: convert "HH:MM" to total minutes since midnight
+        const toMin = (t: string) => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const params: Record<string, any> = { dateFrom, dateTo, pauseMinutes };
+
+        if (operatorFilter && operatorFilter.trim()) {
+            const operatorTerms = operatorFilter.split(',').map(o => o.trim()).filter(o => o);
+            if (operatorTerms.length > 0) {
+                const termConditions = operatorTerms.map((_, i) =>
+                    `(SIT.OGGETTO LIKE @operator${i} OR OPE.NOME LIKE @operator${i})`
+                );
+                conditions.push(`(${termConditions.join(' OR ')})`);
+                operatorTerms.forEach((term, i) => {
+                    params[`operator${i}`] = `%${term}%`;
+                });
+            }
+        }
+
+        const whereClause = conditions.join(' AND ');
+
+        const query = `
+            SELECT
+                SIT.OGGETTO AS operatore,
+                ISNULL(OPE.NOME, SIT.OGGETTO) AS nome,
+                ISNULL(NULLIF(LTRIM(RTRIM(OPE.GRUPPO)), ''), NULL) AS gruppo,
+                CONVERT(VARCHAR(10), CAST(SIT.DATA AS DATE), 120) AS data,
+                CONVERT(VARCHAR(8), MIN(SIT.ORA_INIZIO), 108) AS ora_inizio,
+                CONVERT(VARCHAR(8), MAX(SIT.ORA_FINE), 108) AS ora_fine,
+                COUNT(*) AS sessioni_count,
+                ROUND(SUM(ISNULL(SIT.LAVORO, 0)), 2) AS ore_lavoro,
+                ROUND(CASE
+                    WHEN DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) > @pauseMinutes
+                    THEN (DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) - @pauseMinutes) / 60.0
+                    ELSE 0
+                END, 2) AS ore_totali
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
+            WHERE ${whereClause}
+            GROUP BY SIT.OGGETTO, OPE.NOME, OPE.GRUPPO, CAST(SIT.DATA AS DATE)
+            ORDER BY data DESC, SIT.OGGETTO ASC
+        `;
+
+        const result = await queryMSSQL(query, params, 'NETPRO');
+
+        // Enrich each row with schedule info resolved from GRUPPO
+        const rows: OperatorHoursRow[] = result.recordset.map((row: any) => {
+            const isSpecial = (row.gruppo ?? '').trim().toUpperCase() === 'TURNO2';
+            const expectedStart = isSpecial ? specStart : stdStart;
+            const expectedEnd   = isSpecial ? specEnd   : stdEnd;
+
+            // Parse actual times (HH:MM from VARCHAR(8) = HH:MM:SS)
+            const actualStartMin = toMin(row.ora_inizio?.substring(0, 5) ?? '00:00');
+            const actualEndMin   = toMin(row.ora_fine?.substring(0, 5) ?? '00:00');
+            const expStartMin    = toMin(expectedStart.substring(0, 5));
+            const expEndMin      = toMin(expectedEnd.substring(0, 5));
+
+            return {
+                operatore: row.operatore,
+                nome: row.nome,
+                gruppo: row.gruppo ?? null,
+                turno: isSpecial ? 'TURNO2' : 'STD',
+                data: row.data,
+                ora_inizio: row.ora_inizio,
+                ora_fine: row.ora_fine,
+                sessioni_count: row.sessioni_count,
+                ore_lavoro: row.ore_lavoro,
+                ore_totali: row.ore_totali,
+                inizio_atteso: expectedStart,
+                fine_attesa: expectedEnd,
+                // Positive = late/missing, negative = early
+                diff_inizio_min: actualStartMin - expStartMin,
+                diff_fine_min: actualEndMin - expEndMin,
+            } satisfies OperatorHoursRow;
+        });
+
+        return { success: true, data: rows };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message as string,
+            data: [] as OperatorHoursRow[],
+        };
+    }
+}
+
+/**
+ * Get all presence configuration parameters from NETPRO.VALORI_TABELLE
+ */
+export async function getAllPresenceSettingsAction() {
+    try {
+        const query = `
+            SELECT TABELLA, PARAMETRO, VALORE, DESCRIZIONE, FVALUE01
+            FROM VALORI_TABELLE WITH (NOLOCK)
+            WHERE TABELLA = 'PRESENZE'
+            ORDER BY 
+                CASE PARAMETRO
+                    WHEN 'STD_START' THEN 1
+                    WHEN 'STD_END' THEN 2
+                    WHEN 'SPEC_START' THEN 3
+                    WHEN 'SPEC_END' THEN 4
+                    WHEN 'PAUSA_MINUTI' THEN 5
+                    ELSE 99
+                END,
+                PARAMETRO ASC
+        `;
+        const result = await queryMSSQL(query, {}, 'NETPRO');
+        return {
+            success: true,
+            data: result.recordset as PresenceSettingRow[],
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message as string,
+            data: [] as PresenceSettingRow[],
+        };
+    }
+}
+
+/**
+ * Get a single presence configuration parameter from NETPRO.VALORI_TABELLE
+ */
+export async function getPresenceSettingAction(parametro: string) {
+    try {
+        const query = `
+            SELECT TABELLA, PARAMETRO, VALORE, DESCRIZIONE, FVALUE01
+            FROM VALORI_TABELLE WITH (NOLOCK)
+            WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro
+        `;
+        const result = await queryMSSQL(query, { parametro }, 'NETPRO');
+        if (result.recordset.length > 0) {
+            return {
+                success: true,
+                data: result.recordset[0] as PresenceSettingRow,
+            };
+        }
+        return {
+            success: true,
+            data: null,
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message as string,
+            data: null,
+        };
+    }
+}
+
+/**
+ * Update or Insert a presence configuration parameter in NETPRO.VALORI_TABELLE
+ */
+export async function updatePresenceSettingAction(
+    parametro: string,
+    valore: string,
+    descrizione?: string
+) {
+    try {
+        const numericVal = parseFloat(valore);
+        const fvalue = isNaN(numericVal) ? null : numericVal;
+
+        const upsertQuery = `
+            IF EXISTS (SELECT 1 FROM VALORI_TABELLE WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro)
+            BEGIN
+                UPDATE VALORI_TABELLE
+                SET VALORE = @valore,
+                    DESCRIZIONE = ISNULL(@descrizione, DESCRIZIONE),
+                    FVALUE01 = @fvalue
+                WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro;
+            END
+            ELSE
+            BEGIN
+                INSERT INTO VALORI_TABELLE (TABELLA, PARAMETRO, ATTRIBUTO, DESCRIZIONE, VALORE, FVALUE01)
+                VALUES ('PRESENZE', @parametro, NULL, @descrizione, @valore, @fvalue);
+            END
+        `;
+
+        await queryMSSQL(
+            upsertQuery,
+            {
+                parametro,
+                valore,
+                descrizione: descrizione || null,
+                fvalue,
+            },
+            'NETPRO'
+        );
+
+        return {
+            success: true,
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            error: err.message as string,
+        };
+    }
+}
+
+
+/**
+ * Get all operators currently assigned to TURNO2 (GRUPPO = 'TURNO2')
+ */
+export async function getTurno2OperatorsAction() {
+    try {
+        const result = await queryMSSQL(
+            `SELECT OPERATORE, NOME, GRUPPO
+             FROM OPERATORI WITH (NOLOCK)
+             WHERE UPPER(LTRIM(RTRIM(GRUPPO))) = 'TURNO2'
+             ORDER BY NOME ASC`,
+            {},
+            'NETPRO'
+        );
+        return {
+            success: true,
+            data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string }[],
+        };
+    } catch (err: any) {
+        return { success: false, error: err.message as string, data: [] as { OPERATORE: string; NOME: string; GRUPPO: string }[] };
+    }
+}
+
+/**
+ * Search operators by name or code (for the add-to-TURNO2 picker)
+ */
+export async function searchOperatorsAction(term: string) {
+    try {
+        const result = await queryMSSQL(
+            `SELECT TOP 20 OPERATORE, NOME, ISNULL(NULLIF(LTRIM(RTRIM(GRUPPO)), ''), NULL) AS GRUPPO
+             FROM OPERATORI WITH (NOLOCK)
+             WHERE (OPERATORE LIKE @term OR NOME LIKE @term)
+             ORDER BY NOME ASC`,
+            { term: `%${term}%` },
+            'NETPRO'
+        );
+        return {
+            success: true,
+            data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string | null }[],
+        };
+    } catch (err: any) {
+        return { success: false, error: err.message as string, data: [] as { OPERATORE: string; NOME: string; GRUPPO: string | null }[] };
+    }
+}
+
+/**
+ * Set or clear the GRUPPO field on an operator (live production — parameterized only)
+ * Pass gruppo = 'TURNO2' to assign, or gruppo = '' to reset to standard
+ */
+export async function setOperatorGruppoAction(operatore: string, gruppo: string) {
+    try {
+        await queryMSSQL(
+            `UPDATE OPERATORI SET GRUPPO = @gruppo WHERE OPERATORE = @operatore`,
+            { operatore, gruppo: gruppo || '' },
+            'NETPRO'
+        );
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message as string };
+    }
+}

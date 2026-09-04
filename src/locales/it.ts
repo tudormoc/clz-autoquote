@@ -533,6 +533,18 @@ export const APP_COPY = {
       title: "Daily Events",
       subtitle: "Visualizza e modifica gli eventi di presenza degli operatori per oggi",
     },
+    monthlySummary: {
+      title: "Calcolo Ore Mensile",
+      subtitle: "Gestione presenze, calcolo ore lavorate, ferie, permessi e malattie",
+      headers: {
+        id: "ID",
+        operator: "Operatore",
+        date: "Data",
+        firstEntry: "Primo Ingresso",
+        lastExit: "Ultima Uscita",
+        diffHours: "Totale Ore (-1h Pausa)",
+      },
+    },
     presenceSidebar: {
       heading: "Dashboards",
       settings: "Impostazioni",
@@ -547,6 +559,13 @@ export const APP_COPY = {
       systemInfo: "Informazioni Sistema Presenze",
       activeStatus: "Stato Regole Presenze",
       activeDesc: "Le uscite automatiche vengono generate ogni giorno alle ore specificate per le timbrature mancanti.",
+      monthlyHoursSection: "Calcolo Ore Mensile",
+      pauseMinutes: "Minuti di Pausa Giornaliera",
+      pauseMinutesDesc: "Pausa detratta dal totale giornaliero tra primo ingresso e ultima uscita",
+      edit: "Modifica",
+      save: "Salva",
+      cancel: "Annulla",
+      savedSuccess: "Impostazione salvata con successo",
     },
     clientSummary: {
       headers: {

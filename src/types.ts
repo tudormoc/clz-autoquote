@@ -139,3 +139,31 @@ export interface MonthlyPresenceData {
     monthNumbers: number[];
 }
 
+export interface OperatorHoursRow {
+    operatore: string;
+    nome: string;
+    gruppo: string | null;
+    turno: 'STD' | 'TURNO2';
+    data: string;
+    ora_inizio: string;
+    ora_fine: string;
+    sessioni_count: number;
+    ore_lavoro: number;
+    ore_totali: number;
+    // Expected schedule times resolved per operator's GRUPPO
+    inizio_atteso: string;
+    fine_attesa: string;
+    // Diff in minutes vs expected start (negative = early, positive = late)
+    diff_inizio_min: number;
+    diff_fine_min: number;
+}
+
+export interface PresenceSettingRow {
+    TABELLA: string;
+    PARAMETRO: string;
+    VALORE: string;
+    DESCRIZIONE: string | null;
+    FVALUE01: number | null;
+}
+
+
