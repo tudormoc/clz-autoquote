@@ -39,7 +39,7 @@ interface SortConfig {
 
 export function ProductionReport() {
     const [data, setData] = useState<ProductionRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -52,7 +52,7 @@ export function ProductionReport() {
         dateFrom: getLastYearStart(),
         dateTo: getLastYearEnd()
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: 'date',
         direction: 'asc'
@@ -61,10 +61,14 @@ export function ProductionReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         const result = await getProductionDataAction(2024, page, limit, {
             commessa: appliedFilters.commessa || undefined,
@@ -104,8 +108,7 @@ export function ProductionReport() {
 
     const handleApplyFilters = () => {
         setAppliedFilters(filters);
-        setPage(1); // Reset to first page
-        loadData(); // Force immediate refetch
+        setPage(1);
     };
 
     const handleClearFilters = () => {
@@ -117,7 +120,10 @@ export function ProductionReport() {
             dateTo: getLastYearEnd()
         };
         setFilters(clearedFilters);
-        setAppliedFilters(clearedFilters);
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
         setSortConfig({
             column: 'date',
             direction: 'asc'
@@ -228,7 +234,7 @@ export function ProductionReport() {
         return new Date(dateStr).toLocaleDateString('en-GB');
     };
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

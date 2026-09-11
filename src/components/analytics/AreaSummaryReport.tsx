@@ -35,7 +35,7 @@ interface SortConfig {
 
 export function AreaSummaryReport() {
     const [data, setData] = useState<AreaSummaryRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -48,7 +48,7 @@ export function AreaSummaryReport() {
         dateFrom: getLastYearStart(),
         dateTo: getLastYearEnd()
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: 'display_order',
         direction: 'asc'
@@ -57,10 +57,14 @@ export function AreaSummaryReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         const result = await getAreaSummaryDataAction(2024, page, limit, {
             machine: appliedFilters.area || undefined, // API still uses 'machine' param name
@@ -97,7 +101,7 @@ export function AreaSummaryReport() {
     };
 
     const handleApplyFilters = () => {
-        setAppliedFilters({...filters}); // Force refresh even if filters unchanged
+        setAppliedFilters({...filters});
         setPage(1);
     };
 
@@ -108,7 +112,10 @@ export function AreaSummaryReport() {
             dateTo: getLastYearEnd()
         };
         setFilters(clearedFilters);
-        setAppliedFilters(clearedFilters);
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
         setSortConfig({
             column: 'display_order',
             direction: 'asc'
@@ -117,7 +124,8 @@ export function AreaSummaryReport() {
     };
 
     const handleExportExcel = async () => {
-        if (loading) return;
+        if (!appliedFilters || loading) return;
+        
         setLoading(true);
         try {
             const result = await getAreaSummaryDataAction(2024, 1, 999999, {
@@ -156,6 +164,8 @@ export function AreaSummaryReport() {
         mode: 'months' | 'weeks' = 'months',
         weeks: number[] = []
     ) => {
+        if (!appliedFilters) return;
+        
         setPdfLoading(true);
         try {
             // If separateByArea is true and no specific area filter is active,
@@ -214,7 +224,7 @@ export function AreaSummaryReport() {
         return `${h}:${m.toString().padStart(2, '0')}`;
     };
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

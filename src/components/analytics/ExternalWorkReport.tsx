@@ -36,7 +36,7 @@ interface SortConfig {
 
 export function ExternalWorkReport() {
     const [data, setData] = useState<ExternalWorkRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -51,7 +51,7 @@ export function ExternalWorkReport() {
         dateFrom: getLastYearStart(),
         dateTo: getLastYearEnd()
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: 'supplier',
         direction: 'asc'
@@ -60,10 +60,14 @@ export function ExternalWorkReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         const result = await getExternalWorkDataAction(2024, page, limit, {
             commessa: appliedFilters.commessa || undefined,
@@ -103,11 +107,12 @@ export function ExternalWorkReport() {
     const handleApplyFilters = () => {
         setAppliedFilters(filters);
         setPage(1);
-        setSummaryData(null); // Reset summary when filters change
-        loadData();
+        setSummaryData(null);
     };
 
     const loadSummary = async () => {
+        if (!appliedFilters) return;
+        
         setSummaryLoading(true);
         const result = await getExternalWorkStatsAction(2024, {
             commessa: appliedFilters.commessa || undefined,
@@ -182,16 +187,21 @@ export function ExternalWorkReport() {
             dateTo: getLastYearEnd()
         };
         setFilters(clearedFilters);
-        setAppliedFilters(clearedFilters);
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
         setSortConfig({
             column: 'supplier',
             direction: 'asc'
         });
         setPage(1);
+        setSummaryData(null);
     };
 
     const handleExportExcel = async () => {
-        if (loading) return;
+        if (!appliedFilters || loading) return;
+        
         setLoading(true);
         try {
             const result = await getExternalWorkDataAction(2024, 1, 999999, {
@@ -232,7 +242,7 @@ export function ExternalWorkReport() {
         setLoading(false);
     };
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

@@ -64,7 +64,7 @@ interface SortConfig {
 
 export function OrderAreaSummaryReport() {
     const [data, setData] = useState<OrderAreaSummaryRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -83,7 +83,7 @@ export function OrderAreaSummaryReport() {
         dateTo: getLastYearEnd(),
         complexOnly: false
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: '',
         direction: 'asc'
@@ -92,10 +92,14 @@ export function OrderAreaSummaryReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig, refreshTrigger]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         // Only pass sort when the user has explicitly selected a column
         const activeSort = sortConfig.column ? sortConfig : undefined;
@@ -119,6 +123,8 @@ export function OrderAreaSummaryReport() {
     };
 
     const handleGeneratePDF = async (year: number, months: number[], separateByArea: boolean, format: 'A4' | 'A3') => {
+        if (!appliedFilters) return;
+        
         setPdfLoading(true);
         try {
             // If separateByArea is true and no specific area filter is active, 
@@ -197,7 +203,6 @@ export function OrderAreaSummaryReport() {
         setAppliedFilters(filters);
         setPage(1);
         setSummaryData(null);
-        setRefreshTrigger(prev => prev + 1);
     };
 
     const handleClearFilters = () => {
@@ -209,13 +214,18 @@ export function OrderAreaSummaryReport() {
             complexOnly: false
         };
         setFilters(cleared);
-        setAppliedFilters(cleared);
-        setSortConfig({ column: '', direction: 'asc' }); // no default sort
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
+        setSortConfig({ column: '', direction: 'asc' });
         setPage(1);
         setSummaryData(null);
     };
 
     const handleExportExcel = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         try {
             // Only pass sort when a column is explicitly selected
@@ -287,6 +297,8 @@ export function OrderAreaSummaryReport() {
     };
 
     const loadSummary = async () => {
+        if (!appliedFilters) return;
+        
         setSummaryLoading(true);
         try {
             const result = await getOrderAreaSummaryDataAction(2024, 1, 999999, {
@@ -381,7 +393,7 @@ export function OrderAreaSummaryReport() {
         });
     };
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

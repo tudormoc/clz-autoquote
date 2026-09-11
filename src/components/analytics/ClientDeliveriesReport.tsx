@@ -30,7 +30,7 @@ interface SortConfig {
 
 export function ClientDeliveriesReport() {
     const [data, setData] = useState<ClientDeliveryRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -44,7 +44,7 @@ export function ClientDeliveriesReport() {
         dateFrom: getLastYearStart(),
         dateTo: getLastYearEnd()
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         column: 'delivered_value',
         direction: 'desc'
@@ -53,10 +53,14 @@ export function ClientDeliveriesReport() {
     const limit = 100;
 
     useEffect(() => {
-        loadData();
+        if (appliedFilters !== null) {
+            loadData();
+        }
     }, [page, appliedFilters, sortConfig]);
 
     const loadData = async () => {
+        if (!appliedFilters) return;
+        
         setLoading(true);
         const result = await getClientDeliveriesDataAction(2024, page, limit, {
             client: appliedFilters.client || undefined,
@@ -96,7 +100,6 @@ export function ClientDeliveriesReport() {
         setAppliedFilters(filters);
         setPage(1);
         setSummaryData(null);
-        loadData();
     };
 
     const handleClearFilters = () => {
@@ -106,7 +109,10 @@ export function ClientDeliveriesReport() {
             dateTo: getLastYearEnd()
         };
         setFilters(clearedFilters);
-        setAppliedFilters(clearedFilters);
+        setAppliedFilters(null);
+        setData([]);
+        setTotal(0);
+        setTotalPages(1);
         setSortConfig({
             column: 'delivered_value',
             direction: 'desc'
@@ -116,6 +122,8 @@ export function ClientDeliveriesReport() {
     };
 
     const loadSummary = async () => {
+        if (!appliedFilters) return;
+        
         setSummaryLoading(true);
         const result = await getClientDeliveriesStatsAction(2024, {
             client: appliedFilters.client || undefined,
@@ -130,7 +138,8 @@ export function ClientDeliveriesReport() {
     };
 
     const handleExportExcel = async () => {
-        if (loading) return;
+        if (!appliedFilters || loading) return;
+        
         setLoading(true);
         try {
             const result = await getClientDeliveriesDataAction(2024, 1, 999999, {
@@ -197,7 +206,7 @@ export function ClientDeliveriesReport() {
         }
     ] : [];
 
-    if (loading && page === 1) {
+    if (loading && page === 1 && appliedFilters !== null) {
         return (
             <div className="text-center py-12 text-zinc-400">
                 {APP_COPY.analytics.loading}

@@ -141,12 +141,15 @@ export interface MonthlyPresenceData {
 
 export interface OperatorHoursRow {
     operatore: string;
+    matricola: string | null;
     nome: string;
     gruppo: string | null;
+    reparto: string | null;
+    categoria: 'Interinali' | 'CLZ Produzione' | 'CLZ Ufficio' | 'Altro';
     turno: 'STD' | 'TURNO2';
     data: string;
-    ora_inizio: string;
-    ora_fine: string;
+    ora_inizio: string | null;
+    ora_fine: string | null;
     sessioni_count: number;
     ore_lavoro: number;
     ore_totali: number;
@@ -156,7 +159,30 @@ export interface OperatorHoursRow {
     // Diff in minutes vs expected start (negative = early, positive = late)
     diff_inizio_min: number;
     diff_fine_min: number;
+    // Hours distribution fields (persisted in CLZDWHQANDPROG.presence_hours_distribution)
+    ore_ordinarie: number | null;
+    ore_straordinarie: number | null;
+    ore_ferie: number | null;
+    causale_ferie: string | null;
+    ore_permesso: number | null;
+    causale_permesso: string | null;
+    ore_malattia: number | null;
+    banca_ore: number | null;
+    banca_ore_mese_n1: number | null;
+    banca_ore_mese_n: number | null;
 }
+
+export type HoursDistributionField =
+    | 'ore_ordinarie'
+    | 'ore_straordinarie'
+    | 'ore_ferie'
+    | 'causale_ferie'
+    | 'ore_permesso'
+    | 'causale_permesso'
+    | 'ore_malattia'
+    | 'banca_ore'
+    | 'banca_ore_mese_n1'
+    | 'banca_ore_mese_n';
 
 export interface PresenceSettingRow {
     TABELLA: string;

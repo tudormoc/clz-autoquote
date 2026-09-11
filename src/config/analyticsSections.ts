@@ -17,7 +17,6 @@ import { ClientSummaryReport } from '@/components/analytics/ClientSummaryReport'
 import { ClientDeliveriesReport } from '@/components/analytics/ClientDeliveriesReport';
 import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
-import { PresenceReport } from '@/components/analytics/PresenceReport';
 import { AnnualPresenceReport } from '@/components/analytics/AnnualPresenceReport';
 import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
 import { RimanenzeReport } from '@/components/analytics/RimanenzeReport';
@@ -93,13 +92,6 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
         description: 'External work costs by order'
     },
     {
-        id: 'presence-report',
-        label: APP_COPY.analytics.reports.presenceReport,
-        icon: Clock,
-        category: 'production',
-        description: 'Monthly presence hours by operator group'
-    },
-    {
         id: 'annual-presence-report',
         label: APP_COPY.analytics.reports.annualPresenceReport,
         icon: CalendarDays,
@@ -135,7 +127,6 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'client-deliveries': ClientDeliveriesReport,
     'order-revenue': OrderRevenueReport,
     'external-work': ExternalWorkReport,
-    'presence-report': PresenceReport,
     'annual-presence-report': AnnualPresenceReport,
     'rimanenze': RimanenzeReport,
     'rimanenze-labor': RimanenzeLaborReport,
