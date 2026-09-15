@@ -136,11 +136,11 @@ export function ProductionReport() {
         try {
             // Fetch all data with current filters (no pagination)
             const result = await getProductionDataAction(2024, 1, 999999, {
-                commessa: appliedFilters.commessa || undefined,
-                machine: appliedFilters.machine || undefined,
-                operator: appliedFilters.operator || undefined,
-                dateFrom: appliedFilters.dateFrom || undefined,
-                dateTo: appliedFilters.dateTo || undefined,
+                commessa: appliedFilters?.commessa || undefined,
+                machine: appliedFilters?.machine || undefined,
+                operator: appliedFilters?.operator || undefined,
+                dateFrom: appliedFilters?.dateFrom || undefined,
+                dateTo: appliedFilters?.dateTo || undefined,
             }, sortConfig, true);
 
             if (result.success && result.data.length > 0) {
@@ -213,7 +213,7 @@ export function ProductionReport() {
                 XLSX.utils.book_append_sheet(wb, ws, 'Produzione');
 
                 // Generate filename with date range
-                const filename = `produzione_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
+                const filename = `produzione_${appliedFilters?.dateFrom || 'start'}_${appliedFilters?.dateTo || 'end'}.xlsx`;
                 
                 // Download file
                 XLSX.writeFile(wb, filename);

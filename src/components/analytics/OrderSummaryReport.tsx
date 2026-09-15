@@ -128,10 +128,10 @@ export function OrderSummaryReport() {
         setLoading(true);
         try {
             const result = await getOrderSummaryDataAction(2024, 1, 999999, {
-                commessa: appliedFilters.commessa || undefined,
-                machine: appliedFilters.machine || undefined,
-                dateFrom: appliedFilters.dateFrom || undefined,
-                dateTo: appliedFilters.dateTo || undefined,
+                commessa: appliedFilters?.commessa || undefined,
+                machine: appliedFilters?.machine || undefined,
+                dateFrom: appliedFilters?.dateFrom || undefined,
+                dateTo: appliedFilters?.dateTo || undefined,
             }, sortConfig, true);
 
             if (result.success && result.data.length > 0) {
@@ -179,7 +179,7 @@ export function OrderSummaryReport() {
 
                 XLSX.utils.book_append_sheet(wb, ws, 'Order Summary');
 
-                const filename = `order_summary_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
+                const filename = `order_summary_${appliedFilters?.dateFrom || 'start'}_${appliedFilters?.dateTo || 'end'}.xlsx`;
                 
                 XLSX.writeFile(wb, filename);
             }
