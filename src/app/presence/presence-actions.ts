@@ -635,6 +635,103 @@ export async function runAutoExitAction(testOperator?: string) {
 }
 
 import type { OperatorHoursRow, PresenceSettingRow, HoursDistributionField } from '@/types';
+import {
+    DEFAULT_PRESENCE_RULES,
+    PRESENCE_SETTINGS,
+    PRESENCE_SETTING_KEYS,
+    parsePresenceRules,
+    rulesForOperator,
+    computeCountedDay,
+    getDayKind,
+    trackedRepartiSql,
+    prefillRepartiSql,
+    categoriaFromReparto,
+    profileFromReparto,
+    eachDateInRange,
+    isPrefillableDay,
+    todayLocal,
+    distributeDay,
+    hasAnyDistribution,
+    assertCoversWorkday,
+    proposalCoveredHours,
+    type PresenceRulesConfig,
+    type HourField,
+    type DistributionProposal,
+} from '@/lib/presence';
+
+/**
+ * Load the effective presence rules: defaults overridden by NETPRO.VALORI_TABELLE (PRESENZE).
+ * Never throws — falls back to DEFAULT_PRESENCE_RULES if the DB is unreachable.
+ */
+async function loadPresenceRules(): Promise<PresenceRulesConfig> {
+    try {
+        const keys = PRESENCE_SETTING_KEYS.map((k) => `'${k}'`).join(',');
+        const res = await queryMSSQL<PresenceSettingRow>(
+            `SELECT PARAMETRO, VALORE, FVALUE01
+             FROM VALORI_TABELLE WITH (NOLOCK)
+             WHERE TABELLA = 'PRESENZE' AND PARAMETRO IN (${keys})`,
+            {},
+            'NETPRO'
+        );
+        return parsePresenceRules(res.recordset);
+    } catch {
+        return DEFAULT_PRESENCE_RULES;
+    }
+}
+
+/** Effective presence rules for client components (config-driven badges, side effects, presets). */
+export async function getPresenceRulesAction() {
+    const rules = await loadPresenceRules();
+    return { success: true as const, rules };
+}
+
+/** Build `(a LIKE @p0 OR b LIKE @p0 ...)` conditions for a comma-separated operator search. */
+function buildOperatorSearch(
+    operatorFilter: string | undefined,
+    columns: string[],
+    paramPrefix: string,
+    params: Record<string, unknown>
+): string | null {
+    const terms = (operatorFilter ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+    if (terms.length === 0) return null;
+    const conds = terms.map((term, i) => {
+        params[`${paramPrefix}${i}`] = `%${term}%`;
+        return `(${columns.map((c) => `${c} LIKE @${paramPrefix}${i}`).join(' OR ')})`;
+    });
+    return `(${conds.join(' OR ')})`;
+}
+
+const DISTRIBUTION_SELECT = `
+    SELECT
+        operatore,
+        CONVERT(VARCHAR(10), data, 120) AS data,
+        ore_ordinarie,
+        ore_straordinarie,
+        ore_ferie,
+        causale_ferie,
+        ore_permesso,
+        causale_permesso,
+        ore_malattia,
+        banca_ore,
+        banca_ore_mese_n1,
+        banca_ore_mese_n
+    FROM presence_hours_distribution WITH (NOLOCK)
+    WHERE data >= @dateFrom AND data <= @dateTo
+`;
+
+type DistributionRecord = Partial<Record<HourField | 'causale_ferie' | 'causale_permesso' | 'banca_ore_mese_n1' | 'banca_ore_mese_n', unknown>> & { operatore: string; data: string };
+
+/** Map saved distributions by `operatore_YYYY-MM-DD`. */
+async function loadDistributionMap(dateFrom: string, dateTo: string): Promise<Map<string, DistributionRecord>> {
+    const res = await queryMSSQL<DistributionRecord>(DISTRIBUTION_SELECT, { dateFrom, dateTo }, 'QUOTES')
+        .catch(() => ({ recordset: [] as DistributionRecord[] }));
+    const map = new Map<string, DistributionRecord>();
+    for (const d of res.recordset) {
+        const dateStr = typeof d.data === 'string' ? d.data.substring(0, 10) : '';
+        map.set(`${d.operatore}_${dateStr}`, d);
+    }
+    return map;
+}
 
 export async function getMonthlyHoursAction(
     dateFrom: string,
@@ -642,69 +739,18 @@ export async function getMonthlyHoursAction(
     operatorFilter?: string
 ) {
     try {
+        const rules = await loadPresenceRules();
+
+        // --- Clock-in aggregates per operator-day (first entry / last exit; hours are computed by the rules) ---
+        const params: Record<string, unknown> = { dateFrom, dateTo };
         const conditions: string[] = [
             "SIT.TIPO_OGGETTO = 'OPE'",
             "SIT.TIPO = 'CLCK'",
-            "CAST(SIT.DATA AS DATE) >= @dateFrom",
-            "CAST(SIT.DATA AS DATE) <= @dateTo",
+            'CAST(SIT.DATA AS DATE) >= @dateFrom',
+            'CAST(SIT.DATA AS DATE) <= @dateTo',
         ];
-
-        // Load all 5 PRESENZE params in a single query
-        let pauseMinutes = 60;
-        let stdStart = '08:00';
-        let stdEnd = '17:00';
-        let specStart = '06:00';
-        let specEnd = '15:00';
-
-        try {
-            const paramsRes = await queryMSSQL(
-                `SELECT PARAMETRO, VALORE, FVALUE01
-                 FROM VALORI_TABELLE WITH (NOLOCK)
-                 WHERE TABELLA = 'PRESENZE'
-                   AND PARAMETRO IN ('PAUSA_MINUTI','STD_START','STD_END','SPEC_START','SPEC_END')`,
-                {},
-                'NETPRO'
-            );
-            for (const row of paramsRes.recordset) {
-                const v = (row.VALORE ?? '').trim();
-                switch (row.PARAMETRO) {
-                    case 'PAUSA_MINUTI': {
-                        const n = row.FVALUE01 ?? parseFloat(v);
-                        if (!isNaN(n)) pauseMinutes = n;
-                        break;
-                    }
-                    case 'STD_START': if (v) stdStart = v; break;
-                    case 'STD_END':   if (v) stdEnd   = v; break;
-                    case 'SPEC_START': if (v) specStart = v; break;
-                    case 'SPEC_END':   if (v) specEnd   = v; break;
-                }
-            }
-        } catch {
-            // Use hardcoded defaults if DB read fails
-        }
-
-        // Helper: convert "HH:MM" to total minutes since midnight
-        const toMin = (t: string) => {
-            const [h, m] = t.split(':').map(Number);
-            return h * 60 + m;
-        };
-
-        const params: Record<string, any> = { dateFrom, dateTo, pauseMinutes };
-
-        if (operatorFilter && operatorFilter.trim()) {
-            const operatorTerms = operatorFilter.split(',').map(o => o.trim()).filter(o => o);
-            if (operatorTerms.length > 0) {
-                const termConditions = operatorTerms.map((_, i) =>
-                    `(SIT.OGGETTO LIKE @operator${i} OR OPE.NOME LIKE @operator${i} OR OPE.MATRICOLA LIKE @operator${i})`
-                );
-                conditions.push(`(${termConditions.join(' OR ')})`);
-                operatorTerms.forEach((term, i) => {
-                    params[`operator${i}`] = `%${term}%`;
-                });
-            }
-        }
-
-        const whereClause = conditions.join(' AND ');
+        const sitSearch = buildOperatorSearch(operatorFilter, ['SIT.OGGETTO', 'OPE.NOME', 'OPE.MATRICOLA'], 'operator', params);
+        if (sitSearch) conditions.push(sitSearch);
 
         const query = `
             SELECT
@@ -717,35 +763,20 @@ export async function getMonthlyHoursAction(
                 CONVERT(VARCHAR(8), MIN(SIT.ORA_INIZIO), 108) AS ora_inizio,
                 CONVERT(VARCHAR(8), MAX(SIT.ORA_FINE), 108) AS ora_fine,
                 COUNT(*) AS sessioni_count,
-                ROUND(SUM(ISNULL(SIT.LAVORO, 0)), 2) AS ore_lavoro,
-                ROUND(CASE
-                    WHEN DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) > @pauseMinutes
-                    THEN (DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) - @pauseMinutes) / 60.0
-                    ELSE 0
-                END, 2) AS ore_totali
+                SUM(DATEDIFF(MINUTE, SIT.ORA_INIZIO, SIT.ORA_FINE)) AS minuti_sessioni,
+                ROUND(SUM(ISNULL(SIT.LAVORO, 0)), 2) AS ore_lavoro
             FROM SITUAZIONI SIT WITH (NOLOCK)
             LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
-            WHERE ${whereClause}
+            WHERE ${conditions.join(' AND ')}
             GROUP BY SIT.OGGETTO, OPE.MATRICOLA, OPE.NOME, OPE.GRUPPO, OPE.ENTITA, CAST(SIT.DATA AS DATE)
             ORDER BY data DESC, SIT.OGGETTO ASC
         `;
 
-        // Query all operators in categories 2, 3, 1001 to ensure everyone appears even with 0 hours
-        const opeParams: Record<string, any> = {};
-        const opeConditions: string[] = ["OPE.ENTITA IN ('2', '3', '1001')"];
-
-        if (operatorFilter && operatorFilter.trim()) {
-            const operatorTerms = operatorFilter.split(',').map(o => o.trim()).filter(o => o);
-            if (operatorTerms.length > 0) {
-                const opeTermConditions = operatorTerms.map((_, i) =>
-                    `(OPE.OPERATORE LIKE @opeFilter${i} OR OPE.NOME LIKE @opeFilter${i} OR OPE.MATRICOLA LIKE @opeFilter${i})`
-                );
-                opeConditions.push(`(${opeTermConditions.join(' OR ')})`);
-                operatorTerms.forEach((term, i) => {
-                    opeParams[`opeFilter${i}`] = `%${term}%`;
-                });
-            }
-        }
+        // --- All tracked operators, so everyone appears even with 0 hours ---
+        const opeParams: Record<string, unknown> = {};
+        const opeConditions: string[] = [trackedRepartiSql('OPE.ENTITA')];
+        const opeSearch = buildOperatorSearch(operatorFilter, ['OPE.OPERATORE', 'OPE.NOME', 'OPE.MATRICOLA'], 'opeFilter', opeParams);
+        if (opeSearch) opeConditions.push(opeSearch);
 
         const opeQuery = `
             SELECT
@@ -759,113 +790,60 @@ export async function getMonthlyHoursAction(
             ORDER BY OPE.NOME ASC
         `;
 
-        const distQuery = `
-            SELECT
-                operatore,
-                CONVERT(VARCHAR(10), data, 120) AS data,
-                ore_ordinarie,
-                ore_straordinarie,
-                ore_ferie,
-                causale_ferie,
-                ore_permesso,
-                causale_permesso,
-                ore_malattia,
-                banca_ore,
-                banca_ore_mese_n1,
-                banca_ore_mese_n
-            FROM presence_hours_distribution WITH (NOLOCK)
-            WHERE data >= @dateFrom AND data <= @dateTo
-        `;
-
-        const [sitResult, opeResult, distResult] = await Promise.all([
+        const [sitResult, opeResult, distMap] = await Promise.all([
             queryMSSQL(query, params, 'NETPRO'),
             queryMSSQL(opeQuery, opeParams, 'NETPRO'),
-            queryMSSQL(distQuery, { dateFrom, dateTo }, 'QUOTES').catch(() => ({ recordset: [] })),
+            loadDistributionMap(dateFrom, dateTo),
         ]);
 
         const records = [...sitResult.recordset];
 
-        // Generate all calendar dates in the range (including Saturdays and Sundays)
-        const allDates: string[] = [];
-        const [sy, sm, sd] = dateFrom.split('-').map(Number);
-        const [ey, em, ed] = dateTo.split('-').map(Number);
-        const curDate = new Date(sy, sm - 1, sd, 12, 0, 0);
-        const stopDate = new Date(ey, em - 1, ed, 12, 0, 0);
-        while (curDate <= stopDate) {
-            const y = curDate.getFullYear();
-            const m = String(curDate.getMonth() + 1).padStart(2, '0');
-            const d = String(curDate.getDate()).padStart(2, '0');
-            allDates.push(`${y}-${m}-${d}`);
-            curDate.setDate(curDate.getDate() + 1);
-        }
-
-        // Track existing (operatore_data) pairs so every operator has a row for every day
-        const existingPairs = new Set(
-            records.map((r: any) => `${String(r.operatore)}_${String(r.data)}`)
-        );
-
-        for (const dateStr of allDates) {
+        // Ensure every operator has a row for every calendar day in range
+        const existingPairs = new Set(records.map((r: any) => `${String(r.operatore)}_${String(r.data)}`));
+        for (const dateStr of eachDateInRange(dateFrom, dateTo)) {
             for (const op of opeResult.recordset) {
                 const key = `${String(op.operatore)}_${dateStr}`;
-                if (!existingPairs.has(key)) {
-                    records.push({
-                        operatore: op.operatore,
-                        matricola: op.matricola,
-                        nome: op.nome,
-                        gruppo: op.gruppo,
-                        reparto: op.reparto,
-                        data: dateStr,
-                        ora_inizio: null,
-                        ora_fine: null,
-                        sessioni_count: 0,
-                        ore_lavoro: 0,
-                        ore_totali: 0,
-                    });
-                    existingPairs.add(key);
-                }
+                if (existingPairs.has(key)) continue;
+                records.push({
+                    operatore: op.operatore,
+                    matricola: op.matricola,
+                    nome: op.nome,
+                    gruppo: op.gruppo,
+                    reparto: op.reparto,
+                    data: dateStr,
+                    ora_inizio: null,
+                    ora_fine: null,
+                    sessioni_count: 0,
+                    minuti_sessioni: null,
+                    ore_lavoro: 0,
+                });
+                existingPairs.add(key);
             }
         }
 
         // Keep consistent sorting by date ASC, then operator name ASC
         records.sort((a, b) => {
-            if (a.data !== b.data) {
-                return a.data.localeCompare(b.data);
-            }
+            if (a.data !== b.data) return a.data.localeCompare(b.data);
             const nameA = String(a.nome || a.operatore).toLowerCase();
             const nameB = String(b.nome || b.operatore).toLowerCase();
             return nameA.localeCompare(nameB);
         });
 
-        // Map saved hours distribution by operatore_data
-        const distMap = new Map<string, any>();
-        for (const d of distResult.recordset) {
-            const dateStr = typeof d.data === 'string' ? d.data.substring(0, 10) : '';
-            distMap.set(`${d.operatore}_${dateStr}`, d);
-        }
+        const num = (v: unknown): number | null => (v != null ? Number(v) : null);
+        const str = (v: unknown): string | null => (v ? String(v) : null);
 
-        // Enrich each row with schedule info resolved from GRUPPO and hours distributions
+        // Enrich each row with the counted day (rules) and hours distributions
         const rows: OperatorHoursRow[] = records.map((row: any) => {
             const isSpecial = (row.gruppo ?? '').trim().toUpperCase() === 'TURNO2';
-            const expectedStart = isSpecial ? specStart : stdStart;
-            const expectedEnd   = isSpecial ? specEnd   : stdEnd;
-
-            // Resolve employee category from reparto (OPE.ENTITA)
             const reparto = row.reparto ? String(row.reparto).trim() : null;
-            let categoria: 'Interinali' | 'CLZ Produzione' | 'CLZ Ufficio' | 'Altro' = 'Altro';
-            if (reparto === '1001') {
-                categoria = 'Interinali';
-            } else if (reparto === '2') {
-                categoria = 'CLZ Produzione';
-            } else if (reparto === '3') {
-                categoria = 'CLZ Ufficio';
-            }
-
-            // Parse actual times (HH:MM from VARCHAR(8) = HH:MM:SS)
-            const hasClock = Boolean(row.ora_inizio);
-            const actualStartMin = hasClock ? toMin(row.ora_inizio.substring(0, 5)) : 0;
-            const actualEndMin   = hasClock && row.ora_fine ? toMin(row.ora_fine.substring(0, 5)) : 0;
-            const expStartMin    = toMin(expectedStart.substring(0, 5));
-            const expEndMin      = toMin(expectedEnd.substring(0, 5));
+            const opRules = rulesForOperator(String(row.operatore), rules);
+            const clock = {
+                firstEntry: row.ora_inizio,
+                lastExit: row.ora_fine,
+                sessions: Number(row.sessioni_count ?? 0),
+                sessionMinutes: row.minuti_sessioni != null ? Number(row.minuti_sessioni) : null,
+            };
+            const day = computeCountedDay(clock, opRules, getDayKind(row.data, opRules), profileFromReparto(reparto));
 
             const dist = distMap.get(`${row.operatore}_${row.data}`);
 
@@ -875,29 +853,27 @@ export async function getMonthlyHoursAction(
                 nome: row.nome,
                 gruppo: row.gruppo ?? null,
                 reparto,
-                categoria,
+                categoria: categoriaFromReparto(reparto),
                 turno: isSpecial ? 'TURNO2' : 'STD',
                 data: row.data,
                 ora_inizio: row.ora_inizio ?? null,
                 ora_fine: row.ora_fine ?? null,
                 sessioni_count: row.sessioni_count ?? 0,
                 ore_lavoro: Number(row.ore_lavoro ?? 0),
-                ore_totali: Number(row.ore_totali ?? 0),
-                inizio_atteso: expectedStart,
-                fine_attesa: expectedEnd,
-                // Positive = late/missing, negative = early
-                diff_inizio_min: hasClock ? actualStartMin - expStartMin : 0,
-                diff_fine_min: hasClock && row.ora_fine ? actualEndMin - expEndMin : 0,
-                ore_ordinarie: dist?.ore_ordinarie != null ? Number(dist.ore_ordinarie) : null,
-                ore_straordinarie: dist?.ore_straordinarie != null ? Number(dist.ore_straordinarie) : null,
-                ore_ferie: dist?.ore_ferie != null ? Number(dist.ore_ferie) : null,
-                causale_ferie: dist?.causale_ferie ? String(dist.causale_ferie) : null,
-                ore_permesso: dist?.ore_permesso != null ? Number(dist.ore_permesso) : null,
-                causale_permesso: dist?.causale_permesso ? String(dist.causale_permesso) : null,
-                ore_malattia: dist?.ore_malattia != null ? Number(dist.ore_malattia) : null,
-                banca_ore: dist?.banca_ore != null ? Number(dist.banca_ore) : null,
-                banca_ore_mese_n1: dist?.banca_ore_mese_n1 != null ? Number(dist.banca_ore_mese_n1) : null,
-                banca_ore_mese_n: dist?.banca_ore_mese_n != null ? Number(dist.banca_ore_mese_n) : null,
+                ore_totali: day.workedHours,
+                turno_inizio: day.shiftStart,
+                inizio_conteggiato: day.countedStart,
+                fine_conteggiata: day.countedEnd,
+                ore_ordinarie: num(dist?.ore_ordinarie),
+                ore_straordinarie: num(dist?.ore_straordinarie),
+                ore_ferie: num(dist?.ore_ferie),
+                causale_ferie: str(dist?.causale_ferie),
+                ore_permesso: num(dist?.ore_permesso),
+                causale_permesso: str(dist?.causale_permesso),
+                ore_malattia: num(dist?.ore_malattia),
+                banca_ore: num(dist?.banca_ore),
+                banca_ore_mese_n1: num(dist?.banca_ore_mese_n1),
+                banca_ore_mese_n: num(dist?.banca_ore_mese_n),
             } satisfies OperatorHoursRow;
         });
 
@@ -978,42 +954,6 @@ export async function updateHoursDistributionAction(
 }
 
 /**
- * Get configured presets for Ferie and Permesso from NETPRO.VALORI_TABELLE
- */
-export async function getPresencePresetsAction() {
-    try {
-        const query = `
-            SELECT PARAMETRO, VALORE
-            FROM VALORI_TABELLE WITH (NOLOCK)
-            WHERE TABELLA = 'PRESENZE' AND PARAMETRO IN ('FERIE_PRESETS', 'PERMESSO_PRESETS')
-        `;
-        const result = await queryMSSQL(query, {}, 'NETPRO');
-        let feriePresets: string[] = ['FESTA'];
-        let permessoPresets: string[] = ['ROL', 'VISITA MEDICA', 'LUTTO'];
-
-        for (const row of result.recordset) {
-            if (row.PARAMETRO === 'FERIE_PRESETS' && row.VALORE) {
-                feriePresets = row.VALORE.split(',').map((s: string) => s.trim()).filter(Boolean);
-            } else if (row.PARAMETRO === 'PERMESSO_PRESETS' && row.VALORE) {
-                permessoPresets = row.VALORE.split(',').map((s: string) => s.trim()).filter(Boolean);
-            }
-        }
-
-        return {
-            success: true,
-            feriePresets,
-            permessoPresets,
-        };
-    } catch {
-        return {
-            success: true,
-            feriePresets: ['FESTA'],
-            permessoPresets: ['ROL', 'VISITA MEDICA', 'LUTTO'],
-        };
-    }
-}
-
-/**
  * Rename a preset in NETPRO.VALORI_TABELLE and cascade the update to any existing rows in CLZDWHQANDPROG
  */
 export async function renamePresencePresetAction(
@@ -1023,15 +963,13 @@ export async function renamePresencePresetAction(
     updatedPresetsValue: string
 ) {
     try {
-        const defaultDesc = parametro === 'FERIE_PRESETS'
-            ? 'Opzioni rapide testo per Ore Ferie (separate da virgola)'
-            : 'Opzioni rapide testo per Ore Permesso (separate da virgola)';
+        const defaultDesc = PRESENCE_SETTINGS.find((s) => s.key === parametro)?.description;
 
         // 1. Update presets string in NETPRO.VALORI_TABELLE
         await updatePresenceSettingAction(parametro, updatedPresetsValue, defaultDesc);
 
-        // 2. Cascade update to all employee rows in CLZDWHQANDPROG
-        const col = parametro === 'FERIE_PRESETS' ? 'ore_ferie' : 'ore_permesso';
+        // 2. Cascade update to all employee rows in CLZDWHQANDPROG (tags live in the causale_* columns)
+        const col = parametro === 'FERIE_PRESETS' ? 'causale_ferie' : 'causale_permesso';
         const cascadeQuery = `
             UPDATE presence_hours_distribution
             SET ${col} = @newTag, updated_at = SYSDATETIME()
@@ -1047,7 +985,9 @@ export async function renamePresencePresetAction(
 }
 
 /**
- * Get all presence configuration parameters from NETPRO.VALORI_TABELLE
+ * Get all presence configuration parameters from NETPRO.VALORI_TABELLE.
+ * Known parameters missing from the DB are returned with their default value so
+ * they can be edited (the first save creates the row). Ordered as PRESENCE_SETTINGS.
  */
 export async function getAllPresenceSettingsAction() {
     try {
@@ -1055,21 +995,22 @@ export async function getAllPresenceSettingsAction() {
             SELECT TABELLA, PARAMETRO, VALORE, DESCRIZIONE, FVALUE01
             FROM VALORI_TABELLE WITH (NOLOCK)
             WHERE TABELLA = 'PRESENZE'
-            ORDER BY 
-                CASE PARAMETRO
-                    WHEN 'STD_START' THEN 1
-                    WHEN 'STD_END' THEN 2
-                    WHEN 'SPEC_START' THEN 3
-                    WHEN 'SPEC_END' THEN 4
-                    WHEN 'PAUSA_MINUTI' THEN 5
-                    ELSE 99
-                END,
-                PARAMETRO ASC
         `;
-        const result = await queryMSSQL(query, {}, 'NETPRO');
+        const result = await queryMSSQL<PresenceSettingRow>(query, {}, 'NETPRO');
+        const byKey = new Map(result.recordset.map((r) => [r.PARAMETRO, r] as const));
+
+        const known: PresenceSettingRow[] = PRESENCE_SETTINGS.map((def) => {
+            const row = byKey.get(def.key);
+            byKey.delete(def.key);
+            return row
+                ? { ...row, DESCRIZIONE: row.DESCRIZIONE || def.description }
+                : { TABELLA: 'PRESENZE', PARAMETRO: def.key, VALORE: def.defaultValue, DESCRIZIONE: def.description, FVALUE01: null };
+        });
+        const unknown = Array.from(byKey.values()).sort((a, b) => a.PARAMETRO.localeCompare(b.PARAMETRO));
+
         return {
             success: true,
-            data: result.recordset as PresenceSettingRow[],
+            data: [...known, ...unknown],
         };
     } catch (err: any) {
         return {
@@ -1222,305 +1163,211 @@ export async function setOperatorGruppoAction(operatore: string, gruppo: string)
     }
 }
 
+/** Columns the prefill may write. Order matters: it is shared by the VALUES clause and the MERGE. */
+const PREFILL_COLUMNS: readonly HourField[] = [
+    'ore_ordinarie',
+    'ore_straordinarie',
+    'ore_ferie',
+    'ore_permesso',
+    'ore_malattia',
+    'banca_ore',
+];
+
+interface PrefillCandidate {
+    operatore: string;
+    data: string;
+    proposal: DistributionProposal;
+    /** Rules the proposal was computed with (per-operator exceptions applied). */
+    rules: PresenceRulesConfig;
+}
+
+export interface PrefillResult {
+    success: boolean;
+    error?: string;
+    dryRun?: boolean;
+    message?: string;
+    /** Rows proposed (dry run) or written. */
+    totalCount: number;
+    absencesCount: number;
+    partialCount: number;
+    fullCount: number;
+    /** Full days that also received an overflow value (e.g. banca ore). */
+    overflowCount: number;
+    /** Extra days (e.g. Saturday) with records → hours into extraField. */
+    extraCount: number;
+    /** Fixed-profile working days (e.g. office) → flat workdayHours ordinarie. */
+    fixedCount: number;
+    /** Snapshot of the rules used, so the UI can describe what was applied. */
+    rules?: PresenceRulesConfig;
+}
+
+const EMPTY_PREFILL: Omit<PrefillResult, 'success'> = {
+    totalCount: 0,
+    absencesCount: 0,
+    partialCount: 0,
+    fullCount: 0,
+    overflowCount: 0,
+    extraCount: 0,
+    fixedCount: 0,
+};
+
 /**
- * Batch pre-populate and auto-distribute hours for operators (Monday - Friday only, strictly before today)
- * in the specified date range where no hours distribution has been entered yet:
- * 1. Full/Overtime (Totale Ore >= 8.0): 8.0 Ordinarie, and Banca Ore if diff >= 1.0 (whole hours).
- * 2. Partial presence (0 < Totale Ore < 8.0): Ordinarie (rounded down to 0.5h) + Permesso for remainder, sum always 8.0.
- * 3. Full Absences (Totale Ore <= 0): 8.0 Ferie.
+ * Batch pre-populate hours for tracked operators on past working days in the range
+ * that have no distribution yet. The formula lives in src/lib/presence/formulas/distribution.ts
+ * and every number comes from the presence rules (DB / PRESENCE_RULES defaults).
+ *
+ * dryRun = true only counts candidates; nothing is written.
  */
-export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dryRun: boolean = false) {
+export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dryRun: boolean = false): Promise<PrefillResult> {
     try {
-        // 1. Get all dates between dateFrom and dateTo that are weekdays (Monday=1 .. Friday=5)
-        const [sy, sm, sd] = dateFrom.split('-').map(Number);
-        const [ey, em, ed] = dateTo.split('-').map(Number);
-        const curr = new Date(sy, sm - 1, sd, 12, 0, 0);
-        const end = new Date(ey, em - 1, ed, 12, 0, 0);
+        const rules = await loadPresenceRules();
+        const todayStr = todayLocal();
 
-        const now = new Date();
-        const yNow = now.getFullYear();
-        const mNow = String(now.getMonth() + 1).padStart(2, '0');
-        const dNow = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${yNow}-${mNow}-${dNow}`;
-
-        const weekdays: string[] = [];
-        while (curr <= end) {
-            const day = curr.getDay(); // 0 = Sun, 6 = Sat
-            const y = curr.getFullYear();
-            const m = String(curr.getMonth() + 1).padStart(2, '0');
-            const d = String(curr.getDate()).padStart(2, '0');
-            const dateStr = `${y}-${m}-${d}`;
-
-            // Only Monday-Friday and strictly past dates (exclude today and future)
-            if (day !== 0 && day !== 6 && dateStr < todayStr) {
-                weekdays.push(dateStr);
-            }
-            curr.setDate(curr.getDate() + 1);
-        }
-
-        if (weekdays.length === 0) {
+        // 1. Working days strictly before today
+        const workdays = eachDateInRange(dateFrom, dateTo).filter((d) => isPrefillableDay(d, todayStr, rules));
+        if (workdays.length === 0) {
             return {
                 success: true,
-                count: 0,
-                totalCount: 0,
-                absencesCount: 0,
-                partialCount: 0,
-                fullCount: 0,
-                bancaOreCount: 0,
+                ...EMPTY_PREFILL,
+                dryRun,
+                rules,
                 message: 'Nessun giorno lavorativo passato nell’intervallo (oggi e date future escluse)',
             };
         }
 
-        // 2. Query configured pause minutes
-        let pauseMinutes = 60;
-        try {
-            const pauseRes = await queryMSSQL(`
-                SELECT TOP 1 VALORE, FVALUE01
-                FROM VALORI_TABELLE WITH (NOLOCK)
-                WHERE TABELLA = 'PRESENZE' AND PARAMETRO = 'PAUSA_MINUTI'
-            `, {}, 'NETPRO');
-            if (pauseRes.recordset.length > 0) {
-                const row = pauseRes.recordset[0];
-                const n = row.FVALUE01 ?? parseFloat(row.VALORE);
-                if (!isNaN(n)) pauseMinutes = n;
-            }
-        } catch {
-            // default 60
-        }
-
-        // 3. Query active operators in categories 2, 3, 1001
-        const opeResult = await queryMSSQL(`
-            SELECT OPERATORE
-            FROM OPERATORI WITH (NOLOCK)
-            WHERE ENTITA IN ('2', '3', '1001')
-        `, {}, 'NETPRO');
-
-        const operators = opeResult.recordset.map((r: any) => String(r.OPERATORE));
+        // 2. Operators in the categories the prefill applies to, with their rule profile
+        //    (see PRESENCE_RULES.CATEGORIES → profile)
+        const opeResult = await queryMSSQL<{ OPERATORE: string; ENTITA: string | null }>(
+            `SELECT OPERATORE, ENTITA FROM OPERATORI WITH (NOLOCK) WHERE ${prefillRepartiSql('ENTITA')}`,
+            {},
+            'NETPRO'
+        );
+        const operators = opeResult.recordset.map((r) => ({
+            operatore: String(r.OPERATORE),
+            profile: profileFromReparto(r.ENTITA),
+        }));
         if (operators.length === 0) {
-            return { success: true, count: 0, totalCount: 0, absencesCount: 0, partialCount: 0, fullCount: 0, bancaOreCount: 0 };
+            return { success: true, ...EMPTY_PREFILL, dryRun, rules };
         }
 
-        // 4. Query clock-ins from SITUAZIONI and calculate totale_ore
-        const sitResult = await queryMSSQL(`
-            SELECT
-                SIT.OGGETTO AS operatore,
-                CONVERT(VARCHAR(10), CAST(SIT.DATA AS DATE), 120) AS data,
-                ROUND(CASE
-                    WHEN DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) > @pauseMinutes
-                    THEN (DATEDIFF(MINUTE, MIN(SIT.ORA_INIZIO), MAX(SIT.ORA_FINE)) - @pauseMinutes) / 60.0
-                    ELSE 0
-                END, 2) AS ore_totali
-            FROM SITUAZIONI SIT WITH (NOLOCK)
-            WHERE CAST(SIT.DATA AS DATE) >= @dateFrom AND CAST(SIT.DATA AS DATE) <= @dateTo
-            GROUP BY SIT.OGGETTO, CAST(SIT.DATA AS DATE)
-        `, { dateFrom, dateTo, pauseMinutes }, 'NETPRO');
+        // 3. Worked hours per operator-day (same formula as the dashboard) + existing distributions
+        const [sitResult, existingDist] = await Promise.all([
+            queryMSSQL<{ operatore: string; data: string; ora_inizio: string | null; ora_fine: string | null; sessioni_count: number; minuti_sessioni: number | null }>(
+                `SELECT
+                    SIT.OGGETTO AS operatore,
+                    CONVERT(VARCHAR(10), CAST(SIT.DATA AS DATE), 120) AS data,
+                    CONVERT(VARCHAR(8), MIN(SIT.ORA_INIZIO), 108) AS ora_inizio,
+                    CONVERT(VARCHAR(8), MAX(SIT.ORA_FINE), 108) AS ora_fine,
+                    COUNT(*) AS sessioni_count,
+                    SUM(DATEDIFF(MINUTE, SIT.ORA_INIZIO, SIT.ORA_FINE)) AS minuti_sessioni
+                 FROM SITUAZIONI SIT WITH (NOLOCK)
+                 WHERE SIT.TIPO_OGGETTO = 'OPE' AND SIT.TIPO = 'CLCK'
+                   AND CAST(SIT.DATA AS DATE) >= @dateFrom AND CAST(SIT.DATA AS DATE) <= @dateTo
+                 GROUP BY SIT.OGGETTO, CAST(SIT.DATA AS DATE)`,
+                { dateFrom, dateTo },
+                'NETPRO'
+            ),
+            loadDistributionMap(dateFrom, dateTo),
+        ]);
 
+        // Same formula as the dashboard: counted start/end → worked hours (per day kind + profile)
+        const profileByOperator = new Map(operators.map((o) => [o.operatore, o.profile] as const));
         const workedHoursMap = new Map<string, number>();
         for (const r of sitResult.recordset) {
-            workedHoursMap.set(`${String(r.operatore)}_${String(r.data)}`, Number(r.ore_totali ?? 0));
+            const operatore = String(r.operatore);
+            const data = String(r.data);
+            const profile = profileByOperator.get(operatore) ?? 'standard';
+            const opRules = rulesForOperator(operatore, rules);
+            const clock = {
+                firstEntry: r.ora_inizio,
+                lastExit: r.ora_fine,
+                sessions: Number(r.sessioni_count ?? 0),
+                sessionMinutes: r.minuti_sessioni != null ? Number(r.minuti_sessioni) : null,
+            };
+            const day = computeCountedDay(clock, opRules, getDayKind(data, opRules), profile);
+            workedHoursMap.set(`${operatore}_${data}`, day.workedHours);
         }
 
-        // 5. Query existing distributions from CLZDWHQANDPROG
-        const distResult = await queryMSSQL(`
-            SELECT
-                operatore,
-                CONVERT(VARCHAR(10), data, 120) AS data,
-                ore_ordinarie,
-                ore_straordinarie,
-                ore_ferie,
-                causale_ferie,
-                ore_permesso,
-                causale_permesso,
-                ore_malattia,
-                banca_ore
-            FROM presence_hours_distribution WITH (NOLOCK)
-            WHERE data >= @dateFrom AND data <= @dateTo
-        `, { dateFrom, dateTo }, 'QUOTES').catch(() => ({ recordset: [] }));
+        // 4. Evaluate each candidate operator-day
+        const candidates: PrefillCandidate[] = [];
+        const counts = { ...EMPTY_PREFILL };
 
-        const existingDist = new Map<string, any>();
-        for (const d of distResult.recordset) {
-            const dateStr = typeof d.data === 'string' ? d.data.substring(0, 10) : '';
-            existingDist.set(`${d.operatore}_${dateStr}`, d);
-        }
+        for (const data of workdays) {
+            const dayKind = getDayKind(data, rules);
+            for (const { operatore, profile } of operators) {
+                const key = `${operatore}_${data}`;
+                if (hasAnyDistribution(existingDist.get(key))) continue; // preserve manual data
 
-        // 6. Evaluate each candidate operator-day
-        interface CandidateRow {
-            operatore: string;
-            data: string;
-            ore_ordinarie: string | null;
-            ore_ferie: string | null;
-            ore_permesso: string | null;
-            banca_ore: string | null;
-            category: 'absence' | 'partial' | 'full';
-        }
+                const opRules = rulesForOperator(operatore, rules);
+                const proposal = distributeDay(workedHoursMap.get(key) ?? 0, dayKind, opRules, profile);
+                if (!proposal) continue; // e.g. extra day without records → stays empty
+                candidates.push({ operatore, data, proposal, rules: opRules });
 
-        const toPrefill: CandidateRow[] = [];
-        let absencesCount = 0;
-        let partialCount = 0;
-        let fullCount = 0;
-        let bancaOreCount = 0;
-
-        for (const dateStr of weekdays) {
-            for (const op of operators) {
-                const key = `${op}_${dateStr}`;
-
-                // Skip if this operator-day already has any distribution field manually set
-                const dist = existingDist.get(key);
-                if (dist) {
-                    const hasOrd = dist.ore_ordinarie !== null && dist.ore_ordinarie !== undefined;
-                    const hasFerie = (dist.ore_ferie !== null && dist.ore_ferie !== undefined && String(dist.ore_ferie).trim() !== '') || Boolean(dist.causale_ferie);
-                    const hasPermesso = (dist.ore_permesso !== null && dist.ore_permesso !== undefined && String(dist.ore_permesso).trim() !== '') || Boolean(dist.causale_permesso);
-                    const hasMalattia = dist.ore_malattia !== null && dist.ore_malattia !== undefined && String(dist.ore_malattia).trim() !== '';
-                    const hasBanca = dist.banca_ore !== null && dist.banca_ore !== undefined;
-                    if (hasOrd || hasFerie || hasPermesso || hasMalattia || hasBanca) {
-                        continue; // Preserve existing data
-                    }
-                }
-
-                const totalWorked = workedHoursMap.get(key) ?? 0;
-
-                if (totalWorked <= 0) {
-                    // Case 1: Absence -> 8.0h Ferie
-                    toPrefill.push({
-                        operatore: op,
-                        data: dateStr,
-                        ore_ordinarie: null,
-                        ore_ferie: '8.0',
-                        ore_permesso: null,
-                        banca_ore: null,
-                        category: 'absence',
-                    });
-                    absencesCount++;
-                } else if (totalWorked < 8.0) {
-                    // Case 2: Partial presence -> Ordinarie (rounded to 0.5h) + Permesso (sum is exactly 8.0)
-                    const ordVal = Math.floor(totalWorked * 2) / 2;
-                    const perVal = Math.round((8.0 - ordVal) * 10) / 10;
-                    toPrefill.push({
-                        operatore: op,
-                        data: dateStr,
-                        ore_ordinarie: ordVal.toFixed(1),
-                        ore_ferie: null,
-                        ore_permesso: perVal.toFixed(1),
-                        banca_ore: null,
-                        category: 'partial',
-                    });
-                    partialCount++;
-                } else {
-                    // Case 3: Full / Overtime -> 8.0 Ordinarie, extra whole hours (>= 1.0) into Banca Ore
-                    const diff = totalWorked - 8.0;
-                    const bancaVal = diff >= 1.0 ? Math.floor(diff) : null;
-                    if (bancaVal !== null) {
-                        bancaOreCount++;
-                    }
-                    toPrefill.push({
-                        operatore: op,
-                        data: dateStr,
-                        ore_ordinarie: '8.0',
-                        ore_ferie: null,
-                        ore_permesso: null,
-                        banca_ore: bancaVal !== null ? bancaVal.toFixed(1) : null,
-                        category: 'full',
-                    });
-                    fullCount++;
+                switch (proposal.category) {
+                    case 'absence': counts.absencesCount++; break;
+                    case 'partial': counts.partialCount++; break;
+                    case 'extra': counts.extraCount++; break;
+                    case 'fixed': counts.fixedCount++; break;
+                    case 'full':
+                        counts.fullCount++;
+                        if (proposal.values[rules.overflowField] !== undefined) counts.overflowCount++;
+                        break;
                 }
             }
         }
+        counts.totalCount = candidates.length;
 
-        if (toPrefill.length === 0) {
+        if (candidates.length === 0 || dryRun) {
+            return { success: true, ...counts, dryRun, rules };
+        }
+
+        // 5. Invariant: every proposal must cover exactly the workday
+        const broken = candidates.find((c) => !assertCoversWorkday(c.proposal, c.rules));
+        if (broken) {
             return {
-                success: true,
-                count: 0,
-                totalCount: 0,
-                absencesCount: 0,
-                partialCount: 0,
-                fullCount: 0,
-                bancaOreCount: 0,
-                dryRun,
+                success: false,
+                ...EMPTY_PREFILL,
+                error: `Regola ${broken.rules.workdayHours}h violata per ${broken.operatore} il ${broken.data}: copertura ${proposalCoveredHours(broken.proposal, broken.rules)}h. Controllare le impostazioni presenze.`,
             };
         }
 
-        if (dryRun) {
-            return {
-                success: true,
-                count: toPrefill.length,
-                totalCount: toPrefill.length,
-                absencesCount,
-                partialCount,
-                fullCount,
-                bancaOreCount,
-                dryRun: true,
-            };
-        }
-
-        // 7. Verify 8.0h rule integrity: ordinarie + ferie + permesso MUST equal exactly 8.0
-        for (const item of toPrefill) {
-            const ord = item.ore_ordinarie !== null ? parseFloat(item.ore_ordinarie) : 0;
-            const fer = item.ore_ferie !== null ? parseFloat(item.ore_ferie) : 0;
-            const per = item.ore_permesso !== null ? parseFloat(item.ore_permesso) : 0;
-            const sum = Math.round((ord + fer + per) * 10) / 10;
-            if (sum !== 8.0) {
-                console.error(`8h rule assertion failed for operator ${item.operatore} on ${item.data}: sum is ${sum}`);
-            }
-        }
-
-        // 8. Batch MERGE in chunks of 50
+        // 6. Batch MERGE in chunks — only rows still empty are touched
         const chunkSize = 50;
-        for (let i = 0; i < toPrefill.length; i += chunkSize) {
-            const chunk = toPrefill.slice(i, i + chunkSize);
-            const valuesClauses = chunk.map(
-                (_, idx) => `(@op${idx}, CAST(@dt${idx} AS DATE), CAST(@ord${idx} AS DECIMAL(5,2)), @fer${idx}, @per${idx}, CAST(@ban${idx} AS DECIMAL(5,2)))`
-            ).join(', ');
+        const colList = PREFILL_COLUMNS.join(', ');
+        const guard = PREFILL_COLUMNS.map((c) => `target.${c} IS NULL`).join(' AND ') +
+            ' AND target.causale_ferie IS NULL AND target.causale_permesso IS NULL';
+        const setList = PREFILL_COLUMNS.map((c) => `${c} = source.${c}`).join(', ');
+        const srcList = PREFILL_COLUMNS.map((c) => `source.${c}`).join(', ');
 
-            const params: Record<string, any> = {};
-            chunk.forEach((item, idx) => {
-                params[`op${idx}`] = item.operatore;
-                params[`dt${idx}`] = item.data;
-                params[`ord${idx}`] = item.ore_ordinarie !== null ? parseFloat(item.ore_ordinarie) : null;
-                params[`fer${idx}`] = item.ore_ferie !== null ? item.ore_ferie : null;
-                params[`per${idx}`] = item.ore_permesso !== null ? item.ore_permesso : null;
-                params[`ban${idx}`] = item.banca_ore !== null ? parseFloat(item.banca_ore) : null;
-            });
+        for (let i = 0; i < candidates.length; i += chunkSize) {
+            const chunk = candidates.slice(i, i + chunkSize);
+            const params: Record<string, unknown> = {};
+            const valuesClauses = chunk.map((c, idx) => {
+                params[`op${idx}`] = c.operatore;
+                params[`dt${idx}`] = c.data;
+                const cols = PREFILL_COLUMNS.map((col, ci) => {
+                    params[`v${idx}_${ci}`] = c.proposal.values[col] ?? null;
+                    return `CAST(@v${idx}_${ci} AS DECIMAL(5,2))`;
+                });
+                return `(@op${idx}, CAST(@dt${idx} AS DATE), ${cols.join(', ')})`;
+            }).join(', ');
 
-            const mergeQuery = `
-                MERGE presence_hours_distribution AS target
-                USING (VALUES ${valuesClauses}) AS source (operatore, data, ore_ordinarie, ore_ferie, ore_permesso, banca_ore)
-                ON (target.operatore = source.operatore AND target.data = source.data)
-                WHEN MATCHED AND target.ore_ordinarie IS NULL AND target.ore_ferie IS NULL AND target.ore_permesso IS NULL AND target.ore_malattia IS NULL AND target.banca_ore IS NULL THEN
-                    UPDATE SET
-                        ore_ordinarie = source.ore_ordinarie,
-                        ore_ferie = source.ore_ferie,
-                        ore_permesso = source.ore_permesso,
-                        banca_ore = source.banca_ore,
-                        updated_at = SYSDATETIME()
-                WHEN NOT MATCHED THEN
-                    INSERT (operatore, data, ore_ordinarie, ore_ferie, ore_permesso, banca_ore, created_at, updated_at)
-                    VALUES (source.operatore, source.data, source.ore_ordinarie, source.ore_ferie, source.ore_permesso, source.banca_ore, SYSDATETIME(), SYSDATETIME());
-            `;
-
-            await queryMSSQL(mergeQuery, params, 'QUOTES');
+            await queryMSSQL(
+                `MERGE presence_hours_distribution AS target
+                 USING (VALUES ${valuesClauses}) AS source (operatore, data, ${colList})
+                 ON (target.operatore = source.operatore AND target.data = source.data)
+                 WHEN MATCHED AND ${guard} THEN
+                     UPDATE SET ${setList}, updated_at = SYSDATETIME()
+                 WHEN NOT MATCHED THEN
+                     INSERT (operatore, data, ${colList}, created_at, updated_at)
+                     VALUES (source.operatore, source.data, ${srcList}, SYSDATETIME(), SYSDATETIME());`,
+                params,
+                'QUOTES'
+            );
         }
 
-        return {
-            success: true,
-            count: toPrefill.length,
-            totalCount: toPrefill.length,
-            absencesCount,
-            partialCount,
-            fullCount,
-            bancaOreCount,
-            dryRun: false,
-        };
+        return { success: true, ...counts, dryRun: false, rules };
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message as string,
-            count: 0,
-            totalCount: 0,
-            absencesCount: 0,
-            partialCount: 0,
-            fullCount: 0,
-            bancaOreCount: 0,
-        };
+        return { success: false, ...EMPTY_PREFILL, error: err.message as string };
     }
 }
-

@@ -287,6 +287,103 @@ export const PRICING_FORMULAS = {
 } as const;
 
 // ============================================================================
+// PRESENCE RULES — DEFAULTS
+// ============================================================================
+// Default values for every presence formula (monthly hours, 8h check, prefill).
+// Each key can be overridden at runtime from NETPRO.VALORI_TABELLE
+// (TABELLA = 'PRESENZE') — see src/lib/presence/config.ts for the mapping.
+// Formulas live in src/lib/presence/formulas/*. Never hardcode these numbers.
+
+export const PRESENCE_RULES = {
+  // --- Shift inference (from the first clock-in of the day) ---
+  // Possible shift starts ("HH:MM"). The clock-in picks the shift as follows:
+  //   • clock-in within SHIFT_SNAP_WINDOW_MINUTES *before* a shift start → that shift, counted from its start
+  //   • otherwise → counted from the clock-in rounded UP to ENTRY_ROUNDING_MINUTES
+  //   Example (06:30 / 07:30, window 30, step 15): 06:12 → 06:30, 06:31 → 06:45, 07:00 → 07:30, 07:31 → 07:45
+  SHIFT_STARTS: ['06:30', '07:30', '08:30'],
+  SHIFT_SNAP_WINDOW_MINUTES: 30,
+  ENTRY_ROUNDING_MINUTES: 15,
+  // Last clock-out is rounded DOWN to EXIT_ROUNDING_MINUTES: 16:34 → 16:30, 15:46 → 15:45
+  EXIT_ROUNDING_MINUTES: 15,
+  // Clock-in up to N minutes AFTER a shift start still counts from the shift start (0 = off).
+  ENTRY_GRACE_MINUTES: 0,
+
+  // --- Compensation of minor penalties ---
+  // If the penalised total falls short of the workday by at most COMPENSATION_TOLERANCE_MINUTES
+  // AND the real minutes (Σ clocked sessions, minus the flat pause when no pause was clocked)
+  // reach the workday, the day is granted in full. 2 min late + short pause + 3 min late exit
+  // → real 8:09 ≥ 8:00 → 8.0 instead of 7.5. Set to 0 to disable.
+  COMPENSATION_TOLERANCE_MINUTES: 30,
+  // The real minutes may fall short of the workday by up to this much and still count as reaching it.
+  REAL_MINUTES_TOLERANCE: 5,
+
+  // --- Worked hours: counted end − counted start − pause ---
+  // The pause is flat (intermediate clock-outs/ins are ignored) and is deducted ONLY
+  // when the counted span covers the whole pause window: leaving before 13:00 or
+  // arriving after 12:00 means no pause was taken, so nothing is deducted.
+  PAUSE_MINUTES: 60,
+  PAUSE_WINDOW_START: '12:00',
+  PAUSE_WINDOW_END: '13:00',
+
+  // --- Day kinds (ISO weekdays: 1 = Mon … 7 = Sun) ---
+  // working → full rules above (shift, penalties, pause, 8h, permesso, banca ore)
+  // extra   → EXTRA_* rules below (Saturday: optional half day, straordinarie only)
+  // any other weekday → off: nothing computed, nothing written
+  WORKING_DAYS: [1, 2, 3, 4, 5],
+  EXTRA_DAYS: [6],
+
+  // --- Workday ---
+  WORKDAY_HOURS: 8.0,
+
+  // --- Extra day (Saturday) ---
+  // No shift snap, no penalties, no pause: worked = last clock-out − first clock-in.
+  // No records → nothing. Records → EXTRA_FIELD = min(EXTRA_MAX_HOURS, round(worked)).
+  // Excess above EXTRA_MAX_HOURS is dropped (never banca ore).
+  EXTRA_MAX_HOURS: 4.0,
+  EXTRA_FIELD: 'ore_straordinarie',
+  EXTRA_ROUNDING_STEP: 0.5,
+  EXTRA_ROUNDING_MODE: 'floor',
+
+  // --- Coverage check: sum(COVERED_FIELDS) must equal WORKDAY_HOURS ---
+  COVERED_FIELDS: ['ore_ordinarie', 'ore_ferie', 'ore_permesso', 'ore_malattia'],
+
+  // --- Prefill distribution ---
+  // No clock-in → WORKDAY_HOURS into ABSENCE_FIELD
+  ABSENCE_FIELD: 'ore_ferie',
+  // 0 < worked < WORKDAY_HOURS → ordinarie rounded, remainder into PARTIAL_FILL_FIELD
+  PARTIAL_FILL_FIELD: 'ore_permesso',
+  ORDINARIE_ROUNDING_STEP: 0.5,
+  ORDINARIE_ROUNDING_MODE: 'floor',
+  // worked ≥ WORKDAY_HOURS → WORKDAY_HOURS ordinarie, excess into OVERFLOW_FIELD
+  OVERFLOW_FIELD: 'banca_ore',
+  OVERFLOW_MIN_HOURS: 0.5,
+  OVERFLOW_ROUNDING_STEP: 0.5,
+  OVERFLOW_ROUNDING_MODE: 'floor',
+
+  // --- Per-operator exceptions (defaults empty; set in Impostazioni Presenze) ---
+  // ORE_GIORNATA_OPERATORE = "12345=6, 67890=7" → those operators use 6h / 7h instead of WORKDAY_HOURS
+  WORKDAY_HOURS_BY_OPERATOR: {} as Record<string, number>,
+
+  // --- Quick tags ---
+  FERIE_PRESETS: ['FESTA'],
+  PERMESSO_PRESETS: ['ROL', 'VISITA MEDICA', 'LUTTO'],
+
+  // --- Employee categories (OPERATORI.ENTITA → label + rule profile) ---
+  // profile decides which formulas "Precompila" applies on working days:
+  //   standard → shift snap, penalties, pause, 8h, permesso, banca ore (formulas above)
+  //   fixed    → flat WORKDAY_HOURS ordinarie whenever nothing is filled, regardless of clock records
+  //              (no penalties, no pause, no straordinari, no banca ore); Totale Ore shown raw
+  //   none     → never prefilled
+  // Extra days (Saturday) use the EXTRA_* rules for every profile except 'none'.
+  CATEGORIES: [
+    { reparto: '2', label: 'CLZ Produzione', defaultActive: true, profile: 'standard' },
+    { reparto: '1001', label: 'Interinali', defaultActive: true, profile: 'standard' },
+    { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed' },
+  ],
+  OTHER_CATEGORY_LABEL: 'Altro',
+} as const;
+
+// ============================================================================
 // OPERATION CATEGORIES
 // ============================================================================
 // Categories for organizing operations in the admin UI and pricing engine

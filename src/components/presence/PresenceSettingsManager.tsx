@@ -16,26 +16,16 @@ import {
 } from '@/app/presence/presence-actions';
 import type { PresenceSettingRow } from '@/types';
 import { PresetTagEditor } from './PresetTagEditor';
+import { getPresenceSettingDefinition } from '@/lib/presence';
 
 type Turno2Operator = { OPERATORE: string; NOME: string; GRUPPO: string };
 type SearchOperator = { OPERATORE: string; NOME: string; GRUPPO: string | null };
 
-const PARAMETER_ORDER: Record<string, number> = {
-    'STD_START': 1,
-    'STD_END': 2,
-    'SPEC_START': 3,
-    'SPEC_END': 4,
-    'PAUSA_MINUTI': 5,
-    'FERIE_PRESETS': 6,
-    'PERMESSO_PRESETS': 7,
-};
-
 function sortSettings(list: PresenceSettingRow[]): PresenceSettingRow[] {
+    const order = (key: string) => getPresenceSettingDefinition(key)?.order ?? 99;
     return [...list].sort((a, b) => {
-        const orderA = PARAMETER_ORDER[a.PARAMETRO] ?? 99;
-        const orderB = PARAMETER_ORDER[b.PARAMETRO] ?? 99;
-        if (orderA !== orderB) return orderA - orderB;
-        return a.PARAMETRO.localeCompare(b.PARAMETRO);
+        const diff = order(a.PARAMETRO) - order(b.PARAMETRO);
+        return diff !== 0 ? diff : a.PARAMETRO.localeCompare(b.PARAMETRO);
     });
 }
 
@@ -193,10 +183,8 @@ export function PresenceSettingsManager() {
         }
     };
 
-    const getSettingUnit = (parametro: string) => {
-        if (parametro.includes('MINUTI') || parametro.includes('PAUSA')) return 'min';
-        return '';
-    };
+    const getSettingUnit = (parametro: string) => getPresenceSettingDefinition(parametro)?.unit ?? '';
+    const getInputType = (parametro: string) => getPresenceSettingDefinition(parametro)?.kind === 'time' ? 'time' : 'text';
 
 
     const handleRemoveFromTurno2 = async (operatore: string) => {
@@ -365,10 +353,10 @@ export function PresenceSettingsManager() {
                                                     ) : (
                                                         <div className="flex items-center gap-1.5">
                                                             <Input
-                                                                type={item.PARAMETRO.includes('START') || item.PARAMETRO.includes('END') ? 'time' : 'text'}
+                                                                type={getInputType(item.PARAMETRO)}
                                                                 value={editValue}
                                                                 onChange={(e) => setEditValue(e.target.value)}
-                                                                className="h-6 w-20 text-xs font-mono text-center px-1"
+                                                                className="h-6 w-40 text-xs font-mono text-center px-1"
                                                                 autoFocus
                                                             />
                                                             {unit && <span className="text-xs text-zinc-400">{unit}</span>}

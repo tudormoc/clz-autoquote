@@ -153,12 +153,10 @@ export interface OperatorHoursRow {
     sessioni_count: number;
     ore_lavoro: number;
     ore_totali: number;
-    // Expected schedule times resolved per operator's GRUPPO
-    inizio_atteso: string;
-    fine_attesa: string;
-    // Diff in minutes vs expected start (negative = early, positive = late)
-    diff_inizio_min: number;
-    diff_fine_min: number;
+    // Counted times after the entry/exit rules (src/lib/presence/formulas/counted-times.ts)
+    turno_inizio: string | null;      // matched shift start ("HH:MM") or null when counted from rounded clock-in
+    inizio_conteggiato: string | null; // "HH:MM"
+    fine_conteggiata: string | null;   // "HH:MM"
     // Hours distribution fields (persisted in CLZDWHQANDPROG.presence_hours_distribution)
     ore_ordinarie: number | null;
     ore_straordinarie: number | null;

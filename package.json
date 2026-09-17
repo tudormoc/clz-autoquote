@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "presence:examples": "tsx --tsconfig tsconfig.json scripts/presence-examples.ts"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -37,6 +38,7 @@
     "eslint-config-next": "^15.1.7",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
+    "tsx": "^4.23.13",
     "typescript": "^5.6.3"
   },
   "overrides": {
