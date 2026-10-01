@@ -25,6 +25,8 @@ import {
     normalizeReparto,
     todayLocal,
     getCoveredHours,
+    normalizeHours,
+    toHours,
     getDayStatus,
     isCoverageAnomaly,
     resolveEditSideEffects,
@@ -379,6 +381,22 @@ export function MonthlyHoursTable() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [sortedData, activeStatuses, todayStr, rules]
     );
+
+    // Footer totals over the rows currently shown (text presets like 'FESTA' count as 0 via toHours)
+    const totals = useMemo(() => {
+        const sum = (pick: (r: OperatorHoursRow) => number | string | null | undefined) =>
+            normalizeHours(displayedData.reduce((acc, r) => acc + toHours(pick(r)), 0));
+        return {
+            oreFerie: sum((r) => r.ore_ferie),
+            orePermesso: sum((r) => r.ore_permesso),
+            oreMalattia: sum((r) => r.ore_malattia),
+            oreOrdinarie: sum((r) => r.ore_ordinarie),
+            oreTotali: sum((r) => r.ore_totali),
+            controllo: sum((r) => getCoveredHours(r, rulesForOperator(r.operatore, rules))),
+            oreStraordinarie: sum((r) => r.ore_straordinarie),
+            bancaOre: sum((r) => r.banca_ore),
+        };
+    }, [displayedData, rules]);
 
     const workdayLabel = `${rules.workdayHours.toFixed(1)}h`;
     const pauseLabel = rules.pauseMinutes % 60 === 0 ? `${rules.pauseMinutes / 60}h` : `${rules.pauseMinutes}min`;
@@ -878,6 +896,28 @@ export function MonthlyHoursTable() {
                                         </tr>
                                     ))}
                                 </tbody>
+                                <tfoot className="bg-zinc-900/70 border-t-2 border-zinc-700 whitespace-nowrap">
+                                    <tr className="text-xs font-semibold">
+                                        <td colSpan={7} className="px-4 py-2 text-zinc-400 uppercase tracking-wider">
+                                            {copy.totals.label}
+                                            <span className="ml-2 font-normal normal-case text-zinc-500">
+                                                ({displayedData.length} {APP_COPY.analytics.common.records})
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreFerie.toFixed(1)}</td>
+                                        <td />
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.orePermesso.toFixed(1)}</td>
+                                        <td />
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreMalattia.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreOrdinarie.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreTotali.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.controllo.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreStraordinarie.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.bancaOre.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-600 italic">—</td>
+                                        <td className="px-4 py-2 text-right font-mono text-zinc-600 italic">—</td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     )}

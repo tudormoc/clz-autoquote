@@ -556,6 +556,9 @@ export const APP_COPY = {
         bancaOreMeseN: "Banca ore mese n",
         clickToEdit: "Clicca per modificare",
       },
+      totals: {
+        label: "Totale",
+      },
       prefill: {
         button: "Precompila e Distribuisci Ore",
         modalTitle: "Conferma Precompilazione e Distribuzione Ore",
