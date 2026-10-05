@@ -813,6 +813,50 @@ export async function syncOrderFromDibaAction(params: {
             `, { anno, serie, numord, rigaPadre, fase: op.fase, codcent: op.codcent }, 'BUSINESS');
         }
 
+        // Operations to update (exist in both DiBa and order — refresh all mutable fields)
+        const opsToUpdate = dibaOps.filter(o => netFasi.has(o.fase));
+        for (const op of opsToUpdate) {
+            const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
+
+            // Business attivit — work type, time, terzista, notes
+            await queryMSSQL(`
+                UPDATE attivit
+                SET at_codlavo    = @codlavo,
+                    at_tempesepr  = @tesec,
+                    at_terzista   = @terzista,
+                    at_note       = @note
+                WHERE codditt = 'COOPZANARDI'
+                  AND at_numord = @numord
+                  AND at_anno   = @anno
+                  AND at_fase   = @fase
+            `, { codlavo: op.codlavo, tesec: op.tesec, terzista: op.terzista, note: op.note, numord, anno, fase: op.fase }, 'BUSINESS');
+
+            // Business assris — work center
+            await queryMSSQL(`
+                UPDATE assris
+                SET as_codcent = @codcent
+                WHERE codditt = 'COOPZANARDI'
+                  AND as_numord = @numord
+                  AND as_anno   = @anno
+                  AND as_fase   = @fase
+            `, { codcent: op.codcent, numord, anno, fase: op.fase }, 'BUSINESS');
+
+            // NetPro OPERAZIONI — description, assigned work center
+            await queryMSSQL(`
+                UPDATE OPERAZIONI
+                SET DESCRIZIONE       = @descr,
+                    CENTRO_ASSEGNATO  = @centro
+                WHERE ID_OPER = @idOper
+            `, { descr: op.descr_lavor, centro: String(op.codcent), idOper }, 'NETPRO');
+
+            // NetPro TASKS — machine (= work center code)
+            await queryMSSQL(`
+                UPDATE TASKS
+                SET MACCHINA = @centro
+                WHERE TASK = @idOper
+            `, { centro: String(op.codcent), idOper }, 'NETPRO');
+        }
+
         // 5. Sync Materials
         // Fetch DiBa Materials
         const dibaMatRes = await queryMSSQL(`
