@@ -190,4 +190,121 @@ export interface PresenceSettingRow {
     FVALUE01: number | null;
 }
 
+export interface CaricoDocument {
+    anno: number;
+    serie: string;
+    numdoc: number;
+    riga: number;
+    datdoc: string;
+    codart: string;
+    descr: string;
+    quant: number;
+    valore: number;
+    commeca: number;
+}
+
+export interface ReconciledMaterialRow {
+    part_number: string;
+    description: string;
+    unit_of_measure: string;
+    order_quantity: number;
+    carico_quantity: number;
+    diff_quantity: number;
+    carico_valore: number;
+    order_flevas?: string;
+    status: 'MATCH' | 'DIFF' | 'ORDER_ONLY' | 'CARICO_ONLY';
+    // Order row identifiers (movord)
+    order_anno?: number;
+    order_serie?: string;
+    order_numord?: number;
+    order_riga?: number;
+    // Carico row identifiers (movmag)
+    carico_anno?: number;
+    carico_serie?: string;
+    carico_numdoc?: number;
+    carico_riga?: number;
+    carico_prezzo?: number;
+}
+
+export interface ProductionOrderDocument {
+    anno: number;
+    serie: string;
+    numord: number;
+    riga: number;
+    datord?: string;
+    datcons?: string;
+    codart: string;
+    descr: string;
+    quant: number;
+    quaeva: number;
+    flevas: string;
+    commeca: number;
+}
+
+export interface MaterialReconciliationData {
+    productionOrders: ProductionOrderDocument[];
+    carichi: CaricoDocument[];
+    materials: ReconciledMaterialRow[];
+}
+
+export interface DibaOperationRow {
+    riga: number;
+    fase: number;
+    codlavo: number;
+    descr_lavor: string;
+    terzista: string;
+    codcent: number;
+    descr_centro: string;
+    note: string;
+    tesec: number;
+    perqta: number;
+    aggriga: string;
+}
+
+export interface DibaMaterialRow {
+    riga: number;
+    codfigli: string;
+    description: string;
+    quant: number;
+    perpz: number;
+    unmis: string;
+}
+
+export interface OrderMaterialSummaryRow {
+    riga?: number;
+    part_number: string;
+    description: string;
+    quant: number;
+    unmis: string;
+}
+
+export interface OrderProductionOperationRow {
+    id_oper: string;
+    ordine: string;
+    sequenza: number;
+    descrizione: string;
+    stato: string;
+    centro_assegnato: string;
+    machine_code: string;
+    machine_name: string;
+    area_name: string;
+    note: string;
+}
+
+export interface OrderOperationsManagementData {
+    article_father: string;
+    ordine_netpro: string;
+    order_bus_numord?: number;
+    order_bus_anno?: number;
+    order_bus_riga?: number;
+    order_father_quant?: number;
+    diba_operations: DibaOperationRow[];
+    order_operations: OrderProductionOperationRow[];
+    diba_materials?: DibaMaterialRow[];
+    order_materials?: OrderMaterialSummaryRow[];
+    has_discrepancies?: boolean;
+    discrepancy_count?: number;
+}
+
+
 
