@@ -813,23 +813,24 @@ export async function syncOrderFromDibaAction(params: {
             `, { anno, serie, numord, rigaPadre, fase: op.fase, codcent: op.codcent }, 'BUSINESS');
         }
 
-        // Operations to update (exist in both DiBa and order — refresh all mutable fields)
+        // Operations to update (exist in both DiBa and order — refresh all mutable fields from DiBa)
         const opsToUpdate = dibaOps.filter(o => netFasi.has(o.fase));
         for (const op of opsToUpdate) {
             const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
 
-            // Business attivit — work type, time, terzista, notes
+            // Business attivit — work type, planned time (sec), planned qty, terzista, notes
             await queryMSSQL(`
                 UPDATE attivit
                 SET at_codlavo    = @codlavo,
                     at_tempesepr  = @tesec,
+                    at_qtapr      = @orderFatherQuant,
                     at_terzista   = @terzista,
                     at_note       = @note
                 WHERE codditt = 'COOPZANARDI'
                   AND at_numord = @numord
                   AND at_anno   = @anno
                   AND at_fase   = @fase
-            `, { codlavo: op.codlavo, tesec: op.tesec, terzista: op.terzista, note: op.note, numord, anno, fase: op.fase }, 'BUSINESS');
+            `, { codlavo: op.codlavo, tesec: op.tesec, orderFatherQuant, terzista: op.terzista, note: op.note, numord, anno, fase: op.fase }, 'BUSINESS');
 
             // Business assris — work center
             await queryMSSQL(`
@@ -841,20 +842,25 @@ export async function syncOrderFromDibaAction(params: {
                   AND as_fase   = @fase
             `, { codcent: op.codcent, numord, anno, fase: op.fase }, 'BUSINESS');
 
-            // NetPro OPERAZIONI — description, assigned work center
+            // NetPro OPERAZIONI — description, work center, planned time, requested qty
             await queryMSSQL(`
                 UPDATE OPERAZIONI
-                SET DESCRIZIONE       = @descr,
-                    CENTRO_ASSEGNATO  = @centro
+                SET DESCRIZIONE      = @descr,
+                    CENTRO_ASSEGNATO = @centro,
+                    T_LAVORO_MAC     = @tesec,
+                    QTA_RICHIESTA    = @orderFatherQuant
                 WHERE ID_OPER = @idOper
-            `, { descr: op.descr_lavor, centro: String(op.codcent), idOper }, 'NETPRO');
+            `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant, idOper }, 'NETPRO');
 
-            // NetPro TASKS — machine (= work center code)
+            // NetPro TASKS — description, machine (= work center), notes, requested qty
             await queryMSSQL(`
                 UPDATE TASKS
-                SET MACCHINA = @centro
+                SET DESCRIZIONE   = @descr,
+                    MACCHINA      = @centro,
+                    FNOTE         = @note,
+                    QTA_RICHIESTA = @orderFatherQuant
                 WHERE TASK = @idOper
-            `, { centro: String(op.codcent), idOper }, 'NETPRO');
+            `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
         }
 
         // 5. Sync Materials
