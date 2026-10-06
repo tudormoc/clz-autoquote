@@ -759,9 +759,12 @@ export async function syncOrderFromDibaAction(params: {
                 END
             `, { netOrdine, fase: op.fase, idOper, descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant }, 'NETPRO');
 
-            // NetPro TASKS — delete stale row first, then insert clean (avoids orphaned rows blocking re-insert)
-            await queryMSSQL(`DELETE FROM JOBSET WHERE ID_OPER = @idOper OR TASK = @idOper`, { idOper }, 'NETPRO');
-            await queryMSSQL(`DELETE FROM TASKS WHERE TASK = @idOper`, { idOper }, 'NETPRO');
+            // NetPro TASKS — delete ALL existing linked tasks (any format) before inserting fresh
+            // This handles cases where NetPro pre-created tasks in its own format
+            await queryMSSQL(`
+                DELETE FROM TASKS WHERE TASK IN (SELECT TASK FROM JOBSET WHERE ID_OPER = @idOper)
+            `, { idOper }, 'NETPRO');
+            await queryMSSQL(`DELETE FROM JOBSET WHERE ID_OPER = @idOper`, { idOper }, 'NETPRO');
             await queryMSSQL(`
                 INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
                 VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
@@ -910,12 +913,19 @@ export async function syncOrderFromDibaAction(params: {
                 WHERE ID_OPER = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant, idOper }, 'NETPRO');
 
-            // NetPro TASKS — find the existing TASK via JOBSET and UPDATE it (never insert new rows for existing phases)
+            // NetPro TASKS — find all linked tasks via JOBSET
             const linkedTask = await queryMSSQL<{ TASK: string }>(`
                 SELECT TASK FROM JOBSET WHERE ID_OPER = @idOper
             `, { idOper }, 'NETPRO');
 
-            for (const { TASK } of linkedTask.recordset) {
+            if (linkedTask.recordset.length > 1) {
+                // Deduplicate: keep the first TASK (original), delete the rest
+                const [primary, ...extras] = linkedTask.recordset;
+                for (const { TASK } of extras) {
+                    await queryMSSQL(`DELETE FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @task`, { idOper, task: TASK }, 'NETPRO');
+                    await queryMSSQL(`DELETE FROM TASKS WHERE TASK = @task`, { task: TASK }, 'NETPRO');
+                }
+                // Update the surviving task
                 await queryMSSQL(`
                     UPDATE TASKS
                     SET DESCRIZIONE   = @descr,
@@ -923,7 +933,16 @@ export async function syncOrderFromDibaAction(params: {
                         FNOTE         = @note,
                         QTA_RICHIESTA = @orderFatherQuant
                     WHERE TASK = @task
-                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, task: TASK }, 'NETPRO');
+                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, task: primary.TASK }, 'NETPRO');
+            } else if (linkedTask.recordset.length === 1) {
+                await queryMSSQL(`
+                    UPDATE TASKS
+                    SET DESCRIZIONE   = @descr,
+                        MACCHINA      = @centro,
+                        FNOTE         = @note,
+                        QTA_RICHIESTA = @orderFatherQuant
+                    WHERE TASK = @task
+                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, task: linkedTask.recordset[0].TASK }, 'NETPRO');
             }
         }
 
