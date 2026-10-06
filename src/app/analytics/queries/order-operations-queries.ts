@@ -739,7 +739,10 @@ export async function syncOrderFromDibaAction(params: {
         // Operations to add (in DiBa but not in order)
         const opsToAdd = dibaOps.filter(o => !netFasi.has(o.fase));
         for (const op of opsToAdd) {
+            // OPERAZIONI ID: netOrdine (includes riga) + fase 2-digit
             const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
+            // TASKS ID: different format — H{year2} {numord 9-digit}{fase 5-digit} (no riga)
+            const taskId = `H${String(anno).slice(-2)} ${String(numord).padStart(9, '0')}${String(op.fase).padStart(5, '0')}`;
 
             // NetPro OPERAZIONI insert — OPERAZIONE = fase (same as SEQUENZA), CENTRO_REALE = CENTRO_ASSEGNATO
             await queryMSSQL(`
@@ -758,23 +761,22 @@ export async function syncOrderFromDibaAction(params: {
                 END
             `, { netOrdine, fase: op.fase, idOper, descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant }, 'NETPRO');
 
-            // NetPro TASKS insert — include DESCRIZIONE, QTA_RICHIESTA, FNOTE
+            // NetPro TASKS insert — use taskId (different format from idOper)
             await queryMSSQL(`
-                IF NOT EXISTS (SELECT 1 FROM TASKS WHERE TASK = @idOper)
+                IF NOT EXISTS (SELECT 1 FROM TASKS WHERE TASK = @taskId)
                 BEGIN
                     INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
-                    VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
+                    VALUES (@taskId, @centro, 'REL', @descr, @orderFatherQuant, @note)
                 END
-            `, { idOper, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
+            `, { taskId, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
 
-            // NetPro JOBSET link
+            // NetPro JOBSET — link OPERAZIONE (idOper) → TASK (taskId)
             await queryMSSQL(`
-                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @idOper)
+                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @taskId)
                 BEGIN
-                    INSERT INTO JOBSET (ID_OPER, TASK)
-                    VALUES (@idOper, @idOper)
+                    INSERT INTO JOBSET (ID_OPER, TASK) VALUES (@idOper, @taskId)
                 END
-            `, { idOper }, 'NETPRO');
+            `, { idOper, taskId }, 'NETPRO');
 
             // Business attivit upsert — delete any stale row first, then insert clean
             await queryMSSQL(`
@@ -830,6 +832,7 @@ export async function syncOrderFromDibaAction(params: {
         const opsToUpdate = dibaOps.filter(o => netFasi.has(o.fase));
         for (const op of opsToUpdate) {
             const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
+            const taskId = `H${String(anno).slice(-2)} ${String(numord).padStart(9, '0')}${String(op.fase).padStart(5, '0')}`;
 
             // Business attivit — upsert: update if exists, insert if missing
             const attivitExists = await queryMSSQL(`
@@ -914,10 +917,10 @@ export async function syncOrderFromDibaAction(params: {
                 WHERE ID_OPER = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant, idOper }, 'NETPRO');
 
-            // NetPro TASKS — upsert: update if exists, insert if missing
+            // NetPro TASKS — upsert: update if exists, insert if missing (use taskId, not idOper)
             const taskExists = await queryMSSQL(`
-                SELECT 1 as found FROM TASKS WHERE TASK = @idOper
-            `, { idOper }, 'NETPRO');
+                SELECT 1 as found FROM TASKS WHERE TASK = @taskId
+            `, { taskId }, 'NETPRO');
 
             if (taskExists.recordset.length > 0) {
                 await queryMSSQL(`
@@ -926,22 +929,22 @@ export async function syncOrderFromDibaAction(params: {
                         MACCHINA      = @centro,
                         FNOTE         = @note,
                         QTA_RICHIESTA = @orderFatherQuant
-                    WHERE TASK = @idOper
-                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
+                    WHERE TASK = @taskId
+                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, taskId }, 'NETPRO');
             } else {
                 await queryMSSQL(`
                     INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
-                    VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
-                `, { idOper, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
+                    VALUES (@taskId, @centro, 'REL', @descr, @orderFatherQuant, @note)
+                `, { taskId, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
             }
 
-            // NetPro JOBSET — ensure link exists between OPERAZIONE and TASK
+            // NetPro JOBSET — link OPERAZIONE (idOper) → TASK (taskId)
             await queryMSSQL(`
-                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @idOper)
+                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @taskId)
                 BEGIN
-                    INSERT INTO JOBSET (ID_OPER, TASK) VALUES (@idOper, @idOper)
+                    INSERT INTO JOBSET (ID_OPER, TASK) VALUES (@idOper, @taskId)
                 END
-            `, { idOper }, 'NETPRO');
+            `, { idOper, taskId }, 'NETPRO');
         }
 
 
