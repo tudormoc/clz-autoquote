@@ -792,7 +792,7 @@ export async function syncOrderFromDibaAction(params: {
                 ) VALUES (
                     'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
                     @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                    ' ', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                    'C', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, @nextFase,
                     'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
                     @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                 )
@@ -800,7 +800,8 @@ export async function syncOrderFromDibaAction(params: {
                 anno, serie, numord, rigaPadre, fase: op.fase,
                 articleFather, codlavo: op.codlavo, tesec: op.tesec,
                 datcons, orderFatherQuant, terzista: op.terzista,
-                note: op.note, netOrdine, riga: op.riga
+                note: op.note, netOrdine, riga: op.riga,
+                nextFase: dibaOps[dibaOps.indexOf(op) + 1]?.fase ?? 0
             }, 'BUSINESS');
 
             // Business assris insert
@@ -861,7 +862,7 @@ export async function syncOrderFromDibaAction(params: {
                     ) VALUES (
                         'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
                         @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                        ' ', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                        'C', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, @nextFase,
                         'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
                         @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                     )
@@ -869,7 +870,8 @@ export async function syncOrderFromDibaAction(params: {
                     anno, serie, numord, rigaPadre, fase: op.fase,
                     articleFather, codlavo: op.codlavo, tesec: op.tesec,
                     datcons, orderFatherQuant, terzista: op.terzista,
-                    note: op.note, netOrdine, riga: op.riga
+                    note: op.note, netOrdine, riga: op.riga,
+                    nextFase: dibaOps[dibaOps.indexOf(op) + 1]?.fase ?? 0
                 }, 'BUSINESS');
             }
 
