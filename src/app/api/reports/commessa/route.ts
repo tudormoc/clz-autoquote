@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { APP_CONFIG } from '@/config/constants';
+import { netproAuthenticatedGet } from '@/lib/netproSession';
 
 /**
  * Fetch a single commessa PDF from NetPro Crystal Reports service
@@ -51,19 +52,17 @@ async function fetchNetProPDF(netproId: string): Promise<ArrayBuffer> {
 
     const targetUrl = `${APP_CONFIG.REPORTS.NETPRO_PDF_ENDPOINT}?fparams=${encodeURIComponent(fparams)}`;
 
-    const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/pdf, text/html, */*'
-        },
-        cache: 'no-store'
-    });
+    // Authenticated with the stored NetPro service account (the report service requires a login)
+    const buffer = await netproAuthenticatedGet(targetUrl);
 
-    if (!response.ok) {
-        throw new Error(`NetPro report service responded with status ${response.status}`);
+    // NetPro answers with an HTML redirect to its login page when the report service needs a session
+    const head = new TextDecoder().decode(buffer.slice(0, 600));
+    if (!head.startsWith('%PDF')) {
+        if (/Account\/Login/i.test(head)) {
+            throw new Error('Il servizio report di NetPro richiede il login (risposta: redirect a QualitasWebClient/Account/Login). Nessun PDF ricevuto.');
+        }
+        throw new Error(`Il servizio report di NetPro non ha restituito un PDF per ${netproId}.`);
     }
-
-    const buffer = await response.arrayBuffer();
 
     if (buffer.byteLength < 500) {
         const text = new TextDecoder().decode(buffer);

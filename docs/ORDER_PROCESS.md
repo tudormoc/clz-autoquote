@@ -49,4 +49,14 @@ Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo
 The official update differs by deleting/recreating ops, tasks and materials (new material rigas, DATA_* refreshed) and writing FX* rows; the resulting data is equivalent.
 Timestamps use DB `GETDATE()` (a JS Date would be 2h off).
 
+**Facts verified on real orders (2026-10-06):**
+- **Editions:** one Business OdP can hold several editions = several H rows (riga 5/10/15, e.g. #673 → LCQV9604/9604A/9604B). Each edition has its own `mo_commeca` (e.g. 260960405/10/15), own NetPro order (`mo_netpid`), own phases (`attivit.at_riga` = H riga) and own materials (`movord` Y `mo_rigaor` = H riga). Always scope by edition.
+- **Material quantity** = `ceil(orderQty / md_perpz) × md_quant` (e.g. 1358 pz, perpz 10000, quant 1200 → 1200). NetPro `QTA_IMPIEGO` = quantity / orderQty.
+- **Material links:** Y row ↔ DiBa row via `mo_disbasriga = md_riga` (a DiBa can list the same code twice); NetPro row ↔ Y row via `MATERIALI_ORDINI.SEQUENZA = mo_riga`.
+- **NetPro note** (`OPERAZIONI.DESCRIZIONE01`) = first 100 chars of the DiBa note.
+- A commessa can have older/duplicate NetPro MAKE orders; use `mo_netpid`, not "latest order of the commessa".
+
+**Comparison tab** (`src/lib/orderCompare.ts`, shared by server count and UI): DiBa → Business order → NetPro order, per edition, field-level (lavorazione, centro, note; material qty).
+**Sync safety guard:** the button refuses commesse with more than one edition or more than one NetPro MAKE order (not edition-aware yet).
+
 **Tested live (fase 85/90, materials):** add/edit/delete phase, add/update/delete material — each diffed before/after; only the expected rows changed.

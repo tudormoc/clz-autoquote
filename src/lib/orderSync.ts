@@ -34,7 +34,7 @@ export function buildNetProOverrides(op: SyncDibaOp, netOrdine: string, qty: num
         OPERAZIONI: {
             ORDINE: netOrdine, OPERAZIONE: String(op.fase).padStart(2, '0'), ID_OPER: idOper, SEQUENZA: op.fase,
             DESCRIZIONE: op.descr_lavor, CENTRO_ASSEGNATO: centro, CENTRO_REALE: centro,
-            DESCRIZIONE01: op.note || null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: 'REL',
+            DESCRIZIONE01: op.note ? op.note.slice(0, 100) : null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: 'REL',
             DATA_INS: now, DATA_UPD: now,
         },
         TASKS: {

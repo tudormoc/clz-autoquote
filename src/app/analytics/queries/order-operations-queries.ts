@@ -16,12 +16,10 @@
 
 import { queryMSSQL } from '@/lib/mssql';
 import { buildNetProOverrides, buildBusinessOverrides, cloneRowInsert, NOW } from '@/lib/orderSync';
+import { compareOperations, compareMaterials, countDiscrepancies, dibaMaterialQty, isPlaceholderMaterial } from '@/lib/orderCompare';
 import { 
-    ProductionOrderDocument, 
-    CaricoDocument, 
-    ReconciledMaterialRow, 
-    MaterialReconciliationData,
     DibaOperationRow,
+    BusinessOrderOperationRow,
     DibaMaterialRow,
     OrderMaterialSummaryRow,
     OrderProductionOperationRow,
@@ -81,7 +79,8 @@ export interface Material {
 async function fetchOrderDetailsByKey(rootCommessaKey: string) {
     const busDb = process.env.MSSQL_DATABASE_BUSINESS || 'COOPZANARDI';
 
-    const editionsResult = await queryMSSQL(`
+    // Independent queries run in parallel
+    const editionsQuery = queryMSSQL(`
         SELECT 
             SUBSTRING(ORD.COMMESSA, 4, 4) as commessa_display,
             ORD.COMMESSA as commessa_full,
@@ -99,7 +98,14 @@ async function fetchOrderDetailsByKey(rootCommessaKey: string) {
         ORDER BY ORD.COMMESSA ASC
     `, { rootCommessaKey }, 'NETPRO');
 
-    const result = await queryMSSQL(`
+    // DiBa notes are first copied into a table variable: joining View_Note_Diba directly made
+    // SQL Server pick a very slow plan (0.5-2.5s); this returns identical rows in ~0.15s.
+    const operationsQuery = queryMSSQL(`
+        DECLARE @notes TABLE (netpid NVARCHAR(100), fase INT, dd_note NVARCHAR(MAX));
+        INSERT INTO @notes (netpid, fase, dd_note)
+        SELECT mo_netpid, at_fase, dd_note FROM View_Note_Diba WITH (NOLOCK)
+        WHERE mo_netpid IN (SELECT ORDINE FROM ORDINI WITH (NOLOCK) WHERE TIPO = 'MAKE' AND LEFT(COMMESSA, 7) = @rootCommessaKey);
+
         SELECT 
             TSK.MACCHINA as machine_code,
             MAC.DESCRIZIONE as machine_name,
@@ -121,7 +127,7 @@ async function fetchOrderDetailsByKey(rootCommessaKey: string) {
         INNER JOIN MACCHINE AS MAC WITH (NOLOCK) ON TSK.MACCHINA = MAC.MACCHINA
         LEFT JOIN CENTRI AS CEN WITH (NOLOCK) ON TSK.MACCHINA = CEN.CENTRO
         LEFT JOIN AREE AS ARE WITH (NOLOCK) ON CEN.AREA = ARE.AREA
-        LEFT JOIN View_Note_Diba AS VND WITH (NOLOCK) ON OPER.ORDINE = VND.mo_netpid AND OPER.SEQUENZA = VND.at_fase
+        LEFT JOIN @notes AS VND ON OPER.ORDINE = VND.netpid AND OPER.SEQUENZA = VND.fase
         WHERE ORD.TIPO = 'MAKE'
           AND LEFT(ORD.COMMESSA, 7) = @rootCommessaKey
           AND (
@@ -135,7 +141,7 @@ async function fetchOrderDetailsByKey(rootCommessaKey: string) {
         GROUP BY TSK.MACCHINA, MAC.DESCRIZIONE, OPER.DESCRIZIONE, ARE.DESCRIZIONE
     `, { rootCommessaKey }, 'NETPRO');
 
-    const materialsResult = await queryMSSQL(`
+    const materialsQuery = queryMSSQL(`
         WITH ActiveOrders AS (
             SELECT MAX(ORDINE) as ordine 
             FROM ORDINI WITH (NOLOCK) 
@@ -160,7 +166,8 @@ async function fetchOrderDetailsByKey(rootCommessaKey: string) {
         ORDER BY MAX(ANAG.CLASSE), MO.PART_NUMBER
     `, { rootCommessaKey }, 'NETPRO');
 
-    const reconciliation = await fetchMaterialReconciliation(rootCommessaKey);
+    const [editionsResult, result, materialsResult] = await Promise.all([editionsQuery, operationsQuery, materialsQuery]);
+
     const operationsManagement = await fetchOrderOperationsManagement(
         rootCommessaKey,
         editionsResult.recordset.length > 0 ? editionsResult.recordset[0].part_number : undefined
@@ -170,233 +177,11 @@ async function fetchOrderDetailsByKey(rootCommessaKey: string) {
         editions: editionsResult.recordset,
         data: result.recordset,
         materials: materialsResult.recordset as Material[],
-        reconciliation,
         operationsManagement
     };
 
 }
 
-/**
- * Fetch reconciliation data between Order production needs (movord Y)
- * and materials discharged in the Carico da Produzione (movmag U)
- */
-async function fetchMaterialReconciliation(rootCommessaKey: string): Promise<MaterialReconciliationData> {
-    try {
-        // 0. Production order details (Tipo H in movord + testord)
-        const prodOrderResult = await queryMSSQL(`
-            SELECT 
-                mo.mo_anno as anno,
-                RTRIM(mo.mo_serie) as serie,
-                mo.mo_numord as numord,
-                mo.mo_riga as riga,
-                CONVERT(VARCHAR(10), td.td_datord, 120) as datord,
-                CONVERT(VARCHAR(10), mo.mo_datcons, 120) as datcons,
-                RTRIM(mo.mo_codart) as codart,
-                RTRIM(mo.mo_descr) as descr,
-                mo.mo_quant as quant,
-                mo.mo_quaeva as quaeva,
-                RTRIM(mo.mo_flevas) as flevas,
-                mo.mo_commeca as commeca
-            FROM movord mo WITH (NOLOCK)
-            LEFT JOIN testord td WITH (NOLOCK)
-                ON td.codditt = mo.codditt
-               AND td.td_tipork = mo.mo_tipork
-               AND td.td_anno = mo.mo_anno
-               AND td.td_serie = mo.mo_serie
-               AND td.td_numord = mo.mo_numord
-            WHERE mo.mo_tipork = 'H'
-              AND LEFT(CAST(mo.mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
-            ORDER BY mo.mo_anno DESC, mo.mo_numord DESC, mo.mo_riga ASC
-        `, { rootCommessaKey }, 'BUSINESS');
-
-        const productionOrders: ProductionOrderDocument[] = prodOrderResult.recordset;
-
-        // 1. Carico da produzione documents (Tipo T)
-        const carichiResult = await queryMSSQL(`
-            SELECT 
-                mm.mm_anno as anno,
-                RTRIM(mm.mm_serie) as serie,
-                mm.mm_numdoc as numdoc,
-                mm.mm_riga as riga,
-                CONVERT(VARCHAR(10), tm.tm_datdoc, 120) as datdoc,
-                RTRIM(mm.mm_codart) as codart,
-                RTRIM(mm.mm_descr) as descr,
-                mm.mm_quant as quant,
-                mm.mm_valore as valore,
-                mm.mm_commeca as commeca
-            FROM movmag mm WITH (NOLOCK)
-            INNER JOIN testmag tm WITH (NOLOCK)
-                ON tm.codditt = mm.codditt 
-               AND tm.tm_tipork = mm.mm_tipork 
-               AND tm.tm_anno = mm.mm_anno 
-               AND tm.tm_serie = mm.mm_serie 
-               AND tm.tm_numdoc = mm.mm_numdoc
-            WHERE mm.mm_tipork = 'T'
-              AND LEFT(CAST(mm.mm_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
-            ORDER BY mm.mm_anno DESC, mm.mm_numdoc DESC, mm.mm_riga ASC
-        `, { rootCommessaKey }, 'BUSINESS');
-
-        const carichi: CaricoDocument[] = carichiResult.recordset;
-
-        // 2. Order materials from production order (Tipo Y in movord)
-        const orderMatResult = await queryMSSQL(`
-            SELECT 
-                mo.mo_anno as anno,
-                RTRIM(mo.mo_serie) as serie,
-                mo.mo_numord as numord,
-                mo.mo_riga as riga,
-                RTRIM(mo.mo_codart) as codart,
-                RTRIM(mo.mo_descr) as descr,
-                RTRIM(mo.mo_unmis) as unmis,
-                mo.mo_quant as quant_ordinata,
-                mo.mo_quaeva as quant_evasa,
-                RTRIM(mo.mo_flevas) as flevas,
-                mo.mo_commeca as commeca
-            FROM movord mo WITH (NOLOCK)
-            WHERE mo.mo_tipork = 'Y'
-              AND LEFT(CAST(mo.mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
-            ORDER BY mo.mo_riga ASC
-        `, { rootCommessaKey }, 'BUSINESS');
-
-        // 3. Carico materials discharged (Tipo U in movmag)
-        const caricoMatResult = await queryMSSQL(`
-            SELECT 
-                mm.mm_anno as anno,
-                RTRIM(mm.mm_serie) as serie,
-                mm.mm_numdoc as numdoc,
-                mm.mm_riga as riga,
-                RTRIM(mm.mm_codart) as codart,
-                RTRIM(mm.mm_descr) as descr,
-                RTRIM(mm.mm_unmis) as unmis,
-                mm.mm_quant as quant_scaricata,
-                mm.mm_prezzo as prezzo,
-                mm.mm_valore as valore,
-                mm.mm_commeca as commeca
-            FROM movmag mm WITH (NOLOCK)
-            WHERE mm.mm_tipork = 'U'
-              AND LEFT(CAST(mm.mm_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
-            ORDER BY mm.mm_numdoc DESC, mm.mm_riga ASC
-        `, { rootCommessaKey }, 'BUSINESS');
-
-        // Map and reconcile materials by codart
-        const map = new Map<string, ReconciledMaterialRow>();
-
-        for (const row of orderMatResult.recordset) {
-            const key = row.codart;
-            if (!map.has(key)) {
-                map.set(key, {
-                    part_number: key,
-                    description: row.descr,
-                    unit_of_measure: row.unmis || '',
-                    order_quantity: 0,
-                    carico_quantity: 0,
-                    diff_quantity: 0,
-                    carico_valore: 0,
-                    order_flevas: row.flevas,
-                    status: 'MATCH',
-                    order_anno: row.anno,
-                    order_serie: row.serie,
-                    order_numord: row.numord,
-                    order_riga: row.riga
-                });
-            }
-            const item = map.get(key)!;
-            item.order_quantity += Number(row.quant_ordinata) || 0;
-            if (row.flevas) item.order_flevas = row.flevas;
-            item.order_anno = row.anno;
-            item.order_serie = row.serie;
-            item.order_numord = row.numord;
-            item.order_riga = row.riga;
-        }
-
-        for (const row of caricoMatResult.recordset) {
-            const key = row.codart;
-            if (!map.has(key)) {
-                map.set(key, {
-                    part_number: key,
-                    description: row.descr,
-                    unit_of_measure: row.unmis || '',
-                    order_quantity: 0,
-                    carico_quantity: 0,
-                    diff_quantity: 0,
-                    carico_valore: 0,
-                    status: 'MATCH',
-                    carico_anno: row.anno,
-                    carico_serie: row.serie,
-                    carico_numdoc: row.numdoc,
-                    carico_riga: row.riga,
-                    carico_prezzo: Number(row.prezzo) || 0
-                });
-            }
-            const item = map.get(key)!;
-            item.carico_quantity += Number(row.quant_scaricata) || 0;
-            item.carico_valore += Number(row.valore) || 0;
-            item.carico_anno = row.anno;
-            item.carico_serie = row.serie;
-            item.carico_numdoc = row.numdoc;
-            item.carico_riga = row.riga;
-            item.carico_prezzo = Number(row.prezzo) || 0;
-            if (!item.unit_of_measure && row.unmis) item.unit_of_measure = row.unmis;
-        }
-
-        const reconciledList: ReconciledMaterialRow[] = Array.from(map.values()).map(item => {
-            const diff = item.carico_quantity - item.order_quantity;
-            let status: ReconciledMaterialRow['status'] = 'MATCH';
-            if (item.order_quantity > 0 && item.carico_quantity === 0) {
-                status = 'ORDER_ONLY';
-            } else if (item.order_quantity === 0 && item.carico_quantity > 0) {
-                status = 'CARICO_ONLY';
-            } else if (Math.abs(diff) > 0.001) {
-                status = 'DIFF';
-            }
-            return {
-                ...item,
-                diff_quantity: diff,
-                status
-            };
-        });
-
-        // Sort: discrepancies first, then part number
-        reconciledList.sort((a, b) => {
-            if (a.status !== 'MATCH' && b.status === 'MATCH') return -1;
-            if (a.status === 'MATCH' && b.status !== 'MATCH') return 1;
-            return a.part_number.localeCompare(b.part_number);
-        });
-
-        return {
-            productionOrders,
-            carichi,
-            materials: reconciledList
-        };
-    } catch (err) {
-        console.error('Error in fetchMaterialReconciliation:', err);
-        return {
-            productionOrders: [],
-            carichi: [],
-            materials: []
-        };
-    }
-}
-
-/**
- * Fast refresh action for reconciliation data
- */
-export async function refreshMaterialReconciliationAction(rootCommessaKey: string) {
-    try {
-        const reconciliation = await fetchMaterialReconciliation(rootCommessaKey);
-        return { success: true, reconciliation };
-    } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            reconciliation: {
-                productionOrders: [],
-                carichi: [],
-                materials: []
-            }
-        };
-    }
-}
 
 /**
  * Fetch operations management data:
@@ -405,7 +190,9 @@ export async function refreshMaterialReconciliationAction(rootCommessaKey: strin
  */
 async function fetchOrderOperationsManagement(
     rootCommessaKey: string,
-    partNumberHint?: string
+    partNumberHint?: string,
+    /** Full commessa of one edition (e.g. 260960410): scopes everything to that edition */
+    commessaFull?: string
 ): Promise<OrderOperationsManagementData> {
     try {
         let partNumber = partNumberHint;
@@ -417,10 +204,12 @@ async function fetchOrderOperationsManagement(
             serie: string;
             commeca: number;
             codart: string;
+            netpid?: string;
             datcons?: string;
         } | null = null;
 
-        // Fetch parent production order row (Tipo 'H') from movord
+        // Fetch parent production order row (Tipo 'H') = one edition. A Business order can hold
+        // several editions (H rows riga 5/10/15...), each with its own NetPro order, phases and materials.
         const movRes = await queryMSSQL(`
             SELECT TOP 1 
                 mo_anno as anno, 
@@ -429,19 +218,23 @@ async function fetchOrderOperationsManagement(
                 mo_quant as quant, 
                 mo_serie as serie, 
                 mo_commeca as commeca,
-                mo_codart as codart,
+                RTRIM(mo_codart) as codart,
+                RTRIM(mo_netpid) as netpid,
                 CONVERT(VARCHAR(10), mo_datcons, 120) as datcons
             FROM movord WITH (NOLOCK) 
-            WHERE mo_tipork = 'H' AND LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
-            ORDER BY mo_anno DESC, mo_numord DESC
-        `, { rootCommessaKey }, 'BUSINESS');
+            WHERE codditt = 'COOPZANARDI' AND mo_tipork = 'H'
+              AND ${commessaFull ? 'mo_commeca = @commessaFull' : 'LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey'}
+            ORDER BY mo_anno DESC, mo_numord DESC, mo_riga ASC
+        `, commessaFull ? { commessaFull } : { rootCommessaKey }, 'BUSINESS');
 
         if (movRes.recordset.length > 0) {
             orderBusInfo = movRes.recordset[0];
-            if (!partNumber) {
+            // The edition's own article wins over the hint (editions can have different articles)
+            if (!partNumber || commessaFull) {
                 partNumber = movRes.recordset[0].codart;
             }
         }
+        const netpid = orderBusInfo?.netpid || '';
 
         // If partNumber not provided, find it from NETPRO ORDINI
         if (!partNumber) {
@@ -495,7 +288,7 @@ async function fetchOrderOperationsManagement(
                 ISNULL(TSK.MACCHINA, '') as machine_code,
                 ISNULL(MAC.DESCRIZIONE, '') as machine_name,
                 ISNULL(ARE.DESCRIZIONE, 'Unknown') as area_name,
-                ISNULL(RTRIM(VND.dd_note), '') as note
+                ISNULL(RTRIM(OPER.DESCRIZIONE01), '') as note
             FROM OPERAZIONI AS OPER WITH (NOLOCK)
             INNER JOIN ORDINI AS ORD WITH (NOLOCK) ON ORD.ORDINE = OPER.ORDINE
             LEFT JOIN JOBSET AS JBS WITH (NOLOCK) ON OPER.ID_OPER = JBS.ID_OPER
@@ -503,14 +296,58 @@ async function fetchOrderOperationsManagement(
             LEFT JOIN MACCHINE AS MAC WITH (NOLOCK) ON TSK.MACCHINA = MAC.MACCHINA
             LEFT JOIN CENTRI AS CEN WITH (NOLOCK) ON TSK.MACCHINA = CEN.CENTRO
             LEFT JOIN AREE AS ARE WITH (NOLOCK) ON CEN.AREA = ARE.AREA
-            LEFT JOIN View_Note_Diba AS VND WITH (NOLOCK) ON OPER.ORDINE = VND.mo_netpid AND OPER.SEQUENZA = VND.at_fase
             WHERE ORD.TIPO = 'MAKE'
-              AND LEFT(ORD.COMMESSA, 7) = @rootCommessaKey
+              AND ${netpid ? 'ORD.ORDINE = @netpid' : commessaFull ? 'ORD.COMMESSA = @commessaFull' : 'LEFT(ORD.COMMESSA, 7) = @rootCommessaKey'}
             ORDER BY OPER.ORDINE ASC, OPER.SEQUENZA ASC
-        `, { rootCommessaKey }, 'NETPRO');
+        `, netpid ? { netpid } : commessaFull ? { commessaFull } : { rootCommessaKey }, 'NETPRO');
 
         const order_operations: OrderProductionOperationRow[] = orderRes.recordset;
         const ordine_netpro = order_operations.length > 0 ? order_operations[0].ordine : '';
+
+        // 2b. Fetch Business production order phases (attivit + assris)
+        let business_operations: BusinessOrderOperationRow[] = [];
+        if (orderBusInfo) {
+            const busOpsRes = await queryMSSQL(`
+                SELECT
+                    at.at_fase as fase,
+                    at.at_codlavo as codlavo,
+                    ISNULL(tl.tb_deslavo, '') as descr_lavor,
+                    ISNULL(asr.as_codcent, 0) as codcent,
+                    ISNULL(tc.tb_descent, '') as descr_centro,
+                    ISNULL(RTRIM(at.at_note), '') as note
+                FROM attivit at WITH (NOLOCK)
+                LEFT JOIN assris asr WITH (NOLOCK) ON asr.codditt = at.codditt AND asr.as_tipork = at.at_tipork
+                    AND asr.as_anno = at.at_anno AND asr.as_numord = at.at_numord
+                    AND asr.as_riga = at.at_riga AND asr.as_fase = at.at_fase
+                LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = at.codditt AND tl.tb_codlavo = at.at_codlavo
+                LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = at.codditt AND tc.tb_codcent = asr.as_codcent
+                WHERE at.codditt = 'COOPZANARDI'
+                  AND at.at_tipork = 'H'
+                  AND at.at_anno = @anno
+                  AND at.at_numord = @numord
+                  AND at.at_riga = @riga
+                ORDER BY at.at_fase ASC
+            `, { anno: orderBusInfo.anno, numord: orderBusInfo.numord, riga: orderBusInfo.riga }, 'BUSINESS');
+            business_operations = busOpsRes.recordset;
+        }
+
+        // 2c. Fetch NetPro order materials (MATERIALI_ORDINI)
+        let netpro_materials: OrderMaterialSummaryRow[] = [];
+        if (ordine_netpro) {
+            const netMatRes = await queryMSSQL(`
+                SELECT
+                    MO.SEQUENZA as riga,
+                    RTRIM(MO.PART_NUMBER) as part_number,
+                    ISNULL(RTRIM(ANAG.DESCRIZIONE), RTRIM(MO.PART_NUMBER)) as description,
+                    ISNULL(MO.QUANTITA, 0) as quant,
+                    '' as unmis
+                FROM MATERIALI_ORDINI AS MO WITH (NOLOCK)
+                LEFT JOIN ANAG_MATERIALI AS ANAG WITH (NOLOCK) ON ANAG.PART_NUMBER = MO.PART_NUMBER
+                WHERE MO.ORDINE = @ordine_netpro
+                ORDER BY MO.SEQUENZA ASC
+            `, { ordine_netpro }, 'NETPRO');
+            netpro_materials = netMatRes.recordset;
+        }
 
         // 3. Fetch DiBa materials from movdis (BUSINESS)
         let diba_materials: DibaMaterialRow[] = [];
@@ -546,57 +383,33 @@ async function fetchOrderOperationsManagement(
                   AND mo_tipork = 'Y'
                   AND mo_anno = @anno
                   AND mo_numord = @numord
+                  AND mo_rigaor = @riga
                 ORDER BY mo_riga ASC
-            `, { anno: orderBusInfo.anno, numord: orderBusInfo.numord }, 'BUSINESS');
+            `, { anno: orderBusInfo.anno, numord: orderBusInfo.numord, riga: orderBusInfo.riga }, 'BUSINESS');
             order_materials = busMatRes.recordset;
         }
 
-        // 5. Calculate discrepancies between DiBa (truth) and active Order
-        let discrepancy_count = 0;
-
-        const dibaFasi = new Set(diba_operations.map(o => o.fase));
-        const orderFasi = new Set(order_operations.map(o => o.sequenza));
-
-        Array.from(dibaFasi).forEach(f => {
-            if (!orderFasi.has(f)) discrepancy_count++;
-        });
-        Array.from(orderFasi).forEach(f => {
-            if (!dibaFasi.has(f)) discrepancy_count++;
-        });
-
+        // 5. Discrepancies: DiBa (truth) vs Business order vs NetPro order (shared logic with the UI)
         const fatherQuant = orderBusInfo?.quant || 1000;
-        const orderMatMap = new Map<string, number>();
-        for (const m of order_materials) {
-            orderMatMap.set(m.part_number, m.quant);
-        }
-
-        const dibaMatMap = new Map<string, number>();
-        for (const dm of diba_materials) {
-            const expected = (fatherQuant * dm.quant) / (dm.perpz || 1000);
-            dibaMatMap.set(dm.codfigli, expected);
-            const actual = orderMatMap.get(dm.codfigli);
-            if (actual === undefined || Math.abs(actual - expected) > 0.001) {
-                discrepancy_count++;
-            }
-        }
-
-        Array.from(orderMatMap.keys()).forEach(partNumber => {
-            if (!dibaMatMap.has(partNumber)) {
-                discrepancy_count++;
-            }
-        });
+        const discrepancy_count = countDiscrepancies(
+            compareOperations(diba_operations, business_operations, order_operations),
+            compareMaterials(diba_materials, order_materials, netpro_materials, fatherQuant),
+        );
 
         return {
             article_father: cleanPartNumber,
             ordine_netpro,
+            commessa_full: orderBusInfo ? String(orderBusInfo.commeca) : undefined,
             order_bus_numord: orderBusInfo?.numord,
             order_bus_anno: orderBusInfo?.anno,
             order_bus_riga: orderBusInfo?.riga,
             order_father_quant: orderBusInfo?.quant,
             diba_operations,
             order_operations,
+            business_operations,
             diba_materials,
             order_materials,
+            netpro_materials,
             has_discrepancies: discrepancy_count > 0,
             discrepancy_count
         };
@@ -618,9 +431,9 @@ async function fetchOrderOperationsManagement(
 /**
  * Fast refresh action for operations management data
  */
-export async function refreshOrderOperationsManagementAction(rootCommessaKey: string, partNumberHint?: string) {
+export async function refreshOrderOperationsManagementAction(rootCommessaKey: string, partNumberHint?: string, commessaFull?: string) {
     try {
-        const operationsManagement = await fetchOrderOperationsManagement(rootCommessaKey, partNumberHint);
+        const operationsManagement = await fetchOrderOperationsManagement(rootCommessaKey, partNumberHint, commessaFull);
         return { success: true, operationsManagement };
     } catch (err: any) {
         return {
@@ -667,6 +480,25 @@ export async function syncOrderFromDibaAction(params: {
 
         if (busOrderRes.recordset.length === 0) {
             return { success: false, error: 'Nessun ordine di produzione (Tipo H) trovato per questa commessa.' };
+        }
+
+        // SAFETY GUARD: this sync is not edition-aware yet. With more than one edition (H rows) or more than
+        // one NetPro MAKE order on the commessa it could pick the wrong order and its attivit/assris
+        // statements are not filtered by edition, so refuse instead of risking writes on other editions.
+        const editionCheck = await queryMSSQL(`
+            SELECT COUNT(*) AS n FROM movord WITH (NOLOCK)
+            WHERE codditt = 'COOPZANARDI' AND mo_tipork = 'H'
+              AND LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
+        `, { rootCommessaKey }, 'BUSINESS');
+        const netOrderCheck = await queryMSSQL(`
+            SELECT COUNT(*) AS n FROM ORDINI WITH (NOLOCK)
+            WHERE TIPO = 'MAKE' AND LEFT(COMMESSA, 7) = @rootCommessaKey
+        `, { rootCommessaKey }, 'NETPRO');
+        if (editionCheck.recordset[0].n > 1 || netOrderCheck.recordset[0].n > 1) {
+            return {
+                success: false,
+                error: `Riallineamento non disponibile: la commessa ha più edizioni/ordini (Business H: ${editionCheck.recordset[0].n}, NetPro: ${netOrderCheck.recordset[0].n}). Supportati per ora solo ordini a edizione singola.`
+            };
         }
 
         const busOrder = busOrderRes.recordset[0];
@@ -804,7 +636,7 @@ export async function syncOrderFromDibaAction(params: {
                     T_LAVORO_MAC     = @tesec,
                     QTA_RICHIESTA    = @orderFatherQuant
                 WHERE ID_OPER = @idOper
-            `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note || null, orderFatherQuant, idOper }, 'NETPRO');
+            `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note ? op.note.slice(0, 100) : null, orderFatherQuant, idOper }, 'NETPRO');
 
             // NetPro TASKS — description, machine, notes, qty
             await queryMSSQL(`
@@ -861,66 +693,78 @@ export async function syncOrderFromDibaAction(params: {
             WHERE md.codditt = 'COOPZANARDI' AND md.md_coddb = @articleFather
             ORDER BY md.md_riga ASC
         `, { articleFather }, 'BUSINESS');
-        const dibaMat: DibaMaterialRow[] = dibaMatRes.recordset;
+        // MP_FITTIZIA placeholder is never synced (not added, updated or removed)
+        const dibaMat: DibaMaterialRow[] = dibaMatRes.recordset.filter((m: DibaMaterialRow) => !isPlaceholderMaterial(m.codfigli));
 
         // Fetch Current Business Materials (movord Tipo Y)
         const busMatRes = await queryMSSQL(`
             SELECT 
-                mo_riga, RTRIM(mo_codart) as codart, mo_quant, RTRIM(mo_descr) as descr, RTRIM(mo_unmis) as unmis
+                mo_riga, RTRIM(mo_codart) as codart, mo_quant, RTRIM(mo_descr) as descr, RTRIM(mo_unmis) as unmis,
+                mo_disbasriga as disbasriga
             FROM movord WITH (NOLOCK)
             WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y'
+              AND mo_rigaor = @rigaPadre
             ORDER BY mo_riga ASC
-        `, { numord, anno }, 'BUSINESS');
-        const busMat = busMatRes.recordset;
+        `, { numord, anno, rigaPadre }, 'BUSINESS');
+        const busMat = busMatRes.recordset.filter((m: any) => !isPlaceholderMaterial(m.codart));
 
-        const dibaMatCodes = new Set(dibaMat.map(m => m.codfigli));
-        const busMatMap = new Map<string, number>();
+        // Link like the official process: Business Y row ↔ DiBa row via mo_disbasriga = md_riga,
+        // NetPro row ↔ Business row via MATERIALI_ORDINI.SEQUENZA = mo_riga (a DiBa can list the same code twice)
+        const dibaByRiga = new Map<number, DibaMaterialRow>(dibaMat.map(m => [Number(m.riga), m]));
+        const busByDibaRiga = new Map<number, any>();
+        // Row numbers are taken over ALL order rows (incl. MP_FITTIZIA) so a new row never reuses one
         let maxRiga = 0;
+        for (const m of busMatRes.recordset) if (m.mo_riga > maxRiga) maxRiga = m.mo_riga;
         for (const m of busMat) {
-            busMatMap.set(m.codart, m.mo_riga);
             if (m.mo_riga > maxRiga) maxRiga = m.mo_riga;
+            busByDibaRiga.set(Number(m.disbasriga), m);
         }
 
-        // Remove materials not in DiBa
+        // Remove order rows whose DiBa row is gone or now holds a different code
         for (const m of busMat) {
-            if (!dibaMatCodes.has(m.codart)) {
-                await queryMSSQL(`
-                    DELETE FROM keyord 
-                    WHERE codditt = 'COOPZANARDI' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
-                `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
+            const dm = dibaByRiga.get(Number(m.disbasriga));
+            if (dm && dm.codfigli === m.codart && busByDibaRiga.get(Number(m.disbasriga)) === m) continue;
 
-                await queryMSSQL(`
-                    DELETE FROM movord 
-                    WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
-                `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
+            await queryMSSQL(`
+                DELETE FROM keyord
+                WHERE codditt = 'COOPZANARDI' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
+            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
 
-                await queryMSSQL(`
-                    DELETE FROM MATERIALI_ORDINI 
-                    WHERE ORDINE = @netOrdine AND PART_NUMBER = @codart
-                `, { netOrdine, codart: m.codart }, 'NETPRO');
-            }
+            await queryMSSQL(`
+                DELETE FROM movord
+                WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
+            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
+
+            await queryMSSQL(`
+                DELETE FROM MATERIALI_ORDINI
+                WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
+            `, { netOrdine, riga: m.mo_riga }, 'NETPRO');
+
+            if (busByDibaRiga.get(Number(m.disbasriga)) === m) busByDibaRiga.delete(Number(m.disbasriga));
         }
 
-        // Add or update materials in DiBa
+        // Add or update materials from DiBa
         for (const dm of dibaMat) {
-            const expectedQuant = (orderFatherQuant * dm.quant) / (dm.perpz || 1000);
-            const qtaImpiego = dm.quant / (dm.perpz || 1000);
+            const expectedQuant = dibaMaterialQty(orderFatherQuant, dm.quant, dm.perpz);
+            // NetPro QTA_IMPIEGO = quantity per produced piece (e.g. 1200 / 1358)
+            const qtaImpiego = orderFatherQuant ? expectedQuant / orderFatherQuant : 0;
+            const existing = busByDibaRiga.get(Number(dm.riga));
 
-            if (busMatMap.has(dm.codfigli)) {
-                const riga = busMatMap.get(dm.codfigli)!;
+            if (existing && existing.codart === dm.codfigli) {
+                const riga = existing.mo_riga;
                 // Update Business movord
                 await queryMSSQL(`
-                    UPDATE movord 
+                    UPDATE movord
                     SET mo_quant = @expectedQuant, mo_colli = @expectedQuant, mo_ultagg = GETDATE()
                     WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
                 `, { expectedQuant, numord, anno, riga }, 'BUSINESS');
 
                 // Update NetPro MATERIALI_ORDINI
                 await queryMSSQL(`
-                    UPDATE MATERIALI_ORDINI 
+                    UPDATE MATERIALI_ORDINI
                     SET QUANTITA = @expectedQuant, QTA_IMPIEGO = @qtaImpiego
-                    WHERE ORDINE = @netOrdine AND PART_NUMBER = @codfigli
-                `, { expectedQuant, qtaImpiego, netOrdine, codfigli: dm.codfigli }, 'NETPRO');
+                    WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
+                `, { expectedQuant, qtaImpiego, netOrdine, riga }, 'NETPRO');
             } else {
                 maxRiga += 5;
                 const newRiga = maxRiga;
@@ -980,7 +824,6 @@ export async function getOrderOperationsAction(
                 data: [],
                 editions: [],
                 materials: [] as Material[],
-                reconciliation: { productionOrders: [], carichi: [], materials: [] } as MaterialReconciliationData,
                 operationsManagement: emptyOpsManagement,
                 message: 'Enter a commessa number or order description to search'
             };
@@ -1024,7 +867,6 @@ export async function getOrderOperationsAction(
                 data: [],
                 editions: [],
                 materials: [] as Material[],
-                reconciliation: { productionOrders: [], carichi: [], materials: [] } as MaterialReconciliationData,
                 operationsManagement: emptyOpsManagement,
                 message: 'No orders found matching your search'
             };
@@ -1032,7 +874,7 @@ export async function getOrderOperationsAction(
 
         // If only 1 master order matches, load its details directly
         if (matches.length === 1) {
-            const { editions, data, materials, reconciliation, operationsManagement } = await fetchOrderDetailsByKey(matches[0].root_commessa_key);
+            const { editions, data, materials, operationsManagement } = await fetchOrderDetailsByKey(matches[0].root_commessa_key);
             return {
                 success: true,
                 status: 'single' as const,
@@ -1040,7 +882,6 @@ export async function getOrderOperationsAction(
                 data,
                 editions,
                 materials,
-                reconciliation,
                 operationsManagement,
                 message: null
             };
@@ -1054,7 +895,6 @@ export async function getOrderOperationsAction(
             data: [],
             editions: [],
             materials: [] as Material[],
-            reconciliation: { productionOrders: [], carichi: [], materials: [] } as MaterialReconciliationData,
             operationsManagement: emptyOpsManagement,
             message: null
         };
@@ -1067,7 +907,6 @@ export async function getOrderOperationsAction(
             data: [],
             editions: [],
             materials: [] as Material[],
-            reconciliation: { productionOrders: [], carichi: [], materials: [] } as MaterialReconciliationData,
             operationsManagement: emptyOpsManagement,
             message: null
         };
@@ -1076,13 +915,12 @@ export async function getOrderOperationsAction(
 
 export async function getSingleOrderDetailsAction(rootCommessaKey: string) {
     try {
-        const { editions, data, materials, reconciliation, operationsManagement } = await fetchOrderDetailsByKey(rootCommessaKey);
+        const { editions, data, materials, operationsManagement } = await fetchOrderDetailsByKey(rootCommessaKey);
         return {
             success: true,
             data,
             editions,
             materials,
-            reconciliation,
             operationsManagement
         };
     } catch (err: any) {
@@ -1092,7 +930,6 @@ export async function getSingleOrderDetailsAction(rootCommessaKey: string) {
             data: [],
             editions: [],
             materials: [] as Material[],
-            reconciliation: { productionOrders: [], carichi: [], materials: [] } as MaterialReconciliationData,
             operationsManagement: {
                 article_father: '',
                 ordine_netpro: '',
@@ -1103,88 +940,3 @@ export async function getSingleOrderDetailsAction(rootCommessaKey: string) {
     }
 }
 
-
-/**
- * Update the planned material quantity in movord (Order Production Needs)
- */
-export async function updateOrderMaterialQuantityAction(params: {
-    anno: number;
-    serie: string;
-    numord: number;
-    riga: number;
-    newQuantity: number;
-}) {
-    try {
-        const { anno, serie, numord, riga, newQuantity } = params;
-        if (newQuantity < 0 || isNaN(newQuantity)) {
-            return { success: false, error: 'Quantità non valida' };
-        }
-
-        await queryMSSQL(`
-            UPDATE movord
-            SET mo_quant = @newQuantity,
-                mo_colli = @newQuantity,
-                mo_ultagg = GETDATE()
-            WHERE codditt = 'COOPZANARDI'
-              AND mo_tipork = 'Y'
-              AND mo_anno = @anno
-              AND mo_serie = @serie
-              AND mo_numord = @numord
-              AND mo_riga = @riga
-        `, {
-            newQuantity,
-            anno,
-            serie: serie || ' ',
-            numord,
-            riga
-        }, 'BUSINESS');
-
-        return { success: true };
-    } catch (err: any) {
-        console.error('Error updating movord quantity:', err);
-        return { success: false, error: err.message };
-    }
-}
-
-/**
- * Update the discharged material quantity in movmag (Carico da Produzione)
- */
-export async function updateCaricoMaterialQuantityAction(params: {
-    anno: number;
-    serie: string;
-    numdoc: number;
-    riga: number;
-    newQuantity: number;
-}) {
-    try {
-        const { anno, serie, numdoc, riga, newQuantity } = params;
-        if (newQuantity < 0 || isNaN(newQuantity)) {
-            return { success: false, error: 'Quantità non valida' };
-        }
-
-        await queryMSSQL(`
-            UPDATE movmag
-            SET mm_quant = @newQuantity,
-                mm_colli = @newQuantity,
-                mm_valore = ROUND(mm_prezzo * @newQuantity, 2),
-                mm_ultagg = GETDATE()
-            WHERE codditt = 'COOPZANARDI'
-              AND mm_tipork = 'U'
-              AND mm_anno = @anno
-              AND mm_serie = @serie
-              AND mm_numdoc = @numdoc
-              AND mm_riga = @riga
-        `, {
-            newQuantity,
-            anno,
-            serie: serie || ' ',
-            numdoc,
-            riga
-        }, 'BUSINESS');
-
-        return { success: true };
-    } catch (err: any) {
-        console.error('Error updating movmag quantity:', err);
-        return { success: false, error: err.message };
-    }
-}

@@ -13,9 +13,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
-    Layers, 
     RefreshCw, 
-    ChevronDown, 
     Check, 
     AlertCircle, 
     FileText,
@@ -40,6 +38,7 @@ import {
     syncOrderFromDibaAction
 } from '@/app/analytics/queries/order-operations-queries';
 import { APP_COPY } from '@/locales';
+import { compareOperations, compareMaterials, type OpField } from '@/lib/orderCompare';
 
 interface EditionItem {
     commessa_display?: string;
@@ -53,9 +52,35 @@ interface OrderOperationsManagementSectionProps {
     operationsManagement: OrderOperationsManagementData;
     rootCommessaKey?: string;
     editions?: EditionItem[];
+    /** Reports DiBa alignment so the parent can show it on the tab label */
+    onStatusChange?: (hasDiscrepancies: boolean, count: number) => void;
 }
 
 type ActiveTab = 'diba' | 'order' | 'comparison' | 'materials';
+
+const hl = (bad?: boolean) => (bad ? 'text-amber-300 bg-amber-500/15 rounded px-1 -mx-1' : '');
+
+/** Compact phase cell: lavorazione · centro · note, with mismatching parts highlighted */
+const OpCell = ({ lav, code, centro, centroDescr, note, badLav, badCentro, badNote }: {
+    lav?: string; code?: number; centro?: string | number; centroDescr?: string; note?: string;
+    badLav?: boolean; badCentro?: boolean; badNote?: boolean;
+}) => (
+    <div className="leading-tight min-w-0">
+        <p className="font-semibold text-zinc-100 truncate" title={lav}>
+            <span className={hl(badLav)}>{lav || '-'}</span>
+            {code !== undefined && <span className="ml-1 text-[10px] text-zinc-500 font-mono">({code})</span>}
+        </p>
+        <p className="text-[11px] text-zinc-400 truncate" title={centroDescr}>
+            <span className={hl(badCentro)}>{centro || '-'}{centroDescr ? ` · ${centroDescr}` : ''}</span>
+        </p>
+        {(note || badNote) && (
+            <p className="text-[11px] text-zinc-500 truncate max-w-[300px] flex items-center gap-1" title={note}>
+                <FileText className="w-3 h-3 flex-shrink-0" />
+                <span className={hl(badNote)}>{note || '(nessuna nota)'}</span>
+            </p>
+        )}
+    </div>
+);
 
 /** Status style mapping for NetPro operations */
 const getNetproStatusBadge = (stato: string) => {
@@ -76,10 +101,10 @@ const getNetproStatusBadge = (stato: string) => {
 export function OrderOperationsManagementSection({
     operationsManagement,
     rootCommessaKey,
-    editions = []
+    editions = [],
+    onStatusChange
 }: OrderOperationsManagementSectionProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<ActiveTab>('diba');
+    const [activeTab, setActiveTab] = useState<ActiveTab>('comparison');
     const [data, setData] = useState<OrderOperationsManagementData>(operationsManagement);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -109,7 +134,26 @@ export function OrderOperationsManagementSection({
         setFeedback(null);
 
         try {
-            const res = await refreshOrderOperationsManagementAction(rootCommessaKey, data.article_father);
+            const res = await refreshOrderOperationsManagementAction(rootCommessaKey, data.article_father, data.commessa_full);
+            if (res.success && res.operationsManagement) {
+                setData(res.operationsManagement);
+            } else {
+                setFeedback({ type: 'error', message: res.error || t.errorSaving });
+            }
+        } catch (err: any) {
+            setFeedback({ type: 'error', message: err.message || t.errorSaving });
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    // Switch edition (multi-edition orders): reload the panel scoped to that edition
+    const handleSelectEdition = async (commessaFull: string) => {
+        if (!rootCommessaKey || commessaFull === data.commessa_full) return;
+        setIsRefreshing(true);
+        setFeedback(null);
+        try {
+            const res = await refreshOrderOperationsManagementAction(rootCommessaKey, undefined, commessaFull);
             if (res.success && res.operationsManagement) {
                 setData(res.operationsManagement);
             } else {
@@ -139,7 +183,7 @@ export function OrderOperationsManagementSection({
                 setFeedback({ type: 'success', message: res.message || t.syncSuccess });
                 setShowSyncConfirm(false);
                 // Refresh data immediately
-                const refRes = await refreshOrderOperationsManagementAction(rootCommessaKey, data.article_father);
+                const refRes = await refreshOrderOperationsManagementAction(rootCommessaKey, data.article_father, data.commessa_full);
                 if (refRes.success && refRes.operationsManagement) {
                     setData(refRes.operationsManagement);
                 }
@@ -159,161 +203,132 @@ export function OrderOperationsManagementSection({
     const orderMats = useMemo(() => data?.order_materials || [], [data?.order_materials]);
     const fatherQuant = useMemo(() => data?.order_father_quant || 1000, [data?.order_father_quant]);
 
-    // Aligned comparison rows by fase/sequenza
-    const comparisonRows = useMemo(() => {
-        const map = new Map<number, {
-            fase: number;
-            diba?: DibaOperationRow;
-            order?: OrderProductionOperationRow;
-        }>();
+    const busOps = useMemo(() => data?.business_operations || [], [data?.business_operations]);
+    const netMats = useMemo(() => data?.netpro_materials || [], [data?.netpro_materials]);
 
-        for (const op of dibaOps) {
-            if (!map.has(op.fase)) {
-                map.set(op.fase, { fase: op.fase });
-            }
-            map.get(op.fase)!.diba = op;
-        }
-
-        for (const op of orderOps) {
-            if (!map.has(op.sequenza)) {
-                map.set(op.sequenza, { fase: op.sequenza });
-            }
-            map.get(op.sequenza)!.order = op;
-        }
-
-        return Array.from(map.values()).sort((a, b) => a.fase - b.fase);
-    }, [dibaOps, orderOps]);
-
-    // Materials comparison
-    const materialsComparison = useMemo(() => {
-        const map = new Map<string, {
-            part_number: string;
-            description: string;
-            unmis: string;
-            expectedQuant: number;
-            actualQuant: number;
-            diff: number;
-            status: 'MATCH' | 'DIFF' | 'DIBA_ONLY' | 'ORDER_ONLY';
-        }>();
-
-        for (const dm of dibaMats) {
-            const exp = (fatherQuant * dm.quant) / (dm.perpz || 1000);
-            map.set(dm.codfigli, {
-                part_number: dm.codfigli,
-                description: dm.description,
-                unmis: dm.unmis,
-                expectedQuant: exp,
-                actualQuant: 0,
-                diff: -exp,
-                status: 'DIBA_ONLY'
-            });
-        }
-
-        for (const om of orderMats) {
-            if (map.has(om.part_number)) {
-                const item = map.get(om.part_number)!;
-                item.actualQuant = om.quant;
-                item.diff = om.quant - item.expectedQuant;
-                item.status = Math.abs(item.diff) < 0.001 ? 'MATCH' : 'DIFF';
-            } else {
-                map.set(om.part_number, {
-                    part_number: om.part_number,
-                    description: om.description,
-                    unmis: om.unmis,
-                    expectedQuant: 0,
-                    actualQuant: om.quant,
-                    diff: om.quant,
-                    status: 'ORDER_ONLY'
-                });
-            }
-        }
-
-        return Array.from(map.values()).sort((a, b) => {
-            if (a.status !== 'MATCH' && b.status === 'MATCH') return -1;
-            if (a.status === 'MATCH' && b.status !== 'MATCH') return 1;
-            return a.part_number.localeCompare(b.part_number);
-        });
-    }, [dibaMats, orderMats, fatherQuant]);
+    // 3-way comparison DiBa -> Business order -> NetPro order (same logic as the server-side count)
+    const comparisonRows = useMemo(() => compareOperations(dibaOps, busOps, orderOps), [dibaOps, busOps, orderOps]);
+    const materialsComparison = useMemo(
+        () => compareMaterials(dibaMats, orderMats, netMats, fatherQuant),
+        [dibaMats, orderMats, netMats, fatherQuant]
+    );
+    const isMultiEdition = editions.length > 1;
 
     const hasDiscrepancies = data?.has_discrepancies || false;
     const discrepancyCount = data?.discrepancy_count || 0;
 
-    return (
-        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl relative">
-            {/* Collapsible Header */}
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer group"
-            >
-                <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                        <Layers className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2.5">
-                            <h2 className="text-base font-bold text-white tracking-wide group-hover:text-primary transition-colors">
-                                {t.operationsManagementTab}
-                            </h2>
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/80">
-                                {dibaOps.length} DiBa / {orderOps.length} NetPro
-                            </span>
+    useEffect(() => {
+        onStatusChange?.(hasDiscrepancies, discrepancyCount);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasDiscrepancies, discrepancyCount]);
 
-                            {/* Discrepancy Status Badge in Header */}
-                            {hasDiscrepancies ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 animate-pulse">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                                    <span>{t.dibaDiscrepanciesDetected.replace('{count}', String(discrepancyCount))}</span>
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                    <Check className="w-3.5 h-3.5" />
-                                    <span>{t.dibaAligned}</span>
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-xs text-zinc-400 mt-0.5">
-                            {t.operationsManagementSubtitle}
-                        </p>
+    const subTabClass = (id: ActiveTab, active: string) =>
+        `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === id ? `${active} border shadow-sm` : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
+        }`;
+
+    return (
+        <div className="space-y-3">
+            {/* Toolbar: sub-tabs · document info · status · actions — one line */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex items-center gap-1 p-1 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                    <button type="button" onClick={() => setActiveTab('comparison')} className={subTabClass('comparison', 'bg-primary/20 text-primary border-primary/30')}>
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
+                        <span>{t.comparisonTab}</span>
+                        <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{comparisonRows.length}</span>
+                    </button>
+                    <button type="button" onClick={() => setActiveTab('materials')} className={subTabClass('materials', 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30')}>
+                        <Package className="w-3.5 h-3.5" />
+                        <span>{t.dibaMaterialsTab}</span>
+                        <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{materialsComparison.length}</span>
+                    </button>
+                    <button type="button" onClick={() => setActiveTab('diba')} className={subTabClass('diba', 'bg-purple-500/20 text-purple-300 border-purple-500/30')}>
+                        <Boxes className="w-3.5 h-3.5" />
+                        <span>{t.dibaTab}</span>
+                        <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{dibaOps.length}</span>
+                    </button>
+                    <button type="button" onClick={() => setActiveTab('order')} className={subTabClass('order', 'bg-blue-500/20 text-blue-300 border-blue-500/30')}>
+                        <Cpu className="w-3.5 h-3.5" />
+                        <span>{t.prodOrderOpsTab}</span>
+                        <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{orderOps.length}</span>
+                    </button>
+                </div>
+
+                {isMultiEdition && (
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] uppercase text-zinc-500 font-semibold mr-1">{t.editions}</span>
+                        {editions.map((ed, idx) => (
+                            <button
+                                key={ed.commessa_full}
+                                type="button"
+                                onClick={() => handleSelectEdition(ed.commessa_full)}
+                                disabled={isRefreshing}
+                                title={ed.order_description}
+                                className={`px-2 py-1 rounded-lg text-[11px] font-mono font-semibold border transition-colors ${
+                                    data.commessa_full === ed.commessa_full
+                                        ? 'bg-primary/20 text-primary border-primary/40'
+                                        : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                                }`}
+                            >
+                                {idx + 1} · {ed.commessa_full}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="flex items-center gap-4 text-xs">
+                    <div title={`${dibaOps.length} ${t.totalOperations} · ${dibaMats.length} materiali DiBa`}>
+                        <span className="text-[10px] uppercase text-zinc-500 font-semibold">{t.dibaArticleFather} </span>
+                        <span className="font-mono font-bold text-zinc-100">{data.article_father || '-'}</span>
+                    </div>
+                    <div title={`${orderOps.length} ${t.totalOperations} · ${orderMats.length} materiali ordine`}>
+                        <span className="text-[10px] uppercase text-zinc-500 font-semibold">NetPro </span>
+                        <span className="font-mono font-bold text-zinc-100">{data.ordine_netpro || (editions.length > 0 && editions[0].ordine) || '-'}</span>
+                        <span className="text-zinc-500"> · Business #{data.order_bus_numord || '-'}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* Sync Button */}
-                    {hasDiscrepancies && (
-                        <div
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowSyncConfirm(true);
-                            }}
-                            title={t.syncButton}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{t.syncButton}</span>
-                        </div>
+                <div className="ml-auto flex items-center gap-2">
+                    {hasDiscrepancies ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{t.dibaDiscrepanciesDetected.replace('{count}', String(discrepancyCount))}</span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{t.dibaAligned}</span>
+                        </span>
                     )}
 
-                    {/* Silent Refresh Button */}
-                    <div
+                    {hasDiscrepancies && (
+                        <button
+                            type="button"
+                            onClick={() => setShowSyncConfirm(true)}
+                            disabled={isSyncing || isMultiEdition}
+                            title={isMultiEdition ? 'Riallineamento non ancora disponibile per ordini con più edizioni' : t.syncButton}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs hover:bg-amber-400 transition-colors shadow disabled:opacity-50"
+                        >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{isSyncing ? t.syncing : t.syncButton}</span>
+                        </button>
+                    )}
+
+                    <button
+                        type="button"
                         onClick={handleRefresh}
+                        disabled={isRefreshing}
                         title={t.refreshData}
-                        className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 hover:text-white hover:bg-zinc-700/60 transition-all ${
-                            isRefreshing ? 'opacity-70 pointer-events-none' : ''
-                        }`}
+                        className="p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 hover:text-white hover:bg-zinc-700/60 transition-all disabled:opacity-70"
                     >
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-purple-400' : ''}`} />
-                    </div>
-
-                    <div className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 group-hover:text-white transition-all transform duration-300 ${isOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
-                        <ChevronDown className="w-4 h-4" />
-                    </div>
+                    </button>
                 </div>
-            </button>
+            </div>
 
-            {/* Feedback Banners */}
+            {/* Feedback Banner */}
             {feedback && (
-                <div className={`px-5 py-2.5 border-t text-xs flex items-center justify-between gap-2 ${
+                <div className={`px-3 py-2 rounded-lg border text-xs flex items-center justify-between gap-2 ${
                     feedback.type === 'error'
                         ? 'bg-destructive/10 border-destructive/20 text-destructive'
                         : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
@@ -326,9 +341,9 @@ export function OrderOperationsManagementSection({
                         )}
                         <span>{feedback.message}</span>
                     </div>
-                    <button 
-                        type="button" 
-                        onClick={() => setFeedback(null)} 
+                    <button
+                        type="button"
+                        onClick={() => setFeedback(null)}
                         className="p-1 hover:bg-zinc-800/40 rounded"
                     >
                         <X className="w-3.5 h-3.5" />
@@ -336,157 +351,8 @@ export function OrderOperationsManagementSection({
                 </div>
             )}
 
-            {isOpen && (
-                <div className="p-6 pt-4 border-t border-zinc-800/80 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    {/* Metadata Header Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                                    <Boxes className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                                        {t.dibaArticleFather}
-                                    </p>
-                                    <p className="text-sm font-bold font-mono text-zinc-100 mt-0.5">
-                                        {data.article_father || '-'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                                    {dibaOps.length} {t.totalOperations}
-                                </span>
-                                <p className="text-[10px] text-zinc-500 mt-1 font-mono">
-                                    {dibaMats.length} materiali DiBa
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                                    <Cpu className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                                        {t.prodOrderDocTitle} (NetPro / Business #{data.order_bus_numord || '-'})
-                                    </p>
-                                    <p className="text-sm font-bold font-mono text-zinc-100 mt-0.5">
-                                        {data.ordine_netpro || (editions.length > 0 && editions[0].ordine) || '-'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                                    {orderOps.length} {t.totalOperations}
-                                </span>
-                                <p className="text-[10px] text-zinc-500 mt-1 font-mono">
-                                    {orderMats.length} materiali ordine
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Discrepancy Action Banner */}
-                    {hasDiscrepancies && (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-amber-500/20 text-amber-300 flex-shrink-0">
-                                    <AlertTriangle className="w-5 h-5 text-amber-400" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-amber-200">
-                                        Rilevate {discrepancyCount} differenze rispetto alla Distinta Base
-                                    </h4>
-                                    <p className="text-xs text-amber-400/80 mt-0.5">
-                                        La DiBa contiene modifiche a lavorazioni o materiali non ancora allineate agli ordini attivi. Puoi sincronizzarle in-place senza duplicare l'ordine.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setShowSyncConfirm(true)}
-                                disabled={isSyncing}
-                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs hover:bg-amber-400 transition-colors shadow-lg flex-shrink-0 disabled:opacity-50"
-                            >
-                                <Sparkles className="w-4 h-4" />
-                                <span>{isSyncing ? t.syncing : t.syncButton}</span>
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Sub-Tabs Selector */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-                        <div className="flex items-center gap-2 p-1 bg-zinc-950/80 rounded-xl border border-zinc-800">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('diba')}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                    activeTab === 'diba'
-                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm'
-                                        : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                            >
-                                <Boxes className="w-3.5 h-3.5" />
-                                <span>{t.dibaTab}</span>
-                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-300">
-                                    {dibaOps.length}
-                                </span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('order')}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                    activeTab === 'order'
-                                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-sm'
-                                        : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                            >
-                                <Cpu className="w-3.5 h-3.5" />
-                                <span>{t.prodOrderOpsTab}</span>
-                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-300">
-                                    {orderOps.length}
-                                </span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('comparison')}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                    activeTab === 'comparison'
-                                        ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm'
-                                        : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                            >
-                                <ArrowLeftRight className="w-3.5 h-3.5" />
-                                <span>{t.comparisonTab}</span>
-                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-300">
-                                    {comparisonRows.length}
-                                </span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('materials')}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                    activeTab === 'materials'
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
-                                        : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                            >
-                                <Package className="w-3.5 h-3.5" />
-                                <span>{t.dibaMaterialsTab}</span>
-                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-300">
-                                    {materialsComparison.length}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
+            {(
+                <div>
                     {/* TAB 1: DISTINTA BASE COMPACT TABLE */}
                     {activeTab === 'diba' && (
                         <div className="space-y-3">
@@ -499,46 +365,46 @@ export function OrderOperationsManagementSection({
                                     <table className="w-full text-left text-xs font-sans">
                                         <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
                                             <tr>
-                                                <th className="py-2.5 px-3 w-16 text-center">{t.dibaRow}</th>
-                                                <th className="py-2.5 px-3 w-16 text-center">{t.dibaFase}</th>
-                                                <th className="py-2.5 px-3 w-14 text-center">{t.dibaLav}</th>
-                                                <th className="py-2.5 px-3">{t.dibaDescrLav}</th>
-                                                <th className="py-2.5 px-3">{t.dibaTerzista}</th>
-                                                <th className="py-2.5 px-3 w-16 text-center">{t.dibaCentro}</th>
-                                                <th className="py-2.5 px-3">{t.dibaDescrCentro}</th>
-                                                <th className="py-2.5 px-3 max-w-[320px]">{t.dibaNote}</th>
-                                                <th className="py-2.5 px-3 text-right w-16">{t.dibaTEsec}</th>
-                                                <th className="py-2.5 px-3 text-right w-16">{t.dibaPerQta}</th>
-                                                <th className="py-2.5 px-3 text-center w-12">{t.dibaAggRiga}</th>
+                                                <th className="py-2 px-3 w-16 text-center">{t.dibaRow}</th>
+                                                <th className="py-2 px-3 w-16 text-center">{t.dibaFase}</th>
+                                                <th className="py-2 px-3 w-14 text-center">{t.dibaLav}</th>
+                                                <th className="py-2 px-3">{t.dibaDescrLav}</th>
+                                                <th className="py-2 px-3">{t.dibaTerzista}</th>
+                                                <th className="py-2 px-3 w-16 text-center">{t.dibaCentro}</th>
+                                                <th className="py-2 px-3">{t.dibaDescrCentro}</th>
+                                                <th className="py-2 px-3 max-w-[320px]">{t.dibaNote}</th>
+                                                <th className="py-2 px-3 text-right w-16">{t.dibaTEsec}</th>
+                                                <th className="py-2 px-3 text-right w-16">{t.dibaPerQta}</th>
+                                                <th className="py-2 px-3 text-center w-12">{t.dibaAggRiga}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
                                             {dibaOps.map((row, idx) => (
                                                 <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
-                                                    <td className="py-2 px-3 text-center font-mono font-medium text-zinc-300">
+                                                    <td className="py-1 px-3 text-center font-mono font-medium text-zinc-300">
                                                         {row.riga.toFixed(4)}
                                                     </td>
-                                                    <td className="py-2 px-3 text-center font-mono font-bold text-primary">
+                                                    <td className="py-1 px-3 text-center font-mono font-bold text-primary">
                                                         {row.fase}
                                                     </td>
-                                                    <td className="py-2 px-3 text-center font-mono text-zinc-300">
+                                                    <td className="py-1 px-3 text-center font-mono text-zinc-300">
                                                         {row.codlavo}
                                                     </td>
-                                                    <td className="py-2 px-3 font-semibold text-zinc-100 whitespace-nowrap">
+                                                    <td className="py-1 px-3 font-semibold text-zinc-100 whitespace-nowrap">
                                                         {row.descr_lavor}
                                                     </td>
-                                                    <td className="py-2 px-3 whitespace-nowrap">
+                                                    <td className="py-1 px-3 whitespace-nowrap">
                                                         <span className="text-[11px] text-zinc-400">
                                                             {row.terzista}
                                                         </span>
                                                     </td>
-                                                    <td className="py-2 px-3 text-center font-mono text-zinc-300">
+                                                    <td className="py-1 px-3 text-center font-mono text-zinc-300">
                                                         {row.codcent}
                                                     </td>
-                                                    <td className="py-2 px-3 text-zinc-300 whitespace-nowrap">
+                                                    <td className="py-1 px-3 text-zinc-300 whitespace-nowrap">
                                                         {row.descr_centro}
                                                     </td>
-                                                    <td className="py-2 px-3 text-zinc-300 max-w-[320px]">
+                                                    <td className="py-1 px-3 text-zinc-300 max-w-[320px]">
                                                         {row.note ? (
                                                             <div className="flex items-start gap-1">
                                                                 <FileText className="w-3 h-3 text-primary flex-shrink-0 mt-0.5" />
@@ -550,13 +416,13 @@ export function OrderOperationsManagementSection({
                                                             <span className="text-zinc-600">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="py-2 px-3 text-right font-mono text-zinc-400">
+                                                    <td className="py-1 px-3 text-right font-mono text-zinc-400">
                                                         {row.tesec.toFixed(4)}
                                                     </td>
-                                                    <td className="py-2 px-3 text-right font-mono text-zinc-300">
+                                                    <td className="py-1 px-3 text-right font-mono text-zinc-300">
                                                         {row.perqta.toFixed(2)}
                                                     </td>
-                                                    <td className="py-2 px-3 text-center">
+                                                    <td className="py-1 px-3 text-center">
                                                         {row.aggriga === 'S' ? (
                                                             <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-emerald-500/20 text-emerald-400">
                                                                 <Check className="w-3 h-3" />
@@ -586,40 +452,40 @@ export function OrderOperationsManagementSection({
                                     <table className="w-full text-left text-xs font-sans">
                                         <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
                                             <tr>
-                                                <th className="py-2.5 px-3 w-16 text-center">{t.orderSeq}</th>
-                                                <th className="py-2.5 px-3">{t.orderOperation}</th>
-                                                <th className="py-2.5 px-3 w-20 text-center">{t.orderStatus}</th>
-                                                <th className="py-2.5 px-3 w-20 text-center">{t.orderCenter}</th>
-                                                <th className="py-2.5 px-3">{t.orderMachine}</th>
-                                                <th className="py-2.5 px-3">{t.orderArea}</th>
-                                                <th className="py-2.5 px-3 max-w-[320px]">{t.dibaNote}</th>
-                                                <th className="py-2.5 px-3 font-mono text-[10px]">{t.orderId}</th>
+                                                <th className="py-2 px-3 w-16 text-center">{t.orderSeq}</th>
+                                                <th className="py-2 px-3">{t.orderOperation}</th>
+                                                <th className="py-2 px-3 w-20 text-center">{t.orderStatus}</th>
+                                                <th className="py-2 px-3 w-20 text-center">{t.orderCenter}</th>
+                                                <th className="py-2 px-3">{t.orderMachine}</th>
+                                                <th className="py-2 px-3">{t.orderArea}</th>
+                                                <th className="py-2 px-3 max-w-[320px]">{t.dibaNote}</th>
+                                                <th className="py-2 px-3 font-mono text-[10px]">{t.orderId}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
                                             {orderOps.map((row, idx) => (
                                                 <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
-                                                    <td className="py-2 px-3 text-center font-mono font-bold text-blue-400">
+                                                    <td className="py-1 px-3 text-center font-mono font-bold text-blue-400">
                                                         {row.sequenza}
                                                     </td>
-                                                    <td className="py-2 px-3 font-semibold text-zinc-100 whitespace-nowrap">
+                                                    <td className="py-1 px-3 font-semibold text-zinc-100 whitespace-nowrap">
                                                         {row.descrizione}
                                                     </td>
-                                                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                                                    <td className="py-1 px-3 text-center whitespace-nowrap">
                                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getNetproStatusBadge(row.stato)}`}>
                                                             {row.stato}
                                                         </span>
                                                     </td>
-                                                    <td className="py-2 px-3 text-center font-mono text-zinc-300">
+                                                    <td className="py-1 px-3 text-center font-mono text-zinc-300">
                                                         {row.centro_assegnato || '-'}
                                                     </td>
-                                                    <td className="py-2 px-3 text-zinc-200 font-medium whitespace-nowrap">
+                                                    <td className="py-1 px-3 text-zinc-200 font-medium whitespace-nowrap">
                                                         {row.machine_name || row.machine_code || '-'}
                                                     </td>
-                                                    <td className="py-2 px-3 whitespace-nowrap text-zinc-400 text-[11px]">
+                                                    <td className="py-1 px-3 whitespace-nowrap text-zinc-400 text-[11px]">
                                                         {row.area_name}
                                                     </td>
-                                                    <td className="py-2 px-3 text-zinc-300 max-w-[320px]">
+                                                    <td className="py-1 px-3 text-zinc-300 max-w-[320px]">
                                                         {row.note ? (
                                                             <div className="flex items-start gap-1">
                                                                 <FileText className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -631,7 +497,7 @@ export function OrderOperationsManagementSection({
                                                             <span className="text-zinc-600">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="py-2 px-3 font-mono text-[10px] text-zinc-500 whitespace-nowrap">
+                                                    <td className="py-1 px-3 font-mono text-[10px] text-zinc-500 whitespace-nowrap">
                                                         {row.id_oper}
                                                     </td>
                                                 </tr>
@@ -643,94 +509,119 @@ export function OrderOperationsManagementSection({
                         </div>
                     )}
 
-                    {/* TAB 3: CONFRONTO ALLINEATO OPERAZIONI */}
+                    {/* TAB 3: CONFRONTO FASI — DiBa (truth) → Ordine Business → Ordine NetPro */}
                     {activeTab === 'comparison' && (
-                        <div className="space-y-3">
-                            <div className="overflow-x-auto rounded-xl border border-zinc-800">
+                        <div className="rounded-xl border border-zinc-800 overflow-x-auto">
+                            <table className="w-full text-left text-xs font-sans">
+                                <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
+                                    <tr>
+                                        <th className="py-2 px-3 w-14 text-center">Fase</th>
+                                        <th className="py-2 px-3 text-purple-300">Distinta Base</th>
+                                        <th className="py-2 px-3 text-amber-200">Ordine Business #{data.order_bus_numord || '-'}</th>
+                                        <th className="py-2 px-3 text-blue-300">Ordine NetPro</th>
+                                        <th className="py-2 px-3 w-56">{t.alignedStatus}</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
+                                    {comparisonRows.map(row => {
+                                        const d = row.diba, b = row.bus, n = row.net;
+                                        const bad = (side: OpField[], f: OpField) => side.includes(f);
+                                        return (
+                                            <tr key={row.fase} className={row.issues.length ? 'bg-amber-500/[0.04] hover:bg-amber-500/10' : 'hover:bg-zinc-800/40'}>
+                                                <td className="py-1 px-3 text-center font-mono font-bold text-zinc-100 align-top">{row.fase}</td>
+
+                                                {/* DiBa */}
+                                                <td className="py-1 px-3 align-top">
+                                                    {d ? (
+                                                        <OpCell lav={d.descr_lavor} code={d.codlavo} centro={d.codcent} centroDescr={d.descr_centro} note={d.note} />
+                                                    ) : <span className="text-zinc-500 italic">Non in DiBa</span>}
+                                                </td>
+
+                                                {/* Business order */}
+                                                <td className="py-1 px-3 align-top">
+                                                    {b ? (
+                                                        <OpCell lav={b.descr_lavor} code={b.codlavo} centro={b.codcent} centroDescr={b.descr_centro} note={b.note}
+                                                            badLav={bad(row.busDiff, 'lav')} badCentro={bad(row.busDiff, 'centro')} badNote={bad(row.busDiff, 'note')} />
+                                                    ) : <span className={d ? 'text-amber-300 font-semibold' : 'text-zinc-600'}>{d ? 'Mancante' : '-'}</span>}
+                                                </td>
+
+                                                {/* NetPro order */}
+                                                <td className="py-1 px-3 align-top">
+                                                    {n ? (
+                                                        <div className="flex items-start gap-2">
+                                                            <div className="min-w-0 flex-1">
+                                                                <OpCell lav={n.descrizione} centro={n.centro_assegnato} centroDescr={n.machine_name} note={n.note}
+                                                                    badLav={bad(row.netDiff, 'lav')} badCentro={bad(row.netDiff, 'centro')} badNote={bad(row.netDiff, 'note')} />
+                                                            </div>
+                                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border flex-shrink-0 ${getNetproStatusBadge(n.stato)}`}>{n.stato}</span>
+                                                        </div>
+                                                    ) : <span className={d ? 'text-amber-300 font-semibold' : 'text-zinc-600'}>{d ? 'Mancante' : '-'}</span>}
+                                                </td>
+
+                                                {/* Result */}
+                                                <td className="py-1 px-3 align-top">
+                                                    {row.issues.length === 0 ? (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                            {t.statusAligned}
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            {row.issues.map((iss, i) => (
+                                                                <span key={i} className="text-[10px] font-semibold text-amber-300">• {iss}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* TAB 4: CONFRONTO MATERIALI — DiBa (expected) → Ordine Business → Ordine NetPro */}
+                    {activeTab === 'materials' && (
+                        materialsComparison.length === 0 ? (
+                            <div className="py-8 text-center text-zinc-400 text-sm italic">
+                                Nessun materiale configurato per questo articolo.
+                            </div>
+                        ) : (
+                            <div className="rounded-xl border border-zinc-800 overflow-x-auto">
                                 <table className="w-full text-left text-xs font-sans">
                                     <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
                                         <tr>
-                                            <th className="py-2.5 px-3 w-16 text-center">Fase/Seq</th>
-                                            <th className="py-2.5 px-3">Distinta Base (ERP)</th>
-                                            <th className="py-2.5 px-3">Centro DiBa</th>
-                                            <th className="py-2.5 px-3">Ordine Produzione (NetPro)</th>
-                                            <th className="py-2.5 px-3">Macchina NetPro</th>
-                                            <th className="py-2.5 px-3 w-20 text-center">Stato</th>
-                                            <th className="py-2.5 px-3 w-24 text-center">{t.alignedStatus}</th>
+                                            <th className="py-2 px-3">Codice Materiale</th>
+                                            <th className="py-2 px-3">Descrizione</th>
+                                            <th className="py-2 px-3 w-14 text-center">U.M.</th>
+                                            <th className="py-2 px-3 text-right w-28 text-purple-300">{t.expectedQty}</th>
+                                            <th className="py-2 px-3 text-right w-28 text-amber-200">Ordine Business</th>
+                                            <th className="py-2 px-3 text-right w-28 text-blue-300">Ordine NetPro</th>
+                                            <th className="py-2 px-3 w-56">{t.alignedStatus}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
-                                        {comparisonRows.map((row, idx) => {
-                                            const hasDiba = !!row.diba;
-                                            const hasOrder = !!row.order;
-                                            const isAligned = hasDiba && hasOrder;
-
+                                        {materialsComparison.map(row => {
+                                            const fmt = (v?: number) => v === undefined ? '-' : v.toLocaleString('it-IT', { maximumFractionDigits: 3 });
                                             return (
-                                                <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
-                                                    <td className="py-2 px-3 text-center font-mono font-bold text-zinc-100">
-                                                        {row.fase}
-                                                    </td>
-                                                    <td className="py-2 px-3">
-                                                        {row.diba ? (
-                                                            <div className="font-semibold text-zinc-100">
-                                                                {row.diba.descr_lavor}
-                                                                <span className="ml-1.5 text-[10px] text-zinc-500 font-mono">
-                                                                    (Lav: {row.diba.codlavo})
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-zinc-600 italic">Non presente in DiBa</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-zinc-300">
-                                                        {row.diba ? (
-                                                            <span className="text-xs">
-                                                                {row.diba.descr_centro || `Centro ${row.diba.codcent}`}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-zinc-600">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-3">
-                                                        {row.order ? (
-                                                            <div className="font-semibold text-zinc-100">
-                                                                {row.order.descrizione}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-zinc-600 italic">Non presente in Ordine</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-zinc-300">
-                                                        {row.order ? (
-                                                            <span className="text-xs">
-                                                                {row.order.machine_name || row.order.machine_code || '-'}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-zinc-600">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-center">
-                                                        {row.order ? (
-                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getNetproStatusBadge(row.order.stato)}`}>
-                                                                {row.order.stato}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-zinc-600">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2 px-3 text-center">
-                                                        {isAligned ? (
+                                                <tr key={row.part_number} className={row.issues.length ? 'bg-amber-500/[0.04] hover:bg-amber-500/10' : 'hover:bg-zinc-800/40'}>
+                                                    <td className="py-1 px-3 font-mono font-bold text-zinc-100">{row.part_number}</td>
+                                                    <td className="py-1 px-3 text-zinc-200 max-w-[360px] truncate" title={row.description}>{row.description}</td>
+                                                    <td className="py-1 px-3 text-center text-zinc-400 font-mono">{row.unmis || '-'}</td>
+                                                    <td className="py-1 px-3 text-right font-mono font-semibold text-purple-300">{fmt(row.expected)}</td>
+                                                    <td className={`py-1 px-3 text-right font-mono font-semibold ${row.busDiff ? 'text-amber-300' : 'text-zinc-200'}`}>{fmt(row.bus)}</td>
+                                                    <td className={`py-1 px-3 text-right font-mono font-semibold ${row.netDiff ? 'text-amber-300' : 'text-zinc-200'}`}>{fmt(row.net)}</td>
+                                                    <td className="py-1 px-3">
+                                                        {row.issues.length === 0 ? (
                                                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                                                 {t.statusAligned}
                                                             </span>
-                                                        ) : hasDiba ? (
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                                {t.statusOnlyDiba}
-                                                            </span>
                                                         ) : (
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                                {t.statusOnlyOrder}
-                                                            </span>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                {row.issues.map((iss, i) => (
+                                                                    <span key={i} className="text-[10px] font-semibold text-amber-300">• {iss}</span>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -739,86 +630,7 @@ export function OrderOperationsManagementSection({
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    )}
-
-                    {/* TAB 4: CONFRONTO MATERIALI (DIBA VS ORDINE) */}
-                    {activeTab === 'materials' && (
-                        <div className="space-y-3">
-                            {materialsComparison.length === 0 ? (
-                                <div className="py-8 text-center text-zinc-400 text-sm italic">
-                                    Nessun materiale configurato per questo articolo.
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto rounded-xl border border-zinc-800">
-                                    <table className="w-full text-left text-xs font-sans">
-                                        <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
-                                            <tr>
-                                                <th className="py-2.5 px-3">Codice Materiale</th>
-                                                <th className="py-2.5 px-3">Descrizione</th>
-                                                <th className="py-2.5 px-3 w-16 text-center">U.M.</th>
-                                                <th className="py-2.5 px-3 text-right w-28">{t.expectedQty}</th>
-                                                <th className="py-2.5 px-3 text-right w-28">{t.actualQty}</th>
-                                                <th className="py-2.5 px-3 text-right w-24">Differenza</th>
-                                                <th className="py-2.5 px-3 w-28 text-center">{t.alignedStatus}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
-                                            {materialsComparison.map((row, idx) => {
-                                                const isMatch = row.status === 'MATCH';
-                                                const isDiff = row.status === 'DIFF';
-                                                const isDibaOnly = row.status === 'DIBA_ONLY';
-                                                const isOrderOnly = row.status === 'ORDER_ONLY';
-
-                                                return (
-                                                    <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
-                                                        <td className="py-2 px-3 font-mono font-bold text-zinc-100">
-                                                            {row.part_number}
-                                                        </td>
-                                                        <td className="py-2 px-3 text-zinc-200">
-                                                            {row.description}
-                                                        </td>
-                                                        <td className="py-2 px-3 text-center text-zinc-400 font-mono">
-                                                            {row.unmis || '-'}
-                                                        </td>
-                                                        <td className="py-2 px-3 text-right font-mono font-semibold text-purple-300">
-                                                            {row.expectedQuant.toLocaleString('it-IT')}
-                                                        </td>
-                                                        <td className="py-2 px-3 text-right font-mono font-semibold text-blue-300">
-                                                            {row.actualQuant.toLocaleString('it-IT')}
-                                                        </td>
-                                                        <td className={`py-2 px-3 text-right font-mono font-bold ${
-                                                            isMatch ? 'text-zinc-500' : 'text-amber-400'
-                                                        }`}>
-                                                            {row.diff > 0 ? `+${row.diff.toLocaleString('it-IT')}` : row.diff.toLocaleString('it-IT')}
-                                                        </td>
-                                                        <td className="py-2 px-3 text-center">
-                                                            {isMatch ? (
-                                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                                                    {t.statusAligned}
-                                                                </span>
-                                                            ) : isDiff ? (
-                                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                                    Q.tà Diversa
-                                                                </span>
-                                                            ) : isDibaOnly ? (
-                                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                                                                    {t.statusOnlyDiba}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                                    {t.statusOnlyOrder}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
+                        )
                     )}
                 </div>
             )}
@@ -862,7 +674,7 @@ export function OrderOperationsManagementSection({
                                     <strong className="text-zinc-200">NetPro MES:</strong> aggiorna istantaneamente <span className="text-blue-300">OPERAZIONI</span> e <span className="text-blue-300">MATERIALI_ORDINI</span> per i reparti.
                                 </li>
                                 <li>
-                                    <strong className="text-zinc-200">Nessuna duplicazione:</strong> gli ordini mantengono lo stesso identico ID (#671). L'inventario rimane invariato fino al completamento.
+                                    <strong className="text-zinc-200">Nessuna duplicazione:</strong> gli ordini mantengono lo stesso identico ID (#{data.order_bus_numord || '-'}). L&apos;inventario rimane invariato fino al completamento.
                                 </li>
                             </ul>
                         </div>

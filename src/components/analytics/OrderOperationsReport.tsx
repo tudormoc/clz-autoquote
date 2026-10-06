@@ -1,21 +1,20 @@
 'use client'
 
 import { useState } from 'react';
-import { Search, Package, CheckCircle, Pause, Play, Printer, ArrowRight, ChevronLeft, FileText, Boxes, Workflow, ChevronDown } from 'lucide-react';
+import { Search, Package, CheckCircle, Pause, Play, Printer, ArrowRight, ChevronLeft, FileText, Boxes, Workflow, Layers, AlertTriangle, Check } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { 
-    getOrderOperationsAction, 
-    getSingleOrderDetailsAction, 
+import {
+    getOrderOperationsAction,
+    getSingleOrderDetailsAction,
     MasterOrderMatch,
     Material
 } from '@/app/analytics/queries/order-operations-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
-import { MaterialsReconciliationSection } from './MaterialsReconciliationSection';
 import { OrderOperationsManagementSection } from './OrderOperationsManagementSection';
-import { MaterialReconciliationData, OrderOperationsManagementData } from '@/types';
+import { OrderOperationsManagementData } from '@/types';
 
 // Locale shorthand for Order Operations strings
 const t = APP_COPY.analytics.orderOperations;
@@ -40,6 +39,7 @@ interface Edition {
     part_number?: string;
 }
 
+type SectionTab = 'flow' | 'materials' | 'management';
 
 // Production flow config from constants (single source of truth)
 const { FLOW_A_AREAS, FLOW_B_AREAS, ASSEMBLY_AREAS, FINISHING_AREAS } = APP_CONFIG.ANALYTICS.PRODUCTION_FLOW;
@@ -88,65 +88,85 @@ const getStatusStyles = (status: string) => {
     }
 };
 
-/** Single operation node in the production flow */
-const OperationNode = ({ op }: { op: Operation }) => {
+/** Single operation row in the production flow (compact: one line + optional note) */
+const OperationNode = ({ op, index }: { op: Operation; index?: number }) => {
     const isCompleted = op.status === 'COM';
     const isInProgress = op.status === 'EXE';
     const isSuspended = op.status === 'SUS';
 
     return (
         <div className={`
-            group relative p-4 rounded-xl border transition-all duration-500
+            relative px-2.5 py-1.5 rounded-lg border transition-colors
             ${getStatusStyles(op.status)}
             ${isInProgress ? 'ring-1 ring-info/30' : 'hover:border-zinc-700'}
-            backdrop-blur-sm
         `}>
-            <div className="flex items-center gap-4 relative z-10">
+            <div className="flex items-center gap-2">
                 {/* Status icon */}
                 <div className={`
-                    w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-700
-                    ${isCompleted ? 'bg-success/20 text-success-foreground border border-success/40' : ''}
-                    ${isInProgress ? 'bg-info/20 text-info-foreground border border-info/40 animate-pulse' : ''}
-                    ${isSuspended ? 'bg-warning/20 text-warning-foreground border border-warning/40' : ''}
-                    ${!isCompleted && !isInProgress && !isSuspended ? 'bg-zinc-800/50 text-zinc-600 border border-zinc-700/50' : ''}
+                    w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0
+                    ${isCompleted ? 'bg-success/20 text-success-foreground' : ''}
+                    ${isInProgress ? 'bg-info/20 text-info-foreground animate-pulse' : ''}
+                    ${isSuspended ? 'bg-warning/20 text-warning-foreground' : ''}
+                    ${!isCompleted && !isInProgress && !isSuspended ? 'bg-zinc-800/60 text-zinc-500' : ''}
                 `}>
-                    {isCompleted && <CheckCircle className="w-5 h-5" />}
-                    {isInProgress && <Play className="w-5 h-5 fill-current" />}
-                    {isSuspended && <Pause className="w-5 h-5 fill-current" />}
-                    {!isCompleted && !isInProgress && !isSuspended && <div className="w-2 h-2 rounded-full bg-zinc-600" />}
+                    {isCompleted && <CheckCircle className="w-3.5 h-3.5" />}
+                    {isInProgress && <Play className="w-3.5 h-3.5 fill-current" />}
+                    {isSuspended && <Pause className="w-3.5 h-3.5 fill-current" />}
+                    {!isCompleted && !isInProgress && !isSuspended && (
+                        index !== undefined
+                            ? <span className="text-[10px] font-mono font-bold">{index + 1}</span>
+                            : <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                    )}
                 </div>
 
                 {/* Operation info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 overflow-hidden">
-                        <h4 className={`text-sm font-bold tracking-wide truncate transition-colors duration-300 ${isInProgress ? 'text-info-foreground' : isCompleted ? 'text-success-foreground/90' : 'text-zinc-300 group-hover:text-zinc-100'}`}>
-                            {op.operation_name}
-                        </h4>
-                    </div>
-                    <p className="text-xs font-medium opacity-60 truncate mt-0.5">{op.machine_name}</p>
+                <div className="flex-1 min-w-0 leading-tight">
+                    <p
+                        className={`text-xs font-semibold truncate ${isInProgress ? 'text-info-foreground' : isCompleted ? 'text-success-foreground/90' : 'text-zinc-200'}`}
+                        title={op.operation_name}
+                    >
+                        {op.operation_name}
+                    </p>
+                    <p className="text-[11px] opacity-60 truncate" title={op.machine_name}>{op.machine_name}</p>
                 </div>
             </div>
 
             {/* DiBa Technical Note — always shown in full */}
             {op.diba_note && (
-                <div className="mt-2.5 pt-2 border-t border-white/5 flex items-start gap-1.5 text-[11px]">
-                    <div className="p-0.5 rounded bg-primary/10 text-primary mt-0.5 flex-shrink-0">
-                        <FileText className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="leading-relaxed whitespace-pre-line text-zinc-300 font-medium">
-                            {op.diba_note}
-                        </p>
-                    </div>
+                <div className="mt-1 pt-1 border-t border-white/5 flex items-start gap-1 text-[11px]">
+                    <FileText className="w-3 h-3 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="leading-snug whitespace-pre-line text-zinc-300">{op.diba_note}</p>
                 </div>
             )}
+        </div>
+    );
+};
 
-            {/* Active shimmer indicator */}
-            {isInProgress && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-info/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-info/60 animate-[shimmer_2s_infinite] w-2/5" />
-                </div>
-            )}
+/** One column of the production flow (Blocco / Copertina / Assemblaggio / ...) */
+const FlowColumn = ({ title, ops, accent, emptyText, numbered }: {
+    title: string;
+    ops: Operation[];
+    accent: string;
+    emptyText?: string;
+    numbered?: boolean;
+}) => {
+    const done = ops.filter(o => o.status === 'COM').length;
+    return (
+        <div className="flex flex-col min-h-0 rounded-xl border border-zinc-800/70 bg-card/30">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-zinc-800/70">
+                <h3 className={`text-xs font-bold flex items-center gap-1.5 ${accent}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {title}
+                </h3>
+                <span className="text-[10px] font-mono text-zinc-400">
+                    {done}/{ops.length}
+                </span>
+            </div>
+            <div className="p-2 space-y-1.5">
+                {ops.length > 0
+                    ? ops.map((op, idx) => <OperationNode key={idx} op={op} index={numbered ? idx : undefined} />)
+                    : <div className="py-4 text-center italic text-muted-foreground text-xs">{emptyText || '-'}</div>}
+            </div>
         </div>
     );
 };
@@ -156,7 +176,6 @@ export function OrderOperationsReport() {
     const [matches, setMatches] = useState<MasterOrderMatch[]>([]);
     const [operations, setOperations] = useState<Operation[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
-    const [reconciliation, setReconciliation] = useState<MaterialReconciliationData>({ productionOrders: [], carichi: [], materials: [] });
     const [operationsManagement, setOperationsManagement] = useState<OrderOperationsManagementData>({
         article_father: '',
         ordine_netpro: '',
@@ -164,8 +183,9 @@ export function OrderOperationsReport() {
         order_operations: []
     });
     const [editions, setEditions] = useState<Edition[]>([]);
-    const [isOperationsOpen, setIsOperationsOpen] = useState(false);
-    const [isMaterialsOpen, setIsMaterialsOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState<SectionTab>('flow');
+    // DiBa alignment status reported by the management panel (stays correct after an in-panel sync/refresh)
+    const [dibaStatus, setDibaStatus] = useState<{ hasDiscrepancies: boolean; count: number } | null>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(t.enterSearch);
     const [error, setError] = useState<string | null>(null);
@@ -177,14 +197,18 @@ export function OrderOperationsReport() {
         order_operations: []
     };
 
+    const resetOrderData = () => {
+        setOperations([]);
+        setMaterials([]);
+        setOperationsManagement(emptyOpsManagement);
+        setEditions([]);
+        setDibaStatus(null);
+    };
+
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
             setMessage(t.enterSearch);
-            setOperations([]);
-            setMaterials([]);
-            setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-            setOperationsManagement(emptyOpsManagement);
-            setEditions([]);
+            resetOrderData();
             setMatches([]);
             return;
         }
@@ -192,11 +216,7 @@ export function OrderOperationsReport() {
         setLoading(true);
         setError(null);
         setMessage(null);
-        setOperations([]);
-        setMaterials([]);
-        setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-        setOperationsManagement(emptyOpsManagement);
-        setEditions([]);
+        resetOrderData();
         setMatches([]);
 
         const result = await getOrderOperationsAction(searchTerm);
@@ -206,36 +226,19 @@ export function OrderOperationsReport() {
                 setOperations(result.data);
                 setEditions(result.editions);
                 setMaterials(result.materials || []);
-                setReconciliation(result.reconciliation || { productionOrders: [], carichi: [], materials: [] });
                 setOperationsManagement(result.operationsManagement || emptyOpsManagement);
-                setIsOperationsOpen(false);
-                setIsMaterialsOpen(false);
+                setActiveSection('flow');
                 setMatches([]);
                 setMessage(null);
             } else if (result.status === 'multiple') {
                 setMatches(result.matches);
-                setOperations([]);
-                setMaterials([]);
-                setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-                setOperationsManagement(emptyOpsManagement);
-                setEditions([]);
                 setMessage(null);
             } else {
-                setOperations([]);
-                setMaterials([]);
-                setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-                setOperationsManagement(emptyOpsManagement);
-                setEditions([]);
                 setMatches([]);
                 setMessage(result.message);
             }
         } else {
             setError(result.error || APP_COPY.analytics.error);
-            setOperations([]);
-            setMaterials([]);
-            setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-            setOperationsManagement(emptyOpsManagement);
-            setEditions([]);
             setMatches([]);
         }
 
@@ -251,10 +254,9 @@ export function OrderOperationsReport() {
             setOperations(result.data);
             setEditions(result.editions);
             setMaterials(result.materials || []);
-            setReconciliation(result.reconciliation || { productionOrders: [], carichi: [], materials: [] });
             setOperationsManagement(result.operationsManagement || emptyOpsManagement);
-            setIsOperationsOpen(false);
-            setIsMaterialsOpen(false);
+            setDibaStatus(null);
+            setActiveSection('flow');
         } else {
             setError(result.error || APP_COPY.analytics.error);
         }
@@ -263,15 +265,8 @@ export function OrderOperationsReport() {
     };
 
     const handleBackToMatches = () => {
-        setOperations([]);
-        setMaterials([]);
-        setReconciliation({ productionOrders: [], carichi: [], materials: [] });
-        setOperationsManagement(emptyOpsManagement);
-        setEditions([]);
-        setIsOperationsOpen(false);
-        setIsMaterialsOpen(false);
+        resetOrderData();
     };
-
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -306,13 +301,61 @@ export function OrderOperationsReport() {
     const flowBOps = assemblyHasActive ? markAllCompleted(rawFlowB) : inferFlowStatuses(rawFlowB);
     const assemblyOps = inferFlowStatuses(rawAssembly);
 
+    // Overall progress (after inference)
+    const allFlowOps = [...flowAOps, ...flowBOps, ...assemblyOps, ...finishingOps, ...unclassifiedOps];
+    const countCom = allFlowOps.filter(o => o.status === 'COM').length;
+    const countExe = allFlowOps.filter(o => o.status === 'EXE').length;
+    const countSus = allFlowOps.filter(o => o.status === 'SUS').length;
+    const progressPct = allFlowOps.length ? Math.round((countCom / allFlowOps.length) * 100) : 0;
+
     const orderInfo = editions.length > 0 ? editions[0] : null;
+    const rootCommessaKey = orderInfo?.commessa_full ? orderInfo.commessa_full.slice(0, 7) : '';
+    const hasOrder = operations.length > 0;
+
+    // DiBa status for the tab label: panel-reported value wins, falls back to the loaded data
+    const dibaHasDisc = dibaStatus ? dibaStatus.hasDiscrepancies : !!operationsManagement.has_discrepancies;
+    const dibaDiscCount = dibaStatus ? dibaStatus.count : (operationsManagement.discrepancy_count || 0);
+
+    const tabs: { id: SectionTab; label: string; icon: React.ReactNode; badge: React.ReactNode }[] = [
+        {
+            id: 'flow',
+            label: t.operationsTab,
+            icon: <Workflow className="w-4 h-4 text-blue-400" />,
+            badge: <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{operations.length}</span>,
+        },
+        {
+            id: 'materials',
+            label: t.materialsTab,
+            icon: <Boxes className="w-4 h-4 text-amber-400" />,
+            badge: <span className="text-[10px] px-1.5 rounded-full bg-zinc-800 text-zinc-300">{materials.length}</span>,
+        },
+        {
+            id: 'management',
+            label: t.operationsManagementTab,
+            icon: <Layers className="w-4 h-4 text-purple-400" />,
+            badge: dibaHasDisc ? (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <AlertTriangle className="w-3 h-3" />{dibaDiscCount}
+                </span>
+            ) : (
+                <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <Check className="w-3 h-3" />DiBa
+                </span>
+            ),
+        },
+    ];
 
     return (
-        <div className="space-y-4">
-            {/* Search Section */}
-            <Card>
-                <div className="flex gap-2">
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
+            {/* Top bar: title + search on one line */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                    <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                        <Workflow size={18} />
+                    </div>
+                    <h1 className="text-lg font-bold text-white whitespace-nowrap">{t.pageTitle}</h1>
+                </div>
+                <div className="flex-1 flex gap-2">
                     <div className="flex-1">
                         <Input
                             type="text"
@@ -332,505 +375,277 @@ export function OrderOperationsReport() {
                         {loading ? t.searching : t.search}
                     </Button>
                 </div>
-            </Card>
+            </div>
 
-            {/* Back to Multiple Search Results Button */}
-            {matches.length > 1 && editions.length > 0 && (
-                <div className="flex items-center justify-between">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleBackToMatches}
-                        className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 h-8 px-3 rounded-xl transition-all shadow-sm"
-                    >
-                        <ChevronLeft className="w-4 h-4 text-primary" />
-                        <span>{t.backToResults} ({matches.length})</span>
-                    </Button>
-                </div>
-            )}
-
-            {/* Multiple Orders Matches Selector - Simple Clean List */}
-            {matches.length > 1 && editions.length === 0 && (
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <p className="text-xs font-semibold text-zinc-400">
-                            {t.multipleResultsFound}: <span className="text-white font-bold">{matches.length}</span> — {t.selectOrderToView}
-                        </p>
-                    </div>
-
-                    <div className="divide-y divide-zinc-800/80 rounded-xl border border-zinc-800 bg-card/40 overflow-hidden">
-                        {matches.map((m) => (
-                            <div
-                                key={m.root_commessa_key}
-                                onClick={() => handleSelectOrder(m.root_commessa_key)}
-                                className="group flex items-center justify-between gap-4 p-3 px-4 hover:bg-zinc-800/50 cursor-pointer transition-colors duration-150"
-                            >
-                                <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                                    {/* Order Code Badge */}
-                                    <div className="flex flex-col items-center justify-center bg-zinc-800/90 border border-zinc-700/80 rounded-lg px-2.5 py-1 flex-shrink-0 min-w-[64px]">
-                                        <span className="text-sm font-bold text-white font-mono leading-tight">
-                                            {m.commessa_display}
-                                        </span>
-                                        <span className="text-[10px] text-zinc-400 font-medium">
-                                            20{m.year_code}
-                                        </span>
-                                    </div>
-
-                                    {/* Order Title & Client */}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-zinc-200 group-hover:text-primary transition-colors truncate">
-                                            {m.master_order_title}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-400">
-                                            <span className="truncate max-w-[320px]">
-                                                {m.client_name || '-'}
-                                            </span>
-                                            <span>•</span>
-                                            <span className="text-zinc-500 font-medium">
-                                                {m.edition_count} {m.edition_count === 1 ? t.editionSingle : t.editions}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Action Arrow */}
-                                <div className="flex items-center gap-2 flex-shrink-0 text-zinc-500 group-hover:text-primary transition-colors text-xs font-semibold">
-                                    <span className="hidden sm:inline">{t.openOrder}</span>
-                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-            {/* Order Header */}
+            {/* Order header: one compact strip */}
             {orderInfo && (
-                <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-card/60 p-6 backdrop-blur-sm shadow-xl">
-                    <div className="absolute top-0 right-0 p-8 opacity-5">
-                        <Package className="w-40 h-40" />
-                    </div>
+                <div className="flex-shrink-0 rounded-xl border border-zinc-800 bg-card/60 px-4 py-2.5">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                        {matches.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={handleBackToMatches}
+                                className="flex items-center gap-1 text-xs text-zinc-300 hover:text-white px-2 py-1 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800"
+                                title={t.backToResults}
+                            >
+                                <ChevronLeft className="w-4 h-4 text-primary" />
+                                <span>{matches.length}</span>
+                            </button>
+                        )}
 
-                    <div className="flex flex-col gap-5 relative z-10">
-                        {/* Top Meta Bar */}
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="flex w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 items-center justify-center flex-shrink-0 text-primary">
-                                    <Package className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <h2 className="text-2xl font-bold tracking-tight text-white">
-                                            {t.orderTitle} <span className="text-primary">{orderInfo.commessa_display}</span>
-                                        </h2>
-                                        {editions.length > 1 && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary border border-primary/30 shadow-sm">
-                                                {editions.length} {t.editions}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Master Order Title from Business ERP */}
-                                    {(orderInfo.master_order_title || orderInfo.order_description) && (
-                                        <p className="text-xs text-zinc-400 mt-1.5 leading-snug">
-                                            <span className="text-zinc-500 font-medium">{t.title}</span>
-                                            <span className="text-sm font-semibold text-zinc-100 ml-1">
-                                                {orderInfo.master_order_title || orderInfo.order_description}
-                                            </span>
-                                        </p>
-                                    )}
-
-                                    {orderInfo.client_name && (
-                                        <p className="text-xs text-zinc-400 mt-1.5">
-                                            <span className="text-zinc-500 font-medium">{t.client}</span>
-                                            <span className="font-semibold text-zinc-200 ml-1">{orderInfo.client_name}</span>
-                                        </p>
-                                    )}
-                                </div>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                <Package className="w-4 h-4" />
                             </div>
+                            <h2 className="text-lg font-bold text-white whitespace-nowrap">
+                                {t.orderTitle} <span className="text-primary">{orderInfo.commessa_display}</span>
+                            </h2>
+                        </div>
 
-                            {/* Print All Editions Button */}
+                        {(orderInfo.master_order_title || orderInfo.order_description) && (
+                            <div className="min-w-0 max-w-[40%]">
+                                <p className="text-[10px] uppercase text-zinc-500 font-semibold leading-none">{t.title}</p>
+                                <p className="text-sm font-semibold text-zinc-100 truncate" title={orderInfo.master_order_title || orderInfo.order_description}>
+                                    {orderInfo.master_order_title || orderInfo.order_description}
+                                </p>
+                            </div>
+                        )}
+
+                        {orderInfo.client_name && (
+                            <div className="min-w-0">
+                                <p className="text-[10px] uppercase text-zinc-500 font-semibold leading-none">{t.client}</p>
+                                <p className="text-sm font-semibold text-zinc-200 truncate">{orderInfo.client_name}</p>
+                            </div>
+                        )}
+
+                        {/* Progress summary */}
+                        {hasOrder && (
+                            <div className="flex items-center gap-2 min-w-[180px]">
+                                <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                                    <div className="h-full bg-success" style={{ width: `${progressPct}%` }} />
+                                </div>
+                                <span className="text-xs font-mono text-zinc-300 whitespace-nowrap">
+                                    {countCom}/{allFlowOps.length}
+                                </span>
+                                {countExe > 0 && <span className="text-[10px] px-1.5 rounded bg-info/15 text-info-foreground border border-info/30">{countExe} {t.statusActive}</span>}
+                                {countSus > 0 && <span className="text-[10px] px-1.5 rounded bg-warning/15 text-warning-foreground border border-warning/30">{countSus} {t.statusPaused}</span>}
+                            </div>
+                        )}
+
+                        <div className="ml-auto flex items-center gap-2 flex-wrap">
+                            {editions.map((ed, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 pl-2 rounded-lg bg-zinc-900/70 border border-zinc-800" title={ed.order_description}>
+                                    {editions.length > 1 && (
+                                        <span className="text-[10px] font-bold text-primary">{t.editionSingle} {idx + 1}</span>
+                                    )}
+                                    <span className="font-mono text-xs text-zinc-300">{ed.commessa_full}</span>
+                                    {ed.ordine && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handlePrintCommessa(ed.ordine)}
+                                            className="p-1.5 rounded-r-lg text-zinc-300 hover:text-primary hover:bg-primary/15 border-l border-zinc-800"
+                                            title={t.printCommessa}
+                                        >
+                                            <Printer className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
                             {editions.length > 1 && (
                                 <Button
                                     onClick={handlePrintAllEditions}
-                                    className="flex items-center gap-2 text-xs font-semibold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 rounded-xl"
+                                    className="flex items-center gap-1.5 text-xs h-8 px-3"
                                 >
-                                    <Printer className="w-4 h-4" />
+                                    <Printer className="w-3.5 h-3.5" />
                                     <span>{t.printAllEditions} ({editions.length})</span>
                                 </Button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
 
-                        {/* Single Edition Display */}
-                        {editions.length === 1 && (
-                            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-base font-semibold text-white tracking-wide">
-                                        {orderInfo.order_description}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="px-2.5 py-1 rounded bg-zinc-800 text-zinc-300 font-mono text-xs border border-zinc-700">
-                                        {orderInfo.commessa_full}
-                                    </span>
-                                    {orderInfo.ordine && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePrintCommessa(orderInfo.ordine)}
-                                            className="flex items-center gap-2 text-xs h-8 bg-zinc-800 border-zinc-700 hover:bg-primary/20 hover:text-primary hover:border-primary/40 transition-all font-medium text-zinc-200"
-                                        >
-                                            <Printer className="w-3.5 h-3.5" />
-                                            <span>{t.printCommessa}</span>
-                                        </Button>
-                                    )}
-                                </div>
+            {/* Order workspace: tab bar + one full-height panel */}
+            {hasOrder && (
+                <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-zinc-800/80 bg-zinc-900/40 overflow-hidden">
+                    <div className="flex-shrink-0 flex items-center gap-1 px-2 pt-2 border-b border-zinc-800/80 overflow-x-auto">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActiveSection(tab.id)}
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-t-lg text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
+                                    activeSection === tab.id
+                                        ? 'border-primary text-white bg-zinc-800/60'
+                                        : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30'
+                                }`}
+                            >
+                                {tab.icon}
+                                <span>{tab.label}</span>
+                                {tab.badge}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Panels stay mounted (hidden) so their local state survives tab switches */}
+                    <div className="flex-1 min-h-0 relative">
+                        {/* Fasi di lavorazione */}
+                        <div className={`absolute inset-0 overflow-auto p-3 ${activeSection === 'flow' ? '' : 'hidden'}`}>
+                            <div className="flex flex-wrap items-center justify-end gap-4 mb-2 text-[11px] text-muted-foreground">
+                                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-success" />{t.statusCompleted}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-info animate-pulse" />{t.statusActive}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-warning" />{t.statusPaused}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-700" />{t.statusScheduled}</span>
                             </div>
-                        )}
+                            <div className="grid gap-3 items-start" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' }}>
+                                <FlowColumn title={t.blockProduction} ops={flowAOps} accent="text-info-foreground" emptyText={t.noBlockOps} numbered />
+                                <FlowColumn title={t.coverProduction} ops={flowBOps} accent="text-accent" emptyText={t.noCoverOps} numbered />
+                                {assemblyOps.length > 0 && (
+                                    <FlowColumn title={t.assemblyBinding} ops={assemblyOps} accent="text-zinc-300" numbered />
+                                )}
+                                {finishingOps.length > 0 && (
+                                    <FlowColumn title={t.finishingDelivery} ops={finishingOps} accent="text-zinc-300" />
+                                )}
+                                {unclassifiedOps.length > 0 && (
+                                    <FlowColumn title={t.otherOperations} ops={unclassifiedOps} accent="text-zinc-400" />
+                                )}
+                            </div>
+                        </div>
 
-                        {/* Multiple Editions Cards Grid */}
-                        {editions.length > 1 && (
-                            <div className="space-y-2.5">
-                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                                    <span>{t.editionsList}</span>
+                        {/* Materiali */}
+                        <div className={`absolute inset-0 overflow-auto p-3 ${activeSection === 'materials' ? '' : 'hidden'}`}>
+                            {materials.length === 0 ? (
+                                <div className="py-8 text-center text-zinc-400 text-sm italic">
+                                    {t.noMaterials}
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    {editions.map((ed, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="group relative flex flex-col justify-between p-4 rounded-xl bg-zinc-900/80 border border-zinc-700/70 hover:border-primary/50 hover:bg-zinc-800/60 transition-all duration-200 shadow-md"
-                                        >
-                                            <div>
-                                                <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-primary/15 text-primary border border-primary/25">
-                                                        {t.editionSingle} {idx + 1}
-                                                    </span>
-                                                    <span className="font-mono text-xs font-bold text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
-                                                        {ed.commessa_full}
-                                                    </span>
-                                                </div>
-                                                <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-primary transition-colors">
-                                                    {ed.order_description}
-                                                </h3>
+                            ) : (
+                                <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="bg-zinc-950/80 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 sticky top-0">
+                                            <tr>
+                                                <th className="py-2 px-3">{t.materialCode}</th>
+                                                <th className="py-2 px-3">{t.materialDescription}</th>
+                                                <th className="py-2 px-3 text-right">{t.materialQty}</th>
+                                                <th className="py-2 px-3 text-right">{t.materialStock}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
+                                            {materials.map((mat, idx) => {
+                                                const isStockSufficient = mat.stock_quantity >= mat.total_quantity;
+                                                return (
+                                                    <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
+                                                        <td className="py-1.5 px-3 font-mono font-bold text-primary">
+                                                            {mat.part_number}
+                                                        </td>
+                                                        <td className="py-1.5 px-3 font-medium text-zinc-200">
+                                                            {mat.description}
+                                                        </td>
+                                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-zinc-100 whitespace-nowrap">
+                                                            {new Intl.NumberFormat('it-IT').format(mat.total_quantity)}{' '}
+                                                            <span className="font-normal text-zinc-400">{mat.unit_of_measure}</span>
+                                                        </td>
+                                                        <td className="py-1.5 px-3 text-right whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono font-semibold ${
+                                                                isStockSufficient
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                                            }`}>
+                                                                {new Intl.NumberFormat('it-IT').format(mat.stock_quantity)}{' '}
+                                                                <span className="text-[10px] font-normal opacity-80">{mat.unit_of_measure}</span>
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+
+                        {/* Gestione Operazioni Ordine (Distinta Base & Ordine Produzione) */}
+                        <div className={`absolute inset-0 overflow-auto p-3 ${activeSection === 'management' ? '' : 'hidden'}`}>
+                            <OrderOperationsManagementSection
+                                operationsManagement={operationsManagement}
+                                rootCommessaKey={rootCommessaKey}
+                                editions={editions}
+                                onStatusChange={(hasDiscrepancies, count) => setDibaStatus({ hasDiscrepancies, count })}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Search results / messages (scroll inside, page never scrolls) */}
+            {!hasOrder && (
+                <div className="flex-1 min-h-0 overflow-auto space-y-3">
+                    {matches.length > 1 && editions.length === 0 && (
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-zinc-400 px-1">
+                                {t.multipleResultsFound}: <span className="text-white font-bold">{matches.length}</span> — {t.selectOrderToView}
+                            </p>
+
+                            <div className="divide-y divide-zinc-800/80 rounded-xl border border-zinc-800 bg-card/40 overflow-hidden">
+                                {matches.map((m) => (
+                                    <div
+                                        key={m.root_commessa_key}
+                                        onClick={() => handleSelectOrder(m.root_commessa_key)}
+                                        className="group flex items-center justify-between gap-4 py-2 px-4 hover:bg-zinc-800/50 cursor-pointer transition-colors duration-150"
+                                    >
+                                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                            <div className="flex flex-col items-center justify-center bg-zinc-800/90 border border-zinc-700/80 rounded-lg px-2.5 py-0.5 flex-shrink-0 min-w-[64px]">
+                                                <span className="text-sm font-bold text-white font-mono leading-tight">
+                                                    {m.commessa_display}
+                                                </span>
+                                                <span className="text-[10px] text-zinc-400 font-medium">
+                                                    20{m.year_code}
+                                                </span>
                                             </div>
 
-                                            {ed.ordine && (
-                                                <div className="mt-3 pt-3 border-t border-zinc-800/80 flex justify-end">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handlePrintCommessa(ed.ordine)}
-                                                        className="w-full flex items-center justify-center gap-2 text-xs py-1.5 h-8 bg-zinc-800/80 border-zinc-700/80 hover:bg-primary/20 hover:text-primary hover:border-primary/40 transition-all font-medium text-zinc-200"
-                                                    >
-                                                        <Printer className="w-3.5 h-3.5" />
-                                                        <span>{t.printCommessa}</span>
-                                                    </Button>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-zinc-200 group-hover:text-primary transition-colors truncate">
+                                                    {m.master_order_title}
+                                                </p>
+                                                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                                                    <span className="truncate max-w-[320px]">
+                                                        {m.client_name || '-'}
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span className="text-zinc-500 font-medium">
+                                                        {m.edition_count} {m.edition_count === 1 ? t.editionSingle : t.editions}
+                                                    </span>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
+
+                                        <div className="flex items-center gap-2 flex-shrink-0 text-zinc-500 group-hover:text-primary transition-colors text-xs font-semibold">
+                                            <span className="hidden sm:inline">{t.openOrder}</span>
+                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
+
+                    {message && !error && (
+                        <Card>
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Search className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
+                                <p className="text-sm">{message}</p>
+                            </div>
+                        </Card>
+                    )}
+
+                    {error && (
+                        <Card>
+                            <div className="text-center py-8 text-destructive">
+                                <p className="text-sm">{error}</p>
+                            </div>
+                        </Card>
+                    )}
                 </div>
-            )}
-
-            {/* Collapsible Sections: Operations & Materials */}
-            {operations.length > 0 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* Section 1: Fasi di Lavorazione (Operazioni) */}
-                    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
-                        <button
-                            type="button"
-                            onClick={() => setIsOperationsOpen(!isOperationsOpen)}
-                            className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer group"
-                        >
-                            <div className="flex items-center gap-3.5">
-                                <div className="w-10 h-10 rounded-xl bg-info/10 border border-info/25 text-info flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                    <Workflow className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2.5">
-                                        <h2 className="text-base font-bold text-white tracking-wide group-hover:text-primary transition-colors">
-                                            {t.operationsTab}
-                                        </h2>
-                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/80">
-                                            {operations.length} {t.operationsCount}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-zinc-400 mt-0.5">
-                                        Flusso produttivo parallelo, macchine e avanzamento
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <div className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 group-hover:text-white transition-all transform duration-300 ${isOperationsOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
-                                    <ChevronDown className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </button>
-
-                        {isOperationsOpen && (
-                            <div className="p-6 pt-4 border-t border-zinc-800/80 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {/* Parallel Phase: Flow A + Flow B */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
-                                    {/* Connecting line between parallel flows */}
-                                    <div className="absolute top-[4.5rem] bottom-8 left-1/2 w-px bg-gradient-to-b from-transparent via-zinc-800 to-transparent hidden md:block" />
-
-                                    {/* Flow A: Internal/Block */}
-                                    <div className="relative rounded-2xl bg-card/30 border border-zinc-800/40 p-5 group hover:border-info/20 transition-colors duration-500">
-                                        <div className="absolute -top-3 left-6 px-3 py-1 bg-background border border-zinc-800 rounded-full">
-                                            <h3 className="text-xs font-bold text-info-foreground flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-info animate-pulse" />
-                                                {t.blockProduction}
-                                            </h3>
-                                        </div>
-
-                                        <div className="space-y-4 pt-4">
-                                            {flowAOps.length > 0 ? (
-                                                flowAOps.map((op, idx, arr) => (
-                                                    <div key={idx} className="relative">
-                                                        {idx < arr.length - 1 && (
-                                                            <div className="absolute left-5 top-10 bottom-[-20px] w-0.5 bg-gradient-to-b from-info/20 to-transparent z-0" />
-                                                        )}
-                                                        <OperationNode op={op} />
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="py-6 text-center italic text-muted-foreground text-xs">{t.noBlockOps}</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Flow B: Cover */}
-                                    <div className="relative rounded-2xl bg-card/30 border border-zinc-800/40 p-5 group hover:border-accent/20 transition-colors duration-500">
-                                        <div className="absolute -top-3 left-6 px-3 py-1 bg-background border border-zinc-800 rounded-full">
-                                            <h3 className="text-xs font-bold text-accent flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                                                {t.coverProduction}
-                                            </h3>
-                                        </div>
-
-                                        <div className="space-y-4 pt-4">
-                                            {flowBOps.length > 0 ? (
-                                                flowBOps.map((op, idx, arr) => (
-                                                    <div key={idx} className="relative">
-                                                        {idx < arr.length - 1 && (
-                                                            <div className="absolute left-5 top-10 bottom-[-20px] w-0.5 bg-gradient-to-b from-accent/20 to-transparent z-0" />
-                                                        )}
-                                                        <OperationNode op={op} />
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="py-6 text-center italic text-muted-foreground text-xs">{t.noCoverOps}</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Merge Point: Assembly */}
-                                {assemblyOps.length > 0 && (
-                                    <div className="relative p-6 rounded-2xl bg-gradient-to-br from-card/40 via-card/20 to-transparent border border-zinc-800/60">
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-zinc-800" />
-                                            <h3 className="text-xs font-bold text-muted-foreground bg-background px-4 py-1.5 border border-zinc-800 rounded-full">
-                                                {t.assemblyBinding}
-                                            </h3>
-                                            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-zinc-800" />
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            {assemblyOps.map((op, idx, arr) => (
-                                                <div key={idx} className="relative">
-                                                    {idx < arr.length - 1 && (
-                                                        <div className="absolute left-5 top-10 bottom-[-20px] w-0.5 bg-gradient-to-b from-zinc-700/30 to-transparent z-0" />
-                                                    )}
-                                                    <OperationNode op={op} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Finishing */}
-                                {finishingOps.length > 0 && (
-                                    <div className="relative p-6 rounded-2xl border border-dashed border-zinc-800/80 bg-background/30">
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <h3 className="text-xs font-bold text-muted-foreground">
-                                                {t.finishingDelivery}
-                                            </h3>
-                                            <div className="h-px flex-1 bg-zinc-900" />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {finishingOps.map((op, idx) => (
-                                                <OperationNode key={idx} op={op} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Unclassified operations — operations not mapped to any production flow phase */}
-                                {unclassifiedOps.length > 0 && (
-                                    <div className="relative p-6 rounded-2xl border border-zinc-800/50 bg-card/20">
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <h3 className="text-xs font-bold text-muted-foreground">
-                                                {t.otherOperations}
-                                            </h3>
-                                            <div className="h-px flex-1 bg-zinc-900" />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {unclassifiedOps.map((op, idx) => (
-                                                <OperationNode key={idx} op={op} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Legend */}
-                                <div className="flex flex-wrap items-center justify-center gap-8 py-6 rounded-2xl border border-zinc-800/50 bg-background/20 mt-12">
-                                    <div className="flex items-center gap-3 group">
-                                        <div className="w-3 h-3 rounded-full bg-success transition-transform group-hover:scale-125" />
-                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-zinc-300">{t.statusCompleted}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 group">
-                                        <div className="w-3 h-3 rounded-full bg-info animate-pulse transition-transform group-hover:scale-125" />
-                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-zinc-300">{t.statusActive}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 group">
-                                        <div className="w-3 h-3 rounded-full bg-warning transition-transform group-hover:scale-125" />
-                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-zinc-300">{t.statusPaused}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 group">
-                                        <div className="w-3 h-3 rounded-full bg-zinc-700 transition-transform group-hover:scale-125" />
-                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-zinc-300">{t.statusScheduled}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Section 2: Materiali (Distinta Base) */}
-                    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
-                        <button
-                            type="button"
-                            onClick={() => setIsMaterialsOpen(!isMaterialsOpen)}
-                            className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer group"
-                        >
-                            <div className="flex items-center gap-3.5">
-                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                    <Boxes className="w-5 h-5 text-amber-400" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2.5">
-                                        <h2 className="text-base font-bold text-white tracking-wide group-hover:text-primary transition-colors">
-                                            {t.materialsTab}
-                                        </h2>
-                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/80">
-                                            {materials.length} {t.materialsCount}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-zinc-400 mt-0.5">
-                                        Distinta base, fabbisogno materiali e giacenze di magazzino
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <div className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 group-hover:text-white transition-all transform duration-300 ${isMaterialsOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
-                                    <ChevronDown className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </button>
-
-                        {isMaterialsOpen && (
-                            <div className="p-6 pt-4 border-t border-zinc-800/80 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {materials.length === 0 ? (
-                                    <div className="py-8 text-center text-zinc-400 text-sm italic">
-                                        {t.noMaterials}
-                                    </div>
-                                ) : (
-                                    <div className="overflow-x-auto rounded-xl border border-zinc-800">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="bg-zinc-950/80 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">
-                                                <tr>
-                                                    <th className="py-3 px-4">{t.materialCode}</th>
-                                                    <th className="py-3 px-4">{t.materialDescription}</th>
-                                                    <th className="py-3 px-4 text-right">{t.materialQty}</th>
-                                                    <th className="py-3 px-4 text-right">{t.materialStock}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/30">
-                                                {materials.map((mat, idx) => {
-                                                    const isStockSufficient = mat.stock_quantity >= mat.total_quantity;
-                                                    return (
-                                                        <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
-                                                            <td className="py-3.5 px-4 font-mono font-bold text-xs text-primary">
-                                                                {mat.part_number}
-                                                            </td>
-                                                            <td className="py-3.5 px-4 font-medium text-zinc-200">
-                                                                {mat.description}
-                                                            </td>
-                                                            <td className="py-3.5 px-4 text-right font-mono font-bold text-zinc-100 whitespace-nowrap">
-                                                                {new Intl.NumberFormat('it-IT').format(mat.total_quantity)}{' '}
-                                                                <span className="text-xs font-normal text-zinc-400">{mat.unit_of_measure}</span>
-                                                            </td>
-                                                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold ${
-                                                                    isStockSufficient 
-                                                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                                                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                                                }`}>
-                                                                    {new Intl.NumberFormat('it-IT').format(mat.stock_quantity)}{' '}
-                                                                    <span className="text-[10px] font-normal opacity-80">{mat.unit_of_measure}</span>
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Section 3: Regolazione & Riconciliazione Materiali */}
-                    <MaterialsReconciliationSection 
-                        reconciliation={reconciliation} 
-                        rootCommessaKey={orderInfo?.commessa_full ? orderInfo.commessa_full.slice(0, 7) : ''} 
-                    />
-
-                    {/* Section 4: Gestione Operazioni Ordine (Distinta Base & Ordine Produzione) */}
-                    <OrderOperationsManagementSection
-                        operationsManagement={operationsManagement}
-                        rootCommessaKey={orderInfo?.commessa_full ? orderInfo.commessa_full.slice(0, 7) : ''}
-                        editions={editions}
-                    />
-                </div>
-
-            )}
-
-            {/* Messages */}
-            {message && !error && operations.length === 0 && (
-                <Card>
-                    <div className="text-center py-8 text-muted-foreground">
-                        <Search className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
-                        <p className="text-sm">{message}</p>
-                    </div>
-                </Card>
-            )}
-
-            {/* Error */}
-            {error && (
-                <Card>
-                    <div className="text-center py-8 text-destructive">
-                        <p className="text-sm">{error}</p>
-                    </div>
-                </Card>
             )}
         </div>
     );

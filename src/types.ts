@@ -291,17 +291,35 @@ export interface OrderProductionOperationRow {
     note: string;
 }
 
+/** Phase of the Business production order (attivit + assris) */
+export interface BusinessOrderOperationRow {
+    fase: number;
+    codlavo: number;
+    descr_lavor: string;
+    codcent: number;
+    descr_centro: string;
+    note: string;
+}
+
 export interface OrderOperationsManagementData {
     article_father: string;
     ordine_netpro: string;
+    /** Full commessa of the edition shown (e.g. 260960410) */
+    commessa_full?: string;
     order_bus_numord?: number;
     order_bus_anno?: number;
     order_bus_riga?: number;
     order_father_quant?: number;
     diba_operations: DibaOperationRow[];
+    /** NetPro order phases (OPERAZIONI) */
     order_operations: OrderProductionOperationRow[];
+    /** Business order phases (attivit + assris) */
+    business_operations?: BusinessOrderOperationRow[];
     diba_materials?: DibaMaterialRow[];
+    /** Business order materials (movord tipo Y) */
     order_materials?: OrderMaterialSummaryRow[];
+    /** NetPro order materials (MATERIALI_ORDINI) */
+    netpro_materials?: OrderMaterialSummaryRow[];
     has_discrepancies?: boolean;
     discrepancy_count?: number;
 }
