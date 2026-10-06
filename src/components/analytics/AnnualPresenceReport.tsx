@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { PresenceData } from '@/types';
 import { Clock, Copy } from 'lucide-react';
 import { copyToClipboard } from '@/lib/clipboard';
+import { formatDayMonth } from '@/lib/format';
 
 export function AnnualPresenceReport() {
     const [data, setData] = useState<PresenceData | null>(null);
@@ -39,18 +40,11 @@ export function AnnualPresenceReport() {
         loadData();
     }, []);
 
-    const formatHours = (hours: number) => {
-        return Math.round(hours).toString();
-    };
+    // Plain whole hours (no thousands separator): also pasted into spreadsheets via the copy button
+    const toWholeHours = (hours: number) => Math.round(hours).toString();
 
-    const formatDateRange = (startDate: string, endDate: string) => {
-        // Convert YYYY-MM-DD to DD/MM format
-        const formatShort = (dateStr: string) => {
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}`;
-        };
-        return `${formatShort(startDate)} - ${formatShort(endDate)}`;
-    };
+    const formatDateRange = (startDate: string, endDate: string) =>
+        `${formatDayMonth(startDate)} - ${formatDayMonth(endDate)}`;
 
     const getWeekDateRange = (weekNum: number): string => {
         const range = data?.weekDateRanges?.find(r => r.weekNumber === weekNum);
@@ -75,10 +69,10 @@ export function AnnualPresenceReport() {
         weekData.forEach((item, idx) => {
             // First row: 2 tabs, second row onwards: 1 tab
             const tabs = idx === 0 ? '\t\t' : '\t';
-            text += `${item.group}${tabs}${formatHours(item.hours)}\n`;
+            text += `${item.group}${tabs}${toWholeHours(item.hours)}\n`;
         });
         
-        text += `${APP_COPY.analytics.presence.total}\t\t${formatHours(weekTotal)}\n`;
+        text += `${APP_COPY.analytics.presence.total}\t\t${toWholeHours(weekTotal)}\n`;
         
         // Copy to clipboard silently
         copyToClipboard(text).catch(err => {
@@ -91,10 +85,10 @@ export function AnnualPresenceReport() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold text-foreground">
+                    <h2 className="text-2xl font-semibold text-fg">
                         {APP_COPY.analytics.presence.annualTitle}
                     </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-fg-subtle mt-1">
                         {APP_COPY.analytics.presence.annualSubtitle}
                     </p>
                 </div>
@@ -106,22 +100,22 @@ export function AnnualPresenceReport() {
 
             {/* Info */}
             {filesProcessed > 0 && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-fg-subtle">
                     {APP_COPY.analytics.presence.filesProcessed}: {filesProcessed}
                 </div>
             )}
 
             {/* Error */}
             {error && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm text-destructive">{error}</p>
+                <div className="p-4 bg-danger/10 border border-danger/20 rounded-md">
+                    <p className="text-sm text-danger">{error}</p>
                 </div>
             )}
 
             {/* Loading */}
             {loading && (
                 <div className="flex items-center justify-center py-12">
-                    <div className="text-muted-foreground">{APP_COPY.analytics.common.loading}</div>
+                    <div className="text-fg-subtle">{APP_COPY.analytics.common.loading}</div>
                 </div>
             )}
 
@@ -144,10 +138,10 @@ export function AnnualPresenceReport() {
                         return (
                             <div key={weekNum} className="border border-border rounded-lg overflow-hidden">
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-foreground">
+                                    <h3 className="text-lg font-semibold text-fg">
                                         {APP_COPY.analytics.presence.week} {weekNum}
                                         {getWeekDateRange(weekNum) && (
-                                            <span className="text-sm font-normal text-muted-foreground ml-2">
+                                            <span className="text-sm font-normal text-fg-subtle ml-2">
                                                 ({getWeekDateRange(weekNum)})
                                             </span>
                                         )}
@@ -166,20 +160,20 @@ export function AnnualPresenceReport() {
                                         <tbody className="divide-y divide-border">
                                             {weekData.map((item, idx) => (
                                                 <tr key={idx} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-3 text-sm font-medium text-foreground">
+                                                    <td className="px-4 py-3 text-sm font-medium text-fg">
                                                         {item.group}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-right text-foreground">
-                                                        {formatHours(item.hours)}
+                                                    <td className="px-4 py-3 text-sm text-right text-fg">
+                                                        {toWholeHours(item.hours)}
                                                     </td>
                                                 </tr>
                                             ))}
                                             <tr className="bg-muted/50 font-semibold">
-                                                <td className="px-4 py-3 text-sm text-foreground">
+                                                <td className="px-4 py-3 text-sm text-fg">
                                                     {APP_COPY.analytics.presence.total}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-right text-foreground">
-                                                    {formatHours(weekTotal)}
+                                                <td className="px-4 py-3 text-sm text-right text-fg">
+                                                    {toWholeHours(weekTotal)}
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -193,7 +187,7 @@ export function AnnualPresenceReport() {
 
             {/* Empty State */}
             {!loading && !error && !data && (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-fg-subtle">
                     {APP_COPY.analytics.common.noData}
                 </div>
             )}

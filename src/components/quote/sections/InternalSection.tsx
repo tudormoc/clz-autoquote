@@ -208,7 +208,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                 </div>
 
                 <div className="space-y-4 pt-2 border-b pb-6">
-                    <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.endpapersTitle}</h3>
+                    <h3 className="text-sm font-semibold text-fg-muted">{APP_COPY.form.endpapersTitle}</h3>
                     <Controller
                         control={control}
                         name="internals.endpapers_enabled"
@@ -281,7 +281,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                 {/* Imposition Strategy (Signatures) */}
                 <div className="space-y-6 pt-2">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.impositionTitle}</h3>
+                        <h3 className="text-sm font-semibold text-fg-muted">{APP_COPY.form.impositionTitle}</h3>
                         {configString && (
                             <InfoBadge
                                 label={APP_COPY.form.configurationLabel}
@@ -293,7 +293,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-3">
-                            <div className="flex justify-between items-center text-xs font-medium text-muted-foreground">
+                            <div className="flex justify-between items-center text-xs font-medium text-fg-subtle">
                                 <span className="w-24">{APP_COPY.form.amountLabel}</span>
                                 <span className="flex-1 px-4">{APP_COPY.form.signatureTypeLabel}</span>
                                 <span className="w-16 text-right">{APP_COPY.form.totalPpLabel}</span>
@@ -348,13 +348,13 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                             )}
                                         />
                                     </div>
-                                    <div className="w-16 h-9 flex items-center justify-end text-sm font-mono text-muted-foreground">
+                                    <div className="w-16 h-9 flex items-center justify-end text-sm font-mono text-fg-subtle">
                                         {((watchCustomSignatures?.[index]?.amount || 0) * (watchCustomSignatures?.[index]?.size || 0))} p
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => remove(index)}
-                                        className="w-8 h-9 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                                        className="w-8 h-9 flex items-center justify-center text-fg-subtle hover:text-danger transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                                     </button>
@@ -375,22 +375,22 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                         });
                                     }
                                 }}
-                                className="w-full mt-2 border-dashed text-muted-foreground hover:text-primary"
+                                className="w-full mt-2 border-dashed text-fg-subtle hover:text-primary"
                             >
                                 {APP_COPY.form.addSignatureBatch}
                             </Button>
 
                             <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">{APP_COPY.form.totalImposedPages}</span>
+                                <span className="text-sm text-fg-subtle">{APP_COPY.form.totalImposedPages}</span>
                                 <InfoBadge
                                     label=""
                                     value={`${totalManualPages} / ${pages}`}
                                     detail={APP_COPY.form.targetPagesSuffix}
-                                    className={totalManualPages === pages ? 'text-success-foreground' : 'text-warning-foreground'}
+                                    className={totalManualPages === pages ? 'text-success-500' : 'text-warning-300'}
                                 />
                             </div>
                             {totalManualPages !== pages && (
-                                <p className="text-[11px] text-warning-foreground mt-1">
+                                <p className="text-2xs text-warning-300 mt-1">
                                     {APP_COPY.form.impositionWarning}
                                 </p>
                             )}

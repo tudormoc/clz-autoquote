@@ -4,6 +4,8 @@ import puppeteer from 'puppeteer';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
+import { formatCurrencyRounded, formatHours } from '@/lib/format';
+import { toIsoDate } from '@/lib/dateUtils';
 
 interface MonthData {
     month: string; // period label: month name ("Gennaio") or week label ("S3")
@@ -27,11 +29,6 @@ function getISOWeekStart(year: number, week: number): Date {
     return target;
 }
 
-/** Formats a Date as YYYY-MM-DD for DB queries. */
-function formatDateYMD(date: Date): string {
-    return date.toISOString().split('T')[0];
-}
-
 export async function generateAreaSummaryPDFAction(
     year: number,
     months: number[],          // Month numbers 1-12 (used when mode === 'months')
@@ -49,7 +46,7 @@ export async function generateAreaSummaryPDFAction(
 
                 const result = await getAreaSummaryDataAction(
                     year, 1, 999999,
-                    { dateFrom: formatDateYMD(weekStart), dateTo: formatDateYMD(weekEnd), machine: areaFilter || undefined },
+                    { dateFrom: toIsoDate(weekStart), dateTo: toIsoDate(weekEnd), machine: areaFilter || undefined },
                     { column: 'display_order', direction: 'asc' },
                     true
                 );
@@ -218,12 +215,6 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string, mode: 
         const indexB = areaOrder.indexOf(b.areaName);
         return indexA - indexB;
     });
-
-    const formatTime = (hours: number) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
-    };
 
     const getEfficiencyColor = (eff: number) => {
         if (eff >= thresholds.EXCELLENT) return '#10b981';
@@ -448,7 +439,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string, mode: 
             </div>
             <div class="summary-card">
                 <div class="label">${copy.totalHours}</div>
-                <div class="value">${formatTime(totalHours)}</div>
+                <div class="value">${formatHours(totalHours)}</div>
             </div>
             <div class="summary-card">
                 <div class="label">${copy.overallVelocity}</div>
@@ -559,7 +550,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string, mode: 
                     <tr>
                         <td class="area-name">${area.areaName}</td>
                         <td class="right mono">${month.quantity.toLocaleString('it-IT')}</td>
-                        <td class="right mono">${formatTime(month.hours)}</td>
+                        <td class="right mono">${formatHours(month.hours)}</td>
                         <td class="right mono">${month.velocity.toFixed(1)}</td>
                         <td class="right mono">${month.target}</td>
                         <td class="right">
@@ -607,7 +598,7 @@ function generateReportHTML(monthsData: MonthData[], areaFilter?: string, mode: 
                             <tr>
                                 <td><strong>${month.month}</strong></td>
                                 <td class="right mono">${month.quantity.toLocaleString('it-IT')}</td>
-                                <td class="right mono">${formatTime(month.hours)}</td>
+                                <td class="right mono">${formatHours(month.hours)}</td>
                                 <td class="right mono">${month.velocity.toFixed(1)}</td>
                                 <td class="right mono">${month.target}</td>
                                 <td class="right">
@@ -743,12 +734,6 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         if (qtyRequested == null) return null;
         return qtyRequested / velocity;
     }
-
-    const formatTime = (hours: number) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
-    };
 
     const getEfficiencyColor = (eff: number) => {
         if (eff >= 100) return '#10b981';
@@ -1026,11 +1011,11 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
         </div>
         <div class="summary-card">
             <div class="label">${pdfCopy.totalHours}</div>
-            <div class="value">${formatTime(totalHours)}</div>
+            <div class="value">${formatHours(totalHours)}</div>
         </div>
         <div class="summary-card">
             <div class="label">Ore Attese Totali</div>
-            <div class="value">${formatTime(totalExpected)}</div>
+            <div class="value">${formatHours(totalExpected)}</div>
         </div>
         <div class="summary-card" style="border-left-color: ${getEfficiencyColor(overallEfficiency)};">
             <div class="label">${pdfCopy.overallEfficiency}</div>
@@ -1050,7 +1035,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
                 <div class="chart-bar-bg">
                     <div class="chart-bar-fill" style="width: ${barWidth}%; background-color: ${color};"></div>
                 </div>
-                <div class="chart-hours">${formatTime(area.time)} / ${formatTime(area.expected)}</div>
+                <div class="chart-hours">${formatHours(area.time)} / ${formatHours(area.expected)}</div>
                 <div class="chart-value" style="color: ${color};">${area.efficiency.toFixed(1)}%</div>
             </div>
             `;
@@ -1075,16 +1060,16 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
 
             <div class="kpi-row">
                 <div class="kpi-label">Ore Guadagnate</div>
-                <div class="kpi-val" style="color: #10b981;">+${formatTime(hoursGained)}</div>
+                <div class="kpi-val" style="color: #10b981;">+${formatHours(hoursGained)}</div>
             </div>
             <div class="kpi-row">
                 <div class="kpi-label">Ore Perse</div>
-                <div class="kpi-val" style="color: #ef4444;">-${formatTime(hoursLost)}</div>
+                <div class="kpi-val" style="color: #ef4444;">-${formatHours(hoursLost)}</div>
             </div>
             <div class="kpi-row" style="background: #f8fafc; padding: 6px; border-radius: 4px; margin-top: 4px;">
                 <div class="kpi-label" style="font-weight: bold;">Bilancio Netto Ore</div>
                 <div class="kpi-val" style="color: ${netDelta >= 0 ? '#10b981' : '#ef4444'}; font-size: 9pt;">
-                    ${netDelta > 0 ? '+' : ''}${formatTime(netDelta)}
+                    ${netDelta > 0 ? '+' : ''}${formatHours(netDelta)}
                 </div>
             </div>
         </div>
@@ -1098,7 +1083,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
                     return `
                     <div class="client-row">
                         <div class="client-name">${client.client}</div>
-                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatTime(client.time)} / ${formatTime(client.expected)}</div>
+                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatHours(client.time)} / ${formatHours(client.expected)}</div>
                         <div class="client-eff" style="color: ${color};">${client.efficiency.toFixed(1)}%</div>
                     </div>
                     `;
@@ -1114,7 +1099,7 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
                     return `
                     <div class="client-row">
                         <div class="client-name">${client.client}</div>
-                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatTime(client.time)} / ${formatTime(client.expected)}</div>
+                        <div class="client-vol" title="Ore Lavoro / Ore Attese">${formatHours(client.time)} / ${formatHours(client.expected)}</div>
                         <div class="client-eff" style="color: ${color};">${client.efficiency.toFixed(1)}%</div>
                     </div>
                     `;
@@ -1151,8 +1136,8 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
                                 </div>
                                 <div class="order-desc">${order.description}</div>
                             </td>
-                            <td class="right mono">${formatTime(order.total_expected)}</td>
-                            <td class="right mono">${formatTime(order.total_time)}</td>
+                            <td class="right mono">${formatHours(order.total_expected)}</td>
+                            <td class="right mono">${formatHours(order.total_time)}</td>
                             <td class="right" style="color: ${getEfficiencyColor(orderEff)}; font-weight: bold; font-size: 9pt;">
                                 ${orderEff.toFixed(1)}%
                             </td>
@@ -1160,8 +1145,8 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
                         ${order.areas.map((area: any) => `
                             <tr>
                                 <td class="area-label">${area.label}</td>
-                                <td class="right mono" style="color: #64748b;">${area.expected != null ? formatTime(area.expected) : '—'}</td>
-                                <td class="right mono font-semibold">${formatTime(area.time)}</td>
+                                <td class="right mono" style="color: #64748b;">${area.expected != null ? formatHours(area.expected) : '—'}</td>
+                                <td class="right mono font-semibold">${formatHours(area.time)}</td>
                                 <td class="right">
                                     <span style="font-weight: 600; color: ${getEfficiencyColor(area.efficiency)};">
                                         ${area.expected != null ? `${area.efficiency.toFixed(1)}%` : '—'}
@@ -1298,15 +1283,6 @@ export async function generateClientSummaryPDFAction(
 }
 
 function generateClientSummaryReportHTML(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, format: 'A4' | 'A3' = 'A4'): string {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('it-IT', { 
-            style: 'currency', 
-            currency: 'EUR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(Math.round(amount));
-    };
-
     const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
     const totalCost = data.reduce((sum, r) => sum + r.total_cost, 0);
     const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);
@@ -1466,19 +1442,19 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
     <div class="summary-box">
         <div class="summary-item">
             <div class="summary-label">Totale Fatturato</div>
-            <div class="summary-value">${formatCurrency(totalRevenue)}</div>
+            <div class="summary-value">${formatCurrencyRounded(totalRevenue)}</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Materiali</div>
-            <div class="summary-value">${formatCurrency(totalCost)}</div>
+            <div class="summary-value">${formatCurrencyRounded(totalCost)}</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Manodopera</div>
-            <div class="summary-value">${formatCurrency(totalWorkCost)}</div>
+            <div class="summary-value">${formatCurrencyRounded(totalWorkCost)}</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Margine</div>
-            <div class="summary-value">${formatCurrency(totalMargin)}</div>
+            <div class="summary-value">${formatCurrencyRounded(totalMargin)}</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">% Margine</div>
@@ -1513,11 +1489,11 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
                     <td class="col-client">
                         <div class="truncate">${row.client_name}</div>
                     </td>
-                    <td class="col-rev right mono" style="font-weight: 600;">${formatCurrency(row.total_revenue)}</td>
-                    <td class="col-cost right mono">${formatCurrency(row.total_cost)}</td>
-                    <td class="col-work right mono">${formatCurrency(row.work_cost)}</td>
-                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrency(costs)}</td>
-                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrency(margin)}</td>
+                    <td class="col-rev right mono" style="font-weight: 600;">${formatCurrencyRounded(row.total_revenue)}</td>
+                    <td class="col-cost right mono">${formatCurrencyRounded(row.total_cost)}</td>
+                    <td class="col-work right mono">${formatCurrencyRounded(row.work_cost)}</td>
+                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrencyRounded(costs)}</td>
+                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrencyRounded(margin)}</td>
                     <td class="col-percent right mono" style="font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
                 </tr>
                 `;

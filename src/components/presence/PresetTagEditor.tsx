@@ -128,16 +128,16 @@ export function PresetTagEditor({
     };
 
     return (
-        <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800 space-y-3">
+        <div className="p-4 rounded-lg bg-card/50 border border-border space-y-3">
             <div>
-                <h4 className="text-xs font-semibold text-zinc-200">{title}</h4>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{description}</p>
+                <h4 className="text-xs font-semibold text-fg-soft">{title}</h4>
+                <p className="text-2xs text-fg-muted mt-0.5">{description}</p>
             </div>
 
             {/* Visual Tags List */}
             <div className="flex flex-wrap gap-1.5 min-h-[32px] items-center">
                 {tags.length === 0 ? (
-                    <span className="text-xs text-zinc-600 italic">Nessun preset configurato</span>
+                    <span className="text-xs text-fg-faint italic">Nessun preset configurato</span>
                 ) : (
                     tags.map((tag) => {
                         const isEditingThisTag = editingTag === tag;
@@ -146,7 +146,7 @@ export function PresetTagEditor({
                             return (
                                 <div
                                     key={tag}
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-950 border border-primary shadow-sm"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-background border border-primary shadow-sm"
                                 >
                                     <input
                                         type="text"
@@ -162,13 +162,13 @@ export function PresetTagEditor({
                                             }
                                         }}
                                         autoFocus
-                                        className="h-6 w-28 text-xs font-mono bg-transparent text-zinc-100 focus:outline-none px-1"
+                                        className="h-6 w-28 text-xs font-mono bg-transparent text-fg focus:outline-none px-1"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => handleCommitRename(tag)}
                                         disabled={saving || !editTagValue.trim()}
-                                        className="text-emerald-400 hover:text-emerald-300 p-0.5 rounded cursor-pointer transition-colors"
+                                        className="text-success-400 hover:text-success-300 p-0.5 rounded cursor-pointer transition-colors"
                                         title="Salva"
                                     >
                                         <Check size={12} />
@@ -177,7 +177,7 @@ export function PresetTagEditor({
                                         type="button"
                                         onClick={handleCancelRename}
                                         disabled={saving}
-                                        className="text-zinc-400 hover:text-zinc-200 p-0.5 rounded cursor-pointer transition-colors"
+                                        className="text-fg-muted hover:text-fg-soft p-0.5 rounded cursor-pointer transition-colors"
                                         title="Annulla"
                                     >
                                         <X size={12} />
@@ -189,14 +189,14 @@ export function PresetTagEditor({
                         return (
                             <span
                                 key={tag}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono shadow-sm group"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-warning-500/10 text-warning-300 border border-warning-500/30 font-mono shadow-sm group"
                             >
                                 <span>{tag}</span>
                                 <button
                                     type="button"
                                     onClick={() => handleStartRename(tag)}
                                     disabled={saving || disabled}
-                                    className="text-amber-400/50 hover:text-amber-300 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
+                                    className="text-warning-400/50 hover:text-warning-300 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
                                     title={`Modifica ${tag}`}
                                 >
                                     <Edit2 size={11} />
@@ -205,7 +205,7 @@ export function PresetTagEditor({
                                     type="button"
                                     onClick={() => handleRemove(tag)}
                                     disabled={saving || disabled}
-                                    className="text-amber-400/50 hover:text-red-400 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
+                                    className="text-warning-400/50 hover:text-danger-400 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
                                     title={`Rimuovi ${tag}`}
                                 >
                                     <X size={11} />
@@ -217,7 +217,7 @@ export function PresetTagEditor({
             </div>
 
             {/* Add new tag form */}
-            <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/60">
+            <div className="flex items-center gap-2 pt-1 border-t border-border/60">
                 <Input
                     type="text"
                     placeholder="Nuovo testo..."
@@ -225,7 +225,7 @@ export function PresetTagEditor({
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={saving || disabled}
-                    className="h-7 w-48 text-xs font-mono bg-zinc-950 text-zinc-100"
+                    className="h-7 w-48 text-xs font-mono bg-background text-fg"
                 />
                 <Button
                     size="sm"

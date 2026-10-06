@@ -100,19 +100,19 @@ export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
                     onChange={handleInputChange}
                     placeholder={placeholder || 'DD/MM/YYYY'}
                     maxLength={10}
-                    className="w-full px-3 py-2 pr-10 bg-card border border-zinc-800 rounded-md text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 bg-card border border-border rounded-md text-sm text-fg-strong placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-primary transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-fg-muted hover:text-primary transition-colors"
                 >
                     <Calendar size={16} />
                 </button>
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 mt-2 bg-card border border-zinc-800 rounded-lg shadow-lg p-3">
+                <div className="absolute z-50 mt-2 bg-card border border-border rounded-lg shadow-lg p-3">
                     <DayPicker
                         mode="single"
                         selected={selectedDate}
@@ -120,11 +120,11 @@ export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
                         locale={it}
                         className="rdp-custom"
                     />
-                    <div className="border-t border-zinc-800 pt-2 mt-2">
+                    <div className="border-t border-border pt-2 mt-2">
                         <button
                             type="button"
                             onClick={handleTodayClick}
-                            className="w-full px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+                            className="w-full px-3 py-2 text-sm text-fg-secondary hover:text-fg-strong hover:bg-muted rounded transition-colors"
                         >
                             Oggi
                         </button>

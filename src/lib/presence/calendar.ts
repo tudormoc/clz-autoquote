@@ -1,3 +1,4 @@
+import { toIsoDate } from '@/lib/dateUtils';
 import type { DayKind, PresenceRulesConfig } from './types';
 
 // ============================================================================
@@ -36,7 +37,7 @@ export function eachDateInRange(from: string, to: string): string[] {
     const end = new Date(ey, em - 1, ed, 12);
     const out: string[] = [];
     while (cur <= end) {
-        out.push(formatDate(cur));
+        out.push(toIsoDate(cur));
         cur.setDate(cur.getDate() + 1);
     }
     return out;
@@ -44,12 +45,6 @@ export function eachDateInRange(from: string, to: string): string[] {
 
 /** Today as 'YYYY-MM-DD' in local time (not UTC — the plant runs on local clock). */
 export function todayLocal(now: Date = new Date()): string {
-    return formatDate(now);
+    return toIsoDate(now);
 }
 
-function formatDate(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}

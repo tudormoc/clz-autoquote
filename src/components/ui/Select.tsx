@@ -15,15 +15,15 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 {label && (
                     <label
                         htmlFor={id}
-                        className="block text-xs font-medium text-zinc-400 mb-1.5"
+                        className="block text-xs font-medium text-fg-muted mb-1.5"
                     >
                         {label}
                     </label>
                 )}
                 <select
                     className={cn(
-                        "flex h-9 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-destructive focus-visible:border-destructive",
+                        "flex h-9 w-full rounded border border-border-strong bg-background px-3 py-2 text-sm text-fg transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
+                        error && "border-danger focus-visible:border-danger",
                         className
                     )}
                     ref={ref}
@@ -37,7 +37,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     ))}
                 </select>
                 {error && (
-                    <p className="text-xs text-destructive mt-1">
+                    <p className="text-xs text-danger mt-1">
                         {error}
                     </p>
                 )}

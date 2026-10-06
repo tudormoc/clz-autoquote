@@ -12,6 +12,7 @@ import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
+import { formatCurrency, formatCurrencyRounded, formatDate } from '@/lib/format';
 
 interface ClientSummaryRow {
     client_code: string;
@@ -242,27 +243,6 @@ export function ClientSummaryReport() {
         setLoading(false);
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('it-IT', {
-            style: 'currency',
-            currency: 'EUR',
-            minimumFractionDigits: 2
-        }).format(value);
-    };
-
-    const formatCurrencyRounded = (value: number) => {
-        return new Intl.NumberFormat('it-IT', {
-            style: 'currency',
-            currency: 'EUR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(Math.round(value));
-    };
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('it-IT');
-    };
-
     const summaryItems = summaryData ? [
         {
             label: APP_COPY.analytics.common.totalRevenue,
@@ -273,7 +253,7 @@ export function ClientSummaryReport() {
 
     if (loading && page === 1 && appliedFilters !== null) {
         return (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-fg-muted">
                 {APP_COPY.analytics.loading}
             </div>
         );
@@ -281,7 +261,7 @@ export function ClientSummaryReport() {
 
     if (error) {
         return (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 text-danger">
                 {APP_COPY.analytics.error}: {error}
             </div>
         );
@@ -290,11 +270,11 @@ export function ClientSummaryReport() {
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-4">
+            <div className="bg-card border border-border rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
@@ -303,7 +283,7 @@ export function ClientSummaryReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
@@ -312,7 +292,7 @@ export function ClientSummaryReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.client}
                             </label>
                             <Input
@@ -335,7 +315,7 @@ export function ClientSummaryReport() {
                             className={`flex items-center gap-1.5 transition-all ${
                                 filters.includeAllRevenueForSplit 
                                     ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
-                                    : 'hover:border-warning-foreground/50'
+                                    : 'hover:border-warning-300/50'
                             }`}
                             title={filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFullTitle : APP_COPY.analytics.clientSummary.toggleSplitTitle}
                         >
@@ -376,11 +356,11 @@ export function ClientSummaryReport() {
             />
 
             {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-zinc-400">
+            <div className="flex items-center justify-between text-sm text-fg-muted">
                 <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
+                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
@@ -392,9 +372,9 @@ export function ClientSummaryReport() {
                         <ChevronLeft size={16} />
                         {APP_COPY.analytics.common.previous}
                     </Button>
-                    <span className="text-zinc-400">
-                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-white font-mono">{totalPages}</span>
+                    <span className="text-fg-muted">
+                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
+                        <span className="text-fg-strong font-mono">{totalPages}</span>
                     </span>
                     <Button
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -409,14 +389,14 @@ export function ClientSummaryReport() {
             </div>
 
             {/* Table */}
-            <div className="bg-card border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
                 {data.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                        <thead className="bg-card border-b border-border">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-48"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-48"
                                     onClick={() => handleSort('client')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -425,7 +405,7 @@ export function ClientSummaryReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('revenue')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -434,7 +414,7 @@ export function ClientSummaryReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('cost')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -443,7 +423,7 @@ export function ClientSummaryReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('work_cost')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -451,13 +431,13 @@ export function ClientSummaryReport() {
                                         {getSortIcon('work_cost')}
                                     </div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">
                                         Costo Totale
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('margin')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -465,18 +445,18 @@ export function ClientSummaryReport() {
                                         {getSortIcon('margin')}
                                     </div>
                                 </th>
-                            <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title="Has split revenue (orders outside date range)"><div className="flex items-center justify-center">⚠️</div></th></tr>
+                            <th className="px-2 py-3 text-center text-xs font-semibold text-fg-muted w-12" title="Has split revenue (orders outside date range)"><div className="flex items-center justify-center">⚠️</div></th></tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
@@ -487,32 +467,32 @@ export function ClientSummaryReport() {
                                     const marginPercent = row.total_revenue > 0 ? (margin / row.total_revenue) * 100 : 0;
                                     
                                     return (
-                                        <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
+                                        <tr key={idx} className="hover:bg-card/50 transition-colors">
                                             <td className="px-4 py-3 text-sm w-48">
                                                 <div className="font-mono text-primary truncate max-w-[12rem]">{row.client_code}</div>
-                                                <div className="text-xs text-zinc-500 truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
+                                                <div className="text-xs text-fg-subtle truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
                                                 {formatCurrencyRounded(row.total_revenue)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
                                                 {formatCurrencyRounded(row.total_cost)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
                                                 {formatCurrencyRounded(row.work_cost)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
+                                            <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
                                                 {formatCurrencyRounded(totalCosts)}
                                             </td>
                                             <td className="px-4 py-3 text-sm text-right">
-                                                <div className="font-mono text-white font-semibold">
+                                                <div className="font-mono text-fg-strong font-semibold">
                                                     {formatCurrencyRounded(margin)}
                                                 </div>
-                                                <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-foreground' : marginPercent >= 10 ? 'text-warning-foreground' : 'text-destructive'}`}>
+                                                <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-500' : marginPercent >= 10 ? 'text-warning-300' : 'text-danger'}`}>
                                                     {marginPercent.toFixed(1)}%
                                                 </div>
                                             </td>
-                                        <td className="px-2 py-3 text-sm text-center w-12"><span className={`font-mono text-xs ${row.split_orders_count > 0 ? 'text-warning-foreground' : 'text-zinc-500'}`}>{row.split_orders_count > 0 ? 'Y' : 'N'}</span></td></tr>
+                                        <td className="px-2 py-3 text-sm text-center w-12"><span className={`font-mono text-xs ${row.split_orders_count > 0 ? 'text-warning-300' : 'text-fg-subtle'}`}>{row.split_orders_count > 0 ? 'Y' : 'N'}</span></td></tr>
                                     );
                                 })
                             )}
@@ -521,41 +501,41 @@ export function ClientSummaryReport() {
                     </div>
                 ) : (
                     <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                        <thead className="bg-card border-b border-border">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-48">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-48">
                                     <div className="flex items-center gap-2">{APP_COPY.analytics.clientSummary.headers.client}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.revenue}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.materialCost}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.laborCost}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">Costo Totale</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.clientSummary.headers.margin}</div>
                                 </th>
-                                <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-400 w-12" title={APP_COPY.analytics.clientSummary.headers.splitWarning}>
+                                <th className="px-2 py-3 text-center text-xs font-semibold text-fg-muted w-12" title={APP_COPY.analytics.clientSummary.headers.splitWarning}>
                                     <div className="flex items-center justify-center">⚠️</div>
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>

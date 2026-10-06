@@ -35,8 +35,11 @@
 |------|-------|
 | All UI text | `src/locales/it.ts` → imported as `APP_COPY` |
 | Config & numbers | `src/config/constants.ts` → `APP_CONFIG` |
-| Colors & spacing tokens | `src/app/globals.css` CSS variables |
-| Tailwind tokens | `tailwind.config.js` |
+| Colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` (→ CSS variables + Tailwind classes) |
+| Number / money / hours / date display | `src/lib/format.ts` (`formatCurrency`, `formatHours`, `formatDate` …) |
+| Date strings (`YYYY-MM-DD`) | `src/lib/dateUtils.ts` (`toIsoDate`, `getTodayDate`) |
+| Areas, header icons, home cards, section sidebars | `src/config/navigation.ts` |
+| Analytics report list | `src/config/analyticsSections.ts` |
 
 **Never hardcode strings, numbers, colors, or spacing. No exceptions.**
 
@@ -44,9 +47,11 @@
 
 ## 🎨 UI RULES
 
-- Use semantic tokens: `bg-card`, `bg-background`, `text-primary`, `text-zinc-400`, `text-success-foreground`, `text-warning-foreground`, `text-destructive`
-- No arbitrary values: ~~`w-[350px]`~~, ~~`text-green-400`~~, ~~`#18181b`~~
-- Add new color → `globals.css` variable → `tailwind.config.js` → use token
+- Read `.kiro/steering/design-system.md` for the token list.
+- Use theme tokens only: `bg-background` `bg-card` `bg-muted` · `text-fg-strong` `text-fg` `text-fg-muted` `text-fg-subtle` · `border-border` · `text-success-400` `bg-danger/10` `border-warning-500/30` …
+- Raw palette classes (~~`text-zinc-400`~~, ~~`bg-emerald-500`~~) and ~~`text-[10px]`~~ fail ESLint. Use `text-2xs` / `text-3xs` / `text-4xs`.
+- New colour or size → add it to `src/styles/theme.js`, never inline.
+- Every page: `AppShell` (+ `SectionSidebar` via the section's `layout.tsx`) and `PageHeader`. Never rebuild the frame.
 - No shadows except dropdowns. No uppercase labels. Monospace only for numbers.
 
 ---
@@ -88,7 +93,7 @@ All analytics in `src/app/analytics/`. Adding a new report:
 1. Add query to `queries/netpro-queries.ts` or `business-queries.ts`
 2. Use shared utilities from `queries/shared/` — never duplicate filter or pagination logic
 3. Re-export from `analytics-actions.ts`
-4. Add to `src/config/analyticsSections.ts`
+4. Add to `src/config/analyticsSections.ts` (label + description in `it.ts`) and register the component in `src/components/analytics/reportComponents.ts`
 5. Build UI component with: filters, pagination, sorting, export, loading/empty/error states
 
 **Query rules:** `NOLOCK` always · no date filter on costs · group by full commessa number · filter `dw_commeca > 0`

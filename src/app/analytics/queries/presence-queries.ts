@@ -27,6 +27,7 @@ import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PresenceData, WeeklyGroupData, WeekDateRange, MonthlyPresenceData, MonthlyGroupData } from '@/types';
+import { toIsoDate } from '@/lib/dateUtils';
 
 const PRIMARY_NETWORK_PATH = '\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE';
 const FALLBACK_MAPPED_PATH = 'Z:\\';
@@ -193,18 +194,10 @@ function getWeekDateRange(year: number, weekNumber: number): WeekDateRange {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
     
-    // Format as YYYY-MM-DD
-    const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-    
     return {
         weekNumber,
-        startDate: formatDate(startDate),
-        endDate: formatDate(endDate)
+        startDate: toIsoDate(startDate),
+        endDate: toIsoDate(endDate)
     };
 }
 

@@ -234,14 +234,14 @@ export function PresenceSettingsManager() {
                 <div
                     className={`p-3 rounded-lg border text-sm flex items-center justify-between ${
                         statusMessage.type === 'success'
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                            : 'bg-red-500/10 border-red-500/30 text-red-400'
+                            ? 'bg-success-500/10 border-success-500/30 text-success-400'
+                            : 'bg-danger-500/10 border-danger-500/30 text-danger-400'
                     }`}
                 >
                     <span>{statusMessage.text}</span>
                     <button
                         onClick={() => setStatusMessage(null)}
-                        className="text-zinc-400 hover:text-white ml-2"
+                        className="text-fg-muted hover:text-fg-strong ml-2"
                     >
                         <X size={14} />
                     </button>
@@ -249,11 +249,11 @@ export function PresenceSettingsManager() {
             )}
 
             {/* Tab 1: Calcolo Ore Mensile Settings (Collapsible) */}
-            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
+            <div className="rounded-2xl border border-border/80 bg-card/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
                 <button
                     type="button"
                     onClick={() => setIsMonthlyHoursOpen(!isMonthlyHoursOpen)}
-                    className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                    className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-muted/40 transition-colors cursor-pointer group"
                 >
                     <div className="flex items-center gap-3.5">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/25 text-primary flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -261,60 +261,60 @@ export function PresenceSettingsManager() {
                         </div>
                         <div>
                             <div className="flex items-center gap-2.5">
-                                <h2 className="text-base font-bold text-white tracking-wide group-hover:text-primary transition-colors">
+                                <h2 className="text-base font-bold text-fg-strong tracking-wide group-hover:text-primary transition-colors">
                                     {copy.monthlyHoursSection}
                                 </h2>
-                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/80 font-mono">
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-fg-secondary border border-border-strong/80 font-mono">
                                     {settings.length} parametri
                                 </span>
                                 {turno2List.length > 0 && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-950/40 text-blue-300 border border-blue-700/50 font-mono">
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info-950/40 text-info-300 border border-info-700/50 font-mono">
                                         {turno2List.length} in Turno 2
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-zinc-400 mt-0.5">
+                            <p className="text-xs text-fg-muted mt-0.5">
                                 Parametri e orari per il calcolo presenze (NETPRO.VALORI_TABELLE)
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 group-hover:text-white transition-all transform duration-300 ${isMonthlyHoursOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
+                        <div className={`p-2 rounded-lg bg-muted/60 border border-border-strong/50 text-fg-muted group-hover:text-fg-strong transition-all transform duration-300 ${isMonthlyHoursOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
                             <ChevronDown className="w-4 h-4" />
                         </div>
                     </div>
                 </button>
 
                 {isMonthlyHoursOpen && (
-                    <div className="p-6 pt-4 border-t border-zinc-800/80 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-6 pt-4 border-t border-border/80 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                         {/* Section 1: Parametri Orari e Pausa */}
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/60">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/60">
                                 <div>
-                                    <h3 className="text-sm font-semibold text-zinc-200">
+                                    <h3 className="text-sm font-semibold text-fg-soft">
                                         Parametri Orari e Pausa
                                     </h3>
-                                    <p className="text-xs text-zinc-400">
+                                    <p className="text-xs text-fg-muted">
                                         Valori orari standard e speciali per il calcolo presenze
                                     </p>
                                 </div>
-                                <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+                                <span className="text-2xs font-mono text-fg-muted bg-card border border-border px-2 py-0.5 rounded">
                                     NETPRO.VALORI_TABELLE
                                 </span>
                             </div>
 
                             {loading ? (
-                                <div className="p-8 text-center text-zinc-500">
+                                <div className="p-8 text-center text-fg-subtle">
                                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2" />
                                     <div className="text-xs">{APP_COPY.analytics.common.loading}</div>
                                 </div>
                             ) : settings.length === 0 ? (
-                                <div className="p-6 text-center text-zinc-500 text-sm">
+                                <div className="p-6 text-center text-fg-subtle text-sm">
                                     Nessun parametro trovato in VALORI_TABELLE.
                                 </div>
                             ) : (
-                                <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/40">
+                                <div className="border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">
                                     {settings
                                         .filter((item) => !item.PARAMETRO.includes('PRESETS'))
                                         .map((item) => {
@@ -324,13 +324,13 @@ export function PresenceSettingsManager() {
                                         return (
                                             <div
                                                 key={item.PARAMETRO}
-                                                className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors"
+                                                className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-zinc-300 font-medium">
+                                                    <span className="text-fg-secondary font-medium">
                                                         {item.DESCRIZIONE || item.PARAMETRO}
                                                     </span>
-                                                    <span className="text-[10px] text-zinc-500 font-mono">
+                                                    <span className="text-3xs text-fg-subtle font-mono">
                                                         ({item.PARAMETRO})
                                                     </span>
                                                 </div>
@@ -344,7 +344,7 @@ export function PresenceSettingsManager() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleStartEdit(item)}
-                                                                className="p-1 text-zinc-500 hover:text-primary transition-colors cursor-pointer rounded hover:bg-zinc-800"
+                                                                className="p-1 text-fg-subtle hover:text-primary transition-colors cursor-pointer rounded hover:bg-muted"
                                                                 title={copy.edit}
                                                             >
                                                                 <Edit2 size={12} />
@@ -359,12 +359,12 @@ export function PresenceSettingsManager() {
                                                                 className="h-6 w-40 text-xs font-mono text-center px-1"
                                                                 autoFocus
                                                             />
-                                                            {unit && <span className="text-xs text-zinc-400">{unit}</span>}
+                                                            {unit && <span className="text-xs text-fg-muted">{unit}</span>}
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleSaveSetting(item.PARAMETRO, item.DESCRIZIONE)}
                                                                 disabled={saving}
-                                                                className="p-1 text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer rounded hover:bg-zinc-800"
+                                                                className="p-1 text-success-400 hover:text-success-300 transition-colors cursor-pointer rounded hover:bg-muted"
                                                                 title={copy.save}
                                                             >
                                                                 <Check size={13} />
@@ -373,7 +373,7 @@ export function PresenceSettingsManager() {
                                                                 type="button"
                                                                 onClick={handleCancelEdit}
                                                                 disabled={saving}
-                                                                className="p-1 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer rounded hover:bg-zinc-800"
+                                                                className="p-1 text-fg-muted hover:text-fg-soft transition-colors cursor-pointer rounded hover:bg-muted"
                                                             >
                                                                 <X size={13} />
                                                             </button>
@@ -388,17 +388,17 @@ export function PresenceSettingsManager() {
                         </div>
 
                         {/* Section: Opzioni Rapide Testo (Ferie e Permessi) */}
-                        <div className="pt-4 border-t border-zinc-800/60 space-y-3">
-                            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/60">
+                        <div className="pt-4 border-t border-border/60 space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/60">
                                 <div>
-                                    <h3 className="text-sm font-semibold text-zinc-200">
+                                    <h3 className="text-sm font-semibold text-fg-soft">
                                         {copy.presetsSection}
                                     </h3>
-                                    <p className="text-xs text-zinc-400">
+                                    <p className="text-xs text-fg-muted">
                                         {copy.presetsDesc}
                                     </p>
                                 </div>
-                                <span className="text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+                                <span className="text-2xs font-mono text-fg-muted bg-card border border-border px-2 py-0.5 rounded">
                                     NETPRO.VALORI_TABELLE
                                 </span>
                             </div>
@@ -424,18 +424,18 @@ export function PresenceSettingsManager() {
                         </div>
 
                         {/* Section 2: Operatori Turno 2 */}
-                        <div className="pt-4 border-t border-zinc-800/60 space-y-4">
-                            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/60">
+                        <div className="pt-4 border-t border-border/60 space-y-4">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/60">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-sm font-semibold text-zinc-200">
+                                        <h3 className="text-sm font-semibold text-fg-soft">
                                             Operatori Turno 2
                                         </h3>
-                                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-950/40 text-blue-300 border border-blue-700/50 font-mono">
+                                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-info-950/40 text-info-300 border border-info-700/50 font-mono">
                                             {turno2List.length} operatori
                                         </span>
                                     </div>
-                                    <p className="text-xs text-zinc-400 mt-0.5">
+                                    <p className="text-xs text-fg-muted mt-0.5">
                                         Gestisci quali operatori usano l&apos;orario speciale (campo GRUPPO = TURNO2)
                                     </p>
                                 </div>
@@ -443,7 +443,7 @@ export function PresenceSettingsManager() {
 
                             {/* Search & Add */}
                             <div>
-                                <label className="block text-xs font-medium text-zinc-400 mb-2">
+                                <label className="block text-xs font-medium text-fg-muted mb-2">
                                     Cerca operatore e aggiungilo a Turno 2
                                 </label>
                                 <div className="relative">
@@ -461,20 +461,20 @@ export function PresenceSettingsManager() {
                                 </div>
 
                                 {searchResults.length > 0 && (
-                                    <div className="mt-2 border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/40">
+                                    <div className="mt-2 border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">
                                         {searchResults.map((op) => {
                                             const isAlready = (op.GRUPPO ?? '').toUpperCase() === 'TURNO2';
                                             const isMutating = turno2Mutating === op.OPERATORE;
                                             return (
                                                 <div
                                                     key={op.OPERATORE}
-                                                    className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors"
+                                                    className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-zinc-300 font-medium">{op.NOME}</span>
-                                                        <span className="text-[10px] text-zinc-500 font-mono">({op.OPERATORE})</span>
+                                                        <span className="text-fg-secondary font-medium">{op.NOME}</span>
+                                                        <span className="text-3xs text-fg-subtle font-mono">({op.OPERATORE})</span>
                                                         {isAlready && (
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/50 border border-blue-700/50 text-blue-300 font-mono">
+                                                            <span className="text-3xs px-1.5 py-0.5 rounded bg-info-950/50 border border-info-700/50 text-info-300 font-mono">
                                                                 TURNO2
                                                             </span>
                                                         )}
@@ -484,7 +484,7 @@ export function PresenceSettingsManager() {
                                                             type="button"
                                                             onClick={() => handleAddToTurno2(op)}
                                                             disabled={isMutating}
-                                                            className="p-1 text-primary hover:text-primary-focus transition-colors cursor-pointer rounded hover:bg-zinc-800 flex items-center gap-1 text-xs"
+                                                            className="p-1 text-primary hover:text-primary-focus transition-colors cursor-pointer rounded hover:bg-muted flex items-center gap-1 text-xs"
                                                         >
                                                             {isMutating ? (
                                                                 <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
@@ -503,31 +503,31 @@ export function PresenceSettingsManager() {
 
                             {/* Current TURNO2 list */}
                             <div>
-                                <div className="text-xs font-medium text-zinc-400 mb-2">
+                                <div className="text-xs font-medium text-fg-muted mb-2">
                                     Operatori attualmente in Turno 2
                                 </div>
 
                                 {turno2Loading ? (
-                                    <div className="p-6 text-center text-zinc-500 text-xs">
+                                    <div className="p-6 text-center text-fg-subtle text-xs">
                                         <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary mb-1" />
                                     </div>
                                 ) : turno2List.length === 0 ? (
-                                    <div className="p-6 text-center text-zinc-500 text-sm border border-zinc-800/60 rounded-lg">
+                                    <div className="p-6 text-center text-fg-subtle text-sm border border-border/60 rounded-lg">
                                         Nessun operatore assegnato a Turno 2
                                     </div>
                                 ) : (
-                                    <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/40">
+                                    <div className="border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">
                                         {turno2List.map((op) => {
                                             const isMutating = turno2Mutating === op.OPERATORE;
                                             return (
                                                 <div
                                                     key={op.OPERATORE}
-                                                    className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors"
+                                                    className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-zinc-300 font-medium">{op.NOME}</span>
-                                                        <span className="text-[10px] text-zinc-500 font-mono">({op.OPERATORE})</span>
-                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950/50 border border-blue-700/50 text-blue-300 font-semibold font-mono">
+                                                        <span className="text-fg-secondary font-medium">{op.NOME}</span>
+                                                        <span className="text-3xs text-fg-subtle font-mono">({op.OPERATORE})</span>
+                                                        <span className="text-3xs px-1.5 py-0.5 rounded bg-info-950/50 border border-info-700/50 text-info-300 font-semibold font-mono">
                                                             TURNO2
                                                         </span>
                                                     </div>
@@ -535,10 +535,10 @@ export function PresenceSettingsManager() {
                                                         type="button"
                                                         onClick={() => handleRemoveFromTurno2(op.OPERATORE)}
                                                         disabled={isMutating}
-                                                        className="p-1 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer rounded hover:bg-zinc-800 flex items-center gap-1 text-xs"
+                                                        className="p-1 text-fg-subtle hover:text-danger-400 transition-colors cursor-pointer rounded hover:bg-muted flex items-center gap-1 text-xs"
                                                     >
                                                         {isMutating ? (
-                                                            <div className="w-3 h-3 border border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                                                            <div className="w-3 h-3 border border-fg-muted border-t-transparent rounded-full animate-spin" />
                                                         ) : (
                                                             <X size={13} />
                                                         )}
@@ -556,57 +556,57 @@ export function PresenceSettingsManager() {
             </div>
 
             {/* Tab 2: Sistema Presenze & Auto-Uscita (EXT) (Combined & Compact) */}
-            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
+            <div className="rounded-2xl border border-border/80 bg-card/40 backdrop-blur-md overflow-hidden transition-all duration-300 shadow-xl">
                 <button
                     type="button"
                     onClick={() => setIsSystemOpen(!isSystemOpen)}
-                    className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                    className="w-full p-5 flex items-center justify-between gap-4 text-left hover:bg-muted/40 transition-colors cursor-pointer group"
                 >
                     <div className="flex items-center gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-10 h-10 rounded-xl bg-info-500/10 border border-info-500/25 text-info-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                             <Clock className="w-5 h-5" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2.5">
-                                <h2 className="text-base font-bold text-white tracking-wide group-hover:text-primary transition-colors">
+                                <h2 className="text-base font-bold text-fg-strong tracking-wide group-hover:text-primary transition-colors">
                                     Sistema Presenze & Auto-Uscita (EXT)
                                 </h2>
-                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-950/40 text-blue-400 border border-blue-800/50">
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info-950/40 text-info-400 border border-info-800/50">
                                     Automatico
                                 </span>
-                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-400 border border-emerald-800/50">
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-950/40 text-success-400 border border-success-800/50">
                                     Attivo
                                 </span>
                             </div>
-                            <p className="text-xs text-zinc-400 mt-0.5">
+                            <p className="text-xs text-fg-muted mt-0.5">
                                 Orari di auto-uscita per timbrature feriali/sabati e regole di sistema
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg bg-zinc-800/60 border border-zinc-700/50 text-zinc-400 group-hover:text-white transition-all transform duration-300 ${isSystemOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
+                        <div className={`p-2 rounded-lg bg-muted/60 border border-border-strong/50 text-fg-muted group-hover:text-fg-strong transition-all transform duration-300 ${isSystemOpen ? 'rotate-180 bg-primary/10 border-primary/30 text-primary' : ''}`}>
                             <ChevronDown className="w-4 h-4" />
                         </div>
                     </div>
                 </button>
 
                 {isSystemOpen && (
-                    <div className="p-6 pt-4 border-t border-zinc-800/80 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-6 pt-4 border-t border-border/80 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                         {/* Section A: Orari Auto-Uscita */}
                         <div className="space-y-3">
-                            <div className="pb-2 border-b border-zinc-800/60">
-                                <h3 className="text-sm font-semibold text-zinc-200">
+                            <div className="pb-2 border-b border-border/60">
+                                <h3 className="text-sm font-semibold text-fg-soft">
                                     {copy.autoExitSection}
                                 </h3>
-                                <p className="text-xs text-zinc-400">
+                                <p className="text-xs text-fg-muted">
                                     Orari predefiniti assegnati in caso di mancata timbratura in uscita
                                 </p>
                             </div>
 
-                            <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/40">
-                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors">
-                                    <span className="text-zinc-300 font-medium">
+                            <div className="border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">
+                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors">
+                                    <span className="text-fg-secondary font-medium">
                                         {copy.autoExitWeekday}
                                     </span>
                                     <span className="font-mono font-bold text-primary">
@@ -614,8 +614,8 @@ export function PresenceSettingsManager() {
                                     </span>
                                 </div>
 
-                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors">
-                                    <span className="text-zinc-300 font-medium">
+                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors">
+                                    <span className="text-fg-secondary font-medium">
                                         {copy.autoExitSaturday}
                                     </span>
                                     <span className="font-mono font-bold text-primary">
@@ -623,8 +623,8 @@ export function PresenceSettingsManager() {
                                     </span>
                                 </div>
 
-                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors">
-                                    <span className="text-zinc-300 font-medium">
+                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors">
+                                    <span className="text-fg-secondary font-medium">
                                         {copy.triggerHour}
                                     </span>
                                     <span className="font-mono font-bold text-primary">
@@ -635,32 +635,32 @@ export function PresenceSettingsManager() {
                         </div>
 
                         {/* Section B: Stato Sistema & Regole */}
-                        <div className="pt-4 border-t border-zinc-800/60 space-y-3">
-                            <div className="pb-2 border-b border-zinc-800/60">
-                                <h3 className="text-sm font-semibold text-zinc-200">
+                        <div className="pt-4 border-t border-border/60 space-y-3">
+                            <div className="pb-2 border-b border-border/60">
+                                <h3 className="text-sm font-semibold text-fg-soft">
                                     {copy.systemInfo}
                                 </h3>
-                                <p className="text-xs text-zinc-400">
+                                <p className="text-xs text-fg-muted">
                                     Regole attive e sincronizzazione background
                                 </p>
                             </div>
 
-                            <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/60 bg-zinc-900/40">
-                                <div className="px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs hover:bg-zinc-800/20 transition-colors">
+                            <div className="border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">
+                                <div className="px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs hover:bg-muted/20 transition-colors">
                                     <div className="flex items-center gap-2">
                                         <Info className="text-primary flex-shrink-0" size={15} />
-                                        <span className="text-zinc-300 font-medium">{copy.activeStatus}</span>
+                                        <span className="text-fg-secondary font-medium">{copy.activeStatus}</span>
                                     </div>
-                                    <span className="text-zinc-400 text-[11px]">
+                                    <span className="text-fg-muted text-2xs">
                                         {copy.activeDesc}
                                     </span>
                                 </div>
 
-                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/20 transition-colors">
-                                    <span className="text-zinc-300 font-medium">
+                                <div className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 transition-colors">
+                                    <span className="text-fg-secondary font-medium">
                                         Modulo Calcolo Ore Mensile
                                     </span>
-                                    <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50">
+                                    <span className="text-2xs font-semibold text-success-400 bg-success-950/40 px-2 py-0.5 rounded border border-success-800/50">
                                         ATTIVO
                                     </span>
                                 </div>

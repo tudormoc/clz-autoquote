@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "presence:examples": "tsx --tsconfig tsconfig.json scripts/presence-examples.ts"
+    "presence:examples": "tsx --tsconfig tsconfig.json scripts/presence-examples.ts",
+    "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",

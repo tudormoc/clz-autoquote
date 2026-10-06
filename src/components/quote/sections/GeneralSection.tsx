@@ -51,11 +51,11 @@ export function GeneralSection({ control, errors, setValue }: Props) {
                 {/* Book Format Section */}
                 <div className="space-y-4 pt-2 pb-4 border-y border-border">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.bookDimensions}</h3>
+                        <h3 className="text-sm font-semibold text-fg-muted">{APP_COPY.form.bookDimensions}</h3>
                         {(openedWidth > 0 && openedHeight > 0) && (
-                            <div className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-2">
+                            <div className="text-3xs font-medium text-fg-subtle bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-2">
                                 <span>{APP_COPY.form.openedFormat}</span>
-                                <span className="text-foreground">{openedWidth} x {openedHeight} mm</span>
+                                <span className="text-fg">{openedWidth} x {openedHeight} mm</span>
                             </div>
                         )}
                     </div>

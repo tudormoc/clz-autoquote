@@ -79,7 +79,7 @@ export function CoverSection({ control, errors }: Props) {
 
                 {/* 3. Headbands */}
                 <div className="space-y-4 pt-2">
-                    <h3 className="text-sm font-semibold text-zinc-400">{APP_COPY.form.headbands}</h3>
+                    <h3 className="text-sm font-semibold text-fg-muted">{APP_COPY.form.headbands}</h3>
                     <Controller
                         control={control}
                         name="cover_details.headbands_enabled"

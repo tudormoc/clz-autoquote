@@ -155,7 +155,7 @@ export function OperatorsTable() {
 
     if (error) {
         return (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 text-danger">
                 {APP_COPY.analytics.error}: {error}
             </div>
         );
@@ -164,11 +164,11 @@ export function OperatorsTable() {
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-4">
+            <div className="bg-card border border-border rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.search}
                             </label>
                             <Input
@@ -183,7 +183,7 @@ export function OperatorsTable() {
                     {/* Stato Fisico toggle buttons — shown only after data is loaded */}
                     {allStati.length > 0 && (
                         <div className="mt-4">
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {copy.headers.statoFisico}
                             </label>
                             <div className="flex flex-wrap gap-2">
@@ -198,7 +198,7 @@ export function OperatorsTable() {
                                             className={`px-3 py-1 rounded text-xs font-medium transition-colors border ${
                                                 isActive
                                                     ? 'bg-primary/10 border-primary/40 text-primary'
-                                                    : 'bg-transparent border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                                                    : 'bg-transparent border-border-strong text-fg-subtle hover:border-fg-subtle hover:text-fg-secondary'
                                             }`}
                                         >
                                             {label}
@@ -229,13 +229,13 @@ export function OperatorsTable() {
 
             {/* Row count & info */}
             {appliedSearch !== undefined && visibleRows.length > 0 && (
-                <div className="flex items-center justify-between text-sm text-zinc-400">
+                <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>
                         {APP_COPY.analytics.common.showing}{' '}
                         <strong className="text-primary">{visibleRows.length}</strong>{' '}
                         {APP_COPY.analytics.common.records}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-fg-subtle">
                         Click on Badge, Nome, or Stato Fisico cells to edit
                     </span>
                 </div>
@@ -243,24 +243,24 @@ export function OperatorsTable() {
 
             {/* Table */}
             {appliedSearch !== undefined && (
-                <div className="bg-card border border-zinc-800 rounded-lg">
+                <div className="bg-card border border-border rounded-lg">
                     {loading ? (
                         <div className="p-8 text-center">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                         </div>
                     ) : visibleRows.length === 0 ? (
-                        <div className="p-8 text-center text-zinc-500">
+                        <div className="p-8 text-center text-fg-subtle">
                             {copy.noResults}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-zinc-900/50 border-b border-zinc-800">
+                                <thead className="bg-card/50 border-b border-border">
                                     <tr>
                                         {/* Operatore (ID) */}
                                         <th
                                             onClick={() => handleSort('OPERATORE')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-32"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-32"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {copy.headers.id}
@@ -270,7 +270,7 @@ export function OperatorsTable() {
                                         {/* Badge */}
                                         <th
                                             onClick={() => handleSort('BADGE')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-56"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-56"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {copy.headers.badge}
@@ -280,7 +280,7 @@ export function OperatorsTable() {
                                         {/* Nome */}
                                         <th
                                             onClick={() => handleSort('NOME')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {copy.headers.nome}
@@ -290,7 +290,7 @@ export function OperatorsTable() {
                                         {/* Stato Fisico */}
                                         <th
                                             onClick={() => handleSort('STATO_FISICO')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-44"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-44"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {copy.headers.statoFisico}
@@ -299,19 +299,19 @@ export function OperatorsTable() {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-800">
+                                <tbody className="divide-y divide-border">
                                     {visibleRows.map((row) => {
                                         const isEditingBadge = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'BADGE';
                                         const isEditingNome = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'NOME';
                                         const isEditingStato = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'STATO_FISICO';
 
                                         return (
-                                            <tr key={row.OPERATORE} className="hover:bg-zinc-900/30">
-                                                <td className="px-4 py-3 text-sm font-mono text-zinc-300">
+                                            <tr key={row.OPERATORE} className="hover:bg-card/30">
+                                                <td className="px-4 py-3 text-sm font-mono text-fg-secondary">
                                                     {row.OPERATORE}
                                                 </td>
                                                 {/* BADGE */}
-                                                <td className="px-4 py-3 text-sm font-mono text-zinc-300">
+                                                <td className="px-4 py-3 text-sm font-mono text-fg-secondary">
                                                     {isEditingBadge ? (
                                                         <div className="flex items-center gap-1">
                                                             <Input
@@ -331,15 +331,15 @@ export function OperatorsTable() {
                                                     ) : (
                                                         <span
                                                             onClick={() => handleEditCell(row.OPERATORE, 'BADGE', row.BADGE)}
-                                                            className="cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded transition-colors inline-block"
+                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
                                                             title="Click to edit"
                                                         >
-                                                            {row.BADGE ?? <span className="text-zinc-600 italic">—</span>}
+                                                            {row.BADGE ?? <span className="text-fg-faint italic">—</span>}
                                                         </span>
                                                     )}
                                                 </td>
                                                 {/* NOME */}
-                                                <td className="px-4 py-3 text-sm text-zinc-300">
+                                                <td className="px-4 py-3 text-sm text-fg-secondary">
                                                     {isEditingNome ? (
                                                         <div className="flex items-center gap-1">
                                                             <Input
@@ -359,15 +359,15 @@ export function OperatorsTable() {
                                                     ) : (
                                                         <span
                                                             onClick={() => handleEditCell(row.OPERATORE, 'NOME', row.NOME)}
-                                                            className="cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded transition-colors inline-block"
+                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
                                                             title="Click to edit"
                                                         >
-                                                            {row.NOME ?? <span className="text-zinc-600 italic">N/A</span>}
+                                                            {row.NOME ?? <span className="text-fg-faint italic">N/A</span>}
                                                         </span>
                                                     )}
                                                 </td>
                                                 {/* STATO FISICO */}
-                                                <td className="px-4 py-3 text-sm text-zinc-300">
+                                                <td className="px-4 py-3 text-sm text-fg-secondary">
                                                     {isEditingStato ? (
                                                         <div className="flex items-center gap-1">
                                                             <Select
@@ -387,10 +387,10 @@ export function OperatorsTable() {
                                                     ) : (
                                                         <span
                                                             onClick={() => handleEditCell(row.OPERATORE, 'STATO_FISICO', row.STATO_FISICO)}
-                                                            className="cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded transition-colors inline-block"
+                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
                                                             title="Click to edit"
                                                         >
-                                                            {row.STATO_FISICO ?? <span className="text-zinc-600 italic">—</span>}
+                                                            {row.STATO_FISICO ?? <span className="text-fg-faint italic">—</span>}
                                                         </span>
                                                     )}
                                                 </td>

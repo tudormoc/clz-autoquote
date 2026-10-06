@@ -50,13 +50,13 @@ export const BankMatrixRowGroup: React.FC<BankMatrixRowGroupProps> = ({
     const isAttivo = category === 'attivo';
 
     // Sub-header styling
-    const subheaderBg = isAttivo ? 'bg-emerald-950/20 text-emerald-400' : 'bg-rose-950/20 text-rose-400';
+    const subheaderBg = isAttivo ? 'bg-success-950/20 text-success-400' : 'bg-danger-950/20 text-danger-400';
     const subheaderLabel = isAttivo ? '└ ATTIVO (+)' : '└ PASSIVO (-)';
 
     return (
         <>
             {/* Category Sub-Header */}
-            <tr className={`${subheaderBg} font-sans font-bold uppercase tracking-wider text-[9px]`}>
+            <tr className={`${subheaderBg} font-sans font-bold uppercase tracking-wider text-4xs`}>
                 <td className="pl-6 py-0.5" colSpan={14}>
                     {subheaderLabel}
                 </td>
@@ -71,17 +71,17 @@ export const BankMatrixRowGroup: React.FC<BankMatrixRowGroupProps> = ({
                 const latestBalance = bankBalances.find(b => b.accountCode === bank.accountCode)?.balance;
 
                 // Color themes based on section & active state
-                const activeRowBg = isOpening ? 'bg-sky-900/40 text-sky-200' : 'bg-amber-900/40 text-amber-200';
+                const activeRowBg = isOpening ? 'bg-info-900/40 text-info-200' : 'bg-warning-900/40 text-warning-200';
                 const defaultRowBg = isOpening
-                    ? 'bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/25'
-                    : 'bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/25';
+                    ? 'bg-info-950/10 text-info-300/80 hover:bg-info-900/25'
+                    : 'bg-warning-950/10 text-warning-300/80 hover:bg-warning-900/25';
 
-                const chevronColor = isOpening ? 'text-sky-400' : 'text-amber-400';
-                const cellHoverBg = isOpening ? 'hover:bg-sky-800/30' : 'hover:bg-amber-800/30';
+                const chevronColor = isOpening ? 'text-info-400' : 'text-warning-400';
+                const cellHoverBg = isOpening ? 'hover:bg-info-800/30' : 'hover:bg-warning-800/30';
                 const totalColor = isAttivo
-                    ? isOpening ? 'text-sky-300' : 'text-amber-300'
-                    : isOpening ? 'text-rose-300' : 'text-rose-300';
-                const amountColor = isAttivo ? 'text-emerald-300/80' : 'text-rose-300/80';
+                    ? isOpening ? 'text-info-300' : 'text-warning-300'
+                    : isOpening ? 'text-danger-300' : 'text-danger-300';
+                const amountColor = isAttivo ? 'text-success-300/80' : 'text-danger-300/80';
 
                 const cleanName = bank.name
                     .replace('BANCA POPOLARE ', 'B. ')
@@ -91,13 +91,13 @@ export const BankMatrixRowGroup: React.FC<BankMatrixRowGroupProps> = ({
                     <React.Fragment key={`${section}_${category}_${bank.accountCode}_${bIdx}`}>
                         <tr
                             onClick={() => onToggleDrilldown(bank.accountCode, bank.name, section)}
-                            className={`transition-colors text-[10px] cursor-pointer ${
+                            className={`transition-colors text-3xs cursor-pointer ${
                                 isDrilldownOpen ? activeRowBg : defaultRowBg
                             }`}
                             title={APP_COPY.cashflow.bankDetails.drilldownTooltip}
                         >
                             {/* Bank Name with Chevron */}
-                            <td className="pl-7 pr-2 py-1 font-sans truncate text-zinc-300 flex items-center gap-1.5" title={bank.name}>
+                            <td className="pl-7 pr-2 py-1 font-sans truncate text-fg-secondary flex items-center gap-1.5" title={bank.name}>
                                 {isDrilldownOpen ? (
                                     <ChevronDown size={12} className={`${chevronColor} shrink-0`} />
                                 ) : (
@@ -137,7 +137,7 @@ export const BankMatrixRowGroup: React.FC<BankMatrixRowGroupProps> = ({
 
                             {/* Totale Column (Shows latest verified real balance) */}
                             <td
-                                className={`px-1.5 py-1 text-right font-mono ${totalColor} font-semibold bg-zinc-800/20 border-l border-zinc-800 truncate`}
+                                className={`px-1.5 py-1 text-right font-mono ${totalColor} font-semibold bg-muted/20 border-l border-border truncate`}
                                 title={`Saldo Attuale Verificato: ${formatCompactEUR(latestBalance)}`}
                             >
                                 {latestBalance !== undefined ? formatCompactEUR(latestBalance) : '-'}
@@ -146,8 +146,8 @@ export const BankMatrixRowGroup: React.FC<BankMatrixRowGroupProps> = ({
 
                         {/* Inline Drilldown Panel */}
                         {isDrilldownOpen && (
-                            <tr className="bg-zinc-950">
-                                <td colSpan={14} className="p-2 border-b border-zinc-800">
+                            <tr className="bg-background">
+                                <td colSpan={14} className="p-2 border-b border-border">
                                     <BankOperationsDrilldown
                                         accountCode={bank.accountCode}
                                         accountName={bank.name}

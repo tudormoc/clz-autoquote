@@ -18,31 +18,31 @@ export function DBStatusSummary() {
     }, []);
 
     const StatusCard = ({ name, title, target, result }: { name: string, title: string, target: string, result: any }) => (
-        <div className="bg-card border border-zinc-800 p-4 rounded-lg">
+        <div className="bg-card border border-border p-4 rounded-lg">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-zinc-800 rounded">
+                    <div className="p-1.5 bg-muted rounded">
                         <Database className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-sm text-zinc-100">{title}</h3>
-                        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">{target}</p>
+                        <h3 className="font-semibold text-sm text-fg">{title}</h3>
+                        <p className="text-3xs text-fg-subtle font-mono uppercase tracking-wider">{target}</p>
                     </div>
                 </div>
                 {loading ? (
-                    <Loader2 className="h-5 w-5 text-zinc-500 animate-spin" />
+                    <Loader2 className="h-5 w-5 text-fg-subtle animate-spin" />
                 ) : result?.success ? (
-                    <CheckCircle className="h-5 w-5 text-success-foreground" />
+                    <CheckCircle className="h-5 w-5 text-success-500" />
                 ) : (
-                    <XCircle className="h-5 w-5 text-destructive" />
+                    <XCircle className="h-5 w-5 text-danger" />
                 )}
             </div>
 
             <div className="text-xs">
                 {loading ? (
-                    <div className="h-4 bg-zinc-800 animate-pulse rounded w-3/4"></div>
+                    <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
                 ) : (
-                    <p className={result?.success ? 'text-success-foreground' : 'text-destructive'}>
+                    <p className={result?.success ? 'text-success-500' : 'text-danger'}>
                         {result?.message || 'Unknown status'}
                     </p>
                 )}

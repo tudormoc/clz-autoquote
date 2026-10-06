@@ -107,14 +107,14 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
     const hasSelection = mode === 'weeks' ? selectedWeeks.length > 0 : selectedMonths.length > 0;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-card border border-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50">
+            <div className="bg-card border border-border rounded-lg shadow-xl max-w-md w-full mx-4">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                    <h2 className="text-lg font-semibold text-white">{title || copy.pdfTitle}</h2>
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                    <h2 className="text-lg font-semibold text-fg-strong">{title || copy.pdfTitle}</h2>
                     <button
                         onClick={onClose}
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        className="text-fg-muted hover:text-fg-strong transition-colors"
                         disabled={loading}
                     >
                         <X size={20} />
@@ -123,13 +123,13 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
 
                 {/* Content */}
                 <div className="p-4">
-                    <p className="text-sm text-zinc-400 mb-4">
+                    <p className="text-sm text-fg-muted mb-4">
                         Seleziona l&apos;anno e il periodo da includere nel report:
                     </p>
 
                     {/* Year Selector */}
                     <div className="mb-4">
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">Anno</label>
+                        <label className="block text-xs font-medium text-fg-muted mb-2">Anno</label>
                         <div className="flex gap-2">
                             {availableYears.map(year => (
                                 <button
@@ -140,7 +140,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                         px-4 py-2 rounded text-sm font-medium transition-all
                                         ${selectedYear === year
                                             ? 'bg-primary text-primary-foreground'
-                                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                                            : 'bg-muted text-fg-secondary hover:bg-muted-strong'
                                         }
                                         ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                     `}
@@ -154,7 +154,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                     {/* Mode Toggle — only shown when showWeekMode prop is true */}
                     {showWeekMode && (
                         <div className="mb-4">
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 Tipo Periodo
                             </label>
                             <div className="flex gap-2">
@@ -167,7 +167,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                             flex-1 px-4 py-2 rounded text-sm font-medium transition-all border
                                             ${mode === m
                                                 ? 'bg-primary border-primary text-primary-foreground'
-                                                : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                                                : 'bg-muted border-border-strong text-fg-secondary hover:bg-muted-strong'
                                             }
                                             ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                         `}
@@ -182,7 +182,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                     {/* Period Selector: months grid or weeks grid */}
                     {mode === 'months' ? (
                         <div className="mb-4">
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">Mesi</label>
+                            <label className="block text-xs font-medium text-fg-muted mb-2">Mesi</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {MONTHS.map(month => (
                                     <button
@@ -193,7 +193,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                             px-3 py-2 rounded text-sm font-medium transition-all
                                             ${selectedMonths.includes(month.num)
                                                 ? 'bg-primary text-primary-foreground'
-                                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                                                : 'bg-muted text-fg-secondary hover:bg-muted-strong'
                                             }
                                             ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                         `}
@@ -205,7 +205,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                         </div>
                     ) : (
                         <div className="mb-4">
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 Settimane (1–{totalWeeks})
                             </label>
                             {/* 8 cols → 7 rows for 52 weeks; scrollable if 53 */}
@@ -219,7 +219,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                             py-1.5 rounded text-xs font-medium transition-all
                                             ${selectedWeeks.includes(week)
                                                 ? 'bg-primary text-primary-foreground'
-                                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                                                : 'bg-muted text-fg-secondary hover:bg-muted-strong'
                                             }
                                             ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                         `}
@@ -234,7 +234,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                     {/* Page Format Selector — hidden when report always uses a fixed format */}
                     {!hideFormatSelector && (
                     <div className="mb-4">
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                        <label className="block text-xs font-medium text-fg-muted mb-2">
                             Formato Pagina
                         </label>
                         <div className="flex gap-2">
@@ -247,7 +247,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                         flex-1 px-4 py-2 rounded text-sm font-medium transition-all border
                                         ${pageFormat === fmt
                                             ? 'bg-primary border-primary text-primary-foreground'
-                                            : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                                            : 'bg-muted border-border-strong text-fg-secondary hover:bg-muted-strong'
                                         }
                                         ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                     `}
@@ -261,7 +261,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
 
                     {/* Separate PDFs Toggle */}
                     {!hideSeparateToggle && (
-                        <div className="mb-4 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                        <div className="mb-4 p-3 bg-card/50 rounded-lg border border-border">
                             <label className="flex items-start gap-3 cursor-pointer group">
                                 <div className="pt-0.5">
                                     <input
@@ -269,14 +269,14 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                         checked={separateByArea}
                                         onChange={(e) => setSeparateByArea(e.target.checked)}
                                         disabled={loading}
-                                        className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-primary focus:ring-primary focus:ring-offset-zinc-900"
+                                        className="w-4 h-4 rounded border-border-strong bg-muted text-primary focus:ring-primary focus:ring-offset-card"
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <span className="block text-sm font-medium text-white group-hover:text-primary transition-colors">
+                                    <span className="block text-sm font-medium text-fg-strong group-hover:text-primary transition-colors">
                                         {copy.separateReports}
                                     </span>
-                                    <span className="block text-xs text-zinc-400">
+                                    <span className="block text-xs text-fg-muted">
                                         {copy.separateReportsDescription}
                                     </span>
                                 </div>
@@ -285,7 +285,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                     )}
 
                     {hasSelection && (
-                        <div className="text-xs text-zinc-400">
+                        <div className="text-xs text-fg-muted">
                             {mode === 'months'
                                 ? `Selezionati: ${selectedYear} - ${selectedMonths.map(m => MONTHS[m - 1].name).join(', ')}`
                                 : `Selezionate: ${selectedYear} - Settimane ${selectedWeeks.join(', ')}`
@@ -295,7 +295,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                 </div>
 
                 {/* Footer */}
-                <div className="flex gap-2 p-4 border-t border-zinc-800">
+                <div className="flex gap-2 p-4 border-t border-border">
                     <Button
                         onClick={onClose}
                         variant="secondary"

@@ -335,7 +335,7 @@ export function DailyEventsTable() {
 
     if (error) {
         return (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 text-danger">
                 {APP_COPY.analytics.error}: {error}
             </div>
         );
@@ -345,11 +345,11 @@ export function DailyEventsTable() {
         <>
         <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-4">
+            <div className="bg-card border border-border rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
@@ -358,7 +358,7 @@ export function DailyEventsTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
@@ -367,7 +367,7 @@ export function DailyEventsTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 Operator (Code or Name)
                             </label>
                             <Input
@@ -401,9 +401,9 @@ export function DailyEventsTable() {
 
                 {/* Add Event Form */}
                 {showAddForm && (
-                    <div className="mt-4 pt-4 border-t border-zinc-800 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-1">
+                            <label className="block text-xs font-medium text-fg-muted mb-1">
                                 Operator (Oggetto)
                             </label>
                             <Input
@@ -414,7 +414,7 @@ export function DailyEventsTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-1">
+                            <label className="block text-xs font-medium text-fg-muted mb-1">
                                 Evento
                             </label>
                             <Select
@@ -427,7 +427,7 @@ export function DailyEventsTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-1">
+                            <label className="block text-xs font-medium text-fg-muted mb-1">
                                 Date
                             </label>
                             <DatePicker
@@ -436,7 +436,7 @@ export function DailyEventsTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-1">
+                            <label className="block text-xs font-medium text-fg-muted mb-1">
                                 Time
                             </label>
                             <Input
@@ -460,11 +460,11 @@ export function DailyEventsTable() {
 
             {/* Stats */}
             {appliedFilters !== null && data.length > 0 && (
-                <div className="flex items-center justify-between text-sm text-zinc-400">
+                <div className="flex items-center justify-between text-sm text-fg-muted">
                     <span>
                         {APP_COPY.analytics.common.showing} <strong className="text-primary">{data.length}</strong> {APP_COPY.analytics.common.records}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-fg-subtle">
                         Click on ORA_EVENTO cells to edit
                     </span>
                 </div>
@@ -472,23 +472,23 @@ export function DailyEventsTable() {
 
             {/* Results */}
             {appliedFilters !== null && (
-                <div className="bg-card border border-zinc-800 rounded-lg">
+                <div className="bg-card border border-border rounded-lg">
                     {loading ? (
                         <div className="p-8 text-center">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         </div>
                     ) : data.length === 0 ? (
-                        <div className="p-8 text-center text-zinc-500">
+                        <div className="p-8 text-center text-fg-subtle">
                             {APP_COPY.analytics.common.noResults}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-zinc-900/50 border-b border-zinc-800">
+                                <thead className="bg-card/50 border-b border-border">
                                     <tr>
                                         <th 
                                             onClick={() => handleSort('OGGETTO')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
                                                 Oggetto
@@ -497,7 +497,7 @@ export function DailyEventsTable() {
                                         </th>
                                         <th 
                                             onClick={() => handleSort('operator_name')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
                                                 Operator Name
@@ -506,7 +506,7 @@ export function DailyEventsTable() {
                                         </th>
                                         <th 
                                             onClick={() => handleSort('EVENTO')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
                                                 Evento
@@ -515,36 +515,36 @@ export function DailyEventsTable() {
                                         </th>
                                         <th 
                                             onClick={() => handleSort('ORA_EVENTO')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
+                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
                                         >
                                             <div className="flex items-center gap-2">
                                                 Ora Evento
                                                 {getSortIcon('ORA_EVENTO')}
                                             </div>
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 uppercase tracking-wider w-16">
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted uppercase tracking-wider w-16">
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-800">
+                                <tbody className="divide-y divide-border">
                                     {data.map((row, idx) => {
                                         const isEditingOraEvento = editingCell?.rowIdx === idx && editingCell?.colName === 'ORA_EVENTO';
 
                                         return (
-                                            <tr key={idx} className="hover:bg-zinc-900/30">
-                                                <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
+                                            <tr key={idx} className="hover:bg-card/30">
+                                                <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
                                                     {row.OGGETTO}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-zinc-300">
-                                                    {row.operator_name || <span className="text-zinc-600 italic">N/A</span>}
+                                                <td className="px-4 py-3 text-sm text-fg-secondary">
+                                                    {row.operator_name || <span className="text-fg-faint italic">N/A</span>}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-zinc-300">
+                                                <td className="px-4 py-3 text-sm text-fg-secondary">
                                                     {row.EVENTO}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
+                                                <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
                                                     {isEditingOraEvento ? (
                                                         <div className="flex items-center gap-2">
-                                                            <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-1">
+                                                            <div className="flex items-center gap-1 bg-card border border-border-strong rounded px-2 py-1">
                                                                 <Input
                                                                     type="date"
                                                                     value={editDateValue}
@@ -552,7 +552,7 @@ export function DailyEventsTable() {
                                                                     className="h-7 text-xs border-0 bg-transparent p-0 w-[110px] focus:ring-0"
                                                                     autoFocus
                                                                 />
-                                                                <span className="text-zinc-600">|</span>
+                                                                <span className="text-fg-faint">|</span>
                                                                 <Input
                                                                     type="time"
                                                                     step="1"
@@ -565,7 +565,7 @@ export function DailyEventsTable() {
                                                                 onClick={handleSaveCell}
                                                                 disabled={saving}
                                                                 size="sm"
-                                                                className="h-7 w-7 p-0 bg-green-600 hover:bg-green-700"
+                                                                className="h-7 w-7 p-0 bg-success-600 hover:bg-success-700"
                                                             >
                                                                 <Save size={12} />
                                                             </Button>
@@ -582,7 +582,7 @@ export function DailyEventsTable() {
                                                     ) : (
                                                         <span
                                                             onClick={() => handleEditCell(idx, 'ORA_EVENTO', row.ORA_EVENTO)}
-                                                            className="cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded transition-colors inline-block"
+                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
                                                             title="Click to edit"
                                                         >
                                                             {formatDateTime(row.ORA_EVENTO)}
@@ -592,7 +592,7 @@ export function DailyEventsTable() {
                                                 <td className="px-4 py-3 text-right">
                                                     <button
                                                         onClick={() => handleDeleteEvent(row)}
-                                                        className="p-1 text-zinc-500 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                                        className="p-1 text-fg-subtle hover:text-danger hover:bg-danger/10 rounded transition-colors"
                                                         title="Delete event"
                                                     >
                                                         <Trash2 size={16} />
@@ -611,10 +611,10 @@ export function DailyEventsTable() {
 
         {/* Delete confirmation modal */}
         {deleteModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
-                    <h3 className="text-base font-semibold text-white mb-1">Delete events</h3>
-                    <p className="text-xs text-zinc-400 mb-4">Select the events to delete, then press OK.</p>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 backdrop-blur-sm">
+                <div className="bg-card border border-border-strong rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4">
+                    <h3 className="text-base font-semibold text-fg-strong mb-1">Delete events</h3>
+                    <p className="text-xs text-fg-muted mb-4">Select the events to delete, then press OK.</p>
                     <div className="space-y-2 mb-6">
                         {deleteModal.items.map((item, i) => (
                             <label key={i} className="flex items-center gap-3 cursor-pointer group">
@@ -626,9 +626,9 @@ export function DailyEventsTable() {
                                         next[i] = !next[i];
                                         setDeleteModal({ ...deleteModal, checked: next });
                                     }}
-                                    className="w-4 h-4 accent-red-500 cursor-pointer"
+                                    className="w-4 h-4 accent-danger-500 cursor-pointer"
                                 />
-                                <span className="text-sm text-zinc-200 group-hover:text-white transition-colors font-mono">
+                                <span className="text-sm text-fg-soft group-hover:text-fg-strong transition-colors font-mono">
                                     {item.label}
                                 </span>
                             </label>
@@ -637,14 +637,14 @@ export function DailyEventsTable() {
                     <div className="flex gap-2 justify-end">
                         <button
                             onClick={() => setDeleteModal(null)}
-                            className="px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
+                            className="px-4 py-2 rounded-lg text-sm text-fg-secondary hover:text-fg-strong hover:bg-muted-strong transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleConfirmDelete}
                             disabled={deleting || deleteModal.checked.every(c => !c)}
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-danger-600 hover:bg-danger-500 disabled:opacity-40 disabled:cursor-not-allowed text-fg-strong transition-colors"
                         >
                             {deleting ? 'Deleting...' : 'OK'}
                         </button>

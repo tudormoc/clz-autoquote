@@ -12,47 +12,11 @@ export const APP_CONFIG = {
     TOAST_DURATION: 3000,
   },
 
-  // Design System - Spacing & Typography
-  // Single source of truth for consistent spacing across the app
-  DESIGN: {
-    // Spacing scale (use these instead of arbitrary values)
-    SPACING: {
-      CARD_PADDING: 'p-4',           // Standard card padding (reduced from p-6)
-      SECTION_GAP: 'gap-4',          // Gap between form sections
-      GRID_GAP: 'gap-4',             // Standard grid gap
-      SMALL_GAP: 'gap-2',            // Small gaps (icons, inline elements)
-      INPUT_PADDING: 'px-3 py-2',    // Standard input padding
-      BUTTON_PADDING_SM: 'px-3',
-      BUTTON_PADDING_MD: 'px-4',
-      BUTTON_PADDING_LG: 'px-6',
-    },
-
-    // Typography scale
-    TYPOGRAPHY: {
-      HEADING_XL: 'text-xl font-semibold',
-      HEADING_LG: 'text-lg font-semibold',
-      HEADING_MD: 'text-base font-semibold',
-      HEADING_SM: 'text-sm font-semibold',
-      BODY: 'text-sm',
-      BODY_SMALL: 'text-xs',
-      LABEL: 'text-xs font-medium',
-      MONO: 'font-mono',
-    },
-
-    // Border radius
-    RADIUS: {
-      CARD: 'rounded-lg',
-      INPUT: 'rounded',
-      BUTTON: 'rounded',
-      SMALL: 'rounded',
-    },
-
-    // Shadows (minimal)
-    SHADOW: {
-      CARD: 'shadow-none',           // No shadows for clean look
-      DEFAULT: 'shadow-none',
-      DROPDOWN: 'shadow-lg',         // Only for floating elements
-    },
+  // Display locale for numbers, money and dates (used by src/lib/format.ts).
+  // Colours, radius, fonts and shadows live in src/styles/theme.js.
+  LOCALE: {
+    LANGUAGE: 'it-IT',
+    CURRENCY: 'EUR',
   },
 
   // Default Form Values (Fallbacks)

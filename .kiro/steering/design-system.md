@@ -1,5 +1,5 @@
 ---
-description: "Dark theme design system - centralized colors, spacing, typography"
+description: "Dark theme design system - tokens, layout components, formatters"
 inclusion: auto
 fileMatchPattern: "**/*.tsx"
 ---
@@ -9,64 +9,100 @@ fileMatchPattern: "**/*.tsx"
 ## Philosophy
 Clean, fast, readable. Minimal shadows, tight spacing. Every pixel serves purpose.
 
-## Colors (src/app/globals.css)
+## Where things live
 
-### Backgrounds
-- `bg-background` (zinc-950) - Main
-- `bg-card` (zinc-900) - Cards
-- `bg-zinc-800` - Secondary
-- `bg-zinc-950` - Inputs
+| What | File |
+|------|------|
+| Colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` |
+| Page frame (header + sidebar + content) | `src/components/layout/AppShell.tsx` |
+| Page title block | `src/components/layout/PageHeader.tsx` |
+| Section sidebars, header icons, home cards | `src/config/navigation.ts` |
+| Buttons (also links styled as buttons) | `src/components/ui/Button.tsx` → `Button`, `buttonClasses()` |
+| Empty / landing panels | `src/components/ui/EmptyState.tsx` |
+| Numbers, money, hours, dates | `src/lib/format.ts` |
 
-### Text
-- `text-zinc-100` - Primary
-- `text-zinc-400` - Labels
-- `text-zinc-500` - Placeholder
-- `text-primary` - Cyan accent
+Restyle the whole app by editing `src/styles/theme.js` only.
 
-### Status (Semantic)
-- `text-success-foreground` / `bg-success/20` - Green
-- `text-warning-foreground` / `bg-warning/20` - Orange
-- `text-destructive` / `bg-destructive/10` - Red
+## Colour tokens
 
-## Typography (constants.ts)
-- Sans: Inter (UI)
-- Mono: JetBrains Mono (numbers only)
-- NO uppercase labels
-- NO tracking-wider
+### Surfaces (darkest → lightest)
+- `bg-background` page, inputs
+- `bg-card` panels, cards, sidebars
+- `bg-muted` secondary buttons, chips, row hover
+- `bg-muted-strong` hover on muted controls
+- `bg-overlay/60` modal backdrop
 
-## Spacing (constants.ts)
-- Cards: `p-4`
-- Gaps: `gap-4`
-- Inputs: `h-9`, `px-3 py-2`
+### Lines
+- `border-border` default borders, `divide-border`
+- `border-border-strong` input borders, emphasised outlines
+
+### Text (strongest → faintest)
+- `text-fg-strong` titles, key figures
+- `text-fg` default text
+- `text-fg-soft` emphasised values
+- `text-fg-secondary` secondary text
+- `text-fg-muted` labels, icons
+- `text-fg-subtle` hints, placeholders
+- `text-fg-faint` disabled, decorative
+- `text-fg-inverse` text on bright fills
+
+### Status roles (full 50–950 scale, `DEFAULT` = 500)
+- `primary` brand / interactive (cyan)
+- `success` ok, positive amounts (emerald)
+- `warning` attention, pending, manual edits (amber)
+- `danger` errors, delete, negative amounts (red)
+- `info` informational, selection (blue)
+- `highlight` secondary category accent (purple)
+
+Typical use: text `text-success-400`, tint `bg-danger/10`, border `border-warning-500/30`.
+
+## Typography
+- Sans: Inter (UI) · Mono: JetBrains Mono (numbers only)
+- Small sizes: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px)
+- NO uppercase labels, NO tracking-wider
+
+## Layout
+- Page column: `max-w-page`; full-height work area: `max-w-workspace`
+- Sidebar: `w-sidebar` / `w-sidebar-collapsed`
+- Cards `p-4`, gaps `gap-4`, inputs `h-9`
+
+## New page recipe
+```tsx
+// Inside a section with a sidebar (its layout.tsx already renders AppShell + SectionSidebar):
+export default function MyPage() {
+    return (
+        <>
+            <PageHeader icon={Users} title={copy.title} subtitle={copy.subtitle} />
+            <MyContent />
+        </>
+    );
+}
+
+// Standalone page:
+export default function MyPage() {
+    return (
+        <AppShell>
+            <PageHeader icon={Wallet} title={copy.title} actions={<Button>…</Button>} />
+            <MyContent />
+        </AppShell>
+    );
+}
+```
+Then add the link to `src/config/navigation.ts`.
 
 ## Rules
-
-### ✅ DO
-- Use semantic tokens (`bg-card`, `text-success-foreground`)
-- Reference `constants.ts` for spacing
-- Monospace ONLY for numbers
-
-### ❌ NEVER
-- Hardcode colors (`#18181b`, `text-green-400`, `bg-red-50`)
-- Arbitrary values (`w-[350px]`)
-- Shadows (except dropdowns)
-- Uppercase labels
-
-## Examples
+- ❌ Raw palette classes: `text-zinc-400`, `bg-emerald-500`, `text-white` (ESLint error)
+- ❌ Arbitrary font sizes: `text-[10px]` (ESLint error)
+- ❌ Hex colours in components: `#18181b`
+- ✅ Monospace only for numbers · shadows only for dropdowns
 
 ```tsx
 // ✅ CORRECT
-<div className="bg-card p-4 border border-zinc-800">
-<span className="text-success-foreground">Success</span>
-<button className="text-destructive hover:bg-destructive/10">Delete</button>
+<div className="bg-card p-4 border border-border">
+<span className="text-success-400">{formatCurrency(total)}</span>
+<button className="text-danger hover:bg-danger/10">Elimina</button>
 
 // ❌ WRONG
 <div className="bg-[#18181b] p-[17px]">
-<span className="text-green-400">Success</span>
-<button className="text-red-400 hover:bg-red-50">Delete</button>
+<span className="text-green-400">{value.toFixed(2)} €</span>
 ```
-
-## Change Design
-Edit `src/app/globals.css` → entire app updates instantly.
-
-

@@ -1,6 +1,15 @@
 /**
- * Date utility functions for analytics
+ * Date helpers. Dates travel through the app as local "YYYY-MM-DD" strings;
+ * for display use formatDate() from src/lib/format.ts.
  */
+
+/** Local calendar date → "YYYY-MM-DD" (no UTC shift, unlike toISOString) */
+export function toIsoDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
 
 /**
  * Get the start date of last year (January 1st)
@@ -22,9 +31,7 @@ export function getLastYearEnd(): string {
     return `${lastYear}-12-31`;
 }
 
-/**
- * Get today's date in YYYY-MM-DD format
- */
+/** Today's local date in YYYY-MM-DD format */
 export function getTodayDate(): string {
-    return new Date().toISOString().split('T')[0];
+    return toIsoDate(new Date());
 }

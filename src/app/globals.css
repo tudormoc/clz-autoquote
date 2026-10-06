@@ -2,93 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+   Design tokens (colours, radius, shadows, fonts) are defined in src/styles/theme.js and
+   injected on :root as CSS variables by tailwind.config.js. Use them as rgb(var(--name)).
+*/
+
 @layer base {
-  :root {
-    /* 
-       DESIGN SYSTEM - Dark Theme (BindMasterPro Style)
-       Based on Zinc palette with Cyan accent
-       
-       Background Hierarchy:
-       - zinc-950: Main background (#09090b)
-       - zinc-900: Card/Panel background (#18181b)
-       - zinc-800: Borders/Dividers (#27272a)
-       - zinc-700: Input borders (#3f3f46)
-       
-       Text Hierarchy:
-       - zinc-50/100: Primary text (white/near-white)
-       - zinc-300: Secondary text
-       - zinc-400/500: Muted/placeholder text
-       - zinc-600: Disabled/subtle text
-       
-       Accent: Cyan-400/500 for interactive elements
-    */
-    
-    /* Base colors */
-    --background: 240 10% 3.9%;        /* zinc-950 */
-    --foreground: 240 5% 96%;          /* zinc-100 */
-
-    /* Card colors */
-    --card: 240 6% 10%;                /* zinc-900 */
-    --card-foreground: 240 5% 96%;     /* zinc-100 */
- 
-    /* Popover colors */
-    --popover: 240 6% 10%;             /* zinc-900 */
-    --popover-foreground: 240 5% 96%;  /* zinc-100 */
- 
-    /* Primary (Cyan accent) */
-    --primary: 189 94% 43%;            /* cyan-500 */
-    --primary-foreground: 240 10% 3.9%; /* zinc-950 */
- 
-    /* Secondary */
-    --secondary: 240 4% 16%;           /* zinc-800 */
-    --secondary-foreground: 240 5% 96%; /* zinc-100 */
- 
-    /* Muted */
-    --muted: 240 4% 16%;               /* zinc-800 */
-    --muted-foreground: 240 4% 46%;    /* zinc-500 */
- 
-    /* Accent (Cyan) */
-    --accent: 189 94% 43%;             /* cyan-500 */
-    --accent-foreground: 240 10% 3.9%; /* zinc-950 */
- 
-    /* Destructive (Red) */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 240 5% 96%;
-    
-    /* Semantic Status Colors */
-    --success: 142 76% 36%;            /* green-600 */
-    --success-foreground: 142 71% 45%; /* green-400 */
-    --warning: 25 95% 53%;             /* orange-500 */
-    --warning-foreground: 31 97% 72%;  /* orange-400 */
-    --info: 217 91% 60%;               /* blue-500 */
-    --info-foreground: 213 94% 68%;    /* blue-400 */
-
-    /* Borders & Inputs */
-    --border: 240 4% 16%;              /* zinc-800 */
-    --input: 240 4% 16%;               /* zinc-800 */
-    --ring: 189 94% 43%;               /* cyan-500 */
- 
-    /* Border radius */
-    --radius: 0.5rem;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  }
- 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: rgb(var(--background));
+    color: rgb(var(--fg));
+    font-family: theme('fontFamily.sans');
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
-  
+
   /* Monospace font for numbers and code */
   .font-mono {
-    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-family: theme('fontFamily.mono');
   }
 }
 
@@ -101,7 +30,7 @@
   }
 
   *:hover {
-    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+    scrollbar-color: rgb(var(--muted)) rgb(var(--background));
   }
 
   ::-webkit-scrollbar {
@@ -119,21 +48,21 @@
   }
 
   *:hover::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
+    background: rgb(var(--muted));
   }
 
   *:hover::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: rgb(var(--background));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground));
+    background: rgb(var(--fg-subtle));
   }
-  
+
   /* Selection color */
   ::selection {
-    background-color: hsl(var(--accent) / 0.3);
-    color: hsl(var(--foreground));
+    background-color: rgb(var(--primary-500) / 0.3);
+    color: rgb(var(--fg));
   }
 
   /* Animations */

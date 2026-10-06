@@ -1,29 +1,23 @@
-import { Header } from '@/components/Header';
+import { Database } from 'lucide-react';
+import { AppShell } from '@/components/layout/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { DBExplorer } from '@/components/DBExplorer';
 import { DBStatusSummary } from '@/components/DBStatusSummary';
+import { APP_COPY } from '@/locales';
+
+const copy = APP_COPY.home.cards.database;
 
 export const metadata = {
-    title: 'Database Explorer | CLZ Autoquote',
-    description: 'Internal tool to explore local MSSQL database tables and columns.',
+    title: `${copy.title} | ${APP_COPY.header.title}`,
+    description: copy.description,
 };
 
 export default function DBTestPage() {
     return (
-        <div className="h-screen flex flex-col bg-background overflow-hidden">
-            <Header />
-
-            <main className="flex-1 overflow-y-auto">
-                <div className="max-w-screen-2xl mx-auto px-4 py-4">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-semibold text-white">Database Explorer</h1>
-                    <p className="text-zinc-400 text-sm mt-1">Explore your local MSSQL database to identify tables for integration.</p>
-                </div>
-
-                <DBStatusSummary />
-
-                <DBExplorer />
-                </div>
-            </main>
-        </div>
+        <AppShell>
+            <PageHeader icon={Database} title={copy.title} subtitle={copy.description} />
+            <DBStatusSummary />
+            <DBExplorer />
+        </AppShell>
     );
 }

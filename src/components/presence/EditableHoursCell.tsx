@@ -185,13 +185,13 @@ export function EditableHoursCell({
                     style={{
                         width: hasPresets ? `${Math.max(8, (editValue?.length || 0) + 3)}ch` : undefined,
                     }}
-                    className="h-7 min-w-[5.5rem] max-w-[24rem] px-2 text-xs text-right font-mono bg-zinc-950 text-zinc-100 border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
+                    className="h-7 min-w-[5.5rem] max-w-[24rem] px-2 text-xs text-right font-mono bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
                 />
                 {hasPresets && presets && (
                     <div
                         className={`absolute right-0 ${
                             openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                        } z-50 flex items-center gap-1 bg-zinc-900 border border-zinc-700 p-1 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap`}
+                        } z-50 flex items-center gap-1 bg-card border border-border-strong p-1 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap`}
                     >
                         {presets.map((p) => (
                             <button
@@ -201,7 +201,7 @@ export function EditableHoursCell({
                                     e.preventDefault();
                                     handleSavePreset(p);
                                 }}
-                                className="px-1.5 py-0.5 text-[10px] font-medium bg-zinc-800 hover:bg-amber-600/30 hover:text-amber-300 text-zinc-300 border border-zinc-700 rounded transition-colors"
+                                className="px-1.5 py-0.5 text-3xs font-medium bg-muted hover:bg-warning-600/30 hover:text-warning-300 text-fg-secondary border border-border-strong rounded transition-colors"
                             >
                                 {p}
                             </button>
@@ -221,7 +221,7 @@ export function EditableHoursCell({
                 <span
                     onClick={handleStartEdit}
                     title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
-                    className="cursor-pointer inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
+                    className="cursor-pointer inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 transition-colors"
                 >
                     {String(value)}
                 </span>
@@ -237,9 +237,9 @@ export function EditableHoursCell({
             title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
             className={`px-2 py-1 rounded text-sm font-mono text-right block transition-colors ${
                 disabled
-                    ? 'text-zinc-600 cursor-default'
-                    : 'cursor-pointer hover:bg-zinc-800/80 hover:text-primary ' +
-                      (hasValue && Number(value) > 0 ? 'text-zinc-200 font-medium' : 'text-zinc-500 italic')
+                    ? 'text-fg-faint cursor-default'
+                    : 'cursor-pointer hover:bg-muted/80 hover:text-primary ' +
+                      (hasValue && Number(value) > 0 ? 'text-fg-soft font-medium' : 'text-fg-subtle italic')
             }`}
         >
             {formatted}

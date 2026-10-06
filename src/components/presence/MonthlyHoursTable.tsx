@@ -65,13 +65,13 @@ function toggleInSet<T>(set: Set<T>, key: T): Set<T> {
 function TurnoBadge({ turno }: { turno: 'STD' | 'TURNO2' }) {
     if (turno === 'TURNO2') {
         return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950/50 border border-blue-700/50 text-blue-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-info-950/50 border border-info-700/50 text-info-300">
                 TURNO2
             </span>
         );
     }
     return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-400">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-muted border border-border-strong text-fg-muted">
             STD
         </span>
     );
@@ -92,7 +92,7 @@ function CoverageBadge({ row, todayStr, rules: baseRules }: { row: OperatorHours
         if (status.kind === 'ok' || (status.kind === 'future' && status.covered > 0)) {
             return (
                 <span
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950/40 text-blue-300 border border-blue-800/40"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-info-950/40 text-info-300 border border-info-800/40"
                     title={fmt(copy.badgeExtraOkTitle, { covered, field: fieldLabelOf(rules.extraField) })}
                 >
                     {covered}h ✓
@@ -102,29 +102,29 @@ function CoverageBadge({ row, todayStr, rules: baseRules }: { row: OperatorHours
         if (status.kind === 'empty') {
             return (
                 <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950/60 text-amber-300 border border-amber-600/70"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-warning-950/60 text-warning-300 border border-warning-600/70"
                     title={copy.badgeExtraEmptyTitle}
                 >
                     ⚠️ 0.0h
                 </span>
             );
         }
-        return <span className="text-zinc-600 italic">—</span>;
+        return <span className="text-fg-faint italic">—</span>;
     }
 
     switch (status.kind) {
         case 'non-working':
             return status.covered > 0 ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950/40 text-blue-300 border border-blue-800/40">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-info-950/40 text-info-300 border border-info-800/40">
                     {covered}h
                 </span>
             ) : (
-                <span className="text-zinc-600 italic">—</span>
+                <span className="text-fg-faint italic">—</span>
             );
         case 'ok':
             return (
                 <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-700/60"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-success-950/60 text-success-300 border border-success-700/60"
                     title={fmt(copy.badgeOkTitle, { h: expected })}
                 >
                     {expected}h ✓
@@ -133,7 +133,7 @@ function CoverageBadge({ row, todayStr, rules: baseRules }: { row: OperatorHours
         case 'mismatch':
             return (
                 <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950/60 text-amber-300 border border-amber-600/70"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-warning-950/60 text-warning-300 border border-warning-600/70"
                     title={fmt(copy.badgeMismatchTitle, { covered, h: expected })}
                 >
                     ⚠️ {covered}h
@@ -142,7 +142,7 @@ function CoverageBadge({ row, todayStr, rules: baseRules }: { row: OperatorHours
         case 'empty':
             return (
                 <span
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono text-zinc-500 bg-zinc-900/80 border border-zinc-800"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-mono text-fg-subtle bg-card/80 border border-border"
                     title={copy.badgeEmptyTitle}
                 >
                     0.0h
@@ -152,17 +152,17 @@ function CoverageBadge({ row, todayStr, rules: baseRules }: { row: OperatorHours
             // Today / future: informational only, never counted as anomaly
             if (status.covered === rules.workdayHours) {
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-700/60">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-success-950/60 text-success-300 border border-success-700/60">
                         {expected}h ✓
                     </span>
                 );
             }
             return status.covered > 0 ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950/60 text-amber-300 border border-amber-600/70">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-warning-950/60 text-warning-300 border border-warning-600/70">
                     {covered}h
                 </span>
             ) : (
-                <span className="text-zinc-600 italic">—</span>
+                <span className="text-fg-faint italic">—</span>
             );
     }
 }
@@ -409,7 +409,7 @@ export function MonthlyHoursTable() {
 
     const getSortIcon = (column: SortColumn) => {
         if (sortConfig.column !== column) {
-            return <ArrowUpDown size={14} className="text-zinc-600" />;
+            return <ArrowUpDown size={14} className="text-fg-faint" />;
         }
         return sortConfig.direction === 'asc' ? (
             <ArrowUp size={14} className="text-primary" />
@@ -421,7 +421,7 @@ export function MonthlyHoursTable() {
     return (
         <div className="space-y-6">
             {/* Filters Form */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-6">
+            <div className="bg-card border border-border rounded-lg p-6">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
@@ -430,7 +430,7 @@ export function MonthlyHoursTable() {
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
@@ -439,7 +439,7 @@ export function MonthlyHoursTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
@@ -448,7 +448,7 @@ export function MonthlyHoursTable() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {copy.headers.operator}
                             </label>
                             <Input
@@ -461,8 +461,8 @@ export function MonthlyHoursTable() {
                     </div>
 
                     {/* Categoria Dipendente Selectors */}
-                    <div className="mt-4 pt-4 border-t border-zinc-800/80">
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                    <div className="mt-4 pt-4 border-t border-border/80">
+                        <label className="block text-xs font-medium text-fg-muted mb-2">
                             Categoria Dipendente
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -480,7 +480,7 @@ export function MonthlyHoursTable() {
                                         className={`px-3 py-1 rounded text-xs font-medium transition-colors border cursor-pointer ${
                                             isActive
                                                 ? 'bg-primary/10 border-primary/40 text-primary'
-                                                : 'bg-transparent border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                                                : 'bg-transparent border-border-strong text-fg-subtle hover:border-fg-subtle hover:text-fg-secondary'
                                         }`}
                                     >
                                         {cat.label}
@@ -496,8 +496,8 @@ export function MonthlyHoursTable() {
                     </div>
 
                     {/* Stato Giornata Selectors */}
-                    <div className="mt-4 pt-4 border-t border-zinc-800/80">
-                        <label className="block text-xs font-medium text-zinc-400 mb-2">
+                    <div className="mt-4 pt-4 border-t border-border/80">
+                        <label className="block text-xs font-medium text-fg-muted mb-2">
                             {copy.statusFilter.label}
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -508,8 +508,8 @@ export function MonthlyHoursTable() {
                                     ? fmt(copy.statusFilter.anomaly, { h: rules.workdayHours })
                                     : copy.statusFilter.ok;
                                 const activeClass = key === 'anomaly'
-                                    ? 'bg-amber-500/15 border-amber-500/50 text-amber-300'
-                                    : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300';
+                                    ? 'bg-warning-500/15 border-warning-500/50 text-warning-300'
+                                    : 'bg-success-500/10 border-success-500/40 text-success-300';
 
                                 return (
                                     <button
@@ -519,7 +519,7 @@ export function MonthlyHoursTable() {
                                         className={`px-3 py-1 rounded text-xs font-medium transition-colors border cursor-pointer ${
                                             isActive
                                                 ? activeClass
-                                                : 'bg-transparent border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                                                : 'bg-transparent border-border-strong text-fg-subtle hover:border-fg-subtle hover:text-fg-secondary'
                                         }`}
                                     >
                                         {key === 'anomaly' ? '⚠️ ' : '✓ '}{label}
@@ -553,7 +553,7 @@ export function MonthlyHoursTable() {
                             onClick={handleCheckPrefill}
                             variant="outline"
                             disabled={checkingPrefill || prefilling || loading || appliedFilters === null}
-                            className="flex items-center gap-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 cursor-pointer"
+                            className="flex items-center gap-2 border-warning-500/40 text-warning-300 hover:bg-warning-500/20 cursor-pointer"
                         >
                             {checkingPrefill || prefilling ? (
                                 <Loader2 size={16} className="animate-spin" />
@@ -563,7 +563,7 @@ export function MonthlyHoursTable() {
                             {copy.prefill.button}
                         </Button>
                         {prefillFeedback && (
-                            <span className="text-xs text-amber-400 font-medium ml-2">
+                            <span className="text-xs text-warning-400 font-medium ml-2">
                                 {prefillFeedback}
                             </span>
                         )}
@@ -573,25 +573,25 @@ export function MonthlyHoursTable() {
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 text-sm">
+                <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 text-danger-400 text-sm">
                     {error}
                 </div>
             )}
 
             {/* Row count info & 8h Compliance Bar */}
             {appliedFilters !== null && data.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-zinc-400">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-fg-muted">
                     <span>
                         {APP_COPY.analytics.common.showing}{' '}
                         <strong className="text-primary">{displayedData.length}</strong>{' '}
                         {APP_COPY.analytics.common.records}
                     </span>
                     {mismatchCount > 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-amber-950/40 border border-amber-800/60 text-amber-300">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-warning-950/40 border border-warning-800/60 text-warning-300">
                             ⚠️ {mismatchCount} {fmt(copy.verification.mismatchesFound, { h: rules.workdayHours })}
                         </span>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-emerald-950/40 border border-emerald-800/60 text-emerald-300">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-success-950/40 border border-success-800/60 text-success-300">
                             ✓ {fmt(copy.verification.compliant, { h: rules.workdayHours })}
                         </span>
                     )}
@@ -600,19 +600,19 @@ export function MonthlyHoursTable() {
 
             {/* Table */}
             {appliedFilters !== null && (
-                <div className="bg-card border border-zinc-800 rounded-lg">
+                <div className="bg-card border border-border rounded-lg">
                     {loading ? (
                         <div className="p-8 text-center">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                         </div>
                     ) : data.length === 0 ? (
-                        <div className="p-8 text-center text-zinc-500">
+                        <div className="p-8 text-center text-fg-subtle">
                             {APP_COPY.analytics.common.noResults}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-zinc-900/50 border-b border-zinc-800 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                                <thead className="bg-card/50 border-b border-border text-xs font-semibold text-fg-muted uppercase tracking-wider">
                                     <tr className="whitespace-nowrap">
                                         <th
                                             onClick={() => handleSort('operatore')}
@@ -767,41 +767,41 @@ export function MonthlyHoursTable() {
                                                 {getSortIcon('banca_ore')}
                                             </div>
                                         </th>
-                                        <th className="px-4 py-3 text-right w-36 text-zinc-500 font-normal">
+                                        <th className="px-4 py-3 text-right w-36 text-fg-subtle font-normal">
                                             <div className="flex items-center justify-end gap-2">
                                                 {copy.headers.bancaOreMeseN1}
                                             </div>
                                         </th>
-                                        <th className="px-4 py-3 text-right w-36 text-zinc-500 font-normal">
+                                        <th className="px-4 py-3 text-right w-36 text-fg-subtle font-normal">
                                             <div className="flex items-center justify-end gap-2">
                                                 {copy.headers.bancaOreMeseN}
                                             </div>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-800">
+                                <tbody className="divide-y divide-border">
                                     {displayedData.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-zinc-900/30 whitespace-nowrap">
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
+                                        <tr key={idx} className="hover:bg-card/30 whitespace-nowrap">
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
                                                 {row.operatore}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
-                                                {row.matricola || <span className="text-zinc-600 italic">—</span>}
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
+                                                {row.matricola || <span className="text-fg-faint italic">—</span>}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-medium">
-                                                {row.nome || <span className="text-zinc-600 italic">N/A</span>}
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-medium">
+                                                {row.nome || <span className="text-fg-faint italic">N/A</span>}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <TurnoBadge turno={row.turno} />
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
                                                 {row.data}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
-                                                {row.ora_inizio || <span className="text-zinc-600 italic">—</span>}
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
+                                                {row.ora_inizio || <span className="text-fg-faint italic">—</span>}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-zinc-300 font-mono">
-                                                {row.ora_fine || <span className="text-zinc-600 italic">—</span>}
+                                            <td className="px-4 py-3 text-sm text-fg-secondary font-mono">
+                                                {row.ora_fine || <span className="text-fg-faint italic">—</span>}
                                             </td>
                                             {/* Ore Ferie */}
                                             <td className="px-4 py-2 text-sm w-28">
@@ -860,7 +860,7 @@ export function MonthlyHoursTable() {
                                                 />
                                             </td>
                                             {/* Totale Ore (-1h Pausa) */}
-                                            <td className="px-4 py-3 text-sm text-zinc-100 font-mono font-semibold text-right">
+                                            <td className="px-4 py-3 text-sm text-fg font-mono font-semibold text-right">
                                                 {(row.ore_totali ?? 0).toFixed(1)}
                                             </td>
                                             {/* Controllo 8h */}
@@ -886,36 +886,36 @@ export function MonthlyHoursTable() {
                                                 />
                                             </td>
                                             {/* Banca ore n-1 */}
-                                            <td className="px-4 py-3 text-sm text-zinc-600 font-mono text-right italic">
+                                            <td className="px-4 py-3 text-sm text-fg-faint font-mono text-right italic">
                                                 —
                                             </td>
                                             {/* Banca ore n */}
-                                            <td className="px-4 py-3 text-sm text-zinc-600 font-mono text-right italic">
+                                            <td className="px-4 py-3 text-sm text-fg-faint font-mono text-right italic">
                                                 —
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="bg-zinc-900/70 border-t-2 border-zinc-700 whitespace-nowrap">
+                                <tfoot className="bg-card/70 border-t-2 border-border-strong whitespace-nowrap">
                                     <tr className="text-xs font-semibold">
-                                        <td colSpan={7} className="px-4 py-2 text-zinc-400 uppercase tracking-wider">
+                                        <td colSpan={7} className="px-4 py-2 text-fg-muted uppercase tracking-wider">
                                             {copy.totals.label}
-                                            <span className="ml-2 font-normal normal-case text-zinc-500">
+                                            <span className="ml-2 font-normal normal-case text-fg-subtle">
                                                 ({displayedData.length} {APP_COPY.analytics.common.records})
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreFerie.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.oreFerie.toFixed(1)}</td>
                                         <td />
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.orePermesso.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.orePermesso.toFixed(1)}</td>
                                         <td />
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreMalattia.toFixed(1)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreOrdinarie.toFixed(1)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreTotali.toFixed(2)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.controllo.toFixed(1)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.oreStraordinarie.toFixed(1)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-100">{totals.bancaOre.toFixed(1)}</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-600 italic">—</td>
-                                        <td className="px-4 py-2 text-right font-mono text-zinc-600 italic">—</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.oreMalattia.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.oreOrdinarie.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.oreTotali.toFixed(2)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.controllo.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.oreStraordinarie.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg">{totals.bancaOre.toFixed(1)}</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg-faint italic">—</td>
+                                        <td className="px-4 py-2 text-right font-mono text-fg-faint italic">—</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -926,13 +926,13 @@ export function MonthlyHoursTable() {
 
             {/* Confirmation Modal for Precompila e Distribuisci Ore */}
             {confirmPrefillSummary !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-card border border-zinc-800 rounded-lg shadow-2xl max-w-xl w-full max-h-full flex flex-col overflow-hidden">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 backdrop-blur-sm p-4">
+                    <div className="bg-card border border-border rounded-lg shadow-2xl max-w-xl w-full max-h-full flex flex-col overflow-hidden">
                         {/* Header (fixed) */}
-                        <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50 flex-shrink-0">
-                            <div className="flex items-center gap-2 text-amber-400">
+                        <div className="flex items-center justify-between p-4 border-b border-border bg-card/50 flex-shrink-0">
+                            <div className="flex items-center gap-2 text-warning-400">
                                 <CalendarCheck size={20} />
-                                <h3 className="font-semibold text-zinc-100 text-sm">
+                                <h3 className="font-semibold text-fg text-sm">
                                     {copy.prefill.modalTitle}
                                 </h3>
                             </div>
@@ -940,7 +940,7 @@ export function MonthlyHoursTable() {
                                 type="button"
                                 onClick={() => setConfirmPrefillSummary(null)}
                                 disabled={prefilling}
-                                className="text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+                                className="text-fg-muted hover:text-fg transition-colors cursor-pointer"
                             >
                                 <X size={18} />
                             </button>
@@ -948,60 +948,60 @@ export function MonthlyHoursTable() {
 
                         {/* Content (scrolls when taller than the viewport) */}
                         <div className="p-4 space-y-3 text-sm overflow-y-auto flex-1 min-h-0">
-                            <p className="text-zinc-200">
-                                Trovate <strong className="text-amber-400 font-bold text-base">{confirmPrefillSummary.totalCount}</strong> {copy.prefill.summaryText}
+                            <p className="text-fg-soft">
+                                Trovate <strong className="text-warning-400 font-bold text-base">{confirmPrefillSummary.totalCount}</strong> {copy.prefill.summaryText}
                             </p>
 
                             {/* Breakdown cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {/* Presenze complete */}
-                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
                                     <div>
-                                        <div className="font-semibold text-xs text-zinc-200">{fmt(copy.prefill.fullTitle, { h: workdayLabel })}</div>
-                                        <div className="text-[11px] text-zinc-400">
+                                        <div className="font-semibold text-xs text-fg-soft">{fmt(copy.prefill.fullTitle, { h: workdayLabel })}</div>
+                                        <div className="text-2xs text-fg-muted">
                                             {fmt(copy.prefill.fullDetail, { h: workdayLabel })}
                                             {confirmPrefillSummary.overflowCount > 0 && (
-                                                <span className="text-amber-400 ml-1">
+                                                <span className="text-warning-400 ml-1">
                                                     ({confirmPrefillSummary.overflowCount} {fmt(copy.prefill.overflowDetail, { min: rules.overflowMinHours, field: fieldLabel(rules.overflowField) })})
                                                 </span>
                                             )}
                                         </div>
                                     </div>
-                                    <span className="font-mono font-bold text-zinc-100 text-sm bg-zinc-800 px-2 py-0.5 rounded">
+                                    <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">
                                         {confirmPrefillSummary.fullCount}
                                     </span>
                                 </div>
 
                                 {/* Presenze parziali */}
-                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
                                     <div>
-                                        <div className="font-semibold text-xs text-zinc-200">{fmt(copy.prefill.partialTitle, { h: workdayLabel })}</div>
-                                        <div className="text-[11px] text-zinc-400">{fmt(copy.prefill.partialDetail, { h: workdayLabel, step: rules.ordinarieRounding.step, field: fieldLabel(rules.partialFillField) })}</div>
+                                        <div className="font-semibold text-xs text-fg-soft">{fmt(copy.prefill.partialTitle, { h: workdayLabel })}</div>
+                                        <div className="text-2xs text-fg-muted">{fmt(copy.prefill.partialDetail, { h: workdayLabel, step: rules.ordinarieRounding.step, field: fieldLabel(rules.partialFillField) })}</div>
                                     </div>
-                                    <span className="font-mono font-bold text-zinc-100 text-sm bg-zinc-800 px-2 py-0.5 rounded">
+                                    <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">
                                         {confirmPrefillSummary.partialCount}
                                     </span>
                                 </div>
 
                                 {/* Assenze complete */}
-                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+                                <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
                                     <div>
-                                        <div className="font-semibold text-xs text-zinc-200">{copy.prefill.absencesTitle}</div>
-                                        <div className="text-[11px] text-zinc-400">{fmt(copy.prefill.absencesDetail, { h: workdayLabel, field: fieldLabel(rules.absenceField) })}</div>
+                                        <div className="font-semibold text-xs text-fg-soft">{copy.prefill.absencesTitle}</div>
+                                        <div className="text-2xs text-fg-muted">{fmt(copy.prefill.absencesDetail, { h: workdayLabel, field: fieldLabel(rules.absenceField) })}</div>
                                     </div>
-                                    <span className="font-mono font-bold text-zinc-100 text-sm bg-zinc-800 px-2 py-0.5 rounded">
+                                    <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">
                                         {confirmPrefillSummary.absencesCount}
                                     </span>
                                 </div>
 
                                 {/* Ore fisse (profilo fixed, es. ufficio) */}
                                 {fixedCategories.length > 0 && (
-                                    <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+                                    <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
                                         <div>
-                                            <div className="font-semibold text-xs text-zinc-200">{fmt(copy.prefill.fixedTitle, { categories: fixedCategoriesLabel })}</div>
-                                            <div className="text-[11px] text-zinc-400">{fmt(copy.prefill.fixedDetail, { h: workdayLabel })}</div>
+                                            <div className="font-semibold text-xs text-fg-soft">{fmt(copy.prefill.fixedTitle, { categories: fixedCategoriesLabel })}</div>
+                                            <div className="text-2xs text-fg-muted">{fmt(copy.prefill.fixedDetail, { h: workdayLabel })}</div>
                                         </div>
-                                        <span className="font-mono font-bold text-zinc-100 text-sm bg-zinc-800 px-2 py-0.5 rounded">
+                                        <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">
                                             {confirmPrefillSummary.fixedCount}
                                         </span>
                                     </div>
@@ -1009,14 +1009,14 @@ export function MonthlyHoursTable() {
 
                                 {/* Giorni extra */}
                                 {rules.extraDays.length > 0 && (
-                                    <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+                                    <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
                                         <div>
-                                            <div className="font-semibold text-xs text-zinc-200">{fmt(copy.prefill.extraTitle, { days: extraDaysLabel })}</div>
-                                            <div className="text-[11px] text-zinc-400">
+                                            <div className="font-semibold text-xs text-fg-soft">{fmt(copy.prefill.extraTitle, { days: extraDaysLabel })}</div>
+                                            <div className="text-2xs text-fg-muted">
                                                 {fmt(copy.prefill.extraDetail, { max: rules.extraMaxHours, field: fieldLabel(rules.extraField), step: rules.extraRounding.step })}
                                             </div>
                                         </div>
-                                        <span className="font-mono font-bold text-zinc-100 text-sm bg-zinc-800 px-2 py-0.5 rounded">
+                                        <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">
                                             {confirmPrefillSummary.extraCount}
                                         </span>
                                     </div>
@@ -1024,27 +1024,27 @@ export function MonthlyHoursTable() {
                             </div>
 
                             {/* 8h Rule Guarantee Badge */}
-                            <div className="bg-emerald-950/30 border border-emerald-800/40 rounded p-3 text-xs space-y-1">
-                                <div className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                            <div className="bg-success-950/30 border border-success-800/40 rounded p-3 text-xs space-y-1">
+                                <div className="font-semibold text-success-300 flex items-center gap-1.5">
                                     <span>✓</span> {fmt(copy.prefill.ruleTitle, { h: workdayLabel })}
                                 </div>
-                                <div className="text-emerald-400/90 text-[11px]">
+                                <div className="text-success-400/90 text-2xs">
                                     {fmt(copy.prefill.ruleDesc, { h: rules.workdayHours, fields: rules.coveredFields.map(fieldLabel).join(' + ') })}
                                 </div>
                             </div>
 
                             {/* Scope rules */}
-                            <div className="bg-zinc-950/60 border border-zinc-800/80 rounded p-3 text-xs text-zinc-300 space-y-1 font-mono">
-                                <div className="text-zinc-400 font-sans font-medium text-[11px]">Periodo: <span className="text-zinc-100 font-semibold">{appliedFilters?.dateFrom}</span> &rarr; <span className="text-zinc-100 font-semibold">{appliedFilters?.dateTo}</span></div>
-                                <div className="text-zinc-400">&bull; {fmt(copy.prefill.workingDaysOnly, { days: workingDaysLabel })}</div>
-                                <div className="text-zinc-400">&bull; {copy.prefill.pastDatesOnly}</div>
-                                <div className="text-zinc-400">&bull; {copy.prefill.noOverwrite}</div>
-                                <div className="text-zinc-400">&bull; {fmt(copy.prefill.categoriesOnly, { categories: standardCategoriesLabel })}</div>
+                            <div className="bg-background/60 border border-border/80 rounded p-3 text-xs text-fg-secondary space-y-1 font-mono">
+                                <div className="text-fg-muted font-sans font-medium text-2xs">Periodo: <span className="text-fg font-semibold">{appliedFilters?.dateFrom}</span> &rarr; <span className="text-fg font-semibold">{appliedFilters?.dateTo}</span></div>
+                                <div className="text-fg-muted">&bull; {fmt(copy.prefill.workingDaysOnly, { days: workingDaysLabel })}</div>
+                                <div className="text-fg-muted">&bull; {copy.prefill.pastDatesOnly}</div>
+                                <div className="text-fg-muted">&bull; {copy.prefill.noOverwrite}</div>
+                                <div className="text-fg-muted">&bull; {fmt(copy.prefill.categoriesOnly, { categories: standardCategoriesLabel })}</div>
                             </div>
                         </div>
 
                         {/* Footer (fixed) */}
-                        <div className="flex justify-end gap-2 p-4 border-t border-zinc-800 bg-zinc-900/30 flex-shrink-0">
+                        <div className="flex justify-end gap-2 p-4 border-t border-border bg-card/30 flex-shrink-0">
                             <Button
                                 type="button"
                                 variant="secondary"
@@ -1057,7 +1057,7 @@ export function MonthlyHoursTable() {
                                 type="button"
                                 onClick={handleExecutePrefill}
                                 disabled={prefilling}
-                                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-medium"
+                                className="flex items-center gap-2 bg-warning-600 hover:bg-warning-500 text-fg-strong font-medium"
                             >
                                 {prefilling ? (
                                     <Loader2 size={16} className="animate-spin" />

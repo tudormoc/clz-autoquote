@@ -1,68 +1,26 @@
 /** @type {import('tailwindcss').Config} */
+const plugin = require('tailwindcss/plugin');
+const theme = require('./src/styles/theme');
+
+// All colours, radius, fonts and shadows come from src/styles/theme.js — edit them there.
 module.exports = {
     content: [
-        './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
         './src/components/**/*.{js,ts,jsx,tsx,mdx}',
         './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     ],
     theme: {
         extend: {
-            colors: {
-                border: "hsl(var(--border))",
-                input: "hsl(var(--input))",
-                ring: "hsl(var(--ring))",
-                background: "hsl(var(--background))",
-                foreground: "hsl(var(--foreground))",
-                primary: {
-                    DEFAULT: "hsl(var(--primary))",
-                    foreground: "hsl(var(--primary-foreground))",
-                },
-                secondary: {
-                    DEFAULT: "hsl(var(--secondary))",
-                    foreground: "hsl(var(--secondary-foreground))",
-                },
-                destructive: {
-                    DEFAULT: "hsl(var(--destructive))",
-                    foreground: "hsl(var(--destructive-foreground))",
-                },
-                success: {
-                    DEFAULT: "hsl(var(--success))",
-                    foreground: "hsl(var(--success-foreground))",
-                },
-                warning: {
-                    DEFAULT: "hsl(var(--warning))",
-                    foreground: "hsl(var(--warning-foreground))",
-                },
-                info: {
-                    DEFAULT: "hsl(var(--info))",
-                    foreground: "hsl(var(--info-foreground))",
-                },
-                muted: {
-                    DEFAULT: "hsl(var(--muted))",
-                    foreground: "hsl(var(--muted-foreground))",
-                },
-                accent: {
-                    DEFAULT: "hsl(var(--accent))",
-                    foreground: "hsl(var(--accent-foreground))",
-                },
-                popover: {
-                    DEFAULT: "hsl(var(--popover))",
-                    foreground: "hsl(var(--popover-foreground))",
-                },
-                card: {
-                    DEFAULT: "hsl(var(--card))",
-                    foreground: "hsl(var(--card-foreground))",
-                },
-            },
+            colors: theme.tailwindColors,
             borderRadius: {
-                lg: "var(--radius)",
-                md: "calc(var(--radius) - 2px)",
-                sm: "calc(var(--radius) - 4px)",
+                lg: 'var(--radius)',
+                md: 'calc(var(--radius) - 2px)',
+                sm: 'calc(var(--radius) - 4px)',
             },
-            fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
-                mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
-            },
+            fontFamily: theme.FONT_FAMILY,
+            fontSize: theme.FONT_SIZE,
+            maxWidth: theme.LAYOUT.maxWidth,
+            width: theme.LAYOUT.width,
+            height: theme.LAYOUT.height,
             boxShadow: {
                 sm: 'var(--shadow-sm)',
                 DEFAULT: 'var(--shadow)',
@@ -72,5 +30,8 @@ module.exports = {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        // Publishes every token as a CSS variable on :root (e.g. --fg-muted, --success-400)
+        plugin(({ addBase }) => addBase({ ':root': theme.cssVariables })),
+    ],
 }

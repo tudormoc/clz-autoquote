@@ -9,6 +9,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import { formatDate, formatHours, formatNumber } from '@/lib/format';
 
 interface ProductionRow {
     date: string;
@@ -224,19 +225,9 @@ export function ProductionReport() {
         setLoading(false);
     };
 
-    const formatTime = (hours: number) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
-    };
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-GB');
-    };
-
     if (loading && page === 1 && appliedFilters !== null) {
         return (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-fg-muted">
                 {APP_COPY.analytics.loading}
             </div>
         );
@@ -244,7 +235,7 @@ export function ProductionReport() {
 
     if (error) {
         return (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 text-danger">
                 {APP_COPY.analytics.error}: {error}
             </div>
         );
@@ -253,11 +244,11 @@ export function ProductionReport() {
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-4">
+            <div className="bg-card border border-border rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
@@ -266,7 +257,7 @@ export function ProductionReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
@@ -275,7 +266,7 @@ export function ProductionReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.production.headers.commessa}
                             </label>
                             <Input
@@ -286,7 +277,7 @@ export function ProductionReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.production.headers.machine}
                             </label>
                             <Input
@@ -297,7 +288,7 @@ export function ProductionReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.production.headers.operator}
                             </label>
                             <Input
@@ -326,11 +317,11 @@ export function ProductionReport() {
             </div>
 
             {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-zinc-400">
+            <div className="flex items-center justify-between text-sm text-fg-muted">
                 <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
+                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                         <Button
@@ -342,9 +333,9 @@ export function ProductionReport() {
                         <ChevronLeft size={16} />
                         {APP_COPY.analytics.common.previous}
                     </Button>
-                    <span className="text-zinc-400">
-                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-white font-mono">{totalPages}</span>
+                    <span className="text-fg-muted">
+                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
+                        <span className="text-fg-strong font-mono">{totalPages}</span>
                     </span>
                     <Button
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -359,14 +350,14 @@ export function ProductionReport() {
             </div>
 
             {/* Table */}
-            <div className="bg-card border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
                 {data.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                        <thead className="bg-card border-b border-border">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-28"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-28"
                                     onClick={() => handleSort('date')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -375,7 +366,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-40"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-40"
                                     onClick={() => handleSort('commessa')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -384,7 +375,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
                                     onClick={() => handleSort('machine')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -393,7 +384,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors w-32"
+                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
                                     onClick={() => handleSort('operator')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -402,7 +393,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('time')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -411,7 +402,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('qty_requested')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -420,7 +411,7 @@ export function ProductionReport() {
                                     </div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => handleSort('qty')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -430,45 +421,45 @@ export function ProductionReport() {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>
                             ) : (
                                 data.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm text-zinc-300 w-28">
+                                    <tr key={idx} className="hover:bg-card/50 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-fg-secondary w-28">
                                             {formatDate(row.date)}
                                         </td>
                                         <td className="px-4 py-3 text-sm w-40">
                                             <div className="font-mono text-primary truncate max-w-[10rem]">{row.commessa_display}</div>
-                                            <div className="text-xs text-zinc-500 truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
+                                            <div className="text-xs text-fg-subtle truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-zinc-300 w-32">
-                                            <div className="font-mono text-zinc-400 truncate max-w-[8rem]">{row.machine}</div>
-                                            <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.machine_name}>{row.machine_name}</div>
+                                        <td className="px-4 py-3 text-sm text-fg-secondary w-32">
+                                            <div className="font-mono text-fg-muted truncate max-w-[8rem]">{row.machine}</div>
+                                            <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.machine_name}>{row.machine_name}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-zinc-300 w-32">
-                                            <div className="font-mono text-zinc-400 truncate max-w-[8rem]">{row.operator}</div>
-                                            <div className="text-xs text-zinc-500 truncate max-w-[8rem]" title={row.operator_name}>{row.operator_name}</div>
+                                        <td className="px-4 py-3 text-sm text-fg-secondary w-32">
+                                            <div className="font-mono text-fg-muted truncate max-w-[8rem]">{row.operator}</div>
+                                            <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.operator_name}>{row.operator_name}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-white font-semibold">
-                                            {formatTime(row.work_time)}
+                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
+                                            {formatHours(row.work_time)}
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                            {row.qty_requested?.toLocaleString() || '-'}
+                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
+                                            {formatNumber(row.qty_requested)}
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-zinc-300">
-                                            {row.qty_completed.toLocaleString()}
+                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
+                                            {formatNumber(row.qty_completed)}
                                         </td>
                                     </tr>
                                 ))
@@ -478,41 +469,41 @@ export function ProductionReport() {
                     </div>
                 ) : (
                     <table className="w-full">
-                        <thead className="bg-zinc-900 border-b border-zinc-800">
+                        <thead className="bg-card border-b border-border">
                              <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-28">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-28">
                                     <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.date}</div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-40">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-40">
                                     <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.commessa}</div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
                                     <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.machine}</div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
                                     <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.operator}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.time}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyReq}</div>
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
                                     <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyDone}</div>
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.common.loading}
                                     </td>
                                 </tr>
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
                                         {APP_COPY.analytics.empty}
                                     </td>
                                 </tr>

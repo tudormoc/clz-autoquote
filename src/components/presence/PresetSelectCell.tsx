@@ -152,12 +152,12 @@ export function PresetSelectCell({
                     onChange={(e) => setEditValue(e.target.value)}
                     onBlur={handleCommit}
                     onKeyDown={handleKeyDown}
-                    className="h-7 min-w-[7rem] max-w-[14rem] px-2 text-xs text-center font-semibold uppercase bg-zinc-950 text-zinc-100 border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
+                    className="h-7 min-w-[7rem] max-w-[14rem] px-2 text-xs text-center font-semibold uppercase bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
                 />
                 <div
                     className={`absolute ${
                         openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                    } z-50 flex items-center gap-1 bg-zinc-900 border border-zinc-700 p-1.5 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap`}
+                    } z-50 flex items-center gap-1 bg-card border border-border-strong p-1.5 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap`}
                 >
                     {presets.map((p) => (
                         <button
@@ -167,7 +167,7 @@ export function PresetSelectCell({
                                 e.preventDefault();
                                 handleSavePreset(p);
                             }}
-                            className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-800 hover:bg-amber-600/30 hover:text-amber-300 text-zinc-300 border border-zinc-700 rounded transition-colors cursor-pointer"
+                            className="px-2 py-0.5 text-3xs font-semibold bg-muted hover:bg-warning-600/30 hover:text-warning-300 text-fg-secondary border border-border-strong rounded transition-colors cursor-pointer"
                         >
                             {p}
                         </button>
@@ -180,7 +180,7 @@ export function PresetSelectCell({
                                 handleClear();
                             }}
                             title="Rimuovi causale"
-                            className="px-1.5 py-0.5 text-[10px] font-medium bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 rounded transition-colors cursor-pointer flex items-center gap-1"
+                            className="px-1.5 py-0.5 text-3xs font-medium bg-danger-950/40 hover:bg-danger-900/60 text-danger-300 border border-danger-800/50 rounded transition-colors cursor-pointer flex items-center gap-1"
                         >
                             <X size={10} />
                             <span>Rimuovi</span>
@@ -199,10 +199,10 @@ export function PresetSelectCell({
                 <span
                     onClick={handleStartEdit}
                     title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold transition-colors ${
                         disabled
-                            ? 'bg-zinc-800 text-zinc-400'
-                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer'
+                            ? 'bg-muted text-fg-muted'
+                            : 'bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 cursor-pointer'
                     }`}
                 >
                     {value}
@@ -218,8 +218,8 @@ export function PresetSelectCell({
                 title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
                 className={`px-2 py-0.5 rounded text-xs font-mono text-center block transition-colors ${
                     disabled
-                        ? 'text-zinc-600 cursor-default'
-                        : 'cursor-pointer hover:bg-zinc-800/80 hover:text-zinc-300 text-zinc-600 italic'
+                        ? 'text-fg-faint cursor-default'
+                        : 'cursor-pointer hover:bg-muted/80 hover:text-fg-secondary text-fg-faint italic'
                 }`}
             >
                 {placeholder}

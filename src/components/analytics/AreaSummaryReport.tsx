@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, 
 import * as XLSX from 'xlsx';
 import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
 import { APP_CONFIG } from '@/config/constants';
+import { formatHours, formatNumber } from '@/lib/format';
 
 interface AreaSummaryRow {
     area_name: string;
@@ -218,15 +219,9 @@ export function AreaSummaryReport() {
         }
     };
 
-    const formatTime = (hours: number) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
-    };
-
     if (loading && page === 1 && appliedFilters !== null) {
         return (
-            <div className="text-center py-12 text-zinc-400">
+            <div className="text-center py-12 text-fg-muted">
                 {APP_COPY.analytics.loading}
             </div>
         );
@@ -234,7 +229,7 @@ export function AreaSummaryReport() {
 
     if (error) {
         return (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 text-danger">
                 {APP_COPY.analytics.error}: {error}
             </div>
         );
@@ -251,11 +246,11 @@ export function AreaSummaryReport() {
             />
             <div className="space-y-4">
             {/* Filters */}
-            <div className="bg-card border border-zinc-800 rounded-lg p-4">
+            <div className="bg-card border border-border rounded-lg p-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateFrom}
                             </label>
                             <DatePicker
@@ -264,7 +259,7 @@ export function AreaSummaryReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.common.dateTo}
                             </label>
                             <DatePicker
@@ -273,7 +268,7 @@ export function AreaSummaryReport() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-zinc-400 mb-2">
+                            <label className="block text-xs font-medium text-fg-muted mb-2">
                                 {APP_COPY.analytics.areaSummary.headers.area}
                             </label>
                             <Input
@@ -306,11 +301,11 @@ export function AreaSummaryReport() {
             </div>
 
             {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-zinc-400">
+            <div className="flex items-center justify-between text-sm text-fg-muted">
                 <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-white font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-white font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-white font-mono">{total}</span> {APP_COPY.analytics.common.records}
+                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
+                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
+                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
                 </div>
                 <div className="flex items-center gap-2">
                         <Button
@@ -322,9 +317,9 @@ export function AreaSummaryReport() {
                         <ChevronLeft size={16} />
                         {APP_COPY.analytics.common.previous}
                     </Button>
-                    <span className="text-zinc-400">
-                        {APP_COPY.analytics.common.page} <span className="text-white font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-white font-mono">{totalPages}</span>
+                    <span className="text-fg-muted">
+                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
+                        <span className="text-fg-strong font-mono">{totalPages}</span>
                     </span>
                     <Button
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -339,14 +334,14 @@ export function AreaSummaryReport() {
             </div>
 
             {/* Table */}
-            <div className="bg-card border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
                 {data.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-zinc-900 border-b border-zinc-800">
+                            <thead className="bg-card border-b border-border">
                                 <tr>
                                     <th 
-                                        className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                         onClick={() => handleSort('area_name')}
                                     >
                                         <div className="flex items-center gap-2">
@@ -355,7 +350,7 @@ export function AreaSummaryReport() {
                                         </div>
                                     </th>
                                     <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                         onClick={() => handleSort('requested_quantity')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
@@ -364,7 +359,7 @@ export function AreaSummaryReport() {
                                         </div>
                                     </th>
                                     <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                         onClick={() => handleSort('work_time')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
@@ -373,7 +368,7 @@ export function AreaSummaryReport() {
                                         </div>
                                     </th>
                                     <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                         onClick={() => handleSort('velocity')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
@@ -382,7 +377,7 @@ export function AreaSummaryReport() {
                                         </div>
                                     </th>
                                     <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 cursor-pointer hover:text-primary transition-colors"
+                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
                                         onClick={() => handleSort('efficiency')}
                                     >
                                         <div className="flex items-center justify-end gap-2">
@@ -392,29 +387,29 @@ export function AreaSummaryReport() {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-800">
+                            <tbody className="divide-y divide-border">
                                 {data.map((row, idx) => {
                                     const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
                                     
                                     const efficiencyColor = 
-                                        row.efficiency >= thresholds.EXCELLENT ? 'text-success-foreground' :
-                                        row.efficiency >= thresholds.ACCEPTABLE ? 'text-warning-foreground' :
-                                        'text-destructive';
+                                        row.efficiency >= thresholds.EXCELLENT ? 'text-success-500' :
+                                        row.efficiency >= thresholds.ACCEPTABLE ? 'text-warning-300' :
+                                        'text-danger';
                                     
                                     return (
-                                        <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
+                                        <tr key={idx} className="hover:bg-card/50 transition-colors">
                                             <td className="px-4 py-3 text-sm">
-                                                <div className="font-medium text-white">{row.area_name}</div>
+                                                <div className="font-medium text-fg-strong">{row.area_name}</div>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-white">
-                                                {row.requested_quantity.toLocaleString()}
+                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
+                                                {formatNumber(row.requested_quantity)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-white">
-                                                {formatTime(row.work_time)}
+                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
+                                                {formatHours(row.work_time)}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-white">
+                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
                                                 <div>{row.velocity.toFixed(1)}</div>
-                                                <div className="text-xs text-zinc-500">/ {row.target_velocity}</div>
+                                                <div className="text-xs text-fg-subtle">/ {row.target_velocity}</div>
                                             </td>
                                             <td className={`px-4 py-3 text-sm text-right font-mono font-semibold ${efficiencyColor}`}>
                                                 {row.efficiency.toFixed(0)}%
@@ -426,7 +421,7 @@ export function AreaSummaryReport() {
                         </table>
                     </div>
                 ) : (
-                    <div className="text-center py-12 text-zinc-500">
+                    <div className="text-center py-12 text-fg-subtle">
                         {APP_COPY.analytics.empty}
                     </div>
                 )}

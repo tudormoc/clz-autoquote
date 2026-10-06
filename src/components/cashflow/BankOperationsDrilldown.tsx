@@ -8,6 +8,7 @@ import {
     BankAccountDetailsResult,
     BankTransactionItem,
 } from '@/app/cashflow/cashflow-actions';
+import { formatCurrency } from '@/lib/format';
 
 interface BankOperationsDrilldownProps {
     accountCode: number;
@@ -16,16 +17,6 @@ interface BankOperationsDrilldownProps {
     initialMonth?: number | null;
     onClose: () => void;
 }
-
-const formatCurrency = (val?: number | null) => {
-    if (val === undefined || val === null || isNaN(val)) return '€ 0,00';
-    return new Intl.NumberFormat('it-IT', {
-        style: 'currency',
-        currency: 'EUR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(val);
-};
 
 export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = ({
     accountCode,
@@ -105,19 +96,19 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
     const currentNet = currentDare - currentAvere;
 
     return (
-        <div className="bg-zinc-950/95 border border-zinc-700/80 rounded-xl p-4 my-2 text-zinc-100 shadow-xl space-y-4">
+        <div className="bg-background/95 border border-border-strong/80 rounded-xl p-4 my-2 text-fg shadow-xl space-y-4">
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                 <div className="flex items-center gap-3">
-                    <div className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-md font-mono text-xs font-bold">
+                    <div className="px-2.5 py-1 bg-warning-500/10 border border-warning-500/30 text-warning-400 rounded-md font-mono text-xs font-bold">
                         {accountCode}
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-fg flex items-center gap-2">
                             {accountName}
-                            <span className="text-xs font-normal text-zinc-400">({year})</span>
+                            <span className="text-xs font-normal text-fg-muted">({year})</span>
                         </h4>
-                        <p className="text-[11px] text-zinc-400">
+                        <p className="text-2xs text-fg-muted">
                             {t.subtitle}
                         </p>
                     </div>
@@ -126,7 +117,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onClose}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-xs flex items-center gap-1.5 border border-zinc-700/60"
+                        className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted-strong text-fg-secondary hover:text-fg-strong transition-colors text-xs flex items-center gap-1.5 border border-border-strong/60"
                         title={t.close}
                     >
                         <X size={14} />
@@ -141,13 +132,13 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     onClick={() => setSelectedMonth('all')}
                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                         selectedMonth === 'all'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm font-semibold'
-                            : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                            ? 'bg-warning-500/20 text-warning-300 border border-warning-500/40 shadow-sm font-semibold'
+                            : 'bg-card text-fg-muted hover:text-fg-soft border border-border'
                     }`}
                 >
                     {t.filterAllYear}
                     {data && data.transactions.length > 0 && (
-                        <span className="ml-1.5 px-1.5 py-0.2 bg-zinc-800 rounded-full text-[10px] text-zinc-300 font-mono">
+                        <span className="ml-1.5 px-1.5 py-0.2 bg-muted rounded-full text-3xs text-fg-secondary font-mono">
                             {data.transactions.length}
                         </span>
                     )}
@@ -165,16 +156,16 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                             onClick={() => setSelectedMonth(mNum)}
                             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                                 isSelected
-                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm font-semibold'
+                                    ? 'bg-warning-500/20 text-warning-300 border border-warning-500/40 shadow-sm font-semibold'
                                     : txCount > 0
-                                    ? 'bg-zinc-900 text-zinc-300 hover:text-white border border-zinc-800'
-                                    : 'bg-zinc-900/40 text-zinc-600 border border-zinc-800/40 cursor-default'
+                                    ? 'bg-card text-fg-secondary hover:text-fg-strong border border-border'
+                                    : 'bg-card/40 text-fg-faint border border-border/40 cursor-default'
                             }`}
                             disabled={txCount === 0}
                         >
                             {mName}
                             {txCount > 0 && (
-                                <span className={`ml-1 text-[10px] font-mono ${isSelected ? 'text-amber-200' : 'text-zinc-500'}`}>
+                                <span className={`ml-1 text-3xs font-mono ${isSelected ? 'text-warning-200' : 'text-fg-subtle'}`}>
                                     ({txCount})
                                 </span>
                             )}
@@ -186,61 +177,61 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             {/* Summary KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 font-mono text-xs">
                 {/* 1. Saldo Iniziale */}
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-2.5">
-                    <span className="text-[10px] font-sans text-zinc-400 block mb-0.5">
+                <div className="bg-card/80 border border-border rounded-lg p-2.5">
+                    <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.openingBalance} ({selectedMonth === 'all' ? `01/01/${year}` : `01/${String(selectedMonth).padStart(2, '0')}/${year}`})
                     </span>
-                    <span className="text-sm font-bold text-sky-300">
+                    <span className="text-sm font-bold text-info-300">
                         {formatCurrency(currentOpening)}
                     </span>
                 </div>
 
                 {/* 2. Totale Dare (+) */}
-                <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-2.5">
-                    <span className="text-[10px] font-sans text-emerald-400 flex items-center gap-1 mb-0.5">
+                <div className="bg-success-950/20 border border-success-900/40 rounded-lg p-2.5">
+                    <span className="text-3xs font-sans text-success-400 flex items-center gap-1 mb-0.5">
                         <ArrowUpRight size={12} />
                         {t.totalInflows}
                     </span>
-                    <span className="text-sm font-bold text-emerald-300">
+                    <span className="text-sm font-bold text-success-300">
                         +{formatCurrency(currentDare)}
                     </span>
                 </div>
 
                 {/* 3. Totale Avere (-) */}
-                <div className="bg-rose-950/20 border border-rose-900/40 rounded-lg p-2.5">
-                    <span className="text-[10px] font-sans text-rose-400 flex items-center gap-1 mb-0.5">
+                <div className="bg-danger-950/20 border border-danger-900/40 rounded-lg p-2.5">
+                    <span className="text-3xs font-sans text-danger-400 flex items-center gap-1 mb-0.5">
                         <ArrowDownRight size={12} />
                         {t.totalOutflows}
                     </span>
-                    <span className="text-sm font-bold text-rose-300">
+                    <span className="text-sm font-bold text-danger-300">
                         -{formatCurrency(currentAvere)}
                     </span>
                 </div>
 
                 {/* 4. Variazione Periodo */}
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-2.5">
-                    <span className="text-[10px] font-sans text-zinc-400 block mb-0.5">
+                <div className="bg-card/80 border border-border rounded-lg p-2.5">
+                    <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.netVariation}
                     </span>
-                    <span className={`text-sm font-bold ${currentNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-sm font-bold ${currentNet >= 0 ? 'text-success-400' : 'text-danger-400'}`}>
                         {currentNet >= 0 ? `+${formatCurrency(currentNet)}` : formatCurrency(currentNet)}
                     </span>
                 </div>
 
                 {/* 5. Saldo Finale (Highlight with verification badge) */}
-                <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-amber-950/30 to-zinc-900 border border-amber-500/50 rounded-lg p-2.5 relative">
+                <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-warning-950/30 to-card border border-warning-500/50 rounded-lg p-2.5 relative">
                     <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[10px] font-sans text-amber-300 font-semibold block">
+                        <span className="text-3xs font-sans text-warning-300 font-semibold block">
                             {t.closingBalance}
                         </span>
                         <span title={t.officialBalanceMatch}>
-                            <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                            <CheckCircle2 size={13} className="text-success-400 shrink-0" />
                         </span>
                     </div>
-                    <span className="text-sm font-bold text-amber-300">
+                    <span className="text-sm font-bold text-warning-300">
                         {formatCurrency(currentClosing)}
                     </span>
-                    <span className="text-[9px] font-sans text-emerald-400 block mt-0.5">
+                    <span className="text-4xs font-sans text-success-400 block mt-0.5">
                         ✓ {t.officialBalanceMatch}
                     </span>
                 </div>
@@ -249,46 +240,46 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             {/* Search Bar & Transaction count */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
                     <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder={t.searchPlaceholder}
-                        className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-500/60"
+                        className="w-full bg-card border border-border-strong/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-fg-soft placeholder-fg-subtle focus:outline-none focus:border-warning-500/60"
                     />
                 </div>
 
-                <div className="text-xs text-zinc-400 flex items-center gap-1.5">
-                    <Layers size={14} className="text-zinc-500" />
+                <div className="text-xs text-fg-muted flex items-center gap-1.5">
+                    <Layers size={14} className="text-fg-subtle" />
                     <span>
-                        <strong className="text-zinc-200">{filteredTransactions.length}</strong> {t.operationsCount}
+                        <strong className="text-fg-soft">{filteredTransactions.length}</strong> {t.operationsCount}
                     </span>
                 </div>
             </div>
 
             {/* Operations Table */}
-            <div className="border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
                 <div className="max-h-[360px] overflow-y-auto">
                     <table className="w-full text-left text-xs font-mono">
-                        <thead className="bg-zinc-900 text-zinc-400 text-[10px] uppercase tracking-wider sticky top-0 z-10 border-b border-zinc-800">
+                        <thead className="bg-card text-fg-muted text-3xs uppercase tracking-wider sticky top-0 z-10 border-b border-border">
                             <tr>
                                 <th className="px-2.5 py-2 w-[90px]">{t.date}</th>
                                 <th className="px-2 py-2 w-[110px]">{t.regDoc}</th>
                                 <th className="px-2 py-2">{t.description}</th>
                                 <th className="px-2.5 py-2 text-right w-[115px]">{t.inflow}</th>
                                 <th className="px-2.5 py-2 text-right w-[115px]">{t.outflow}</th>
-                                <th className="px-3 py-2 text-right w-[130px] bg-zinc-900/90 text-amber-300 font-bold border-l border-zinc-800">
+                                <th className="px-3 py-2 text-right w-[130px] bg-card/90 text-warning-300 font-bold border-l border-border">
                                     {t.runningBalance}
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                        <tbody className="divide-y divide-border/60 text-2xs">
                             {isPending && (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-6 text-zinc-400 text-xs">
+                                    <td colSpan={6} className="text-center py-6 text-fg-muted text-xs">
                                         <div className="flex items-center justify-center gap-2">
-                                            <div className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                                            <div className="w-3.5 h-3.5 border-2 border-warning-400 border-t-transparent rounded-full animate-spin" />
                                             {t.loading}
                                         </div>
                                     </td>
@@ -297,46 +288,46 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
                             {!isPending && filteredTransactions.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-6 text-zinc-500 text-xs">
+                                    <td colSpan={6} className="text-center py-6 text-fg-subtle text-xs">
                                         {t.noTransactions}
                                     </td>
                                 </tr>
                             )}
 
                             {!isPending && filteredTransactions.map((tx, idx) => (
-                                <tr key={tx.id || idx} className="hover:bg-zinc-900/60 transition-colors">
+                                <tr key={tx.id || idx} className="hover:bg-card/60 transition-colors">
                                     {/* Data Reg */}
-                                    <td className="px-2.5 py-1.5 text-zinc-300 whitespace-nowrap">
+                                    <td className="px-2.5 py-1.5 text-fg-secondary whitespace-nowrap">
                                         {tx.formattedDate}
                                     </td>
 
                                     {/* N. Reg / Doc */}
-                                    <td className="px-2 py-1.5 text-zinc-400 whitespace-nowrap text-[10px]">
-                                        <span className="font-semibold text-zinc-300">R.{tx.regNum}/{tx.rowNum}</span>
+                                    <td className="px-2 py-1.5 text-fg-muted whitespace-nowrap text-3xs">
+                                        <span className="font-semibold text-fg-secondary">R.{tx.regNum}/{tx.rowNum}</span>
                                         {tx.docNum > 0 && (
-                                            <span className="ml-1 text-zinc-500">
+                                            <span className="ml-1 text-fg-subtle">
                                                 Doc.{tx.docNum}{tx.docSeries ? `/${tx.docSeries}` : ''}
                                             </span>
                                         )}
                                     </td>
 
                                     {/* Descrizione / Causale */}
-                                    <td className="px-2 py-1.5 text-zinc-200 truncate max-w-[280px]" title={tx.description}>
+                                    <td className="px-2 py-1.5 text-fg-soft truncate max-w-[280px]" title={tx.description}>
                                         {tx.description}
                                     </td>
 
                                     {/* Dare (+) */}
-                                    <td className="px-2.5 py-1.5 text-right font-medium text-emerald-400 whitespace-nowrap">
+                                    <td className="px-2.5 py-1.5 text-right font-medium text-success-400 whitespace-nowrap">
                                         {tx.dare > 0 ? `+${formatCurrency(tx.dare)}` : '-'}
                                     </td>
 
                                     {/* Avere (-) */}
-                                    <td className="px-2.5 py-1.5 text-right font-medium text-rose-400 whitespace-nowrap">
+                                    <td className="px-2.5 py-1.5 text-right font-medium text-danger-400 whitespace-nowrap">
                                         {tx.avere > 0 ? `-${formatCurrency(tx.avere)}` : '-'}
                                     </td>
 
                                     {/* Saldo Progressivo */}
-                                    <td className="px-3 py-1.5 text-right font-bold text-amber-200 bg-amber-950/10 border-l border-zinc-800 whitespace-nowrap">
+                                    <td className="px-3 py-1.5 text-right font-bold text-warning-200 bg-warning-950/10 border-l border-border whitespace-nowrap">
                                         {formatCurrency(tx.runningBalance)}
                                     </td>
                                 </tr>

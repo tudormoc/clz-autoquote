@@ -1,4 +1,8 @@
 export const APP_COPY = {
+  common: {
+    expand: "Espandi",
+    collapse: "Comprimi",
+  },
   header: {
     title: "CLZ TM",
     subtitle: "Piattaforma di gestione aziendale",
@@ -42,6 +46,8 @@ export const APP_COPY = {
     subtitle: "Pianificazione e monitoraggio del flusso di cassa e liquidità aziendale",
     placeholderTitle: "Struttura Dashboard Pronta",
     placeholderDescription: "La struttura grafica è configurata. Nessun dato collegato al momento.",
+    yearLabel: "Anno:",
+    reload: "Ricarica Dati ERP",
     kpi: {
       currentLiquidity: "Liquidità Disponibile",
       currentLiquiditySubtitle: "Saldo reale conti bancari (Prima Nota)",
@@ -326,6 +332,19 @@ export const APP_COPY = {
       annualPresenceReport: "Presenze Annuali",
       rimanenze: "Rimanenze (Materiali)",
       rimanenzeLabor: "Rimanenze (Lavoro)",
+    },
+    reportDescriptions: {
+      productionMetrics: "Produzione per operatore e macchina",
+      orderSummary: "Produzione raggruppata per macchina",
+      orderAreaSummary: "Produzione raggruppata per area",
+      areaSummary: "Riepilogo tempi di lavoro per area",
+      clientSummary: "Andamento e storico clienti",
+      clientDeliveries: "Consegne clienti per valore",
+      orderRevenue: "Analisi ricavi per ordine",
+      externalWork: "Costi lavorazioni esterne per ordine",
+      annualPresenceReport: "Ore di presenza annuali per gruppo operatori",
+      rimanenze: "Costi materiali in rimanenza",
+      rimanenzeLabor: "Costi lavoro in rimanenza",
     },
     categories: {
       clients: "Clienti",

@@ -28,12 +28,12 @@ class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-background p-4">
-          <Card className="w-full max-w-md border-destructive">
+          <Card className="w-full max-w-md border-danger">
             <CardHeader>
-              <CardTitle className="text-destructive">System Error</CardTitle>
+              <CardTitle className="text-danger">System Error</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-muted-foreground">{APP_COPY.errors.generic}</p>
+              <p className="mb-4 text-fg-subtle">{APP_COPY.errors.generic}</p>
               <Button onClick={() => window.location.reload()}>Reload Application</Button>
             </CardContent>
           </Card>

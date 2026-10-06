@@ -183,9 +183,9 @@ export function BlueprintVisualizer({ dimensions }: BlueprintVisualizerProps) {
   const labelY = turnIn + (boardHeight * 0.2);
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden relative">
-      <div className="absolute top-4 left-4 text-xs font-mono text-zinc-500 z-10 pointer-events-none">
-        Blueprint Preview {bleed > 0 && <span className="text-destructive ml-2">• Bleed Active ({bleed}mm)</span>}
+    <div className="w-full h-full flex flex-col items-center justify-center bg-card border border-border rounded-lg overflow-hidden relative">
+      <div className="absolute top-4 left-4 text-xs font-mono text-fg-subtle z-10 pointer-events-none">
+        Blueprint Preview {bleed > 0 && <span className="text-danger ml-2">• Bleed Active ({bleed}mm)</span>}
       </div>
 
       <svg

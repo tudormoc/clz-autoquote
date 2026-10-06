@@ -1,18 +1,18 @@
 /* Custom styles for react-day-picker */
 .rdp-custom {
   --rdp-cell-size: 36px;
-  --rdp-accent-color: hsl(var(--primary));
-  --rdp-background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
+  --rdp-accent-color: rgb(var(--primary-500));
+  --rdp-background-color: rgb(var(--card));
+  color: rgb(var(--fg));
 }
 
 .rdp-custom .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-  background-color: hsl(var(--muted));
+  background-color: rgb(var(--muted));
 }
 
 .rdp-custom .rdp-day_selected {
   background-color: var(--rdp-accent-color);
-  color: white;
+  color: rgb(var(--fg-strong));
 }
 
 .rdp-custom .rdp-day_today {
@@ -21,21 +21,21 @@
 }
 
 .rdp-custom .rdp-head_cell {
-  color: hsl(var(--muted-foreground));
+  color: rgb(var(--fg-subtle));
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 .rdp-custom .rdp-caption {
-  color: hsl(var(--foreground));
+  color: rgb(var(--fg));
   font-weight: 600;
 }
 
 .rdp-custom .rdp-nav_button {
-  color: hsl(var(--muted-foreground));
+  color: rgb(var(--fg-subtle));
 }
 
 .rdp-custom .rdp-nav_button:hover {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
+  background-color: rgb(var(--muted));
+  color: rgb(var(--fg));
 }

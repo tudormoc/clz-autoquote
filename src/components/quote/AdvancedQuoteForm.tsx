@@ -101,7 +101,7 @@ export function AdvancedQuoteForm() {
                     <CoverSection control={form.control} errors={form.formState.errors} />
 
                     {saveError && (
-                        <div className="text-destructive bg-destructive/10 p-3 rounded border border-destructive/20 text-sm">
+                        <div className="text-danger bg-danger/10 p-3 rounded border border-danger/20 text-sm">
                             {saveError}
                         </div>
                     )}
@@ -130,7 +130,7 @@ export function AdvancedQuoteForm() {
                     </div>
                 </form>
 
-                <div className="pt-8 border-t border-zinc-800">
+                <div className="pt-8 border-t border-border">
                     <QuoteHistoryList
                         history={history}
                         onSelectQuote={selectQuote}
