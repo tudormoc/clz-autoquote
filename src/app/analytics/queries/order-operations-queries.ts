@@ -824,34 +824,83 @@ export async function syncOrderFromDibaAction(params: {
         }
 
 
-        // Operations to update (exist in both DiBa and order — refresh all mutable fields from DiBa)
+        // Operations to update (exist in NetPro — refresh all mutable fields from DiBa)
+        // Uses upsert for Business: UPDATE if row exists, INSERT if it was manually deleted
         const opsToUpdate = dibaOps.filter(o => netFasi.has(o.fase));
         for (const op of opsToUpdate) {
             const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
 
-            // Business attivit — work type, planned time (sec), planned qty, terzista, notes
-            await queryMSSQL(`
-                UPDATE attivit
-                SET at_codlavo    = @codlavo,
-                    at_tempesepr  = @tesec,
-                    at_qtapr      = @orderFatherQuant,
-                    at_terzista   = @terzista,
-                    at_note       = @note
-                WHERE codditt = 'COOPZANARDI'
-                  AND at_numord = @numord
-                  AND at_anno   = @anno
-                  AND at_fase   = @fase
-            `, { codlavo: op.codlavo, tesec: op.tesec, orderFatherQuant, terzista: op.terzista, note: op.note, numord, anno, fase: op.fase }, 'BUSINESS');
+            // Business attivit — upsert: update if exists, insert if missing
+            const attivitExists = await queryMSSQL(`
+                SELECT 1 as found FROM attivit
+                WHERE codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
+            `, { numord, anno, fase: op.fase }, 'BUSINESS');
 
-            // Business assris — work center
-            await queryMSSQL(`
-                UPDATE assris
-                SET as_codcent = @codcent
-                WHERE codditt = 'COOPZANARDI'
-                  AND as_numord = @numord
-                  AND as_anno   = @anno
-                  AND as_fase   = @fase
-            `, { codcent: op.codcent, numord, anno, fase: op.fase }, 'BUSINESS');
+            if (attivitExists.recordset.length > 0) {
+                await queryMSSQL(`
+                    UPDATE attivit
+                    SET at_codlavo    = @codlavo,
+                        at_tempesepr  = @tesec,
+                        at_qtapr      = @orderFatherQuant,
+                        at_terzista   = @terzista,
+                        at_note       = @note
+                    WHERE codditt = 'COOPZANARDI'
+                      AND at_numord = @numord
+                      AND at_anno   = @anno
+                      AND at_fase   = @fase
+                `, { codlavo: op.codlavo, tesec: op.tesec, orderFatherQuant, terzista: op.terzista, note: op.note, numord, anno, fase: op.fase }, 'BUSINESS');
+            } else {
+                // Row missing in Business (e.g. manually deleted) — insert clean
+                await queryMSSQL(`
+                    INSERT INTO attivit (
+                        codditt, at_tipork, at_anno, at_serie, at_numord, at_riga, at_fase,
+                        at_coddb, at_codlavo, at_idproj, at_tempattpr, at_tempesepr, at_tempattees, at_tempesees,
+                        at_flevas, at_dtminima, at_sutipork, at_suanno, at_suserie, at_sunumord, at_suriga, at_sufase,
+                        at_relazsuc, at_qtapr, at_qtaes, at_datcons, at_terzista, at_suolprogr, at_note, at_prior,
+                        at_netpid, at_ciclo, at_cicloriga, at_annopian, at_numpian, at_autosim, at_trattatosim
+                    ) VALUES (
+                        'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
+                        @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
+                        'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                        'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
+                        @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
+                    )
+                `, {
+                    anno, serie, numord, rigaPadre, fase: op.fase,
+                    articleFather, codlavo: op.codlavo, tesec: op.tesec,
+                    datcons, orderFatherQuant, terzista: op.terzista,
+                    note: op.note, netOrdine, riga: op.riga
+                }, 'BUSINESS');
+            }
+
+            // Business assris — upsert: update if exists, insert if missing
+            const assrisExists = await queryMSSQL(`
+                SELECT 1 as found FROM assris
+                WHERE codditt = 'COOPZANARDI' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase
+            `, { numord, anno, fase: op.fase }, 'BUSINESS');
+
+            if (assrisExists.recordset.length > 0) {
+                await queryMSSQL(`
+                    UPDATE assris
+                    SET as_codcent = @codcent
+                    WHERE codditt = 'COOPZANARDI'
+                      AND as_numord = @numord
+                      AND as_anno   = @anno
+                      AND as_fase   = @fase
+                `, { codcent: op.codcent, numord, anno, fase: op.fase }, 'BUSINESS');
+            } else {
+                await queryMSSQL(`
+                    INSERT INTO assris (
+                        codditt, as_tipork, as_anno, as_serie, as_numord, as_riga, as_fase,
+                        as_codcent, as_percent, as_valore, as_valmo, as_controp, as_contocontr,
+                        as_codcena, as_cmacora, as_pagaora, as_pagaoratt, as_cmacoratt, as_unlav, as_valorev
+                    ) VALUES (
+                        'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
+                        @codcent, 100, 0, 0, 5090, 0,
+                        0, 17, 20, 20, 17, 1, 0
+                    )
+                `, { anno, serie, numord, rigaPadre, fase: op.fase, codcent: op.codcent }, 'BUSINESS');
+            }
 
             // NetPro OPERAZIONI — description, work center, planned time, requested qty
             await queryMSSQL(`
@@ -873,6 +922,7 @@ export async function syncOrderFromDibaAction(params: {
                 WHERE TASK = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
         }
+
 
         // 5. Sync Materials
         // Fetch DiBa Materials
