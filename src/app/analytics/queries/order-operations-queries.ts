@@ -740,23 +740,34 @@ export async function syncOrderFromDibaAction(params: {
         const opsToAdd = dibaOps.filter(o => !netFasi.has(o.fase));
         for (const op of opsToAdd) {
             const idOper = `${netOrdine}${String(op.fase).padStart(2, '0')}`;
-            // NetPro insert
+
+            // NetPro OPERAZIONI insert — OPERAZIONE = fase (same as SEQUENZA), CENTRO_REALE = CENTRO_ASSEGNATO
             await queryMSSQL(`
                 IF NOT EXISTS (SELECT 1 FROM OPERAZIONI WHERE ID_OPER = @idOper)
                 BEGIN
-                    INSERT INTO OPERAZIONI (ORDINE, SEQUENZA, ID_OPER, DESCRIZIONE, STATO, CENTRO_ASSEGNATO)
-                    VALUES (@netOrdine, @fase, @idOper, @descr, 'REL', @centro)
+                    INSERT INTO OPERAZIONI (
+                        ORDINE, SEQUENZA, OPERAZIONE, ID_OPER, DESCRIZIONE, STATO,
+                        CENTRO_ASSEGNATO, CENTRO_REALE, MACCHINA_ASSEGNATA,
+                        T_LAVORO_MAC, QTA_RICHIESTA
+                    )
+                    VALUES (
+                        @netOrdine, @fase, @fase, @idOper, @descr, 'REL',
+                        @centro, @centro, @centro,
+                        @tesec, @orderFatherQuant
+                    )
                 END
-            `, { netOrdine, fase: op.fase, idOper, descr: op.descr_lavor, centro: String(op.codcent) }, 'NETPRO');
+            `, { netOrdine, fase: op.fase, idOper, descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant }, 'NETPRO');
 
+            // NetPro TASKS insert — include DESCRIZIONE, QTA_RICHIESTA, FNOTE
             await queryMSSQL(`
                 IF NOT EXISTS (SELECT 1 FROM TASKS WHERE TASK = @idOper)
                 BEGIN
-                    INSERT INTO TASKS (TASK, MACCHINA, STATO)
-                    VALUES (@idOper, @centro, 'REL')
+                    INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
+                    VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
                 END
-            `, { idOper, centro: String(op.codcent) }, 'NETPRO');
+            `, { idOper, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
 
+            // NetPro JOBSET link
             await queryMSSQL(`
                 IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @idOper)
                 BEGIN
@@ -765,7 +776,7 @@ export async function syncOrderFromDibaAction(params: {
                 END
             `, { idOper }, 'NETPRO');
 
-            // Business attivit insert
+            // Business attivit insert — at_flevas = 'N' (not executed, order not started yet)
             await queryMSSQL(`
                 IF NOT EXISTS (
                     SELECT 1 FROM attivit 
@@ -781,7 +792,7 @@ export async function syncOrderFromDibaAction(params: {
                     ) VALUES (
                         'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
                         @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                        'S', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                        'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
                         'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
                         @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                     )
@@ -812,6 +823,7 @@ export async function syncOrderFromDibaAction(params: {
                 END
             `, { anno, serie, numord, rigaPadre, fase: op.fase, codcent: op.codcent }, 'BUSINESS');
         }
+
 
         // Operations to update (exist in both DiBa and order — refresh all mutable fields from DiBa)
         const opsToUpdate = dibaOps.filter(o => netFasi.has(o.fase));
