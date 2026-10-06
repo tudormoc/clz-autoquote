@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Search, Package, CheckCircle, Pause, Play, Printer, ArrowRight, ChevronLeft, Layers, FileText, Boxes, Workflow, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Package, CheckCircle, Pause, Play, Printer, ArrowRight, ChevronLeft, FileText, Boxes, Workflow, ChevronDown } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,9 @@ import {
 } from '@/app/analytics/queries/order-operations-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
+import { MaterialsReconciliationSection } from './MaterialsReconciliationSection';
+import { OrderOperationsManagementSection } from './OrderOperationsManagementSection';
+import { MaterialReconciliationData, OrderOperationsManagementData } from '@/types';
 
 // Locale shorthand for Order Operations strings
 const t = APP_COPY.analytics.orderOperations;
@@ -34,7 +37,9 @@ interface Edition {
     master_order_title?: string;
     client_name: string;
     ordine?: string;
+    part_number?: string;
 }
+
 
 // Production flow config from constants (single source of truth)
 const { FLOW_A_AREAS, FLOW_B_AREAS, ASSEMBLY_AREAS, FINISHING_AREAS } = APP_CONFIG.ANALYTICS.PRODUCTION_FLOW;
@@ -151,6 +156,13 @@ export function OrderOperationsReport() {
     const [matches, setMatches] = useState<MasterOrderMatch[]>([]);
     const [operations, setOperations] = useState<Operation[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
+    const [reconciliation, setReconciliation] = useState<MaterialReconciliationData>({ productionOrders: [], carichi: [], materials: [] });
+    const [operationsManagement, setOperationsManagement] = useState<OrderOperationsManagementData>({
+        article_father: '',
+        ordine_netpro: '',
+        diba_operations: [],
+        order_operations: []
+    });
     const [editions, setEditions] = useState<Edition[]>([]);
     const [isOperationsOpen, setIsOperationsOpen] = useState(false);
     const [isMaterialsOpen, setIsMaterialsOpen] = useState(false);
@@ -158,11 +170,20 @@ export function OrderOperationsReport() {
     const [message, setMessage] = useState<string | null>(t.enterSearch);
     const [error, setError] = useState<string | null>(null);
 
+    const emptyOpsManagement: OrderOperationsManagementData = {
+        article_father: '',
+        ordine_netpro: '',
+        diba_operations: [],
+        order_operations: []
+    };
+
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
             setMessage(t.enterSearch);
             setOperations([]);
             setMaterials([]);
+            setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+            setOperationsManagement(emptyOpsManagement);
             setEditions([]);
             setMatches([]);
             return;
@@ -173,6 +194,8 @@ export function OrderOperationsReport() {
         setMessage(null);
         setOperations([]);
         setMaterials([]);
+        setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+        setOperationsManagement(emptyOpsManagement);
         setEditions([]);
         setMatches([]);
 
@@ -183,6 +206,8 @@ export function OrderOperationsReport() {
                 setOperations(result.data);
                 setEditions(result.editions);
                 setMaterials(result.materials || []);
+                setReconciliation(result.reconciliation || { productionOrders: [], carichi: [], materials: [] });
+                setOperationsManagement(result.operationsManagement || emptyOpsManagement);
                 setIsOperationsOpen(false);
                 setIsMaterialsOpen(false);
                 setMatches([]);
@@ -191,11 +216,15 @@ export function OrderOperationsReport() {
                 setMatches(result.matches);
                 setOperations([]);
                 setMaterials([]);
+                setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+                setOperationsManagement(emptyOpsManagement);
                 setEditions([]);
                 setMessage(null);
             } else {
                 setOperations([]);
                 setMaterials([]);
+                setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+                setOperationsManagement(emptyOpsManagement);
                 setEditions([]);
                 setMatches([]);
                 setMessage(result.message);
@@ -204,6 +233,8 @@ export function OrderOperationsReport() {
             setError(result.error || APP_COPY.analytics.error);
             setOperations([]);
             setMaterials([]);
+            setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+            setOperationsManagement(emptyOpsManagement);
             setEditions([]);
             setMatches([]);
         }
@@ -220,6 +251,8 @@ export function OrderOperationsReport() {
             setOperations(result.data);
             setEditions(result.editions);
             setMaterials(result.materials || []);
+            setReconciliation(result.reconciliation || { productionOrders: [], carichi: [], materials: [] });
+            setOperationsManagement(result.operationsManagement || emptyOpsManagement);
             setIsOperationsOpen(false);
             setIsMaterialsOpen(false);
         } else {
@@ -232,10 +265,13 @@ export function OrderOperationsReport() {
     const handleBackToMatches = () => {
         setOperations([]);
         setMaterials([]);
+        setReconciliation({ productionOrders: [], carichi: [], materials: [] });
+        setOperationsManagement(emptyOpsManagement);
         setEditions([]);
         setIsOperationsOpen(false);
         setIsMaterialsOpen(false);
     };
+
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -761,7 +797,21 @@ export function OrderOperationsReport() {
                             </div>
                         )}
                     </div>
+
+                    {/* Section 3: Regolazione & Riconciliazione Materiali */}
+                    <MaterialsReconciliationSection 
+                        reconciliation={reconciliation} 
+                        rootCommessaKey={orderInfo?.commessa_full ? orderInfo.commessa_full.slice(0, 7) : ''} 
+                    />
+
+                    {/* Section 4: Gestione Operazioni Ordine (Distinta Base & Ordine Produzione) */}
+                    <OrderOperationsManagementSection
+                        operationsManagement={operationsManagement}
+                        rootCommessaKey={orderInfo?.commessa_full ? orderInfo.commessa_full.slice(0, 7) : ''}
+                        editions={editions}
+                    />
                 </div>
+
             )}
 
             {/* Messages */}

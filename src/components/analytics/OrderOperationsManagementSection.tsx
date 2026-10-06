@@ -391,18 +391,30 @@ export function OrderOperationsManagementSection({
 
                     {/* Discrepancy Action Banner */}
                     {hasDiscrepancies && (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-300 flex-shrink-0">
-                                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-lg bg-amber-500/20 text-amber-300 flex-shrink-0">
+                                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-amber-200">
+                                        Rilevate {discrepancyCount} differenze rispetto alla Distinta Base
+                                    </h4>
+                                    <p className="text-xs text-amber-400/80 mt-0.5">
+                                        La DiBa contiene modifiche a lavorazioni o materiali non ancora allineate agli ordini attivi. Puoi sincronizzarle in-place senza duplicare l'ordine.
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-amber-200">
-                                    Rilevate {discrepancyCount} differenze rispetto alla Distinta Base
-                                </h4>
-                                <p className="text-xs text-amber-400/80 mt-0.5">
-                                    La DiBa contiene modifiche a lavorazioni o materiali non ancora allineate agli ordini attivi. Usa il pulsante <strong className="text-amber-300">Riallinea</strong> in alto per sincronizzarle in-place senza duplicare l'ordine.
-                                </p>
-                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowSyncConfirm(true)}
+                                disabled={isSyncing}
+                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs hover:bg-amber-400 transition-colors shadow-lg flex-shrink-0 disabled:opacity-50"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                <span>{isSyncing ? t.syncing : t.syncButton}</span>
+                            </button>
                         </div>
                     )}
 
