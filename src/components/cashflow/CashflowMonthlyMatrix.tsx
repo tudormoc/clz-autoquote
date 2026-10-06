@@ -1,13 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CalendarRange, ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown } from 'lucide-react';
+import { CalendarRange, ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import { MonthlyFinancialItem, ClientMonthlyBreakdownItem, PayrollMonthlyBreakdown, ExtraExpenseCategoryBreakdown, SupplierCostGroupBreakdown } from '@/app/cashflow/cashflow-actions';
+import {
+    MonthlyFinancialItem,
+    ClientMonthlyBreakdownItem,
+    PayrollMonthlyBreakdown,
+    ExtraExpenseCategoryBreakdown,
+    SupplierCostGroupBreakdown,
+    BankAccountBalance,
+} from '@/app/cashflow/cashflow-actions';
+import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 import { ExpandableMatrixCategory } from './ExpandableMatrixCategory';
+import { BankMatrixRowGroup } from './BankMatrixRowGroup';
 
 interface CashflowMonthlyMatrixProps {
     monthlyData?: MonthlyFinancialItem[];
+    bankBalances?: BankAccountBalance[];
     clientMonthlySummary?: ClientMonthlyBreakdownItem[];
     payrollMonthlyBreakdown?: PayrollMonthlyBreakdown[];
     extraExpenseBreakdown?: ExtraExpenseCategoryBreakdown[];
@@ -33,6 +43,7 @@ const formatCompactEUR = (amount?: number) => {
 
 export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
     monthlyData = [],
+    bankBalances = [],
     clientMonthlySummary = [],
     payrollMonthlyBreakdown = [],
     extraExpenseBreakdown = [],
@@ -48,12 +59,49 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
     const mx = APP_COPY.cashflow.matrix;
     const m = APP_COPY.cashflow.macro;
 
+    const [allExpanded, setAllExpanded] = useState<boolean>(false);
     const [expandedOpening, setExpandedOpening] = useState<boolean>(false);
     const [expandedIncomes, setExpandedIncomes] = useState<boolean>(false);
     const [expandedClientIncomes, setExpandedClientIncomes] = useState<boolean>(false);
     const [expandedExpenses, setExpandedExpenses] = useState<boolean>(false);
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
     const [expandedClosing, setExpandedClosing] = useState<boolean>(false);
+    const [expandedBankDrilldown, setExpandedBankDrilldown] = useState<{
+        accountCode: number;
+        name: string;
+        section: 'opening' | 'closing';
+        month: number | null;
+    } | null>(null);
+
+    const handleToggleAll = () => {
+        const next = !allExpanded;
+        setAllExpanded(next);
+        setExpandedOpening(next);
+        setExpandedIncomes(next);
+        setExpandedClientIncomes(next);
+        setExpandedExpenses(next);
+        setExpandedClosing(next);
+        const cats: Record<string, boolean> = {};
+        CASHFLOW_CONFIG.EXTRA_EXPENSE_CATEGORIES.forEach(c => (cats[c.key] = next));
+        setExpandedCategories(cats);
+    };
+
+    const handleToggleBankDrilldown = (
+        accountCode: number,
+        name: string,
+        section: 'opening' | 'closing',
+        month: number | null = null
+    ) => {
+        if (
+            expandedBankDrilldown?.accountCode === accountCode &&
+            expandedBankDrilldown?.section === section &&
+            (month === null || expandedBankDrilldown?.month === month)
+        ) {
+            setExpandedBankDrilldown(null);
+        } else {
+            setExpandedBankDrilldown({ accountCode, name, section, month });
+        }
+    };
 
     const toggleCategory = (key: string) => {
         setExpandedCategories(prev => ({
@@ -67,8 +115,16 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
         'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
     ];
 
+    // Current calendar month for visual indicator
+    const currentCalendarMonth = new Date().getMonth() + 1;
+    const currentCalendarYear = new Date().getFullYear();
+
     // Extract unique bank accounts from the first available month's breakdown
     const sampleBreakdown = monthlyData.find(i => i.bankBreakdown && i.bankBreakdown.length > 0)?.bankBreakdown || [];
+
+    // Filter banks using Single Source of Truth from CASHFLOW_CONFIG
+    const attivoBanks = sampleBreakdown.filter(b => CASHFLOW_CONFIG.isAttivo(b.accountCode));
+    const passivoBanks = sampleBreakdown.filter(b => !CASHFLOW_CONFIG.isAttivo(b.accountCode));
 
     return (
         <div className="bg-card border border-zinc-800 rounded-xl overflow-hidden shadow-sm w-full">
@@ -85,6 +141,16 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                         <p className="text-xs text-zinc-400">Clicca sulle righe per espandere/comprimere le voci interne</p>
                     </div>
                 </div>
+
+                {/* Quick Action: Expand All / Collapse All */}
+                <button
+                    onClick={handleToggleAll}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-xs flex items-center gap-1.5 border border-zinc-700/60 font-medium"
+                    title={allExpanded ? mx.collapseAll : mx.expandAll}
+                >
+                    <ChevronsUpDown size={14} className="text-primary" />
+                    <span>{allExpanded ? mx.collapseAll : mx.expandAll}</span>
+                </button>
             </div>
 
             {/* Matrix Table - Fits 12 months without horizontal scroll */}
@@ -93,11 +159,21 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                     <thead className="bg-zinc-900/90 text-zinc-400 font-semibold border-b border-zinc-800 text-[10px]">
                         <tr>
                             <th className="px-2 py-2.5 w-[22%] truncate">{mx.categoryHeader}</th>
-                            {shortMonths.map((month, idx) => (
-                                <th key={idx} className="px-0.5 py-2.5 text-right font-mono uppercase tracking-wider">
-                                    {month}
-                                </th>
-                            ))}
+                            {shortMonths.map((month, idx) => {
+                                const isCurrent = idx + 1 === currentCalendarMonth && year === currentCalendarYear;
+                                return (
+                                    <th
+                                        key={idx}
+                                        className={`px-0.5 py-2.5 text-right font-mono uppercase tracking-wider ${
+                                            isCurrent ? 'text-primary font-bold bg-primary/10' : ''
+                                        }`}
+                                        title={isCurrent ? 'Mese Corrente' : undefined}
+                                    >
+                                        {isCurrent && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1" />}
+                                        {month}
+                                    </th>
+                                );
+                            })}
                             <th className="px-1.5 py-2.5 text-right font-mono text-zinc-200 bg-zinc-800/40 w-[10%]">
                                 {mx.totalHeader}
                             </th>
@@ -131,59 +207,34 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                         {/* OPENING SUB-ROWS (PER BANK ACCOUNT ORGANIZED BY ATTIVO & PASSIVO) */}
                         {expandedOpening && (
                             <>
-                                {/* Attivo Sub-Header */}
-                                <tr className="bg-emerald-950/20 text-emerald-400 font-sans font-bold uppercase tracking-wider text-[9px]">
-                                    <td className="pl-6 py-0.5" colSpan={14}>
-                                        └ ATTIVO (+)
-                                    </td>
-                                </tr>
-                                {sampleBreakdown.filter(b => [9020021, 9020037, 12010004, 12010002].includes(b.accountCode)).map((bank, bIdx) => (
-                                    <tr key={`op_att_${bIdx}`} className="bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/20 transition-colors text-[10px]">
-                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                        </td>
-                                        {shortMonths.map((_, mIdx) => {
-                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                            const val = item && item.hasBankData && bankItem ? bankItem.opening : null;
-                                            return (
-                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-emerald-300/80">
-                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
-                                                </td>
-                                            );
-                                        })}
-                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                            -
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {/* Passivo Sub-Header */}
-                                <tr className="bg-rose-950/20 text-rose-400 font-sans font-bold uppercase tracking-wider text-[9px]">
-                                    <td className="pl-6 py-0.5" colSpan={14}>
-                                        └ PASSIVO (-)
-                                    </td>
-                                </tr>
-                                {sampleBreakdown.filter(b => [12010001, 12010003, 20110015].includes(b.accountCode)).map((bank, bIdx) => (
-                                    <tr key={`op_pass_${bIdx}`} className="bg-sky-950/10 text-sky-300/80 hover:bg-sky-900/20 transition-colors text-[10px]">
-                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                        </td>
-                                        {shortMonths.map((_, mIdx) => {
-                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                            const val = item && item.hasBankData && bankItem ? bankItem.opening : null;
-                                            return (
-                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-rose-300/80">
-                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
-                                                </td>
-                                            );
-                                        })}
-                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                            -
-                                        </td>
-                                    </tr>
-                                ))}
+                                <BankMatrixRowGroup
+                                    category="attivo"
+                                    section="opening"
+                                    banks={attivoBanks}
+                                    monthlyData={monthlyData}
+                                    bankBalances={bankBalances}
+                                    shortMonths={shortMonths}
+                                    year={year}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                    expandedBankDrilldown={expandedBankDrilldown}
+                                    onToggleDrilldown={handleToggleBankDrilldown}
+                                    onCloseDrilldown={() => setExpandedBankDrilldown(null)}
+                                />
+                                <BankMatrixRowGroup
+                                    category="passivo"
+                                    section="opening"
+                                    banks={passivoBanks}
+                                    monthlyData={monthlyData}
+                                    bankBalances={bankBalances}
+                                    shortMonths={shortMonths}
+                                    year={year}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                    expandedBankDrilldown={expandedBankDrilldown}
+                                    onToggleDrilldown={handleToggleBankDrilldown}
+                                    onCloseDrilldown={() => setExpandedBankDrilldown(null)}
+                                />
                             </>
                         )}
 
@@ -437,59 +488,34 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
                         {/* CLOSING SUB-ROWS (PER BANK ACCOUNT ORGANIZED BY ATTIVO & PASSIVO) */}
                         {expandedClosing && (
                             <>
-                                {/* Attivo Sub-Header */}
-                                <tr className="bg-emerald-950/20 text-emerald-400 font-sans font-bold uppercase tracking-wider text-[9px]">
-                                    <td className="pl-6 py-0.5" colSpan={14}>
-                                        └ ATTIVO (+)
-                                    </td>
-                                </tr>
-                                {sampleBreakdown.filter(b => [9020021, 9020037, 12010004, 12010002].includes(b.accountCode)).map((bank, bIdx) => (
-                                    <tr key={`cl_att_${bIdx}`} className="bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/20 transition-colors text-[10px]">
-                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                        </td>
-                                        {shortMonths.map((_, mIdx) => {
-                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                            const val = item && item.hasBankData && bankItem ? bankItem.closing : null;
-                                            return (
-                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-emerald-300/80">
-                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
-                                                </td>
-                                            );
-                                        })}
-                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                            -
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {/* Passivo Sub-Header */}
-                                <tr className="bg-rose-950/20 text-rose-400 font-sans font-bold uppercase tracking-wider text-[9px]">
-                                    <td className="pl-6 py-0.5" colSpan={14}>
-                                        └ PASSIVO (-)
-                                    </td>
-                                </tr>
-                                {sampleBreakdown.filter(b => [12010001, 12010003, 20110015].includes(b.accountCode)).map((bank, bIdx) => (
-                                    <tr key={`cl_pass_${bIdx}`} className="bg-amber-950/10 text-amber-300/80 hover:bg-amber-900/20 transition-colors text-[10px]">
-                                        <td className="pl-8 pr-2 py-1 font-sans truncate text-zinc-400" title={bank.name}>
-                                            └ {bank.name.replace('BANCA POPOLARE ', 'B. ').replace('BANCA POP. ', 'B. ')}
-                                        </td>
-                                        {shortMonths.map((_, mIdx) => {
-                                            const item = monthlyData.find((i) => i.month === mIdx + 1);
-                                            const bankItem = item?.bankBreakdown?.find(b => b.accountCode === bank.accountCode);
-                                            const val = item && item.hasBankData && bankItem ? bankItem.closing : null;
-                                            return (
-                                                <td key={mIdx} className="px-0.5 py-1 text-right truncate font-mono text-rose-300/80">
-                                                    {loading ? '...' : (val !== null && val !== undefined ? formatCompactEUR(val) : '')}
-                                                </td>
-                                            );
-                                        })}
-                                        <td className="px-1.5 py-1 text-right bg-zinc-800/10 border-l border-zinc-800 truncate">
-                                            -
-                                        </td>
-                                    </tr>
-                                ))}
+                                <BankMatrixRowGroup
+                                    category="attivo"
+                                    section="closing"
+                                    banks={attivoBanks}
+                                    monthlyData={monthlyData}
+                                    bankBalances={bankBalances}
+                                    shortMonths={shortMonths}
+                                    year={year}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                    expandedBankDrilldown={expandedBankDrilldown}
+                                    onToggleDrilldown={handleToggleBankDrilldown}
+                                    onCloseDrilldown={() => setExpandedBankDrilldown(null)}
+                                />
+                                <BankMatrixRowGroup
+                                    category="passivo"
+                                    section="closing"
+                                    banks={passivoBanks}
+                                    monthlyData={monthlyData}
+                                    bankBalances={bankBalances}
+                                    shortMonths={shortMonths}
+                                    year={year}
+                                    loading={loading}
+                                    formatCompactEUR={formatCompactEUR}
+                                    expandedBankDrilldown={expandedBankDrilldown}
+                                    onToggleDrilldown={handleToggleBankDrilldown}
+                                    onCloseDrilldown={() => setExpandedBankDrilldown(null)}
+                                />
                             </>
                         )}
                     </tbody>

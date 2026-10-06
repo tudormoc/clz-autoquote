@@ -157,6 +157,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             };
         }
 
+        // 1. Prepare all SQL query definitions
         const bankQuery = `
             SELECT 
                 p.pn_conto AS account_code,
@@ -171,20 +172,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             GROUP BY p.pn_conto, a.an_descr1
             ORDER BY p.pn_conto
         `;
-        const bankRes = await queryMSSQL(bankQuery, {}, 'BUSINESS');
-        let totalBankBalance = 0;
-        const bankBalances: BankAccountBalance[] = bankRes.recordset.map((row: any) => {
-            const bal = Number(row.balance || 0);
-            totalBankBalance += bal;
-            return {
-                accountCode: Number(row.account_code),
-                name: String(row.name).trim(),
-                balance: bal,
-                lastEntryDate: row.last_entry_date ? new Date(row.last_entry_date).toLocaleDateString('it-IT') : '',
-            };
-        });
 
-        // 1. Fetch Incomes (Attivi - Clienti an_tipo = 'C', sc_darave = 'D')
         const incomesQuery = `
             SELECT 
                 MONTH(sc.sc_datsca) as month_num,
@@ -203,17 +191,6 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             ORDER BY month_num ASC
         `;
 
-        const incomesRes = await queryMSSQL(incomesQuery, { year }, 'BUSINESS');
-        const incomesMap = new Map<number, { count: number; total: number; open: number }>();
-        incomesRes.recordset.forEach((row: any) => {
-            incomesMap.set(row.month_num, {
-                count: Number(row.invoice_count || 0),
-                total: Math.abs(Number(row.total_amount || 0)),
-                open: Math.abs(Number(row.open_amount || 0)),
-            });
-        });
-
-        // 2. Fetch Expenses (Passivi - Fornitori an_tipo = 'F', sc_darave = 'A')
         const expensesQuery = `
             SELECT 
                 MONTH(sc.sc_datsca) as month_num,
@@ -232,17 +209,6 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             ORDER BY month_num ASC
         `;
 
-        const expensesRes = await queryMSSQL(expensesQuery, { year }, 'BUSINESS');
-        const expensesMap = new Map<number, { count: number; total: number; open: number }>();
-        expensesRes.recordset.forEach((row: any) => {
-            expensesMap.set(row.month_num, {
-                count: Number(row.invoice_count || 0),
-                total: Math.abs(Number(row.total_amount || 0)),
-                open: Math.abs(Number(row.open_amount || 0)),
-            });
-        });
-
-        // Check latest registered date in prinot to determine max month with real bank data
         const maxBankMonthQuery = `
             SELECT MAX(MONTH(p.pn_datreg)) as max_month
             FROM prinot p WITH (NOLOCK)
@@ -250,8 +216,6 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
         `;
-        const maxBankMonthRes = await queryMSSQL(maxBankMonthQuery, { year }, 'BUSINESS');
-        const maxBankMonth = maxBankMonthRes.recordset[0]?.max_month ? Number(maxBankMonthRes.recordset[0].max_month) : 0;
 
         const monthlyBankQuery = `
             SELECT 
@@ -267,18 +231,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             GROUP BY MONTH(p.pn_datreg)
             ORDER BY month_num ASC
         `;
-        const monthlyBankRes = await queryMSSQL(monthlyBankQuery, { year }, 'BUSINESS');
-        const monthlyBankData = new Map<number, { cashIn: number; cashOut: number; netChange: number; count: number }>();
-        monthlyBankRes.recordset.forEach((row: any) => {
-            monthlyBankData.set(Number(row.month_num), {
-                cashIn: Number(row.cash_in || 0),
-                cashOut: Number(row.cash_out || 0),
-                netChange: Number(row.net_change || 0),
-                count: Number(row.row_count || 0),
-            });
-        });
 
-        // Get starting bank balance at start of year (all movements before target year)
         const priorBankQuery = `
             SELECT 
                 ISNULL(SUM(p.pn_importo), 0) as start_balance
@@ -287,10 +240,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) < @year
         `;
-        const priorBankRes = await queryMSSQL(priorBankQuery, { year }, 'BUSINESS');
-        let currentOpening = Number(priorBankRes.recordset[0]?.start_balance || 0);
 
-        // Per-bank opening balances prior to @year
         const perBankPriorQuery = `
             SELECT 
                 p.pn_conto as account_code,
@@ -304,16 +254,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             GROUP BY p.pn_conto, a.an_descr1
             ORDER BY p.pn_conto
         `;
-        const perBankPriorRes = await queryMSSQL(perBankPriorQuery, { year }, 'BUSINESS');
-        const bankOpeningMap = new Map<number, { name: string; balance: number }>();
-        perBankPriorRes.recordset.forEach((row: any) => {
-            bankOpeningMap.set(Number(row.account_code), {
-                name: String(row.name).trim(),
-                balance: Number(row.start_balance || 0),
-            });
-        });
 
-        // Per-bank monthly changes in @year
         const perBankMonthlyQuery = `
             SELECT 
                 p.pn_conto as account_code,
@@ -325,13 +266,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
               AND YEAR(p.pn_datreg) = @year
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
         `;
-        const perBankMonthlyRes = await queryMSSQL(perBankMonthlyQuery, { year }, 'BUSINESS');
-        const perBankMonthlyChanges = new Map<string, number>();
-        perBankMonthlyRes.recordset.forEach((row: any) => {
-            perBankMonthlyChanges.set(`${row.account_code}_${row.month_num}`, Number(row.net_change || 0));
-        });
 
-        // 3. Fetch Payroll cash-out from prinot (liability accounts: pn_importo < 0 = payment made)
         const payrollCodes = CASHFLOW_CONFIG.getPayrollAccountCodes();
         const payrollQuery = `
             SELECT
@@ -345,9 +280,193 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
             ORDER BY account_code, month_num
         `;
-        const payrollRes = await queryMSSQL(payrollQuery, { year }, 'BUSINESS');
 
-        // Build per-account payroll breakdown
+        const extraExpenseCodes = CASHFLOW_CONFIG.getEnabledExtraExpenseCodes();
+        const extraExpenseQuery = extraExpenseCodes.length > 0 ? `
+            SELECT
+                p.pn_conto AS account_code,
+                MONTH(p.pn_datreg) AS month_num,
+                ABS(ISNULL(SUM(CASE WHEN p.pn_importo < 0 THEN p.pn_importo ELSE 0 END), 0)) AS cash_out
+            FROM prinot p WITH (NOLOCK)
+            WHERE p.codditt = 'COOPZANARDI'
+              AND p.pn_conto IN (${extraExpenseCodes.join(',')})
+              AND YEAR(p.pn_datreg) = @year
+            GROUP BY p.pn_conto, MONTH(p.pn_datreg)
+            ORDER BY account_code, month_num
+        ` : '';
+
+        const topSuppliersQuerySQL = `
+            SELECT TOP 10
+                sc.sc_conto as account_code,
+                ISNULL(an.an_descr1, 'FORNITORE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
+                COUNT(*) as count,
+                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount,
+                ABS(ISNULL(SUM(sc.sc_importoda), 0)) as open_amount
+            FROM scaden sc WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON sc.sc_conto = an.an_conto 
+               AND sc.codditt = an.codditt
+            WHERE sc.codditt = 'COOPZANARDI'
+              AND sc.sc_darave = 'A'
+              AND an.an_tipo = 'F'
+              AND YEAR(sc.sc_datsca) = @year
+            GROUP BY sc.sc_conto, an.an_descr1
+            ORDER BY total_amount DESC
+        `;
+
+        const topClientsQuerySQL = `
+            SELECT TOP 10
+                sc.sc_conto as account_code,
+                ISNULL(an.an_descr1, 'CLIENTE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
+                COUNT(*) as count,
+                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount,
+                ABS(ISNULL(SUM(sc.sc_importoda), 0)) as open_amount
+            FROM scaden sc WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON sc.sc_conto = an.an_conto 
+               AND sc.codditt = an.codditt
+            WHERE sc.codditt = 'COOPZANARDI'
+              AND sc.sc_darave = 'D'
+              AND an.an_tipo = 'C'
+              AND YEAR(sc.sc_datsca) = @year
+            GROUP BY sc.sc_conto, an.an_descr1
+            ORDER BY total_amount DESC
+        `;
+
+        const clientMonthlyQuerySQL = `
+            SELECT 
+                sc.sc_conto as account_code,
+                ISNULL(an.an_descr1, 'CLIENTE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
+                MONTH(sc.sc_datsca) as month_num,
+                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount
+            FROM scaden sc WITH (NOLOCK)
+            INNER JOIN anagra an WITH (NOLOCK) 
+                ON sc.sc_conto = an.an_conto 
+               AND sc.codditt = an.codditt
+            WHERE sc.codditt = 'COOPZANARDI'
+              AND sc.sc_darave = 'D'
+              AND an.an_tipo = 'C'
+              AND YEAR(sc.sc_datsca) = @year
+            GROUP BY sc.sc_conto, an.an_descr1, MONTH(sc.sc_datsca)
+            ORDER BY sc.sc_conto, month_num
+        `;
+
+        const supplierCostGroupQuery = `
+            SELECT
+                ISNULL(sup.an_controp, 0)          AS cost_account_code,
+                ISNULL(ca.an_descr1, 'Altri Fornitori') AS cost_account_name,
+                MONTH(sc.sc_datsca)                AS month_num,
+                ABS(ISNULL(SUM(sc.sc_importo), 0)) AS total_amount
+            FROM scaden sc WITH (NOLOCK)
+            INNER JOIN anagra sup WITH (NOLOCK)
+                ON sc.sc_conto = sup.an_conto AND sc.codditt = sup.codditt
+            LEFT JOIN anagra ca WITH (NOLOCK)
+                ON sup.an_controp = ca.an_conto AND sup.codditt = ca.codditt
+            WHERE sc.codditt = 'COOPZANARDI'
+              AND sc.sc_darave = 'A'
+              AND sup.an_tipo = 'F'
+              AND YEAR(sc.sc_datsca) = @year
+            GROUP BY ISNULL(sup.an_controp, 0), ISNULL(ca.an_descr1, 'Altri Fornitori'), MONTH(sc.sc_datsca)
+            ORDER BY cost_account_code, month_num
+        `;
+
+        // 2. Execute all 14 database queries in parallel for peak performance
+        const [
+            bankRes,
+            incomesRes,
+            expensesRes,
+            maxBankMonthRes,
+            monthlyBankRes,
+            priorBankRes,
+            perBankPriorRes,
+            perBankMonthlyRes,
+            payrollRes,
+            extraExpenseRes,
+            topSuppliersRes,
+            topClientsRes,
+            clientMonthlyRes,
+            supplierCostGroupRes,
+        ] = await Promise.all([
+            queryMSSQL(bankQuery, {}, 'BUSINESS'),
+            queryMSSQL(incomesQuery, { year }, 'BUSINESS'),
+            queryMSSQL(expensesQuery, { year }, 'BUSINESS'),
+            queryMSSQL(maxBankMonthQuery, { year }, 'BUSINESS'),
+            queryMSSQL(monthlyBankQuery, { year }, 'BUSINESS'),
+            queryMSSQL(priorBankQuery, { year }, 'BUSINESS'),
+            queryMSSQL(perBankPriorQuery, { year }, 'BUSINESS'),
+            queryMSSQL(perBankMonthlyQuery, { year }, 'BUSINESS'),
+            queryMSSQL(payrollQuery, { year }, 'BUSINESS'),
+            extraExpenseCodes.length > 0 
+                ? queryMSSQL(extraExpenseQuery, { year }, 'BUSINESS') 
+                : Promise.resolve({ recordset: [] }),
+            queryMSSQL(topSuppliersQuerySQL, { year }, 'BUSINESS'),
+            queryMSSQL(topClientsQuerySQL, { year }, 'BUSINESS'),
+            queryMSSQL(clientMonthlyQuerySQL, { year }, 'BUSINESS'),
+            queryMSSQL(supplierCostGroupQuery, { year }, 'BUSINESS'),
+        ]);
+
+        // 3. Process Bank Balances
+        let totalBankBalance = 0;
+        const bankBalances: BankAccountBalance[] = bankRes.recordset.map((row: any) => {
+            const bal = Number(row.balance || 0);
+            totalBankBalance += bal;
+            return {
+                accountCode: Number(row.account_code),
+                name: String(row.name).trim(),
+                balance: bal,
+                lastEntryDate: row.last_entry_date ? new Date(row.last_entry_date).toLocaleDateString('it-IT') : '',
+            };
+        });
+
+        // 4. Process Incomes
+        const incomesMap = new Map<number, { count: number; total: number; open: number }>();
+        incomesRes.recordset.forEach((row: any) => {
+            incomesMap.set(row.month_num, {
+                count: Number(row.invoice_count || 0),
+                total: Math.abs(Number(row.total_amount || 0)),
+                open: Math.abs(Number(row.open_amount || 0)),
+            });
+        });
+
+        // 5. Process Expenses
+        const expensesMap = new Map<number, { count: number; total: number; open: number }>();
+        expensesRes.recordset.forEach((row: any) => {
+            expensesMap.set(row.month_num, {
+                count: Number(row.invoice_count || 0),
+                total: Math.abs(Number(row.total_amount || 0)),
+                open: Math.abs(Number(row.open_amount || 0)),
+            });
+        });
+
+        // 6. Process Bank monthly progression & opening balances
+        const maxBankMonth = maxBankMonthRes.recordset[0]?.max_month ? Number(maxBankMonthRes.recordset[0].max_month) : 0;
+
+        const monthlyBankData = new Map<number, { cashIn: number; cashOut: number; netChange: number; count: number }>();
+        monthlyBankRes.recordset.forEach((row: any) => {
+            monthlyBankData.set(Number(row.month_num), {
+                cashIn: Number(row.cash_in || 0),
+                cashOut: Number(row.cash_out || 0),
+                netChange: Number(row.net_change || 0),
+                count: Number(row.row_count || 0),
+            });
+        });
+
+        let currentOpening = Number(priorBankRes.recordset[0]?.start_balance || 0);
+
+        const bankOpeningMap = new Map<number, { name: string; balance: number }>();
+        perBankPriorRes.recordset.forEach((row: any) => {
+            bankOpeningMap.set(Number(row.account_code), {
+                name: String(row.name).trim(),
+                balance: Number(row.start_balance || 0),
+            });
+        });
+
+        const perBankMonthlyChanges = new Map<string, number>();
+        perBankMonthlyRes.recordset.forEach((row: any) => {
+            perBankMonthlyChanges.set(`${row.account_code}_${row.month_num}`, Number(row.net_change || 0));
+        });
+
+        // 7. Process Payroll
         const payrollMap = new Map<number, Record<number, number>>();
         payrollRes.recordset.forEach((row: any) => {
             const code = Number(row.account_code);
@@ -368,7 +487,6 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             };
         });
 
-        // Map month → total payroll for that month (sum across all 4 accounts)
         const payrollByMonth = new Map<number, number>();
         payrollMonthlyBreakdown.forEach(acc => {
             Object.entries(acc.monthlyAmounts).forEach(([m, v]) => {
@@ -378,23 +496,9 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
         });
         const grandTotalPayroll = payrollMonthlyBreakdown.reduce((s, a) => s + a.totalAmount, 0);
 
-        // 3.5 Fetch Extra Expense Categories (taxes, financing, leasing, bank fees) from prinot
-        const extraExpenseCodes = CASHFLOW_CONFIG.getEnabledExtraExpenseCodes();
+        // 8. Process Extra Expenses
         const extraExpenseMap = new Map<number, Record<number, number>>();
-        if (extraExpenseCodes.length > 0) {
-            const extraExpenseQuery = `
-                SELECT
-                    p.pn_conto AS account_code,
-                    MONTH(p.pn_datreg) AS month_num,
-                    ABS(ISNULL(SUM(CASE WHEN p.pn_importo < 0 THEN p.pn_importo ELSE 0 END), 0)) AS cash_out
-                FROM prinot p WITH (NOLOCK)
-                WHERE p.codditt = 'COOPZANARDI'
-                  AND p.pn_conto IN (${extraExpenseCodes.join(',')})
-                  AND YEAR(p.pn_datreg) = @year
-                GROUP BY p.pn_conto, MONTH(p.pn_datreg)
-                ORDER BY account_code, month_num
-            `;
-            const extraExpenseRes = await queryMSSQL(extraExpenseQuery, { year }, 'BUSINESS');
+        if (extraExpenseRes.recordset) {
             extraExpenseRes.recordset.forEach((row: any) => {
                 const code = Number(row.account_code);
                 const month = Number(row.month_num);
@@ -440,6 +544,47 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             });
         });
         const grandTotalExtraExpenses = extraExpenseBreakdown.reduce((s, c) => s + c.totalAmount, 0);
+
+        // 9. Process Top Suppliers & Clients
+        const topSuppliers: CounterpartySummary[] = topSuppliersRes.recordset.map((row: any) => ({
+            accountCode: Number(row.account_code),
+            name: String(row.name).trim(),
+            totalAmount: Number(row.total_amount || 0),
+            openAmount: Number(row.open_amount || 0),
+            count: Number(row.count || 0),
+        }));
+
+        const topClients: CounterpartySummary[] = topClientsRes.recordset.map((row: any) => ({
+            accountCode: Number(row.account_code),
+            name: String(row.name).trim(),
+            totalAmount: Number(row.total_amount || 0),
+            openAmount: Number(row.open_amount || 0),
+            count: Number(row.count || 0),
+        }));
+
+        // 10. Process Client Monthly Summary
+        const clientMap = new Map<number, ClientMonthlyBreakdownItem>();
+        clientMonthlyRes.recordset.forEach((row: any) => {
+            const accCode = Number(row.account_code);
+            const clientName = String(row.name).trim();
+            const monthNum = Number(row.month_num);
+            const amount = Number(row.total_amount || 0);
+
+            if (!clientMap.has(accCode)) {
+                clientMap.set(accCode, {
+                    accountCode: accCode,
+                    name: clientName,
+                    monthlyAmounts: {},
+                    totalAmount: 0,
+                });
+            }
+
+            const item = clientMap.get(accCode)!;
+            item.monthlyAmounts[monthNum] = amount;
+            item.totalAmount += amount;
+        });
+
+        const clientMonthlySummary = Array.from(clientMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
 
         // 4. Combine into monthly 12-month array
         const monthlyBreakdown: MonthlyFinancialItem[] = [];
@@ -520,149 +665,6 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             });
         }
 
-        // 4. Fetch top 10 Suppliers (an_tipo = 'F')
-        const topSuppliersQuery = `
-            SELECT TOP 10
-                sc.sc_conto as account_code,
-                ISNULL(an.an_descr1, 'FORNITORE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
-                COUNT(*) as count,
-                ISNULL(SUM(sc.sc_importo), 0) as total_amount,
-                ISNULL(SUM(sc.sc_importoda), 0) as open_amount
-            FROM scaden sc WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON sc.sc_conto = an.an_conto 
-               AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
-              AND sc.sc_darave = 'A'
-              AND an.an_tipo = 'F'
-              AND YEAR(sc.sc_datsca) = @year
-            GROUP BY sc.sc_conto, an.an_descr1
-            ORDER BY Math.abs(SUM(sc.sc_importo)) DESC
-        `;
-
-        // Note: SQL Server math absolute ordering
-        const topSuppliersQuerySQL = `
-            SELECT TOP 10
-                sc.sc_conto as account_code,
-                ISNULL(an.an_descr1, 'FORNITORE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
-                COUNT(*) as count,
-                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount,
-                ABS(ISNULL(SUM(sc.sc_importoda), 0)) as open_amount
-            FROM scaden sc WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON sc.sc_conto = an.an_conto 
-               AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
-              AND sc.sc_darave = 'A'
-              AND an.an_tipo = 'F'
-              AND YEAR(sc.sc_datsca) = @year
-            GROUP BY sc.sc_conto, an.an_descr1
-            ORDER BY total_amount DESC
-        `;
-
-        const topSuppliersRes = await queryMSSQL(topSuppliersQuerySQL, { year }, 'BUSINESS');
-        const topSuppliers: CounterpartySummary[] = topSuppliersRes.recordset.map((row: any) => ({
-            accountCode: Number(row.account_code),
-            name: String(row.name).trim(),
-            totalAmount: Number(row.total_amount || 0),
-            openAmount: Number(row.open_amount || 0),
-            count: Number(row.count || 0),
-        }));
-
-        // 5. Fetch top 10 Clients (an_tipo = 'C')
-        const topClientsQuerySQL = `
-            SELECT TOP 10
-                sc.sc_conto as account_code,
-                ISNULL(an.an_descr1, 'CLIENTE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
-                COUNT(*) as count,
-                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount,
-                ABS(ISNULL(SUM(sc.sc_importoda), 0)) as open_amount
-            FROM scaden sc WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON sc.sc_conto = an.an_conto 
-               AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
-              AND sc.sc_darave = 'D'
-              AND an.an_tipo = 'C'
-              AND YEAR(sc.sc_datsca) = @year
-            GROUP BY sc.sc_conto, an.an_descr1
-            ORDER BY total_amount DESC
-        `;
-
-        const topClientsRes = await queryMSSQL(topClientsQuerySQL, { year }, 'BUSINESS');
-        const topClients: CounterpartySummary[] = topClientsRes.recordset.map((row: any) => ({
-            accountCode: Number(row.account_code),
-            name: String(row.name).trim(),
-            totalAmount: Number(row.total_amount || 0),
-            openAmount: Number(row.open_amount || 0),
-            count: Number(row.count || 0),
-        }));
-
-        // 6. Fetch all Clients grouped monthly for Matrix expand
-        const clientMonthlyQuerySQL = `
-            SELECT 
-                sc.sc_conto as account_code,
-                ISNULL(an.an_descr1, 'CLIENTE ' + CAST(sc.sc_conto AS VARCHAR)) as name,
-                MONTH(sc.sc_datsca) as month_num,
-                ABS(ISNULL(SUM(sc.sc_importo), 0)) as total_amount
-            FROM scaden sc WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON sc.sc_conto = an.an_conto 
-               AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
-              AND sc.sc_darave = 'D'
-              AND an.an_tipo = 'C'
-              AND YEAR(sc.sc_datsca) = @year
-            GROUP BY sc.sc_conto, an.an_descr1, MONTH(sc.sc_datsca)
-            ORDER BY sc.sc_conto, month_num
-        `;
-
-        const clientMonthlyRes = await queryMSSQL(clientMonthlyQuerySQL, { year }, 'BUSINESS');
-        const clientMap = new Map<number, ClientMonthlyBreakdownItem>();
-
-        clientMonthlyRes.recordset.forEach((row: any) => {
-            const accCode = Number(row.account_code);
-            const clientName = String(row.name).trim();
-            const monthNum = Number(row.month_num);
-            const amount = Number(row.total_amount || 0);
-
-            if (!clientMap.has(accCode)) {
-                clientMap.set(accCode, {
-                    accountCode: accCode,
-                    name: clientName,
-                    monthlyAmounts: {},
-                    totalAmount: 0,
-                });
-            }
-
-            const item = clientMap.get(accCode)!;
-            item.monthlyAmounts[monthNum] = amount;
-            item.totalAmount += amount;
-        });
-
-        const clientMonthlySummary = Array.from(clientMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
-
-        // 7. Supplier cost-group breakdown — group scaden (Fornitori) by default cost account (an_controp)
-        const supplierCostGroupQuery = `
-            SELECT
-                ISNULL(sup.an_controp, 0)          AS cost_account_code,
-                ISNULL(ca.an_descr1, 'Altri Fornitori') AS cost_account_name,
-                MONTH(sc.sc_datsca)                AS month_num,
-                ABS(ISNULL(SUM(sc.sc_importo), 0)) AS total_amount
-            FROM scaden sc WITH (NOLOCK)
-            INNER JOIN anagra sup WITH (NOLOCK)
-                ON sc.sc_conto = sup.an_conto AND sc.codditt = sup.codditt
-            LEFT JOIN anagra ca WITH (NOLOCK)
-                ON sup.an_controp = ca.an_conto AND sup.codditt = ca.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
-              AND sc.sc_darave = 'A'
-              AND sup.an_tipo = 'F'
-              AND YEAR(sc.sc_datsca) = @year
-            GROUP BY ISNULL(sup.an_controp, 0), ISNULL(ca.an_descr1, 'Altri Fornitori'), MONTH(sc.sc_datsca)
-            ORDER BY cost_account_code, month_num
-        `;
-        const supplierCostGroupRes = await queryMSSQL(supplierCostGroupQuery, { year }, 'BUSINESS');
-
         // Aggregate into SupplierCostGroupBreakdown[]
         const costGroupMap = new Map<number, SupplierCostGroupBreakdown>();
         supplierCostGroupRes.recordset.forEach((row: any) => {
@@ -732,6 +734,192 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             topClients: [],
             topSuppliers: [],
             error: err.message || 'Failed to fetch cashflow data',
+        };
+    }
+}
+
+export interface BankTransactionItem {
+    id: string;
+    date: string;
+    formattedDate: string;
+    valueDate: string | null;
+    month: number;
+    regNum: number;
+    rowNum: number;
+    docNum: number;
+    docSeries: string;
+    docDate: string | null;
+    description: string;
+    dare: number;
+    avere: number;
+    importo: number;
+    runningBalance: number;
+}
+
+export interface BankMonthSummary {
+    month: number;
+    monthName: string;
+    openingBalance: number;
+    totalDare: number;
+    totalAvere: number;
+    netChange: number;
+    closingBalance: number;
+    transactionCount: number;
+}
+
+export interface BankAccountDetailsResult {
+    success: boolean;
+    accountCode: number;
+    accountName: string;
+    year: number;
+    openingBalanceYear: number;
+    closingBalanceYear: number;
+    totalDareYear: number;
+    totalAvereYear: number;
+    transactions: BankTransactionItem[];
+    monthlySummaries: BankMonthSummary[];
+    error?: string;
+}
+
+/**
+ * Server Action to fetch all General Ledger movements (prinot) for a specific bank account.
+ * Computes progressive running balances and monthly summaries so the user can verify
+ * how the final balance (e.g. 1.054.715,60) was reached step-by-step.
+ */
+export async function getBankAccountTransactionsAction(
+    accountCode: number,
+    year: number = 2026
+): Promise<BankAccountDetailsResult> {
+    try {
+        // 1. Get bank name from anagra
+        const nameQuery = `
+            SELECT TOP 1 an_descr1 
+            FROM anagra WITH (NOLOCK) 
+            WHERE codditt = 'COOPZANARDI' AND an_conto = @accountCode
+        `;
+        const nameRes = await queryMSSQL(nameQuery, { accountCode }, 'BUSINESS');
+        const accountName = nameRes.recordset[0]?.an_descr1 
+            ? String(nameRes.recordset[0].an_descr1).trim() 
+            : `Conto ${accountCode}`;
+
+        // 2. Get opening balance prior to year
+        const priorQuery = `
+            SELECT ISNULL(SUM(pn_importo), 0) as start_balance
+            FROM prinot WITH (NOLOCK)
+            WHERE codditt = 'COOPZANARDI'
+              AND pn_conto = @accountCode
+              AND YEAR(pn_datreg) < @year
+        `;
+        const priorRes = await queryMSSQL(priorQuery, { accountCode, year }, 'BUSINESS');
+        const openingBalanceYear = Number(priorRes.recordset[0]?.start_balance || 0);
+
+        // 3. Fetch all transactions for this account in the target year
+        const transactionsQuery = `
+            SELECT 
+                p.pn_datreg,
+                p.pn_dtvaluta,
+                p.pn_numreg,
+                p.pn_riga,
+                p.pn_numdoc,
+                ISNULL(p.pn_alfdoc, '') as pn_alfdoc,
+                p.pn_datdoc,
+                ISNULL(p.pn_descr, '') as pn_descr,
+                ISNULL(p.pn_dare, 0) as pn_dare,
+                ISNULL(p.pn_avere, 0) as pn_avere,
+                ISNULL(p.pn_importo, 0) as pn_importo
+            FROM prinot p WITH (NOLOCK)
+            WHERE p.codditt = 'COOPZANARDI'
+              AND p.pn_conto = @accountCode
+              AND YEAR(p.pn_datreg) = @year
+            ORDER BY p.pn_datreg ASC, p.pn_numreg ASC, p.pn_riga ASC
+        `;
+        const txRes = await queryMSSQL(transactionsQuery, { accountCode, year }, 'BUSINESS');
+
+        let running = openingBalanceYear;
+        let totalDareYear = 0;
+        let totalAvereYear = 0;
+
+        const transactions: BankTransactionItem[] = txRes.recordset.map((row: any) => {
+            const dare = Number(row.pn_dare || 0);
+            const avere = Number(row.pn_avere || 0);
+            const importo = Number(row.pn_importo || 0);
+            running += importo;
+            totalDareYear += dare;
+            totalAvereYear += avere;
+
+            const regDate = new Date(row.pn_datreg);
+            const m = regDate.getMonth() + 1;
+
+            return {
+                id: `${row.pn_datreg}_${row.pn_numreg}_${row.pn_riga}`,
+                date: regDate.toISOString().split('T')[0],
+                formattedDate: regDate.toLocaleDateString('it-IT'),
+                valueDate: row.pn_dtvaluta ? new Date(row.pn_dtvaluta).toLocaleDateString('it-IT') : null,
+                month: m,
+                regNum: Number(row.pn_numreg || 0),
+                rowNum: Number(row.pn_riga || 0),
+                docNum: Number(row.pn_numdoc || 0),
+                docSeries: String(row.pn_alfdoc || '').trim(),
+                docDate: row.pn_datdoc ? new Date(row.pn_datdoc).toLocaleDateString('it-IT') : null,
+                description: String(row.pn_descr || '').trim(),
+                dare,
+                avere,
+                importo,
+                runningBalance: Number(running.toFixed(2)),
+            };
+        });
+
+        // 4. Compute monthly summaries
+        const monthlySummaries: BankMonthSummary[] = [];
+        let curMonthOpening = openingBalanceYear;
+
+        for (let m = 1; m <= 12; m++) {
+            const mTx = transactions.filter(t => t.month === m);
+            const mDare = mTx.reduce((s, t) => s + t.dare, 0);
+            const mAvere = mTx.reduce((s, t) => s + t.avere, 0);
+            const mNet = mTx.reduce((s, t) => s + t.importo, 0);
+            const mClosing = curMonthOpening + mNet;
+
+            monthlySummaries.push({
+                month: m,
+                monthName: MONTH_NAMES[m - 1],
+                openingBalance: Number(curMonthOpening.toFixed(2)),
+                totalDare: Number(mDare.toFixed(2)),
+                totalAvere: Number(mAvere.toFixed(2)),
+                netChange: Number(mNet.toFixed(2)),
+                closingBalance: Number(mClosing.toFixed(2)),
+                transactionCount: mTx.length,
+            });
+
+            curMonthOpening = mClosing;
+        }
+
+        return {
+            success: true,
+            accountCode,
+            accountName,
+            year,
+            openingBalanceYear: Number(openingBalanceYear.toFixed(2)),
+            closingBalanceYear: Number(running.toFixed(2)),
+            totalDareYear: Number(totalDareYear.toFixed(2)),
+            totalAvereYear: Number(totalAvereYear.toFixed(2)),
+            transactions,
+            monthlySummaries,
+        };
+    } catch (err: any) {
+        console.error('Error fetching bank account transactions:', err);
+        return {
+            success: false,
+            accountCode,
+            accountName: '',
+            year,
+            openingBalanceYear: 0,
+            closingBalanceYear: 0,
+            totalDareYear: 0,
+            totalAvereYear: 0,
+            transactions: [],
+            monthlySummaries: [],
+            error: err.message || 'Failed to fetch bank transactions',
         };
     }
 }

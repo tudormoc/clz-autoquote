@@ -8,6 +8,8 @@ export interface CashflowBankConfig {
     accountCode: number;
     /** Human-readable label for UI */
     label: string;
+    /** Accounting section: asset/credit ('attivo') or overdraft/liability ('passivo') */
+    category: 'attivo' | 'passivo';
     /** Set to false if you want to temporarily or permanently exclude this account from totals/breakdowns */
     enabled: boolean;
 }
@@ -23,29 +25,44 @@ export const CASHFLOW_CONFIG = {
     /**
      * List of Bank Account Codes from ERP General Ledger (prinot / anagra).
      * Exact verified codes from database:
-     * - 9020021  : BANCA POP. ETICA SBF
-     * - 9020037  : BANCO POPOLARE C/SBF
-     * - 12010001 : BANCA POPOLARE ETICA SCPA C/C
-     * - 12010002 : BANCA POP. ETICA C/DEPOSITO
-     * - 12010003 : BANCO POPOLARE C/C 1629
-     * - 12010004 : CREDEM C/C
-     * - 20110015 : BANCA POP.ETICA C/ANT.FATTURE
+     * - 9020021  : BANCA POP. ETICA SBF (Attivo)
+     * - 9020037  : BANCO POPOLARE C/SBF (Attivo)
+     * - 12010001 : BANCA POPOLARE ETICA SCPA C/C (Passivo)
+     * - 12010002 : BANCA POP. ETICA C/DEPOSITO (Attivo)
+     * - 12010003 : BANCO POPOLARE C/C 1629 (Passivo)
+     * - 12010004 : CREDEM C/C (Attivo)
+     * - 20110015 : BANCA POP.ETICA C/ANT.FATTURE (Passivo)
      * 
      * To exclude any account from cashflow calculations, simply set `enabled: false`.
      */
     BANKS: [
-        { accountCode: 9020021,  label: 'BANCA POP. ETICA SBF', enabled: true },
-        { accountCode: 9020037,  label: 'BANCO POPOLARE C/SBF', enabled: true },
-        { accountCode: 12010001, label: 'BANCA POPOLARE ETICA SCPA C/C', enabled: true },
-        { accountCode: 12010002, label: 'BANCA POP. ETICA C/DEPOSITO', enabled: false },
-        { accountCode: 12010003, label: 'BANCO POPOLARE C/C 1629', enabled: true },
-        { accountCode: 12010004, label: 'CREDEM C/C', enabled: true },
-        { accountCode: 20110015, label: 'BANCA POP.ETICA C/ANT.FATTURE', enabled: false },
+        { accountCode: 9020021,  label: 'BANCA POP. ETICA SBF', category: 'attivo', enabled: true },
+        { accountCode: 9020037,  label: 'BANCO POPOLARE C/SBF', category: 'attivo', enabled: true },
+        { accountCode: 12010001, label: 'BANCA POPOLARE ETICA SCPA C/C', category: 'passivo', enabled: true },
+        { accountCode: 12010002, label: 'BANCA POP. ETICA C/DEPOSITO', category: 'attivo', enabled: true },
+        { accountCode: 12010003, label: 'BANCO POPOLARE C/C 1629', category: 'passivo', enabled: true },
+        { accountCode: 12010004, label: 'CREDEM C/C', category: 'attivo', enabled: true },
+        { accountCode: 20110015, label: 'BANCA POP.ETICA C/ANT.FATTURE', category: 'passivo', enabled: false },
     ] as CashflowBankConfig[],
 
     /** Helper function to get only enabled bank account codes for SQL queries */
     getEnabledAccountCodes(): number[] {
         return this.BANKS.filter(b => b.enabled).map(b => b.accountCode);
+    },
+
+    /** Helper function to get enabled Attivo (Asset) bank account codes */
+    getAttivoBankCodes(): number[] {
+        return this.BANKS.filter(b => b.enabled && b.category === 'attivo').map(b => b.accountCode);
+    },
+
+    /** Helper function to get enabled Passivo (Liability) bank account codes */
+    getPassivoBankCodes(): number[] {
+        return this.BANKS.filter(b => b.enabled && b.category === 'passivo').map(b => b.accountCode);
+    },
+
+    /** Check if an account code belongs to Attivo */
+    isAttivo(accountCode: number): boolean {
+        return this.BANKS.some(b => b.accountCode === accountCode && b.category === 'attivo');
     },
 
     /**

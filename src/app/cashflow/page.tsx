@@ -6,6 +6,7 @@ import { Wallet, Calendar, RefreshCw } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 import { CashflowMonthlyMatrix } from '@/components/cashflow/CashflowMonthlyMatrix';
+import { CashflowKpiCards } from '@/components/cashflow/CashflowKpiCards';
 import { getCashflowMonthlyDataAction, CashflowDataResult } from '@/app/cashflow/cashflow-actions';
 
 export default function CashflowPage() {
@@ -74,9 +75,24 @@ export default function CashflowPage() {
                         </div>
                     </div>
 
+                    {/* Executive KPI Summary Cards */}
+                    <CashflowKpiCards
+                        totalBankBalance={cashflowData?.totalBankBalance ?? 0}
+                        bankBalances={cashflowData?.bankBalances ?? []}
+                        grandTotalIncome={cashflowData?.grandTotalIncome ?? 0}
+                        totalIncomeInvoicesCount={cashflowData?.totalIncomeInvoicesCount ?? 0}
+                        grandTotalExpense={cashflowData?.grandTotalExpense ?? 0}
+                        grandTotalPayroll={cashflowData?.grandTotalPayroll ?? 0}
+                        grandTotalExtraExpenses={cashflowData?.grandTotalExtraExpenses ?? 0}
+                        totalExpenseInvoicesCount={cashflowData?.totalExpenseInvoicesCount ?? 0}
+                        grandNetCashflow={cashflowData?.grandNetCashflow ?? 0}
+                        loading={loading || isPending}
+                    />
+
                     {/* Monthly Executive Cashflow Matrix (Gennaio - Dicembre) */}
                     <CashflowMonthlyMatrix
                         monthlyData={cashflowData?.monthlyBreakdown}
+                        bankBalances={cashflowData?.bankBalances}
                         clientMonthlySummary={cashflowData?.clientMonthlySummary}
                         payrollMonthlyBreakdown={cashflowData?.payrollMonthlyBreakdown}
                         extraExpenseBreakdown={cashflowData?.extraExpenseBreakdown}
