@@ -910,34 +910,21 @@ export async function syncOrderFromDibaAction(params: {
                 WHERE ID_OPER = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant, idOper }, 'NETPRO');
 
-            // NetPro TASKS — upsert: update if exists, insert if missing
-            const taskExists = await queryMSSQL(`
-                SELECT 1 as found FROM TASKS WHERE TASK = @idOper
+            // NetPro TASKS — find the existing TASK via JOBSET and UPDATE it (never insert new rows for existing phases)
+            const linkedTask = await queryMSSQL<{ TASK: string }>(`
+                SELECT TASK FROM JOBSET WHERE ID_OPER = @idOper
             `, { idOper }, 'NETPRO');
 
-            if (taskExists.recordset.length > 0) {
+            for (const { TASK } of linkedTask.recordset) {
                 await queryMSSQL(`
                     UPDATE TASKS
                     SET DESCRIZIONE   = @descr,
                         MACCHINA      = @centro,
                         FNOTE         = @note,
                         QTA_RICHIESTA = @orderFatherQuant
-                    WHERE TASK = @idOper
-                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
-            } else {
-                await queryMSSQL(`
-                    INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
-                    VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
-                `, { idOper, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
+                    WHERE TASK = @task
+                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, task: TASK }, 'NETPRO');
             }
-
-            // NetPro JOBSET — link OPERAZIONE → TASK (same id)
-            await queryMSSQL(`
-                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @idOper)
-                BEGIN
-                    INSERT INTO JOBSET (ID_OPER, TASK) VALUES (@idOper, @idOper)
-                END
-            `, { idOper }, 'NETPRO');
         }
 
 
