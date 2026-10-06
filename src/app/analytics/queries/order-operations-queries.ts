@@ -904,7 +904,7 @@ export async function syncOrderFromDibaAction(params: {
                 `, { anno, serie, numord, rigaPadre, fase: op.fase, codcent: op.codcent }, 'BUSINESS');
             }
 
-            // NetPro OPERAZIONI — description, work center, planned time, requested qty
+            // NetPro OPERAZIONI — always update (row exists since we're in opsToUpdate)
             await queryMSSQL(`
                 UPDATE OPERAZIONI
                 SET DESCRIZIONE      = @descr,
@@ -914,15 +914,34 @@ export async function syncOrderFromDibaAction(params: {
                 WHERE ID_OPER = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, orderFatherQuant, idOper }, 'NETPRO');
 
-            // NetPro TASKS — description, machine (= work center), notes, requested qty
+            // NetPro TASKS — upsert: update if exists, insert if missing
+            const taskExists = await queryMSSQL(`
+                SELECT 1 as found FROM TASKS WHERE TASK = @idOper
+            `, { idOper }, 'NETPRO');
+
+            if (taskExists.recordset.length > 0) {
+                await queryMSSQL(`
+                    UPDATE TASKS
+                    SET DESCRIZIONE   = @descr,
+                        MACCHINA      = @centro,
+                        FNOTE         = @note,
+                        QTA_RICHIESTA = @orderFatherQuant
+                    WHERE TASK = @idOper
+                `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
+            } else {
+                await queryMSSQL(`
+                    INSERT INTO TASKS (TASK, MACCHINA, STATO, DESCRIZIONE, QTA_RICHIESTA, FNOTE)
+                    VALUES (@idOper, @centro, 'REL', @descr, @orderFatherQuant, @note)
+                `, { idOper, centro: String(op.codcent), descr: op.descr_lavor, orderFatherQuant, note: op.note }, 'NETPRO');
+            }
+
+            // NetPro JOBSET — ensure link exists between OPERAZIONE and TASK
             await queryMSSQL(`
-                UPDATE TASKS
-                SET DESCRIZIONE   = @descr,
-                    MACCHINA      = @centro,
-                    FNOTE         = @note,
-                    QTA_RICHIESTA = @orderFatherQuant
-                WHERE TASK = @idOper
-            `, { descr: op.descr_lavor, centro: String(op.codcent), note: op.note, orderFatherQuant, idOper }, 'NETPRO');
+                IF NOT EXISTS (SELECT 1 FROM JOBSET WHERE ID_OPER = @idOper AND TASK = @idOper)
+                BEGIN
+                    INSERT INTO JOBSET (ID_OPER, TASK) VALUES (@idOper, @idOper)
+                END
+            `, { idOper }, 'NETPRO');
         }
 
 
