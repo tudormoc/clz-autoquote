@@ -477,7 +477,7 @@ async function fetchOrderOperationsManagement(
                 LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = dd.codditt AND tc.tb_codcent = dd.dd_codcent
                 WHERE dd.codditt = 'COOPZANARDI'
                   AND dd.dd_coddb = @cleanPartNumber
-                ORDER BY dd.dd_riga ASC
+                ORDER BY dd.dd_fase ASC
             `, { cleanPartNumber }, 'BUSINESS');
             diba_operations = dibaRes.recordset;
         }
@@ -776,27 +776,26 @@ export async function syncOrderFromDibaAction(params: {
                 END
             `, { idOper }, 'NETPRO');
 
-            // Business attivit insert — at_flevas = 'N' (not executed, order not started yet)
+            // Business attivit upsert — delete any stale row first, then insert clean
             await queryMSSQL(`
-                IF NOT EXISTS (
-                    SELECT 1 FROM attivit 
-                    WHERE codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
+                DELETE FROM attivit 
+                WHERE codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
+            `, { numord, anno, fase: op.fase }, 'BUSINESS');
+
+            await queryMSSQL(`
+                INSERT INTO attivit (
+                    codditt, at_tipork, at_anno, at_serie, at_numord, at_riga, at_fase,
+                    at_coddb, at_codlavo, at_idproj, at_tempattpr, at_tempesepr, at_tempattees, at_tempesees,
+                    at_flevas, at_dtminima, at_sutipork, at_suanno, at_suserie, at_sunumord, at_suriga, at_sufase,
+                    at_relazsuc, at_qtapr, at_qtaes, at_datcons, at_terzista, at_suolprogr, at_note, at_prior,
+                    at_netpid, at_ciclo, at_cicloriga, at_annopian, at_numpian, at_autosim, at_trattatosim
+                ) VALUES (
+                    'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
+                    @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
+                    'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                    'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
+                    @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                 )
-                BEGIN
-                    INSERT INTO attivit (
-                        codditt, at_tipork, at_anno, at_serie, at_numord, at_riga, at_fase,
-                        at_coddb, at_codlavo, at_idproj, at_tempattpr, at_tempesepr, at_tempattees, at_tempesees,
-                        at_flevas, at_dtminima, at_sutipork, at_suanno, at_suserie, at_sunumord, at_suriga, at_sufase,
-                        at_relazsuc, at_qtapr, at_qtaes, at_datcons, at_terzista, at_suolprogr, at_note, at_prior,
-                        at_netpid, at_ciclo, at_cicloriga, at_annopian, at_numpian, at_autosim, at_trattatosim
-                    ) VALUES (
-                        'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
-                        @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                        'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
-                        'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
-                        @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
-                    )
-                END
             `, {
                 anno, serie, numord, rigaPadre, fase: op.fase,
                 articleFather, codlavo: op.codlavo, tesec: op.tesec,
