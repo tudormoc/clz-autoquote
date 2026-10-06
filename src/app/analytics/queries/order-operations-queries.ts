@@ -792,7 +792,7 @@ export async function syncOrderFromDibaAction(params: {
                 ) VALUES (
                     'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
                     @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                    'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                    ' ', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
                     'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
                     @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                 )
@@ -861,7 +861,7 @@ export async function syncOrderFromDibaAction(params: {
                     ) VALUES (
                         'COOPZANARDI', 'H', @anno, @serie, @numord, @rigaPadre, @fase,
                         @articleFather, @codlavo, 0, 0, @tesec, 0, 0,
-                        'N', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
+                        ' ', @datcons, 'H', @anno, @serie, @numord, @rigaPadre, 0,
                         'FI', @orderFatherQuant, 0, @datcons, @terzista, 0, @note, 0,
                         @netOrdine, @articleFather, @riga, 0, 0, 'N', 'N'
                     )
