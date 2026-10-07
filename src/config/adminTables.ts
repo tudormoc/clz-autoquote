@@ -3,9 +3,10 @@
  * The sidebar (SECTION_NAVS.settings) and the /settings/[tableId] pages are built from this list.
  *
  * To add a table:
- * 1. Manager component in src/components/admin/
- * 2. One entry here (label and description in it.ts → admin.tables)
- * 3. One entry in MANAGER_COMPONENTS (src/components/admin/managerComponents.ts)
+ * 1. Its config and editor component in src/components/admin/recordTables.tsx (columns, how values are typed and shown),
+ *    or, for a page that is not a plain table, a manager component of its own
+ * 2. One entry in MANAGER_COMPONENTS (src/components/admin/managerComponents.ts)
+ * 3. One entry here (label and description in it.ts → admin.tables)
  */
 
 import { Layers, Maximize2, Settings, Tags, Target, type LucideIcon } from 'lucide-react';

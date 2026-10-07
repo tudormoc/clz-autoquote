@@ -1,0 +1,50 @@
+import type { ReactNode } from 'react';
+import type { MSSQL_DB } from '@/lib/mssql';
+
+/**
+ * How a value is typed and shown:
+ * text · integer · decimal · optionalInteger (empty = none, stored as null) · percent (typed as 10, stored as 0.10) · choice (one of `options`)
+ */
+export type RecordKind = 'text' | 'integer' | 'decimal' | 'optionalInteger' | 'percent' | 'choice';
+
+export interface RecordColumn<T> {
+    /** Property of the row, also the column name in the database */
+    key: string;
+    label: string;
+    /** Tooltip on the column header */
+    title?: string;
+    kind: RecordKind;
+    /** Input step of a decimal / percent value */
+    step?: string;
+    /** Largest value accepted in the input (percent: 100) */
+    max?: number;
+    options?: { value: string; label: string }[];
+    placeholder?: string;
+    /** How the value looks in the table; default is the value itself */
+    show?: (row: T) => ReactNode;
+    /** Where the value is stored when it is not the table of the editor (e.g. an operation's name lives in `operations`) */
+    storedIn?: { table: string; idKey: string };
+}
+
+export interface RecordTableConfig<T> {
+    db: MSSQL_DB;
+    /** Database table; its rows are identified by their `id` */
+    table: string;
+    load: () => Promise<T[]>;
+    columns: RecordColumn<T>[];
+    /** Rows are shown in one section per value of this column (price rules per category) */
+    groupBy?: { key: keyof T & string; groups: { value: string; label: string }[] };
+    add: {
+        label: string;
+        dialogTitle: string;
+        /** Fields of the "add" window (default: the table columns) */
+        columns?: RecordColumn<T>[];
+        /** What the fields start with (as typed: "0", "16") */
+        initial: Record<string, string>;
+        /** Columns written only when a row is created (id, sort order ...) */
+        extras?: () => Record<string, unknown>;
+        /** Replaces the plain insert, for a row made of several tables */
+        create?: (values: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+    };
+    deleteConfirm: string;
+}

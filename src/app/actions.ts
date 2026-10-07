@@ -109,23 +109,5 @@ export async function getSignatureTypesAction() {
  * Server Action to fetch format surcharges
  */
 export async function getFormatSurchargesAction() {
-    try {
-        const { queryMSSQL } = await import('@/lib/mssql');
-        const result = await queryMSSQL(
-            'SELECT * FROM format_surcharges ORDER BY width_min ASC, height_min ASC',
-            {},
-            'QUOTES'
-        );
-        return (result.recordset || []).map((row: any) => ({
-            id: row.id,
-            width_min: Number(row.width_min),
-            width_max: Number(row.width_max),
-            height_min: Number(row.height_min),
-            height_max: Number(row.height_max),
-            surcharge_percentage: Number(row.surcharge_percentage)
-        }));
-    } catch (error) {
-        console.error('Error fetching format surcharges:', error);
-        return [];
-    }
+    return await getFormatSurcharges();
 }

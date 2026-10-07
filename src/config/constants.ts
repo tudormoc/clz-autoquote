@@ -56,6 +56,9 @@ export const APP_CONFIG = {
   // The three SQL Server databases (order = order on the database page); connection details are in .env.local
   DATABASES: ['BUSINESS', 'NETPRO', 'QUOTES'] as const,
 
+  // Starting values when a signature type is added on the Settings page
+  NEW_SIGNATURE: { PAGES: 16, SORT_ORDER: 100 },
+
   // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box
   DB_EXPLORER: {
     ROW_LIMIT: 100,
@@ -393,14 +396,7 @@ export const PRESENCE_RULES = {
 // ============================================================================
 // Categories for organizing operations in the admin UI and pricing engine
 
-export const OPERATION_CATEGORIES = [
-  { value: 'internal', label: 'Internal', order: 1 },
-  { value: 'cover', label: 'Cover', order: 2 },
-  { value: 'gluing', label: 'Gluing', order: 3 },
-  { value: 'casing_in', label: 'Casing-in', order: 4 },
-  { value: 'finishing', label: 'Finishing', order: 5 },
-  { value: 'packaging', label: 'Packaging', order: 6 },
-  { value: 'other', label: 'Other', order: 7 },
-] as const;
+// Display order = order of this list; the names shown are in it.ts → admin.operationCategories
+export const OPERATION_CATEGORIES = ['internal', 'cover', 'gluing', 'casing_in', 'finishing', 'packaging', 'other'] as const;
 
 // ============================================================================

@@ -1,86 +1,61 @@
 'use server'
 
 import { queryMSSQL, MSSQL_DB } from '@/lib/mssql';
-import { revalidatePath } from 'next/cache';
+import { errorMessage } from '@/lib/utils';
+
+type Row = Record<string, unknown>;
+type Saved = { success: true } | { success: false; error: string };
+
+/** Runs one write and turns a failure into `{ success: false, error }` */
+async function write(what: string, tableName: string, query: string, params: Row, db: MSSQL_DB): Promise<Saved> {
+    try {
+        await queryMSSQL(query, params, db);
+        return { success: true };
+    } catch (error) {
+        console.error(`${what} failed for ${tableName}:`, error);
+        return { success: false, error: errorMessage(error) };
+    }
+}
 
 /**
  * Generic Update Action
  */
-export async function updateRecordAction(
-    db: MSSQL_DB,
-    tableName: string,
-    id: string | number,
-    idColumn: string,
-    data: Record<string, any>
-) {
-    try {
-        const sets: string[] = [];
-        const params: Record<string, any> = { idValue: id };
+export async function updateRecordAction(db: MSSQL_DB, tableName: string, id: string | number, idColumn: string, data: Row) {
+    const sets: string[] = [];
+    const params: Row = { idValue: id };
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (key !== idColumn) {
-                sets.push(`${key} = @${key}`);
-                params[key] = value;
-            }
-        });
+    Object.entries(data).forEach(([key, value]) => {
+        if (key !== idColumn) {
+            sets.push(`${key} = @${key}`);
+            params[key] = value;
+        }
+    });
 
-        const query = `
+    const query = `
             UPDATE ${tableName}
             SET ${sets.join(', ')}
             WHERE ${idColumn} = @idValue
         `;
-
-        await queryMSSQL(query, params, db);
-        revalidatePath('/admin');
-        return { success: true };
-    } catch (error: any) {
-        console.error(`Update failed for ${tableName}:`, error);
-        return { success: false, error: error.message };
-    }
+    return write('Update', tableName, query, params, db);
 }
 
 /**
  * Generic Delete Action
  */
-export async function deleteRecordAction(
-    db: MSSQL_DB,
-    tableName: string,
-    id: string | number,
-    idColumn: string
-) {
-    try {
-        const query = `DELETE FROM ${tableName} WHERE ${idColumn} = @idValue`;
-        await queryMSSQL(query, { idValue: id }, db);
-        revalidatePath('/admin');
-        return { success: true };
-    } catch (error: any) {
-        console.error(`Delete failed for ${tableName}:`, error);
-        return { success: false, error: error.message };
-    }
+export async function deleteRecordAction(db: MSSQL_DB, tableName: string, id: string | number, idColumn: string) {
+    return write('Delete', tableName, `DELETE FROM ${tableName} WHERE ${idColumn} = @idValue`, { idValue: id }, db);
 }
 
 /**
  * Generic Insert Action
  */
-export async function insertRecordAction(
-    db: MSSQL_DB,
-    tableName: string,
-    data: Record<string, any>
-) {
-    try {
-        const columns = Object.keys(data).join(', ');
-        const values = Object.keys(data).map(key => `@${key}`).join(', ');
+export async function insertRecordAction(db: MSSQL_DB, tableName: string, data: Row) {
+    const columns = Object.keys(data).join(', ');
+    const values = Object.keys(data).map(key => `@${key}`).join(', ');
 
-        const query = `
+    const query = `
             INSERT INTO ${tableName} (${columns})
             VALUES (${values})
         `;
-
-        await queryMSSQL(query, data, db);
-        revalidatePath('/admin');
-        return { success: true };
-    } catch (error: any) {
-        console.error(`Insert failed for ${tableName}:`, error);
-        return { success: false, error: error.message };
-    }
+    return write('Insert', tableName, query, data, db);
 }

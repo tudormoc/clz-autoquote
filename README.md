@@ -51,7 +51,7 @@ npm run excel:examples      # Excel export
 | Look: colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` |
 | Areas, header icons, home cards, section sidebars | `src/config/navigation.ts` |
 | Analytics report list / their components | `src/config/analyticsSections.ts` / `src/components/analytics/reportComponents.ts` |
-| Settings (admin) tables / their components | `src/config/adminTables.ts` / `src/components/admin/managerComponents.ts` (pages `/settings/<id>`) |
+| Settings (admin) tables / their editors | `src/config/adminTables.ts` / `src/components/admin/recordTables.tsx` + `managerComponents.ts` (pages `/settings/<id>`) |
 | Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `SectionSidebar`, `Header`) |
 | Shared UI parts | `src/components/ui/` |
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
@@ -106,9 +106,10 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 3. Component built with `useReportTable` + `ReportView`: copy `src/components/analytics/ClientDeliveriesReport.tsx` and
    change the row type, filters, columns and Excel columns. Register it in `reportComponents.ts`.
 
-**New settings table**: manager component in `src/components/admin/` (generic CRUD via `src/app/admin-actions.ts`),
-then one entry in `ADMIN_TABLES` (`src/config/adminTables.ts`, texts in `it.ts` → `admin.tables`) and one in
-`MANAGER_COMPONENTS` (`src/components/admin/managerComponents.ts`); the sidebar and the `/settings/<id>` page follow.
+**New settings table**: a config in `src/components/admin/recordTables.tsx` (columns, how each value is typed and shown, what a
+new row starts with; the editor, saving through `src/app/admin-actions.ts`, comes from `RecordTableEditor`), then one entry in
+`MANAGER_COMPONENTS` (`src/components/admin/managerComponents.ts`) and one in `ADMIN_TABLES` (`src/config/adminTables.ts`,
+texts in `it.ts` → `admin.tables`); the sidebar and the `/settings/<id>` page follow.
 
 **New pricing operation / presence rule**: see [docs/PRICING.md](docs/PRICING.md) and [docs/PRESENCE.md](docs/PRESENCE.md).
 
