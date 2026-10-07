@@ -71,20 +71,18 @@ export function calculateDiscountFactor(tier: DiscountTier | null): number {
  * 
  * @param cost - Cost object containing setup, production, and item details
  * @param discountFactor - Base discount factor (e.g., 0.85 for 15% discount)
- * @param label - Human-readable discount label (e.g., "15% volume discount")
  * @param setupMultiplier - Multiplier for setup discount (0.0-1.0, default 1.0)
  * @param productionMultiplier - Multiplier for production discount (0.0-1.0, default 1.0)
  * 
  * @example
  * // Before: { cost: 100, setup_cost: 20, production_cost: 80 }
  * // Apply 15% discount: 100% to setup, 50% to production
- * applyDiscountToItem(cost, 0.85, "15% volume discount", 1.0, 0.5)
+ * applyDiscountToItem(cost, 0.85, 1.0, 0.5)
  * // After: { cost: 83, setup_cost: 17 (20*0.85), production_cost: 66 (80*0.925) }
  */
 export function applyDiscountToItem(
     cost: { setup: number; production: number; item: CostItem },
     discountFactor: number,
-    label: string | null,
     setupMultiplier: number = 1.0,
     productionMultiplier: number = 1.0
 ): void {
@@ -96,9 +94,6 @@ export function applyDiscountToItem(
     // Example: 15% discount with 0.5 multiplier = 1 - ((1 - 0.85) * 0.5) = 0.925 (7.5% discount)
     const setupDiscountFactor = 1 - ((1 - discountFactor) * setupMultiplier);
     const productionDiscountFactor = 1 - ((1 - discountFactor) * productionMultiplier);
-
-    // Store the base discount percentage in the item (e.g., 0.15 for 15% discount)
-    cost.item.discount_percentage = 1 - discountFactor;
 
     // Store original values before applying discount (only if not already stored by surcharge)
     if (cost.item.setup_cost && !cost.item.original_setup_cost) {
@@ -129,20 +124,4 @@ export function applyDiscountToItem(
     // Adjust the internal numeric totals used for metadata
     cost.setup = discountedSetup;
     cost.production = discountedProduction;
-}
-
-/**
- * Generates a human-readable discount label for display.
- * 
- * @param tier - Discount tier (or null if no discount)
- * @returns Label string (e.g., "15% volume discount") or null
- * 
- * @example
- * getDiscountLabel(null) → null
- * getDiscountLabel({ discount_percentage: 0.10 }) → "10% volume discount"
- * getDiscountLabel({ discount_percentage: 0.15 }) → "15% volume discount"
- */
-export function getDiscountLabel(tier: DiscountTier | null): string | null {
-    if (!tier || tier.discount_percentage <= 0) return null;
-    return `${(tier.discount_percentage * 100).toFixed(0)}% volume discount`;
 }

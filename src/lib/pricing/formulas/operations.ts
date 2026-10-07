@@ -75,12 +75,10 @@ export function calculateOperationCost(
         item: {
             id: rule.slug,
             name: rule.operation_name,
-            type: 'production' as const,
             cost: Number((setupCost + totalProdCost).toFixed(2)),
             setup_cost: Number(setupCost.toFixed(2)),
             production_cost: Number(totalProdCost.toFixed(2)),
-            unit_production_cost: Number(unitProdRate.toFixed(4)),
-            details: `Setup: ${setupCost.toFixed(2)} | Prod: ${unitProdRate.toFixed(4)}/unit`
+            unit_production_cost: Number(unitProdRate.toFixed(4))
         }
     };
 }

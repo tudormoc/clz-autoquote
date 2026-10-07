@@ -7,7 +7,6 @@ import {
     calculateCFGSComplexity,
     findDiscountTier,
     calculateDiscountFactor,
-    getDiscountLabel,
     applyDiscountToItem,
     findMaxFormatSurcharge,
     calculateSurchargeFactor,
@@ -43,24 +42,11 @@ export function calculateDetailedQuote(
     // 1. Resolve the relevant discount percentage for the given quantity
     const tier = findDiscountTier(input.quantity, discountTiers);
     const discountFactor = calculateDiscountFactor(tier);
-    const discountLabel = getDiscountLabel(tier);
 
     /** Adds one priced operation: format surcharge first, then volume discount (each with the rule's multipliers) */
     const addOperation = (rule: PricingRule, cost: OperationCost) => {
-        applySurchargeToItem(
-            cost,
-            surchargeFactor,
-            surchargePercentage,
-            rule.surcharge_multiplier_setup ?? 1.0,
-            rule.surcharge_multiplier_production ?? 1.0
-        );
-        applyDiscountToItem(
-            cost,
-            discountFactor,
-            discountLabel,
-            rule.discount_multiplier_setup ?? 1.0,
-            rule.discount_multiplier_production ?? 1.0
-        );
+        applySurchargeToItem(cost, surchargeFactor, rule.surcharge_multiplier_setup ?? 1.0, rule.surcharge_multiplier_production ?? 1.0);
+        applyDiscountToItem(cost, discountFactor, rule.discount_multiplier_setup ?? 1.0, rule.discount_multiplier_production ?? 1.0);
         items.push(cost.item);
         setupTotal += cost.setup;
         productionTotal += cost.production;
@@ -78,8 +64,7 @@ export function calculateDetailedQuote(
 
         const cost = calculateOperationCost(cfgsRule, input.quantity, complexity, unitProductionRate);
 
-        // Update details with signature breakdown
-        cost.item.details = `Setup (sigs-1): ${cost.setup.toFixed(2)} | Prod (${details}): ${unitProductionRate.toFixed(4)}/unit`;
+        if (details) cost.item.details = details;
         addOperation(cfgsRule, cost);
     }
 
@@ -88,7 +73,7 @@ export function calculateDetailedQuote(
     const prodRule = getRule(`cover_${prodType}`);
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
-        cost.item.name = fmt(APP_COPY.breakdown.coverProduction, { type: prodType });
+        cost.item.name = fmt(APP_COPY.breakdown.coverProduction, { type: APP_COPY.breakdown.coverTypes[prodType] });
         addOperation(prodRule, cost);
     }
 
@@ -107,18 +92,13 @@ export function calculateDetailedQuote(
     return {
         total_price: Number(totalBeforeDiscount.toFixed(2)),
         unit_price: input.quantity > 0 ? Number((totalBeforeDiscount / input.quantity).toFixed(2)) : 0,
-        currency: 'EUR',
         items,
         metadata: {
             applied_discount: tier?.discount_percentage || 0,
             applied_surcharge: surchargePercentage,
             setup_total: Number(setupTotal.toFixed(2)),
-            production_total: Number(productionTotal.toFixed(2)),
-            cover_production_type: calculateCoverProductionType(input)
+            production_total: Number(productionTotal.toFixed(2))
         }
     };
 }
-
-// Re-export for backward compatibility
-export { calculateCoverProductionType };
 

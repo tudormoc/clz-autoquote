@@ -21,31 +21,26 @@ export type {
 export type QuoteInput = z.infer<typeof QuoteInputSchema>;
 
 export interface CostItem {
-  id: string; // operation slug or material id
+  id: string; // operation slug
   name: string;
-  type: 'setup' | 'production' | 'material';
   cost: number;
   setup_cost?: number;
   production_cost?: number;
   unit_production_cost?: number;
-  // Original values before surcharge/discount
+  // Values before format surcharge / volume discount
   original_setup_cost?: number;
   original_unit_production_cost?: number;
-  details?: string; // "200 + (0.5 * 100)"
-  surcharge_percentage?: number; // Format surcharge applied (0-1, e.g., 0.20 = 20%)
-  discount_percentage?: number; // Discount applied to this line (0-1, e.g., 0.15 = 15%)
+  details?: string; // Second line under the name (CFGS: the signatures used)
 }
 
 export interface QuoteBreakdown {
   total_price: number;
   unit_price: number;
-  currency: string;
   items: CostItem[];
   metadata: {
     applied_discount?: number;
     applied_surcharge?: number;
     setup_total: number;
     production_total: number;
-    cover_production_type?: 'standard' | 'fast' | 'manual';
   };
 }

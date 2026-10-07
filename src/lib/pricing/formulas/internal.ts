@@ -30,7 +30,7 @@ import { PRICING_FORMULAS } from '@/config/constants';
  * @param input - Quote input containing custom signatures
  * @param signatureTypes - Available signature types with unit prices
  * @param fallbackRate - Default rate if no custom signatures defined
- * @returns Object with calculated rate and human-readable details
+ * @returns Object with the calculated rate and the signatures used (empty when the fallback rate applies)
  * 
  * @example
  * Input: 5x 16pp signatures, 10x 32pp signatures
@@ -47,7 +47,7 @@ export function calculateCFGSProductionRate(
     if (customSigs.length === 0 || signatureTypes.length === 0) {
         return {
             rate: fallbackRate,
-            details: 'Std logic'
+            details: ''
         };
     }
 

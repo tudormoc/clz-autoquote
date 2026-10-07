@@ -103,33 +103,3 @@ export function calculateBlockThickness(input: QuoteInput): number {
     // Formula: Sheets + Endpapers
     return sheetsThickness + endpapersThickness;
 }
-
-/**
- * Formats block thickness for display with appropriate precision.
- * 
- * @param thickness - Block thickness in millimeters
- * @returns Formatted string with unit (e.g., "25.5mm")
- * 
- * @example
- * formatBlockThickness(25.52) → "25.5mm"
- * formatBlockThickness(64.0) → "64.0mm"
- */
-export function formatBlockThickness(thickness: number): string {
-    return `${thickness.toFixed(1)}mm`;
-}
-
-// ============================================================================
-// INTEGRATION NOTES
-// ============================================================================
-//
-// This formula is used by:
-// - Gluing operations (complexity based on block thickness)
-// - Spine calculations (width = block thickness + board thickness)
-// - Cover sizing (total dimensions including spine)
-// - Future binding operations
-//
-// To display in UI:
-// - Add to LiveBreakdown.tsx as an info badge
-// - Use formatBlockThickness() for consistent display
-//
-// ============================================================================

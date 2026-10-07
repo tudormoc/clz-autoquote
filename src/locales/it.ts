@@ -242,8 +242,9 @@ export const APP_COPY = {
     volumeDiscount: "Sconto Volume:",
     included: "(incluso sopra)",
     unitPrice: "/ unità",
-    // Name of the cover line; {type} = standard / fast / manual (other line names come from the price rules)
-    coverProduction: "Cover Production ({type})",
+    // Name of the cover line (other line names come from the price rules)
+    coverProduction: "Produzione Copertina ({type})",
+    coverTypes: { standard: "standard", fast: "veloce", manual: "manuale" },
   },
   blueprint: {
     title: "Anteprima",

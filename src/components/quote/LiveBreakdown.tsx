@@ -1,40 +1,42 @@
-import React from 'react';
-import { QuoteBreakdown } from '@/lib/pricing/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-    TableFooter
-} from "@/components/ui/Table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { EMPTY_VALUE, formatCurrency, formatNumber } from '@/lib/format';
+import type { QuoteBreakdown } from '@/lib/pricing/types';
 import { APP_COPY } from '@/locales';
 
+const copy = APP_COPY.breakdown;
 
+/** Setup / unit price as listed before surcharge and discount (the total column has them applied) */
+const listed = (original: number | undefined, current: number | undefined, decimals: number) => {
+    const value = original || current;
+    return value ? formatCurrency(value, decimals) : EMPTY_VALUE;
+};
+
+/** Live price breakdown of the quote being edited: one row per operation, totals and the adjustments applied. */
 export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null }) {
     if (!breakdown) {
         return (
             <Card className="border-dashed">
-                <CardContent className="pt-6 text-center text-fg-subtle">
-                    {APP_COPY.breakdown.fillForm}
-                </CardContent>
+                <CardContent className="pt-6 text-center text-fg-subtle">{copy.fillForm}</CardContent>
             </Card>
         );
     }
+
+    const { setup_total, production_total, applied_surcharge = 0, applied_discount = 0 } = breakdown.metadata;
+    const adjustments = [
+        { label: copy.formatSurcharge, sign: '+', percent: applied_surcharge, tone: 'text-warning-300' },
+        { label: copy.volumeDiscount, sign: '-', percent: applied_discount, tone: 'text-success-500' },
+    ].filter((adjustment) => adjustment.percent > 0);
 
     return (
         <Card className="border-border">
             <CardHeader className="bg-card/50 border-b border-border">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-fg-strong">{APP_COPY.breakdown.title}</CardTitle>
+                    <CardTitle className="text-fg-strong">{copy.title}</CardTitle>
                     <div className="text-right">
-                        <div className="text-xl font-bold text-fg-strong font-mono">
-                            €{breakdown.total_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                        <div className="text-xl font-bold text-fg-strong font-mono">{formatCurrency(breakdown.total_price)}</div>
                         <div className="text-xs text-fg-subtle font-mono">
-                            €{breakdown.unit_price.toFixed(2)} {APP_COPY.breakdown.unitPrice}
+                            {formatCurrency(breakdown.unit_price)} {copy.unitPrice}
                         </div>
                     </div>
                 </div>
@@ -43,80 +45,64 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[40%]">{APP_COPY.breakdown.operation}</TableHead>
-                            <TableHead className="text-right">{APP_COPY.breakdown.setup}</TableHead>
-                            <TableHead className="text-right">{APP_COPY.breakdown.unit}</TableHead>
-                            <TableHead className="text-right">{APP_COPY.breakdown.total}</TableHead>
+                            <TableHead className="w-[40%]">{copy.operation}</TableHead>
+                            <TableHead className="text-right">{copy.setup}</TableHead>
+                            <TableHead className="text-right">{copy.unit}</TableHead>
+                            <TableHead className="text-right">{copy.total}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {breakdown.items.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center text-fg-subtle italic h-20">
-                                    {APP_COPY.breakdown.noOperations}
+                                    {copy.noOperations}
                                 </TableCell>
                             </TableRow>
                         )}
-                        {breakdown.items.map((item, i) => (
-                            <TableRow key={i}>
+                        {breakdown.items.map((item) => (
+                            <TableRow key={item.id}>
                                 <TableCell className="font-medium">
                                     <div className="flex flex-col">
                                         <span className="text-sm">{item.name}</span>
-                                        {item.details && (
-                                            <span className="text-3xs text-fg-subtle font-normal">{item.details}</span>
-                                        )}
+                                        {item.details && <span className="text-3xs text-fg-subtle font-normal">{item.details}</span>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs text-fg-muted">
-                                    {item.original_setup_cost ? `€${item.original_setup_cost.toFixed(2)}` : (item.setup_cost ? `€${item.setup_cost.toFixed(2)}` : '-')}
+                                    {listed(item.original_setup_cost, item.setup_cost, 2)}
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs text-fg-muted">
-                                    {item.original_unit_production_cost ? `€${item.original_unit_production_cost.toFixed(4)}` : (item.unit_production_cost ? `€${item.unit_production_cost.toFixed(4)}` : '-')}
+                                    {listed(item.original_unit_production_cost, item.unit_production_cost, 4)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono font-medium">
-                                    €{item.cost.toFixed(2)}
-                                </TableCell>
+                                <TableCell className="text-right font-mono font-medium">{formatCurrency(item.cost)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-card/30 hover:bg-card/30">
-                            <TableCell colSpan={3} className="font-medium text-xs">{APP_COPY.breakdown.setupTotal}</TableCell>
-                            <TableCell className="text-right font-mono text-sm">€{breakdown.metadata.setup_total.toFixed(2)}</TableCell>
+                            <TableCell colSpan={3} className="font-medium text-xs">{copy.setupTotal}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(setup_total)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-card/30 hover:bg-card/30 border-t-0">
-                            <TableCell colSpan={3} className="font-medium text-xs">{APP_COPY.breakdown.productionTotal}</TableCell>
-                            <TableCell className="text-right font-mono text-sm">€{breakdown.metadata.production_total.toFixed(2)}</TableCell>
+                            <TableCell colSpan={3} className="font-medium text-xs">{copy.productionTotal}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(production_total)}</TableCell>
                         </TableRow>
-                        {(breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0) || (breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0) ? (
+                        {adjustments.length > 0 && (
                             <>
                                 <TableRow className="border-t border-border-strong">
-                                    <TableCell colSpan={4} className="py-2">
-                                        <div className="text-xs text-fg-subtle font-normal">{APP_COPY.breakdown.appliedAdjustments}</div>
+                                    <TableCell colSpan={4} className="py-2 text-xs text-fg-subtle font-normal">
+                                        {copy.appliedAdjustments}
                                     </TableCell>
                                 </TableRow>
-                                {breakdown.metadata.applied_surcharge && breakdown.metadata.applied_surcharge > 0 ? (
-                                    <TableRow className="bg-card/20 hover:bg-card/20">
-                                        <TableCell colSpan={3} className="text-xs text-warning-300 pl-6">
-                                            {APP_COPY.breakdown.formatSurcharge} +{(breakdown.metadata.applied_surcharge * 100).toFixed(1)}%
+                                {adjustments.map(({ label, sign, percent, tone }) => (
+                                    <TableRow key={label} className="bg-card/20 hover:bg-card/20">
+                                        <TableCell colSpan={3} className={`text-xs pl-6 ${tone}`}>
+                                            {label} {sign}{formatNumber(percent * 100, 1)}%
                                         </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-fg-subtle">
-                                            {APP_COPY.breakdown.included}
-                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-xs text-fg-subtle">{copy.included}</TableCell>
                                     </TableRow>
-                                ) : null}
-                                {breakdown.metadata.applied_discount && breakdown.metadata.applied_discount > 0 ? (
-                                    <TableRow className="bg-card/20 hover:bg-card/20">
-                                        <TableCell colSpan={3} className="text-xs text-success-500 pl-6">
-                                            {APP_COPY.breakdown.volumeDiscount} -{(breakdown.metadata.applied_discount * 100).toFixed(1)}%
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-fg-subtle">
-                                            {APP_COPY.breakdown.included}
-                                        </TableCell>
-                                    </TableRow>
-                                ) : null}
+                                ))}
                             </>
-                        ) : null}
+                        )}
                     </TableFooter>
                 </Table>
             </CardContent>

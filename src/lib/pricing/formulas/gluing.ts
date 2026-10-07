@@ -223,31 +223,3 @@ export function calculateGluingProductionRate(slug: string, input: QuoteInput): 
             return 0;
     }
 }
-
-// ============================================================================
-// INTEGRATION NOTES FOR ENGINE
-// ============================================================================
-//
-// To integrate in src/lib/pricing/engine.ts:
-//
-// ```typescript
-// // Get applicable gluing operations
-// const gluingSlugs = calculateGluingSlugs(input);
-//
-// gluingSlugs.forEach(slug => {
-//     const gluingRule = getRule(slug);
-//     if (gluingRule) {
-//         const unitRate = calculateGluingProductionRate(slug, input);
-//         const cost = calculateOperationCost(gluingRule, input.quantity, 1, unitRate);
-//         
-//         applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
-//         applyDiscountToItem(cost, discountFactor, discountLabel);
-//         
-//         items.push(cost.item);
-//         setupTotal += cost.setup;
-//         productionTotal += cost.production;
-//     }
-// });
-// ```
-//
-// ============================================================================

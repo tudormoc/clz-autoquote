@@ -107,18 +107,12 @@ export function calculateAnotherFunction(input: QuoteInput): number {
 //    const yourOpRule = getRule('your_operation_slug');
 //    if (yourOpRule) {
 //        const complexity = calculateYourFunction(input);
-//        const cost = calculateOperationCost(yourOpRule, input.quantity, complexity);
-//        
-//        applySurchargeToItem(cost, surchargeFactor, surchargePercentage);
-//        applyDiscountToItem(cost, discountFactor, discountLabel);
-//        
-//        items.push(cost.item);
-//        setupTotal += cost.setup;
-//        productionTotal += cost.production;
+//        addOperation(yourOpRule, calculateOperationCost(yourOpRule, input.quantity, complexity));
 //    }
 //    ```
+//    (addOperation applies the format surcharge, then the volume discount, and adds to the totals)
 //
-// 4. Create pricing rule in database via Admin Dashboard:
+// 4. Create the pricing rule on the Settings page:
 //    - Slug: 'your_operation_slug'
 //    - Operation Name: 'Your Operation'
 //    - Setup costs and production rates

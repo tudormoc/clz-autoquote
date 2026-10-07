@@ -125,20 +125,18 @@ export function calculateSurchargeFactor(surchargePercentage: number): number {
  * 
  * @param cost - Cost object containing setup, production, and item details
  * @param surchargeFactor - Base surcharge factor (e.g., 1.20 for 20% surcharge)
- * @param surchargePercentage - Base surcharge percentage (e.g., 0.20 for 20%)
  * @param setupMultiplier - Multiplier for setup surcharge (0.0-1.0, default 1.0)
  * @param productionMultiplier - Multiplier for production surcharge (0.0-1.0, default 1.0)
  * 
  * @example
  * // Before: { cost: 100, setup_cost: 20, production_cost: 80 }
  * // Apply 20% surcharge: 100% to setup, 50% to production
- * applySurchargeToItem(cost, 1.20, 0.20, 1.0, 0.5)
+ * applySurchargeToItem(cost, 1.20, 1.0, 0.5)
  * // After: { cost: 112, setup_cost: 24 (20*1.20), production_cost: 88 (80*1.10) }
  */
 export function applySurchargeToItem(
     cost: { setup: number; production: number; item: CostItem },
     surchargeFactor: number,
-    surchargePercentage: number,
     setupMultiplier: number = 1.0,
     productionMultiplier: number = 1.0
 ): void {
@@ -150,9 +148,6 @@ export function applySurchargeToItem(
     // Example: 20% surcharge with 0.5 multiplier = 1 + ((1.20 - 1) * 0.5) = 1.10 (10% surcharge)
     const setupSurchargeFactor = 1 + ((surchargeFactor - 1) * setupMultiplier);
     const productionSurchargeFactor = 1 + ((surchargeFactor - 1) * productionMultiplier);
-
-    // Store the base surcharge percentage in the item (e.g., 0.20 for 20% surcharge)
-    cost.item.surcharge_percentage = surchargePercentage;
 
     // Store original values before applying surcharge
     if (cost.item.setup_cost) {
