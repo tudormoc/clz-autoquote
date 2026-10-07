@@ -3,11 +3,7 @@
 import React from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import {
-    MonthlyBankBreakdownItem,
-    MonthlyFinancialItem,
-    BankAccountBalance,
-} from '@/app/cashflow/cashflow-actions';
+import type { BankAccountBalance, MonthlyBankBreakdownItem, MonthlyFinancialItem } from '@/lib/cashflow/types';
 import { BankOperationsDrilldown } from './BankOperationsDrilldown';
 
 interface BankMatrixRowGroupProps {

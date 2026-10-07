@@ -3,7 +3,7 @@
 import React from 'react';
 import { Landmark, ArrowUpRight, ArrowDownRight, Scale } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import { BankAccountBalance } from '@/app/cashflow/cashflow-actions';
+import type { BankAccountBalance } from '@/lib/cashflow/types';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 import { formatCurrencyRounded } from '@/lib/format';
 

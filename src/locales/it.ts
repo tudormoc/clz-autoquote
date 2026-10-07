@@ -78,6 +78,12 @@ export const APP_COPY = {
     subtitle: "Pianificazione e monitoraggio del flusso di cassa e liquidità aziendale",
     yearLabel: "Anno:",
     reload: "Ricarica Dati ERP",
+    // Names used when the ERP has none
+    labels: {
+      otherSuppliers: "Altri Fornitori",
+      clientPrefix: "CLIENTE ",
+      account: "Conto {code}",
+    },
     kpi: {
       currentLiquidity: "Liquidità Disponibile",
       currentLiquiditySubtitle: "Saldo reale conti bancari (Prima Nota)",

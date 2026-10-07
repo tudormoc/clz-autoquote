@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { CalendarRange, ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import {
-    MonthlyFinancialItem,
-    ClientMonthlyBreakdownItem,
-    PayrollMonthlyBreakdown,
-    ExtraExpenseCategoryBreakdown,
-    SupplierCostGroupBreakdown,
+import type {
     BankAccountBalance,
-} from '@/app/cashflow/cashflow-actions';
+    ClientMonthlyBreakdownItem,
+    ExtraExpenseCategoryBreakdown,
+    MonthlyFinancialItem,
+    PayrollMonthlyBreakdown,
+    SupplierCostGroupBreakdown,
+} from '@/lib/cashflow/types';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 import { ExpandableMatrixCategory } from './ExpandableMatrixCategory';
 import { BankMatrixRowGroup } from './BankMatrixRowGroup';

@@ -6,7 +6,8 @@ import { APP_COPY } from '@/locales';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CashflowMonthlyMatrix } from '@/components/cashflow/CashflowMonthlyMatrix';
 import { CashflowKpiCards } from '@/components/cashflow/CashflowKpiCards';
-import { getCashflowMonthlyDataAction, CashflowDataResult } from '@/app/cashflow/cashflow-actions';
+import { getCashflowMonthlyDataAction } from '@/app/cashflow/cashflow-actions';
+import type { CashflowDataResult } from '@/lib/cashflow/types';
 
 /** Years offered in the selector: the current one and the two before it */
 const YEARS_SHOWN = 3;

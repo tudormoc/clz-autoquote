@@ -3,10 +3,8 @@
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import {
-    getBankAccountTransactionsAction,
-    BankAccountDetailsResult,
-} from '@/app/cashflow/cashflow-actions';
+import { getBankAccountTransactionsAction } from '@/app/cashflow/cashflow-actions';
+import type { BankAccountDetailsResult } from '@/lib/cashflow/types';
 import { formatCurrency } from '@/lib/format';
 
 interface BankOperationsDrilldownProps {

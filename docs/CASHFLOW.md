@@ -8,6 +8,7 @@ Page `/cashflow`: KPI cards and a month-by-month matrix of the year, with a dril
 |---|---|
 | Bank accounts, payroll and extra-expense accounts (attivo / passivo) | `src/config/cashflowConfig.ts` |
 | Data | `src/app/cashflow/cashflow-actions.ts` — `getCashflowMonthlyDataAction(year)` (its queries run in parallel), `getBankAccountTransactionsAction` (every prima nota entry of one bank, with running balance) |
+| SQL / arithmetic / result types | `src/app/cashflow/cashflow-sql.ts` / `src/lib/cashflow/aggregate.ts` / `src/lib/cashflow/types.ts` |
 | Page and controls (year, reload) | `src/components/cashflow/CashflowDashboard.tsx` |
 | KPI cards | `src/components/cashflow/CashflowKpiCards.tsx` |
 | Monthly matrix, bank rows, expandable categories | `src/components/cashflow/CashflowMonthlyMatrix.tsx`, `BankMatrixRowGroup.tsx`, `ExpandableMatrixCategory.tsx` |
