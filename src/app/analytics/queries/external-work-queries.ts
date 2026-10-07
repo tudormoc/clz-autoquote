@@ -1,20 +1,16 @@
 /**
- * EXTERNAL WORK QUERIES
- * 
- * Track external work (lavorazioni esterne) by order (commessa).
- * Shows which suppliers were used for each order and their costs.
- * 
- * DATA SOURCE: BUSINESS database
- * - dwarehe: External work invoicing data
- * - anagra: Supplier names
- * - commess: Order descriptions
+ * EXTERNAL WORK QUERIES (Lavorazioni Esterne)
+ *
+ * External work bought from suppliers, per order (commessa) and supplier, from BUSINESS:
+ * dwarehe (purchase value dw_acqvalore on the contropartita codes of APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES),
+ * anagra (supplier names, an_tipo = 'F'), commess (order descriptions).
  */
 
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
-import type { SortConfig } from './shared/query-utils';
+import { buildPaginationResult, businessOrderCore, calculateOffset, type SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
     commessa?: string;
@@ -23,30 +19,57 @@ interface SupplierFilters {
     dateTo?: string;
 }
 
+const ORDER_CORE = businessOrderCore('dw.dw_commeca');
 
-/**
- * ============================================================================
- * EXTERNAL WORK SUMMARY BY ORDER
- * ============================================================================
- * 
- * Shows external work costs grouped by commessa (order).
- * One commessa can have multiple suppliers.
- * 
- * COLUMNS:
- * - commessa_display: 4-digit order number
- * - commessa_full: Full order number
- * - order_description: Order description from commess table
- * - supplier_code: Supplier account code
- * - supplier_name: Supplier name
- * - total_value: Sum of dw_acqvalore (delivered value)
- * 
- * FILTERS:
- * - dw_contropis IN (5093, 5096, 5095) - Contropartita codes
- * - an_tipo = 'F' - Only suppliers (Fornitori)
- * - dw_scenario = 1 - Actual data
- * 
- * ============================================================================
- */
+const SUPPLIER_ROWS = `
+    FROM dwarehe dw WITH (NOLOCK)
+    INNER JOIN anagra an WITH (NOLOCK)
+        ON dw.dw_conto = an.an_conto
+        AND dw.codditt = an.codditt`;
+
+/** UI sort key → ORDER BY; ties end in order / supplier code so pages are stable */
+const ORDER_BY: Record<string, (direction: string) => string> = {
+    commessa: (d) => `commessa_display ${d}, commessa_full, supplier_code`,
+    supplier: (d) => `supplier_name ${d}, commessa_full, supplier_code`,
+    value: (d) => `total_value ${d}, commessa_full, supplier_code`,
+};
+const DEFAULT_ORDER_BY = 'supplier_name ASC, commessa_display DESC, commessa_full, supplier_code';
+
+/** WHERE clause and parameters shared by the table and its summary */
+function externalWorkFilter(year: number, filters?: SupplierFilters) {
+    const params: Record<string, unknown> = { year };
+    const conditions: string[] = [
+        'dw.dw_scenario = 1',
+        `dw.codditt = '${BUSINESS_COMPANY}'`,
+        'dw.dw_anno >= @year',
+        "an.an_tipo = 'F'",
+        'dw.dw_acqvalore <> 0',
+        `dw.dw_controp IN (${APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES.join(', ')})`
+    ];
+
+    if (filters?.dateFrom) {
+        conditions.push('dw.dw_datmov >= @dateFrom');
+        params.dateFrom = filters.dateFrom;
+    }
+    if (filters?.dateTo) {
+        conditions.push('dw.dw_datmov <= @dateTo');
+        params.dateTo = filters.dateTo;
+    }
+    // Order number contains the term (4-digit number)
+    if (filters?.commessa) {
+        conditions.push(`${ORDER_CORE} LIKE @commessaTerm`);
+        params.commessaTerm = `%${filters.commessa}%`;
+    }
+    // Supplier code or name contains the term
+    if (filters?.supplier) {
+        conditions.push('(an.an_conto LIKE @supplierTerm OR an.an_descr1 LIKE @supplierTerm)');
+        params.supplierTerm = `%${filters.supplier}%`;
+    }
+
+    return { where: conditions.join(' AND '), params };
+}
+
+/** External work per order and supplier (one order can have several suppliers) */
 export async function getExternalWorkDataAction(
     year: number,
     page: number = 1,
@@ -55,224 +78,64 @@ export async function getExternalWorkDataAction(
     sortConfig?: SortConfig
 ) {
     try {
-        const offset = (page - 1) * limit;
-        const params: any = { year, offset, limit };
+        const { where, params } = externalWorkFilter(year, filters);
+        const orderBy = sortConfig && ORDER_BY[sortConfig.column]
+            ? ORDER_BY[sortConfig.column](sortConfig.direction.toUpperCase())
+            : DEFAULT_ORDER_BY;
 
-        // Build WHERE conditions
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            `dw.codditt = '${BUSINESS_COMPANY}'`,
-            'dw.dw_anno >= @year',
-            "an.an_tipo = 'F'",
-            'dw.dw_acqvalore <> 0',
-            `dw.dw_controp IN (${APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES.join(', ')})`
-        ];
-
-        // Date filters
-        if (filters?.dateFrom) {
-            conditions.push('dw.dw_datmov >= @dateFrom');
-            params.dateFrom = filters.dateFrom;
-        }
-        if (filters?.dateTo) {
-            conditions.push('dw.dw_datmov <= @dateTo');
-            params.dateTo = filters.dateTo;
-        }
-
-        // Commessa filter (fuzzy search on 4-digit display)
-        if (filters?.commessa) {
-            const commessaTerm = `%${filters.commessa}%`;
-            conditions.push('RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) LIKE @commessaTerm');
-            params.commessaTerm = commessaTerm;
-        }
-
-        // Supplier filter (fuzzy search on code or name)
-        if (filters?.supplier) {
-            const supplierTerm = `%${filters.supplier}%`;
-            conditions.push('(an.an_conto LIKE @supplierTerm OR an.an_descr1 LIKE @supplierTerm)');
-            params.supplierTerm = supplierTerm;
-        }
-
-        const whereClause = conditions.join(' AND ');
-
-        // Build ORDER BY clause
-        let orderBy = 'ORDER BY supplier_name ASC, commessa_display DESC';
-        if (sortConfig) {
-            const direction = sortConfig.direction.toUpperCase();
-            switch (sortConfig.column) {
-                case 'commessa':
-                    orderBy = `ORDER BY commessa_display ${direction}`;
-                    break;
-                case 'supplier':
-                    orderBy = `ORDER BY supplier_name ${direction}`;
-                    break;
-                case 'value':
-                    orderBy = `ORDER BY total_value ${direction}`;
-                    break;
-            }
-        }
-
-        // Get total count
         const countResult = await queryMSSQL(`
             SELECT COUNT(*) as total
             FROM (
-                SELECT 
-                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                    dw.dw_conto as supplier_code
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4), dw.dw_commeca, dw.dw_conto, an.an_descr1
+                SELECT dw.dw_commeca, dw.dw_conto
+                ${SUPPLIER_ROWS}
+                WHERE ${where}
+                GROUP BY ${ORDER_CORE}, dw.dw_commeca, dw.dw_conto, an.an_descr1
             ) as subquery
         `, params, 'BUSINESS');
+        const total: number = countResult.recordset[0].total;
 
-        const total = countResult.recordset[0].total;
-        const totalPages = Math.ceil(total / limit);
-
-        // Get paginated data
         const result = await queryMSSQL(`
-            SELECT 
-                RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
+            SELECT
+                ${ORDER_CORE} as commessa_display,
                 dw.dw_commeca as commessa_full,
                 dw.dw_conto as supplier_code,
                 an.an_descr1 as supplier_name,
                 SUM(dw.dw_acqvalore) as total_value,
                 co.co_descr1 as order_description
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK)
-                ON dw.dw_conto = an.an_conto
-                AND dw.codditt = an.codditt
+            ${SUPPLIER_ROWS}
             LEFT JOIN commess co WITH (NOLOCK)
                 ON dw.dw_commeca = co.co_comme
                 AND dw.codditt = co.codditt
-            WHERE ${whereClause}
-            GROUP BY 
-                RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4),
-                dw.dw_commeca,
-                dw.dw_conto,
-                an.an_descr1,
-                co.co_descr1
-            ${orderBy}
+            WHERE ${where}
+            GROUP BY ${ORDER_CORE}, dw.dw_commeca, dw.dw_conto, an.an_descr1, co.co_descr1
+            ORDER BY ${orderBy}
             OFFSET @offset ROWS
             FETCH NEXT @limit ROWS ONLY
-        `, params, 'BUSINESS');
+        `, { ...params, offset: calculateOffset(page, limit), limit }, 'BUSINESS');
 
-        return {
-            success: true,
-            data: result.recordset,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages
-            }
-        };
+        return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, total) };
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: {
-                page: 1,
-                limit: 100,
-                total: 0,
-                totalPages: 0
-            }
-        };
+        return { success: false, error: err.message as string, data: [], pagination: buildPaginationResult(page, limit, 0) };
     }
 }
 
-
-/**
- * ============================================================================
- * EXTERNAL WORK STATISTICS
- * ============================================================================
- * 
- * Calculates aggregated statistics for filtered external work data.
- * 
- * RETURNS:
- * - total_value: Overall sum of all delivered values
- * - suppliers: Array of {supplier_name, total_value} grouped by supplier
- * 
- * Uses same filters as main query for consistency.
- * ============================================================================
- */
-export async function getExternalWorkStatsAction(
-    year: number,
-    filters?: SupplierFilters
-) {
+/** Summary: total value and the value per supplier, largest first */
+export async function getExternalWorkStatsAction(year: number, filters?: SupplierFilters) {
     try {
-        const params: any = { year };
-
-        // Build WHERE conditions (same as main query)
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            `dw.codditt = '${BUSINESS_COMPANY}'`,
-            'dw.dw_anno >= @year',
-            "an.an_tipo = 'F'",
-            'dw.dw_acqvalore <> 0',
-            `dw.dw_controp IN (${APP_CONFIG.ANALYTICS.SUPPLIER_CONTROPARTITA_CODES.join(', ')})`
-        ];
-
-        // Date filters
-        if (filters?.dateFrom) {
-            conditions.push('dw.dw_datmov >= @dateFrom');
-            params.dateFrom = filters.dateFrom;
-        }
-        if (filters?.dateTo) {
-            conditions.push('dw.dw_datmov <= @dateTo');
-            params.dateTo = filters.dateTo;
-        }
-
-        // Commessa filter
-        if (filters?.commessa) {
-            const commessaTerm = `%${filters.commessa}%`;
-            conditions.push('RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) LIKE @commessaTerm');
-            params.commessaTerm = commessaTerm;
-        }
-
-        // Supplier filter
-        if (filters?.supplier) {
-            const supplierTerm = `%${filters.supplier}%`;
-            conditions.push('(an.an_conto LIKE @supplierTerm OR an.an_descr1 LIKE @supplierTerm)');
-            params.supplierTerm = supplierTerm;
-        }
-
-        const whereClause = conditions.join(' AND ');
-
-        // Get supplier breakdown
-        const result = await queryMSSQL(`
-            SELECT 
+        const { where, params } = externalWorkFilter(year, filters);
+        const result = await queryMSSQL<{ supplier_name: string; total_value: number }>(`
+            SELECT
                 an.an_descr1 as supplier_name,
                 SUM(dw.dw_acqvalore) as total_value
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK)
-                ON dw.dw_conto = an.an_conto
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
+            ${SUPPLIER_ROWS}
+            WHERE ${where}
             GROUP BY an.an_descr1
             ORDER BY total_value DESC
         `, params, 'BUSINESS');
 
-        // Calculate overall total
         const totalValue = result.recordset.reduce((sum, row) => sum + row.total_value, 0);
-
-        return {
-            success: true,
-            data: {
-                total_value: totalValue,
-                suppliers: result.recordset
-            }
-        };
+        return { success: true, data: { total_value: totalValue, suppliers: result.recordset } };
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: {
-                total_value: 0,
-                suppliers: []
-            }
-        };
+        return { success: false, error: err.message as string, data: { total_value: 0, suppliers: [] } };
     }
 }

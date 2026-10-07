@@ -1,14 +1,14 @@
 /**
  * Client Deliveries Queries
- * Shows client deliveries with delivered value (dw_valore) and invoice/movement date (dw_datmov)
+ * Delivered value (dw_valore of delivery notes) per client, by movement date (dw_datmov).
  */
 
 'use server';
 
-import { getMSSQLPool } from '@/lib/mssql';
 import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
-import type { SortConfig } from './shared/query-utils';
+import { getMSSQLPool } from '@/lib/mssql';
+import { buildPaginationResult, calculateOffset, type SortConfig } from './shared/query-utils';
 
 interface ClientDeliveryRow {
     client_code: string;
@@ -22,12 +22,61 @@ interface Filters {
     dateTo?: string;
 }
 
+/** UI sort key → SQL; anything else sorts by delivered value. Equal values are ordered by client code, so pages are stable. */
+const SORT_COLUMNS: Record<string, string> = {
+    client: 'an.an_conto',
+    delivered_value: 'SUM(dw.dw_valore)',
+};
 
-interface PaginationResult {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
+const CLIENT_ROWS = `
+    FROM dwarehe dw WITH (NOLOCK)
+    INNER JOIN anagra an WITH (NOLOCK)
+        ON dw.dw_conto = an.an_conto
+        AND dw.codditt = an.codditt`;
+
+/**
+ * A request on the Business pool with the parameters of the filters, and the matching WHERE clause
+ * (delivery notes of clients, value ≠ 0). Parameters keep their SQL types so the indexes are used.
+ */
+async function deliveriesRequest(year: number, filters: Filters) {
+    const pool = await getMSSQLPool('BUSINESS');
+    const request = pool.request();
+
+    const conditions: string[] = [
+        'dw.dw_scenario = 1',
+        'dw.codditt = @company',
+        'dw.dw_anno >= @year',
+        'an.an_tipo = @clientType',
+        'dw.dw_valore <> 0',
+        'dw.dw_tipork = @tipoRec'
+    ];
+    request.input('company', sql.VarChar, BUSINESS_COMPANY);
+    request.input('year', sql.Int, year);
+    request.input('clientType', sql.VarChar, 'C');
+    request.input('tipoRec', sql.VarChar, 'B');
+
+    if (filters.dateFrom) {
+        conditions.push('dw.dw_datmov >= @dateFrom');
+        request.input('dateFrom', sql.Date, filters.dateFrom);
+    }
+    if (filters.dateTo) {
+        conditions.push('dw.dw_datmov <= @dateTo');
+        request.input('dateTo', sql.Date, filters.dateTo);
+    }
+
+    // Several comma-separated clients: exact codes; one term: code or name contains it
+    if (filters.client) {
+        const clientCodes = filters.client.split(',').map(c => c.trim()).filter(Boolean);
+        if (clientCodes.length > 1) {
+            conditions.push(`an.an_conto IN (${clientCodes.map((_, i) => `@client${i}`).join(', ')})`);
+            clientCodes.forEach((code, i) => request.input(`client${i}`, sql.VarChar, code));
+        } else {
+            conditions.push('(an.an_conto LIKE @clientSearch OR an.an_descr1 LIKE @clientSearch)');
+            request.input('clientSearch', sql.VarChar, `%${filters.client}%`);
+        }
+    }
+
+    return { request, where: conditions.join(' AND ') };
 }
 
 export async function getClientDeliveriesDataAction(
@@ -37,208 +86,64 @@ export async function getClientDeliveriesDataAction(
     filters: Filters = {},
     sortConfig: SortConfig = { column: 'delivery_date', direction: 'desc' },
     skipPagination: boolean = false
-): Promise<{
-    success: boolean;
-    data: ClientDeliveryRow[];
-    pagination: PaginationResult;
-    error?: string;
-}> {
+) {
     try {
-        const pool = await getMSSQLPool('BUSINESS');
-        const request = pool.request();
+        const { request, where } = await deliveriesRequest(year, filters);
 
-        // Build WHERE conditions
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            'dw.codditt = @company',
-            'dw.dw_anno >= @year',
-            'an.an_tipo = @clientType',
-            'dw.dw_valore <> 0',
-            'dw.dw_tipork = @tipoRec'
-        ];
-
-        request.input('company', sql.VarChar, BUSINESS_COMPANY);
-        request.input('year', sql.Int, year);
-        request.input('clientType', sql.VarChar, 'C');
-        request.input('tipoRec', sql.VarChar, 'B');
-
-        // Date filters on dw_datmov
-        if (filters.dateFrom) {
-            conditions.push('dw.dw_datmov >= @dateFrom');
-            request.input('dateFrom', sql.Date, filters.dateFrom);
-        }
-        if (filters.dateTo) {
-            conditions.push('dw.dw_datmov <= @dateTo');
-            request.input('dateTo', sql.Date, filters.dateTo);
-        }
-
-        // Client filter (fuzzy search on code or name)
-        if (filters.client) {
-            const clientCodes = filters.client.split(',').map(c => c.trim()).filter(Boolean);
-            if (clientCodes.length > 1) {
-                // Multiple clients: exact match
-                const clientParams = clientCodes.map((_, i) => `@client${i}`).join(', ');
-                conditions.push(`an.an_conto IN (${clientParams})`);
-                clientCodes.forEach((code, i) => {
-                    request.input(`client${i}`, sql.VarChar, code);
-                });
-            } else {
-                // Single client: fuzzy search
-                conditions.push('(an.an_conto LIKE @clientSearch OR an.an_descr1 LIKE @clientSearch)');
-                request.input('clientSearch', sql.VarChar, `%${filters.client}%`);
-            }
-        }
-
-        const whereClause = conditions.join(' AND ');
-
-        // Sort mapping
-        const sortColumns: Record<string, string> = {
-            'client': 'an.an_conto',
-            'delivered_value': 'SUM(dw.dw_valore)'
-        };
-        const sortColumn = sortColumns[sortConfig.column] || 'SUM(dw.dw_valore)';
-        const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
-
-        // Count query - count distinct clients with non-zero totals
-        const countQuery = `
+        // Clients whose total is not zero
+        const countResult = await request.query(`
             SELECT COUNT(*) as total
             FROM (
                 SELECT an.an_conto
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
+                ${CLIENT_ROWS}
+                WHERE ${where}
                 GROUP BY an.an_conto
                 HAVING SUM(dw.dw_valore) <> 0
             ) AS filtered_clients
-        `;
+        `);
+        const total: number = countResult.recordset[0].total;
 
-        const countResult = await request.query(countQuery);
-        const total = countResult.recordset[0].total;
-        const totalPages = Math.ceil(total / limit);
+        const sortColumn = SORT_COLUMNS[sortConfig.column] || SORT_COLUMNS.delivered_value;
+        const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
+        request.input('offset', sql.Int, skipPagination ? 0 : calculateOffset(page, limit));
+        request.input('limit', sql.Int, skipPagination ? total : limit);
 
-        // Data query with pagination
-        const offset = skipPagination ? 0 : (page - 1) * limit;
-        const fetchLimit = skipPagination ? total : limit;
-
-        const dataQuery = `
-            SELECT 
+        const dataResult = await request.query<ClientDeliveryRow>(`
+            SELECT
                 an.an_conto as client_code,
                 MIN(an.an_descr1) as client_name,
                 SUM(dw.dw_valore) as delivered_value
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK)
-                ON dw.dw_conto = an.an_conto
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
+            ${CLIENT_ROWS}
+            WHERE ${where}
             GROUP BY an.an_conto
             HAVING SUM(dw.dw_valore) <> 0
-            ORDER BY ${sortColumn} ${sortDirection}
+            ORDER BY ${sortColumn} ${sortDirection}${sortColumn === SORT_COLUMNS.client ? '' : ', an.an_conto'}
             OFFSET @offset ROWS
             FETCH NEXT @limit ROWS ONLY
-        `;
+        `);
 
-        request.input('offset', sql.Int, offset);
-        request.input('limit', sql.Int, fetchLimit);
-
-        const dataResult = await request.query(dataQuery);
-
-        return {
-            success: true,
-            data: dataResult.recordset,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages
-            }
-        };
+        return { success: true, data: dataResult.recordset, pagination: buildPaginationResult(page, limit, total) };
     } catch (error) {
         console.error('Client deliveries query error:', error);
         return {
             success: false,
-            data: [],
-            pagination: { total: 0, page, limit, totalPages: 0 },
+            data: [] as ClientDeliveryRow[],
+            pagination: buildPaginationResult(page, limit, 0),
             error: error instanceof Error ? error.message : 'Unknown error'
         };
     }
 }
 
-/**
- * Statistics for Client Deliveries
- * Returns the total aggregated delivered value for the current filters
- */
-export async function getClientDeliveriesStatsAction(
-    year: number,
-    filters: Filters = {}
-): Promise<{
-    success: boolean;
-    data: { total_value: number };
-    error?: string;
-}> {
+/** Total delivered value for the filters (summary card) */
+export async function getClientDeliveriesStatsAction(year: number, filters: Filters = {}) {
     try {
-        const pool = await getMSSQLPool('BUSINESS');
-        const request = pool.request();
-
-        // Build WHERE conditions (identical to main query)
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            'dw.codditt = @company',
-            'dw.dw_anno >= @year',
-            'an.an_tipo = @clientType',
-            'dw.dw_valore <> 0',
-            'dw.dw_tipork = @tipoRec'
-        ];
-
-        request.input('company', sql.VarChar, BUSINESS_COMPANY);
-        request.input('year', sql.Int, year);
-        request.input('clientType', sql.VarChar, 'C');
-        request.input('tipoRec', sql.VarChar, 'B');
-
-        if (filters.dateFrom) {
-            conditions.push('dw.dw_datmov >= @dateFrom');
-            request.input('dateFrom', sql.Date, filters.dateFrom);
-        }
-        if (filters.dateTo) {
-            conditions.push('dw.dw_datmov <= @dateTo');
-            request.input('dateTo', sql.Date, filters.dateTo);
-        }
-
-        if (filters.client) {
-            const clientCodes = filters.client.split(',').map(c => c.trim()).filter(Boolean);
-            if (clientCodes.length > 1) {
-                const clientParams = clientCodes.map((_, i) => `@client${i}`).join(', ');
-                conditions.push(`an.an_conto IN (${clientParams})`);
-                clientCodes.forEach((code, i) => {
-                    request.input(`client${i}`, sql.VarChar, code);
-                });
-            } else {
-                conditions.push('(an.an_conto LIKE @clientSearch OR an.an_descr1 LIKE @clientSearch)');
-                request.input('clientSearch', sql.VarChar, `%${filters.client}%`);
-            }
-        }
-
-        const whereClause = conditions.join(' AND ');
-
-        // Aggregate query
-        const query = `
+        const { request, where } = await deliveriesRequest(year, filters);
+        const result = await request.query(`
             SELECT SUM(dw.dw_valore) as total_value
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK)
-                ON dw.dw_conto = an.an_conto
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
-        `;
-
-        const result = await request.query(query);
-
-        return {
-            success: true,
-            data: {
-                total_value: result.recordset[0]?.total_value || 0
-            }
-        };
+            ${CLIENT_ROWS}
+            WHERE ${where}
+        `);
+        return { success: true, data: { total_value: (result.recordset[0]?.total_value as number) || 0 } };
     } catch (error) {
         console.error('Client deliveries stats query error:', error);
         return {
