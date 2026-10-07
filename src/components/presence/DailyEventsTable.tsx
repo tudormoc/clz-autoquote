@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { getDailyEventsAction, updateEventAction } from '@/app/presence/events-actions';
 import { AddEventForm } from '@/components/presence/AddEventForm';
-import { DeleteEventsDialog } from '@/components/presence/DeleteEventsDialog';
 import { Button } from '@/components/ui/Button';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
@@ -15,7 +14,6 @@ import { RecordCount } from '@/components/ui/RecordCount';
 import { SearchField } from '@/components/ui/SearchField';
 import { MissingValue } from '@/components/ui/TableCells';
 import { useClientSort } from '@/hooks/useClientSort';
-import { useEventDeletion } from '@/hooks/useEventDeletion';
 import { useListQuery } from '@/hooks/useListQuery';
 import { dbDateTimeParts, getTodayDate } from '@/lib/dateUtils';
 import { formatDbDateTime } from '@/lib/format';
@@ -47,7 +45,6 @@ export function DailyEventsTable() {
         load: (f: Filters) => getDailyEventsAction(f.dateFrom, f.dateTo, f.operator),
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'ORA_EVENTO', direction: 'asc' });
-    const deletion = useEventDeletion(list.reload);
     const [showAddForm, setShowAddForm] = useState(false);
 
     const saveTime = (row: PresenceEventRow) => async ({ date, time }: { date: string; time: string }) => {
@@ -94,23 +91,6 @@ export function DailyEventsTable() {
                     )}
                     onSave={saveTime(row)}
                 />
-            ),
-        },
-        {
-            key: 'actions',
-            header: '',
-            align: 'right',
-            sortable: false,
-            className: 'w-16',
-            cell: (row) => (
-                <button
-                    type="button"
-                    onClick={() => deletion.open(row, list.rows)}
-                    className="p-1 text-fg-subtle hover:text-danger hover:bg-danger/10 rounded transition-colors"
-                    title={copy.delete.button}
-                >
-                    <Trash2 size={16} />
-                </button>
             ),
         },
     ];
@@ -164,16 +144,6 @@ export function DailyEventsTable() {
                 emptyMessage={list.applied ? APP_COPY.analytics.common.noResults : APP_COPY.analytics.applyFiltersHint}
             />
 
-            {deletion.pending && (
-                <DeleteEventsDialog
-                    items={deletion.pending.items}
-                    checked={deletion.pending.checked}
-                    deleting={deletion.deleting}
-                    onToggle={deletion.toggle}
-                    onConfirm={deletion.confirm}
-                    onClose={deletion.close}
-                />
-            )}
         </div>
     );
 }

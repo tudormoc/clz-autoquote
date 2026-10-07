@@ -179,16 +179,6 @@ export interface PresenceEventRow {
     ORA_EVENTO: string;
 }
 
-/** An event offered for deletion together with a presence event (same operator, same span of time) */
-export interface ConnectedEvent {
-    label: string;
-    oraEvento: string;
-    oggetto: string;
-    task: string;
-    tipoOggetto: string;
-    evento: string;
-}
-
 export type HoursDistributionField =
     | 'ore_ordinarie'
     | 'ore_straordinarie'

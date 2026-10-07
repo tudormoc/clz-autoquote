@@ -680,17 +680,6 @@ export const APP_COPY = {
         date: "Data",
         time: "Ora",
       },
-      delete: {
-        button: "Elimina evento",
-        title: "Elimina eventi",
-        hint: "Seleziona gli eventi da eliminare, poi premi OK.",
-        confirm: "OK",
-        deleting: "Eliminazione...",
-        entry: "Entrata",
-        exit: "Uscita",
-        machineState: "Stato macchina: {state}",
-        job: "{event} (Lavoro: {task})",
-      },
     },
     monthlySummary: {
       title: "Calcolo Ore Mensile",
