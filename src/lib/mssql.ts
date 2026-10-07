@@ -1,6 +1,7 @@
 import mssql from 'mssql';
+import { APP_CONFIG } from '@/config/constants';
 
-export type MSSQL_DB = 'BUSINESS' | 'NETPRO' | 'QUOTES';
+export type MSSQL_DB = (typeof APP_CONFIG.DATABASES)[number];
 
 const baseConfig: Omit<mssql.config, 'database'> = {
     user: process.env.MSSQL_USER,

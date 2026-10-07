@@ -1,8 +1,7 @@
 import { Database } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { DBExplorer } from '@/components/DBExplorer';
-import { DBStatusSummary } from '@/components/DBStatusSummary';
+import { DatabaseExplorer } from '@/components/database/DatabaseExplorer';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.home.cards.database;
@@ -16,8 +15,7 @@ export default function DBTestPage() {
     return (
         <AppShell>
             <PageHeader icon={Database} title={copy.title} subtitle={copy.description} />
-            <DBStatusSummary />
-            <DBExplorer />
+            <DatabaseExplorer />
         </AppShell>
     );
 }

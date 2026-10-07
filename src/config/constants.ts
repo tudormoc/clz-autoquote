@@ -53,9 +53,14 @@ export const APP_CONFIG = {
     ENDPAPERS_TYPE: 'coated_matte',
   },
 
-  // Fallback defaults / System constraints
-  LIMITS: {
-    MAX_FILE_UPLOAD_MB: 10,
+  // The three SQL Server databases (order = order on the database page); connection details are in .env.local
+  DATABASES: ['BUSINESS', 'NETPRO', 'QUOTES'] as const,
+
+  // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box
+  DB_EXPLORER: {
+    ROW_LIMIT: 100,
+    VALUES_LIMIT: 20,
+    SEARCH_COLUMNS: 10,
   },
 
   // Analytics Configuration
