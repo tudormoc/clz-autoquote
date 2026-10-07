@@ -5,6 +5,7 @@
  * movements of one bank account. SQL in cashflow-sql.ts, arithmetic in src/lib/cashflow/aggregate.ts.
  */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 import {
@@ -163,9 +164,9 @@ export async function getCashflowMonthlyDataAction(year: number = new Date().get
             monthlyBreakdown,
             clientMonthlySummary,
         };
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error fetching cashflow monthly data:', err);
-        return emptyCashflow(year, false, err.message || 'Failed to fetch cashflow data');
+        return emptyCashflow(year, false, errorMessage(err) || 'Failed to fetch cashflow data');
     }
 }
 
@@ -249,7 +250,7 @@ export async function getBankAccountTransactionsAction(
             transactions,
             monthlySummaries,
         };
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error fetching bank account transactions:', err);
         return {
             success: false,
@@ -262,7 +263,7 @@ export async function getBankAccountTransactionsAction(
             totalAvereYear: 0,
             transactions: [],
             monthlySummaries: [],
-            error: err.message || 'Failed to fetch bank transactions',
+            error: errorMessage(err) || 'Failed to fetch bank transactions',
         };
     }
 }

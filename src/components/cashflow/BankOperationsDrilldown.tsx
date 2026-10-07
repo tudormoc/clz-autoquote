@@ -1,5 +1,6 @@
 'use client';
 
+import { Spinner } from '@/components/ui/Spinner';
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
 import { APP_COPY } from '@/locales';
@@ -256,7 +257,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             <div className="border border-border rounded-lg overflow-hidden">
                 <div className="max-h-[360px] overflow-y-auto">
                     <table className="w-full text-left text-xs font-mono">
-                        <thead className="bg-card text-fg-muted text-3xs uppercase tracking-wider sticky top-0 z-10 border-b border-border">
+                        <thead className="bg-card text-fg-muted text-3xs sticky top-0 z-10 border-b border-border">
                             <tr>
                                 <th className="px-2.5 py-2 w-[90px]">{t.date}</th>
                                 <th className="px-2 py-2 w-[110px]">{t.regDoc}</th>
@@ -273,7 +274,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                                 <tr>
                                     <td colSpan={6} className="text-center py-6 text-fg-muted text-xs">
                                         <div className="flex items-center justify-center gap-2">
-                                            <div className="w-3.5 h-3.5 border-2 border-warning-400 border-t-transparent rounded-full animate-spin" />
+                                            <Spinner size={14} className="text-warning-400" />
                                             {t.loading}
                                         </div>
                                     </td>

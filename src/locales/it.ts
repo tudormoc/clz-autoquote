@@ -1,5 +1,6 @@
 export const APP_COPY = {
   common: {
+    today: "Oggi",
     expand: "Espandi",
     collapse: "Comprimi",
     // Filters
@@ -189,6 +190,7 @@ export const APP_COPY = {
     impositionWarning: "Attenzione: Le pagine imposte non corrispondono al totale delle pagine del libro.",
     generalInfo: "Informazioni Generali",
     projectTitle: "Titolo Progetto",
+    defaultProjectTitle: "Nuovo libro",
     clientName: "Nome Cliente (dal Database locale)",
     clientPlaceholder: "Inizia a digitare il nome del cliente...",
     emailAddress: "Indirizzo Email",

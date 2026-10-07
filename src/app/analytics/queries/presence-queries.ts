@@ -8,6 +8,7 @@
 
 'use server'
 
+import { errorMessage } from '@/lib/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as XLSX from 'xlsx';
@@ -110,6 +111,6 @@ export async function getPresenceDataAction(year: number = new Date().getFullYea
         return { success: true, data: sumByWeek(rows, year), filesProcessed: files.length };
     } catch (err) {
         console.error('Error in getPresenceDataAction:', err);
-        return { success: false, error: err instanceof Error ? err.message : String(err), data: null };
+        return { success: false, error: errorMessage(err), data: null };
     }
 }

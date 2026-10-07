@@ -16,7 +16,7 @@ export function Header() {
                         <h1 className="font-bold text-lg tracking-tight text-fg-strong leading-none">
                             {APP_COPY.header.title}
                         </h1>
-                        <p className="text-3xs text-fg-subtle font-mono hidden sm:block uppercase tracking-widest mt-0.5">
+                        <p className="text-3xs text-fg-subtle font-mono hidden sm:block mt-0.5">
                             {APP_COPY.header.subtitle}
                         </p>
                     </div>

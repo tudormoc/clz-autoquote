@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, X } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
+import { X } from 'lucide-react';
 import { PresetPopup } from '@/components/presence/PresetPopup';
 import { useInlineEditor } from '@/hooks/useInlineEditor';
 import { EMPTY_VALUE } from '@/lib/format';
@@ -31,7 +32,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
     if (editor.saving) {
         return (
             <div className="flex items-center justify-center px-2 py-1 text-xs text-primary font-mono gap-1">
-                <Loader2 size={12} className="animate-spin" />
+                <Spinner size={12} />
                 <span>{editor.editValue || '...'}</span>
             </div>
         );

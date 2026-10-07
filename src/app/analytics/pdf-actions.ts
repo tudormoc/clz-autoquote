@@ -5,6 +5,7 @@
  * and prints it (renderPdfBase64). Returns { success, pdf (base64), filename } for downloadBase64File.
  */
 
+import { errorMessage } from '@/lib/utils';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
@@ -25,7 +26,7 @@ type PdfResult =
 
 const failure = (label: string, error: unknown): PdfResult => {
     console.error(`${label} PDF generation error:`, error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to generate PDF' };
+    return { success: false, error: errorMessage(error) };
 };
 
 /** "1-2-3" for up to three periods, "first-to-last" (months) / "Sfirst-Slast" (weeks) for more */

@@ -1,5 +1,6 @@
 'use client';
 
+import { errorMessage } from '@/lib/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_COPY } from '@/locales';
 
@@ -55,7 +56,7 @@ export function useListQuery<F, Res extends ListResult<unknown>>({ initialFilter
                 setError(answer.error ?? APP_COPY.common.loadError);
             }
         } catch (err) {
-            if (id === requestId.current) setError(err instanceof Error ? err.message : String(err));
+            if (id === requestId.current) setError(errorMessage(err));
         } finally {
             if (id === requestId.current) setLoading(false);
         }

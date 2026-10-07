@@ -1,5 +1,6 @@
 'use client';
 
+import { errorMessage } from '@/lib/utils';
 import { APP_CONFIG } from '@/config/constants';
 import { createStore } from '@/lib/store';
 import { APP_COPY, fmt } from '@/locales';
@@ -35,5 +36,5 @@ export const notify = {
     error: (message: string) => show('error', message),
     /** "Errore: …" for a failed action, from an error object or an action's error text */
     failure: (error: unknown) =>
-        show('error', fmt(APP_COPY.common.actionError, { error: error instanceof Error ? error.message : String(error ?? '') })),
+        show('error', fmt(APP_COPY.common.actionError, { error: errorMessage(error ?? '') })),
 };

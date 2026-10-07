@@ -14,6 +14,7 @@
 
 'use server'
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { buildNetProOverrides, buildBusinessOverrides, cloneRowInsert, NOW } from '@/lib/orderSync';
@@ -436,10 +437,10 @@ export async function refreshOrderOperationsManagementAction(rootCommessaKey: st
     try {
         const operationsManagement = await fetchOrderOperationsManagement(rootCommessaKey, partNumberHint, commessaFull);
         return { success: true, operationsManagement };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message,
+            error: errorMessage(err),
             operationsManagement: {
                 article_father: '',
                 ordine_netpro: '',
@@ -793,11 +794,11 @@ export async function syncOrderFromDibaAction(params: {
             success: true,
             message: 'Ordine sincronizzato e riallineato con successo alla DiBa!'
         };
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error in syncOrderFromDibaAction:', err);
         return {
             success: false,
-            error: err.message
+            error: errorMessage(err)
         };
     }
 }
@@ -896,11 +897,11 @@ export async function getOrderOperationsAction(
             operationsManagement: emptyOpsManagement,
             message: null
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
             status: 'error' as const,
-            error: err.message,
+            error: errorMessage(err),
             matches: [] as MasterOrderMatch[],
             data: [],
             editions: [],
@@ -921,10 +922,10 @@ export async function getSingleOrderDetailsAction(rootCommessaKey: string) {
             materials,
             operationsManagement
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message,
+            error: errorMessage(err),
             data: [],
             editions: [],
             materials: [] as Material[],

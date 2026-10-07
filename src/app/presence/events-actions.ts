@@ -2,6 +2,7 @@
 
 /** Daily Events: presence events (EVENTI) — list, edit the time, add by hand. */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
@@ -58,10 +59,10 @@ export async function getDailyEventsAction(
             success: true,
             data: result.recordset
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message,
+            error: errorMessage(err),
             data: []
         };
     }
@@ -100,10 +101,10 @@ export async function updateEventAction(
             success: true,
             message: 'Event updated successfully'
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message
+            error: errorMessage(err)
         };
     }
 }
@@ -162,10 +163,10 @@ export async function createEventAction(
             success: true,
             message: 'Event created and operator status updated successfully'
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message
+            error: errorMessage(err)
         };
     }
 }

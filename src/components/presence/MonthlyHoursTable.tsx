@@ -1,7 +1,8 @@
 'use client';
 
+import { Spinner } from '@/components/ui/Spinner';
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, Loader2 } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 import { getMonthlyHoursAction, getPresenceRulesAction, updateHoursDistributionAction } from '@/app/presence/hours-actions';
 import { byOperatorName, monthlyHoursColumns, monthlyHoursSortColumns } from '@/components/presence/monthlyHoursColumns';
 import { PrefillConfirmDialog } from '@/components/presence/PrefillConfirmDialog';
@@ -175,7 +176,7 @@ export function MonthlyHoursTable() {
                             disabled={prefill.checking || prefill.prefilling || list.loading || list.applied === null}
                             className="border-warning-500/40 text-warning-300 hover:bg-warning-500/20"
                         >
-                            {prefill.checking || prefill.prefilling ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
+                            {prefill.checking || prefill.prefilling ? <Spinner size={16} /> : <CalendarCheck size={16} />}
                             {copy.prefill.button}
                         </Button>
                         {prefill.feedback && <span className="self-center text-xs text-warning-400 font-medium">{prefill.feedback}</span>}

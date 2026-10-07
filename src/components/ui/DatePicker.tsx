@@ -5,6 +5,7 @@ import { DayPicker } from 'react-day-picker';
 import { format, parse, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Calendar } from 'lucide-react';
+import { APP_COPY } from '@/locales';
 import 'react-day-picker/dist/style.css';
 
 interface DatePickerProps {
@@ -126,7 +127,7 @@ export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
                             onClick={handleTodayClick}
                             className="w-full px-3 py-2 text-sm text-fg-secondary hover:text-fg-strong hover:bg-muted rounded transition-colors"
                         >
-                            Oggi
+                            {APP_COPY.common.today}
                         </button>
                     </div>
                 </div>

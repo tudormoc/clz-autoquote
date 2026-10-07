@@ -307,7 +307,6 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                                 <Input
                                                     {...f}
                                                     type="number"
-                                                    placeholder="Qty"
                                                     className="h-9"
                                                     onChange={(e) => {
                                                         const val = e.target.value;

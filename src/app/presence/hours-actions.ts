@@ -2,6 +2,7 @@
 
 /** Calcolo Ore Mensile: presence rules, monthly hours, hours distribution, prefill. */
 
+import { errorMessage } from '@/lib/utils';
 import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import type { OperatorHoursRow, HoursDistributionField } from '@/types';
@@ -177,10 +178,10 @@ export async function getMonthlyHoursAction(
         });
 
         return { success: true, data: rows };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string,
+            error: errorMessage(err),
             data: [] as OperatorHoursRow[],
         };
     }
@@ -247,8 +248,8 @@ export async function updateHoursDistributionAction(
         );
 
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message as string };
+    } catch (err) {
+        return { success: false, error: errorMessage(err) };
     }
 }
 
@@ -456,7 +457,7 @@ export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dr
         }
 
         return { success: true, ...counts, dryRun: false, rules };
-    } catch (err: any) {
-        return { success: false, ...EMPTY_PREFILL, error: err.message as string };
+    } catch (err) {
+        return { success: false, ...EMPTY_PREFILL, error: errorMessage(err) };
     }
 }

@@ -9,9 +9,10 @@ import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction, deleteQuoteAction } from '@/app/actions';
 import { Quote } from '@/types';
 import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY } from '@/locales';
 
 const DEFAULT_VALUES: QuoteInput = {
-    project_title: APP_CONFIG.DEFAULTS.BOOK_NAME,
+    project_title: APP_COPY.form.defaultProjectTitle,
     client_name: '',
     email: '',
     quantity: APP_CONFIG.DEFAULTS.QUANTITY,

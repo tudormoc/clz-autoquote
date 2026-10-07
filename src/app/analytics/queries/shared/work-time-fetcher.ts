@@ -14,6 +14,7 @@
  * calculate true profitability of the order.
  */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 
@@ -61,8 +62,8 @@ export async function fetchWorkTimesForCommessas(
             timeResult.recordset.forEach(row => {
                 workTimes[row.commessa_code] = row.total_work_time || 0;
             });
-        } catch (err: any) {
-            console.error(`Work time fetch error for batch ${i / BATCH_SIZE + 1}:`, err.message);
+        } catch (err) {
+            console.error(`Work time fetch error for batch ${i / BATCH_SIZE + 1}:`, errorMessage(err));
             // Continue with other batches even if one fails
         }
     }

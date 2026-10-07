@@ -2,6 +2,7 @@
 
 /** Operators (OPERATORI): list, edit badge / name / stato, TURNO2 group. */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 
 export interface OperatorRow {
@@ -55,10 +56,10 @@ export async function getOperatorsAction(search?: string) {
             data: result.recordset as OperatorRow[],
             allStati: statiResult.recordset.map((r: any) => r.STATO_FISICO as string)
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string,
+            error: errorMessage(err),
             data: [] as OperatorRow[],
             allStati: [] as string[]
         };
@@ -86,10 +87,10 @@ export async function updateOperatorAction(
             success: true,
             message: 'Operator updated successfully'
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string
+            error: errorMessage(err)
         };
     }
 }
@@ -111,8 +112,8 @@ export async function getTurno2OperatorsAction() {
             success: true,
             data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string }[],
         };
-    } catch (err: any) {
-        return { success: false, error: err.message as string, data: [] as { OPERATORE: string; NOME: string; GRUPPO: string }[] };
+    } catch (err) {
+        return { success: false, error: errorMessage(err), data: [] as { OPERATORE: string; NOME: string; GRUPPO: string }[] };
     }
 }
 
@@ -133,8 +134,8 @@ export async function searchOperatorsAction(term: string) {
             success: true,
             data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string | null }[],
         };
-    } catch (err: any) {
-        return { success: false, error: err.message as string, data: [] as { OPERATORE: string; NOME: string; GRUPPO: string | null }[] };
+    } catch (err) {
+        return { success: false, error: errorMessage(err), data: [] as { OPERATORE: string; NOME: string; GRUPPO: string | null }[] };
     }
 }
 
@@ -150,7 +151,7 @@ export async function setOperatorGruppoAction(operatore: string, gruppo: string)
             'NETPRO'
         );
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message as string };
+    } catch (err) {
+        return { success: false, error: errorMessage(err) };
     }
 }

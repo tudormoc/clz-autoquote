@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/utils';
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { APP_CONFIG } from '@/config/constants';
@@ -133,10 +134,10 @@ export async function GET(request: NextRequest) {
                 'Cache-Control': 'no-store, no-cache, must-revalidate',
             }
         });
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error generating commessa PDF:', err);
         return NextResponse.json(
-            { error: err.message || 'Internal Server Error' },
+            { error: errorMessage(err) || 'Internal Server Error' },
             { status: 500 }
         );
     }

@@ -1,4 +1,5 @@
-import { CalendarCheck, Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
+import { CalendarCheck } from 'lucide-react';
 import { presenceFieldLabel as fieldLabel } from '@/components/presence/presenceLabels';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -48,7 +49,7 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
                         {APP_COPY.common.cancel}
                     </Button>
                     <Button type="button" onClick={onConfirm} disabled={prefilling} className="bg-warning-600 hover:bg-warning-500 text-fg-strong">
-                        {prefilling ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
+                        {prefilling ? <Spinner size={16} /> : <CalendarCheck size={16} />}
                         {copy.prefill.confirmButton} ({summary.totalCount})
                     </Button>
                 </>

@@ -10,6 +10,7 @@
 
 'use server'
 
+import { errorMessage } from '@/lib/utils';
 import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import type { RowSortColumns } from '@/lib/sort';
@@ -80,7 +81,7 @@ async function groupedPage(
 
 const failure = (err: any, page: number, limit: number) => ({
     success: false,
-    error: err.message as string,
+    error: errorMessage(err),
     data: [],
     pagination: buildPaginationResult(page, limit, 0),
 });
@@ -139,7 +140,7 @@ export async function getProductionDataAction(
             groupBy,
             orderBy: buildSqlOrderBy(PRODUCTION_SORT, sort, { column: 'date', direction: 'asc' }, groupBy),
         }, params, page, limit);
-    } catch (err: any) {
+    } catch (err) {
         return failure(err, page, limit);
     }
 }
@@ -191,7 +192,7 @@ export async function getOrderSummaryDataAction(
             groupBy,
             orderBy: buildSqlOrderBy(ORDER_SUMMARY_SORT, sort, { column: 'commessa', direction: 'asc' }, groupBy),
         }, params, page, limit);
-    } catch (err: any) {
+    } catch (err) {
         return failure(err, page, limit);
     }
 }
@@ -298,7 +299,7 @@ export async function getAreaSummaryDataAction(
         }
 
         return { success: true, ...sortAndPage(rows, sort, AREA_SUMMARY_SORT, { column: 'display_order', direction: 'asc' }, undefined, page, limit) };
-    } catch (err: any) {
+    } catch (err) {
         return failure(err, page, limit);
     }
 }
@@ -450,7 +451,7 @@ export async function getOrderAreaSummaryDataAction(
         }
 
         return { success: true, ...sortAndPage(rows, sort, ORDER_AREA_SORT, { column: 'display_order', direction: 'asc' }, undefined, page, limit) };
-    } catch (err: any) {
+    } catch (err) {
         return failure(err, page, limit);
     }
 }

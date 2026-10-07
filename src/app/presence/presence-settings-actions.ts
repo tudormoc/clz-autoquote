@@ -2,6 +2,7 @@
 
 /** Presence settings (VALORI_TABELLE, PRESENZE) and their text presets. */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import type { PresenceSettingRow } from '@/types';
 import {
@@ -34,8 +35,8 @@ export async function renamePresencePresetAction(
         await queryMSSQL(cascadeQuery, { oldTag, newTag }, 'QUOTES');
 
         return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message as string };
+    } catch (err) {
+        return { success: false, error: errorMessage(err) };
     }
 }
 
@@ -67,10 +68,10 @@ export async function getAllPresenceSettingsAction() {
             success: true,
             data: [...known, ...unknown],
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string,
+            error: errorMessage(err),
             data: [] as PresenceSettingRow[],
         };
     }
@@ -118,10 +119,10 @@ export async function updatePresenceSettingAction(
         return {
             success: true,
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string,
+            error: errorMessage(err),
         };
     }
 }

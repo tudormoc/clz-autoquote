@@ -3,6 +3,7 @@
  * these must not become actions the browser can call.
  */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import type { PresenceSettingRow } from '@/types';
 import {
@@ -150,10 +151,10 @@ export async function suspendActiveExecutionIfAny(operatorCode: string, exitTime
         `, { operatorCode, formattedTime }, 'NETPRO');
 
         console.log('=== MAC SUS and OPE SUS events inserted (no MAC IDLE stato), states updated ===');
-    } catch (err: any) {
+    } catch (err) {
         console.error('Error suspending active execution for operator:', operatorCode, err);
         // Re-throw to see the error in the parent function
-        throw new Error(`Suspend failed: ${err.message}`);
+        throw new Error(`Suspend failed: ${errorMessage(err)}`);
     }
 }
 

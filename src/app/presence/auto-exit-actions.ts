@@ -2,6 +2,7 @@
 
 /** Daily auto-exit (run by the scheduler through /api/auto-exit). */
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
 import { suspendActiveExecutionIfAny } from './presence-db';
@@ -83,10 +84,10 @@ export async function runAutoExitAction(testOperator?: string) {
             exitTime,
             date: todayStr,
         };
-    } catch (err: any) {
+    } catch (err) {
         return {
             success: false,
-            error: err.message as string,
+            error: errorMessage(err),
             processed: 0,
         };
     }

@@ -30,7 +30,6 @@ export const APP_CONFIG = {
     WIDTH: 148,
     HEIGHT: 210,
     PAGES: 100,
-    BOOK_NAME: 'My Book Project',
 
     // Cover defaults
     COVER_TYPE: 'hardcover',

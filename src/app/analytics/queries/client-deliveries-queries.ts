@@ -5,6 +5,7 @@
 
 'use server';
 
+import { errorMessage } from '@/lib/utils';
 import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
@@ -128,7 +129,7 @@ export async function getClientDeliveriesDataAction(
             success: false,
             data: [] as ClientDeliveryRow[],
             pagination: buildPaginationResult(page, limit, 0),
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: errorMessage(error)
         };
     }
 }
@@ -148,7 +149,7 @@ export async function getClientDeliveriesStatsAction(year: number, filters: Filt
         return {
             success: false,
             data: { total_value: 0 },
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: errorMessage(error)
         };
     }
 }

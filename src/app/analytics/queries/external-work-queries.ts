@@ -8,6 +8,7 @@
 
 'use server'
 
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { buildPaginationResult, businessOrderCore, calculateOffset, type SortConfig } from './shared/query-utils';
@@ -114,8 +115,8 @@ export async function getExternalWorkDataAction(
         `, { ...params, offset: calculateOffset(page, limit), limit }, 'BUSINESS');
 
         return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, total) };
-    } catch (err: any) {
-        return { success: false, error: err.message as string, data: [], pagination: buildPaginationResult(page, limit, 0) };
+    } catch (err) {
+        return { success: false, error: errorMessage(err), data: [], pagination: buildPaginationResult(page, limit, 0) };
     }
 }
 
@@ -135,7 +136,7 @@ export async function getExternalWorkStatsAction(year: number, filters?: Supplie
 
         const totalValue = result.recordset.reduce((sum, row) => sum + row.total_value, 0);
         return { success: true, data: { total_value: totalValue, suppliers: result.recordset } };
-    } catch (err: any) {
-        return { success: false, error: err.message as string, data: { total_value: 0, suppliers: [] } };
+    } catch (err) {
+        return { success: false, error: errorMessage(err), data: { total_value: 0, suppliers: [] } };
     }
 }

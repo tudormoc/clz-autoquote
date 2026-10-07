@@ -1,5 +1,6 @@
 'use client'
 
+import { errorMessage } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
 import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY, fmt } from '@/locales';
@@ -31,8 +32,8 @@ export function AnnualPresenceReport() {
             } else {
                 setError(result.error || APP_COPY.common.loadError);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(errorMessage(err));
         } finally {
             setLoading(false);
         }

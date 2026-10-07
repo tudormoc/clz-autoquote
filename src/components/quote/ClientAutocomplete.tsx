@@ -1,9 +1,10 @@
 'use client';
 
+import { Spinner } from '@/components/ui/Spinner';
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/Input';
 import { searchMSSQLClientsAction } from '@/app/client-search-actions';
-import { Search, Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface Props {
     value: string | undefined;
@@ -88,7 +89,7 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                     />
                     <div className="absolute right-3 top-[30px] text-fg-subtle">
                         {isLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            <Spinner size={16} className="text-primary" />
                         ) : (
                             <Search className="h-4 w-4" />
                         )}
@@ -107,7 +108,6 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                                 <span className="font-medium text-fg-soft group-hover:text-primary truncate">
                                     {suggestion.name}
                                 </span>
-                                <span className="text-3xs text-fg-faint uppercase tracking-widest hidden group-hover:inline">Select</span>
                             </button>
                         ))}
                     </div>
