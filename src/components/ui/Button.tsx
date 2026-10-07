@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -10,7 +10,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
   outline: "border border-border-strong bg-transparent hover:bg-muted text-fg",
   ghost: "hover:bg-muted text-fg",
   /** Confirms a deletion */
-  danger: "bg-danger-600 text-fg-strong hover:bg-danger-500"
+  danger: "bg-danger-600 text-fg-strong hover:bg-danger-500",
+  /** Writes to the production databases (realign an order) */
+  warning: "bg-warning-500 text-fg-inverse hover:bg-warning-400"
 };
 
 const SIZES: Record<ButtonSize, string> = {

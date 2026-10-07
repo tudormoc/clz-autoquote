@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils';
 
-export type StatusTone = 'success' | 'warning' | 'info' | 'neutral' | 'muted';
+export type StatusTone = 'success' | 'warning' | 'info' | 'highlight' | 'neutral' | 'muted';
 
 const TONES: Record<StatusTone, string> = {
     success: 'bg-success-950/60 text-success-300 border-success-700/60',
     warning: 'bg-warning-950/60 text-warning-300 border-warning-600/70',
     info: 'bg-info-950/40 text-info-300 border-info-800/40',
+    highlight: 'bg-highlight-950/40 text-highlight-300 border-highlight-800/40',
     neutral: 'bg-muted text-fg-muted border-border-strong',
     muted: 'bg-card/80 text-fg-subtle border-border font-normal',
 };

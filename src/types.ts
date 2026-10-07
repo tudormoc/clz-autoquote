@@ -240,6 +240,18 @@ export interface BusinessOrderOperationRow {
     note: string;
 }
 
+/** One edition (commessa) of a master order, as listed on the work progress page */
+export interface OrderEdition {
+    commessa_display: string;
+    commessa_full: string;
+    order_description: string;
+    master_order_title?: string;
+    client_name: string;
+    /** NetPro order id */
+    ordine?: string;
+    part_number?: string;
+}
+
 export interface OrderOperationsManagementData {
     article_father: string;
     ordine_netpro: string;
