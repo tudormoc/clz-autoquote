@@ -206,6 +206,8 @@ export const APP_CONFIG = {
     EXCEL_FOLDERS: ['\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE', 'Z:\\'],
     EXCEL_FILE_MARK: 'Produzione',
     EXCEL_COLUMNS: { WEEK: 38 /* AM */, HOURS: 39 /* AN */, GROUP: 40 /* AO */ },
+    // GRUPPO value of the operators on the special second shift (their own start times and rules)
+    TURNO2_GROUP: 'TURNO2',
     // Starting values of the "Aggiungi Evento" form in Daily Events
     NEW_EVENT_DEFAULTS: { operator: '98', event: 'EXT', time: '17:35:00' },
     // Event types the form can add

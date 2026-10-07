@@ -2,6 +2,7 @@
 
 /** Calcolo Ore Mensile: presence rules, monthly hours, hours distribution, prefill. */
 
+import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import type { OperatorHoursRow, HoursDistributionField } from '@/types';
 import {
@@ -132,7 +133,7 @@ export async function getMonthlyHoursAction(
 
         // Enrich each row with the counted day (rules) and hours distributions
         const rows: OperatorHoursRow[] = records.map((row: any) => {
-            const isSpecial = (row.gruppo ?? '').trim().toUpperCase() === 'TURNO2';
+            const isSpecial = (row.gruppo ?? '').trim().toUpperCase() === APP_CONFIG.PRESENCE.TURNO2_GROUP;
             const reparto = row.reparto ? String(row.reparto).trim() : null;
             const opRules = rulesForOperator(String(row.operatore), rules);
             const clock = {

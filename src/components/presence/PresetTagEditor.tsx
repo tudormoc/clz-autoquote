@@ -1,130 +1,62 @@
 'use client';
 
-import { useState, type KeyboardEvent } from 'react';
-import { Plus, X, Edit2, Check, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
+import { useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { EditableCell } from '@/components/ui/EditableCell';
+import { Input } from '@/components/ui/Input';
+import { Spinner } from '@/components/ui/Spinner';
+import { APP_COPY, fmt } from '@/locales';
+
+const copy = APP_COPY.analytics.presenceSettings;
+
+const parseTags = (value: string) => value.split(',').map((tag) => tag.trim()).filter(Boolean);
+const sameTag = (a: string, b: string) => a.toUpperCase() === b.toUpperCase();
 
 interface PresetTagEditorProps {
     title: string;
     description: string;
-    parametro: 'FERIE_PRESETS' | 'PERMESSO_PRESETS';
+    /** The tags, separated by commas, as stored */
     value: string;
-    onSave: (parametro: string, newValue: string) => Promise<boolean>;
-    onRename?: (
-        parametro: 'FERIE_PRESETS' | 'PERMESSO_PRESETS',
-        oldTag: string,
-        newTag: string,
-        updatedPresetsValue: string
-    ) => Promise<boolean>;
-    disabled?: boolean;
+    /** Saves the whole list; true when it was saved */
+    onSave: (value: string) => Promise<boolean>;
+    /** Renames one tag everywhere it was used; true when it was saved */
+    onRename: (oldTag: string, newTag: string, value: string) => Promise<boolean>;
 }
 
-/**
- * Reusable visual tag/chip editor for presence presets (Ferie & Permesso).
- * Supports adding, editing/renaming (with cascade to operator data), and removing.
- */
-export function PresetTagEditor({
-    title,
-    description,
-    parametro,
-    value,
-    onSave,
-    onRename,
-    disabled = false,
-}: PresetTagEditorProps) {
+/** The quick-pick texts of a presence column (Ferie, Permessi) as chips: click one to rename it, ✕ removes it, the field adds one. */
+export function PresetTagEditor({ title, description, value, onSave, onRename }: PresetTagEditorProps) {
     const [newTag, setNewTag] = useState('');
-    const [editingTag, setEditingTag] = useState<string | null>(null);
-    const [editTagValue, setEditTagValue] = useState<string>('');
     const [saving, setSaving] = useState(false);
+    const tags = parseTags(value);
 
-    const tags = value
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
+    const run = async (write: () => Promise<boolean>) => {
+        setSaving(true);
+        try {
+            return await write();
+        } finally {
+            setSaving(false);
+        }
+    };
 
-    const handleAdd = async () => {
-        const trimmed = newTag.trim().toUpperCase();
-        if (!trimmed || saving || disabled) return;
-
-        // Prevent duplicate
-        if (tags.some((t) => t.toUpperCase() === trimmed)) {
+    const add = async () => {
+        const tag = newTag.trim().toUpperCase();
+        if (!tag || saving) return;
+        if (tags.some((existing) => sameTag(existing, tag))) {
             setNewTag('');
             return;
         }
-
-        const nextTags = [...tags, trimmed];
-        const nextValue = nextTags.join(',');
-
-        setSaving(true);
-        try {
-            const success = await onSave(parametro, nextValue);
-            if (success) {
-                setNewTag('');
-            }
-        } finally {
-            setSaving(false);
-        }
+        if (await run(() => onSave([...tags, tag].join(',')))) setNewTag('');
     };
 
-    const handleStartRename = (tag: string) => {
-        setEditingTag(tag);
-        setEditTagValue(tag);
-    };
+    const remove = (tag: string) => run(() => onSave(tags.filter((existing) => !sameTag(existing, tag)).join(',')));
 
-    const handleCancelRename = () => {
-        setEditingTag(null);
-        setEditTagValue('');
-    };
-
-    const handleCommitRename = async (oldTag: string) => {
-        const trimmed = editTagValue.trim().toUpperCase();
-        if (!trimmed || saving || disabled) return;
-
-        // If unchanged, just exit edit mode
-        if (trimmed === oldTag.toUpperCase()) {
-            handleCancelRename();
-            return;
-        }
-
-        const nextTags = tags.map((t) => (t.toUpperCase() === oldTag.toUpperCase() ? trimmed : t));
-        const nextValue = nextTags.join(',');
-
-        setSaving(true);
-        try {
-            let success = false;
-            if (onRename) {
-                success = await onRename(parametro, oldTag, trimmed, nextValue);
-            } else {
-                success = await onSave(parametro, nextValue);
-            }
-            if (success) {
-                handleCancelRename();
-            }
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleRemove = async (tagToRemove: string) => {
-        if (saving || disabled) return;
-
-        const nextTags = tags.filter((t) => t.toUpperCase() !== tagToRemove.toUpperCase());
-        const nextValue = nextTags.join(',');
-
-        setSaving(true);
-        try {
-            await onSave(parametro, nextValue);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleAdd();
-        }
+    const rename = async (oldTag: string, draft: string) => {
+        const tag = draft.trim().toUpperCase();
+        if (!tag) return false;
+        if (sameTag(tag, oldTag)) return true;
+        const next = tags.map((existing) => (sameTag(existing, oldTag) ? tag : existing)).join(',');
+        return run(() => onRename(oldTag, tag, next));
     };
 
     return (
@@ -134,114 +66,54 @@ export function PresetTagEditor({
                 <p className="text-2xs text-fg-muted mt-0.5">{description}</p>
             </div>
 
-            {/* Visual Tags List */}
-            <div className="flex flex-wrap gap-1.5 min-h-[32px] items-center">
-                {tags.length === 0 ? (
-                    <span className="text-xs text-fg-faint italic">Nessun preset configurato</span>
-                ) : (
-                    tags.map((tag) => {
-                        const isEditingThisTag = editingTag === tag;
-
-                        if (isEditingThisTag) {
-                            return (
-                                <div
-                                    key={tag}
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-background border border-primary shadow-sm"
-                                >
-                                    <input
-                                        type="text"
-                                        value={editTagValue}
-                                        onChange={(e) => setEditTagValue(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                handleCommitRename(tag);
-                                            } else if (e.key === 'Escape') {
-                                                e.preventDefault();
-                                                handleCancelRename();
-                                            }
-                                        }}
-                                        autoFocus
-                                        className="h-6 w-28 text-xs font-mono bg-transparent text-fg focus:outline-none px-1"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => handleCommitRename(tag)}
-                                        disabled={saving || !editTagValue.trim()}
-                                        className="text-success-400 hover:text-success-300 p-0.5 rounded cursor-pointer transition-colors"
-                                        title="Salva"
-                                    >
-                                        <Check size={12} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleCancelRename}
-                                        disabled={saving}
-                                        className="text-fg-muted hover:text-fg-soft p-0.5 rounded cursor-pointer transition-colors"
-                                        title="Annulla"
-                                    >
-                                        <X size={12} />
-                                    </button>
+            <div className="flex flex-wrap gap-1.5 min-h-8 items-center">
+                {tags.length === 0 && <span className="text-xs text-fg-faint italic">{copy.noPresets}</span>}
+                {tags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-md bg-warning-500/10 border border-warning-500/30">
+                        <EditableCell
+                            display={<span className="text-xs font-semibold font-mono text-warning-300">{tag}</span>}
+                            startValue={() => tag}
+                            renderEditor={(draft, setDraft) => (
+                                <div className="w-28">
+                                    <Input value={draft} onChange={(e) => setDraft(e.target.value)} className="h-7 text-xs font-mono" autoFocus />
                                 </div>
-                            );
-                        }
-
-                        return (
-                            <span
-                                key={tag}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-warning-500/10 text-warning-300 border border-warning-500/30 font-mono shadow-sm group"
-                            >
-                                <span>{tag}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => handleStartRename(tag)}
-                                    disabled={saving || disabled}
-                                    className="text-warning-400/50 hover:text-warning-300 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
-                                    title={`Modifica ${tag}`}
-                                >
-                                    <Edit2 size={11} />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemove(tag)}
-                                    disabled={saving || disabled}
-                                    className="text-warning-400/50 hover:text-danger-400 transition-colors p-0.5 rounded cursor-pointer opacity-70 group-hover:opacity-100"
-                                    title={`Rimuovi ${tag}`}
-                                >
-                                    <X size={11} />
-                                </button>
-                            </span>
-                        );
-                    })
-                )}
+                            )}
+                            onSave={(draft) => rename(tag, draft)}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => remove(tag)}
+                            disabled={saving}
+                            title={fmt(copy.removePreset, { tag })}
+                            className="p-0.5 rounded text-warning-400/60 hover:text-danger-400 transition-colors disabled:opacity-50"
+                        >
+                            <X size={11} />
+                        </button>
+                    </span>
+                ))}
             </div>
 
-            {/* Add new tag form */}
-            <div className="flex items-center gap-2 pt-1 border-t border-border/60">
-                <Input
-                    type="text"
-                    placeholder="Nuovo testo..."
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={saving || disabled}
-                    className="h-7 w-48 text-xs font-mono bg-background text-fg"
-                />
-                <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleAdd}
-                    disabled={saving || disabled || !newTag.trim()}
-                    className="h-7 px-3 text-xs gap-1 cursor-pointer"
-                >
-                    {saving ? (
-                        <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                        <Plus size={12} />
-                    )}
-                    <span>Aggiungi</span>
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    add();
+                }}
+                className="flex items-center gap-2 pt-1 border-t border-border/60"
+            >
+                <div className="w-48">
+                    <Input
+                        placeholder={copy.newPresetPlaceholder}
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        disabled={saving}
+                        className="h-7 text-xs font-mono"
+                    />
+                </div>
+                <Button type="submit" size="sm" variant="secondary" disabled={saving || !newTag.trim()}>
+                    {saving ? <Spinner size={12} /> : <Plus size={12} />}
+                    {copy.addPreset}
                 </Button>
-            </div>
+            </form>
         </div>
     );
 }
