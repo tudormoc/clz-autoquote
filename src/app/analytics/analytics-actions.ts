@@ -17,7 +17,7 @@
  * 
  * PERFORMANCE NOTES:
  * - Work time queries are separate due to cross-database limitations
- * - CTEs are used to separate client revenue from supplier costs
+ * - Revenue/cost reports run as one #temp-table batch on the period's orders (see business-queries.ts)
  * - All numeric columns use proper aggregation (SUM, MIN, MAX)
  * 
  * COST CALCULATION LOGIC:
@@ -49,6 +49,8 @@ import {
     getClientSummaryStatsAction as getClientSummaryStats,
     getOrderRevenueDataAction as getOrderRevenueData
 } from './queries/business-queries';
+
+export type { ClientSummaryRow, OrderRevenueRow } from './queries/business-queries';
 
 // Re-export with proper async wrappers for 'use server'
 export const getProductionDataAction = getProductionData;

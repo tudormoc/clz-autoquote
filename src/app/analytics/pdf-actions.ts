@@ -1269,9 +1269,9 @@ export async function generateClientSummaryPDFAction(
 
 function generateClientSummaryReportHTML(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, _format: 'A4' | 'A3' = 'A4'): string {
     const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
-    const totalCost = data.reduce((sum, r) => sum + r.total_cost, 0);
+    const totalCost = data.reduce((sum, r) => sum + r.material_cost, 0);
     const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);
-    const totalMargin = totalRevenue - (totalCost + totalWorkCost);
+    const totalMargin = data.reduce((sum, r) => sum + r.margin, 0);
     const overallMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
     // Always A4 portrait — dynamically shrink to fit all rows on one page.
@@ -1465,9 +1465,7 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
         </thead>
         <tbody>
             ${data.map(row => {
-                const costs = row.total_cost + row.work_cost;
-                const margin = row.total_revenue - costs;
-                const marginPct = row.total_revenue > 0 ? (margin / row.total_revenue) * 100 : 0;
+                const marginPct = row.total_revenue > 0 ? (row.margin / row.total_revenue) * 100 : 0;
                 
                 return `
                 <tr>
@@ -1475,10 +1473,10 @@ function generateClientSummaryReportHTML(data: any[], periods: string[], clientF
                         <div class="truncate">${row.client_name}</div>
                     </td>
                     <td class="col-rev right mono" style="font-weight: 600;">${formatCurrencyRounded(row.total_revenue)}</td>
-                    <td class="col-cost right mono">${formatCurrencyRounded(row.total_cost)}</td>
+                    <td class="col-cost right mono">${formatCurrencyRounded(row.material_cost)}</td>
                     <td class="col-work right mono">${formatCurrencyRounded(row.work_cost)}</td>
-                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrencyRounded(costs)}</td>
-                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrencyRounded(margin)}</td>
+                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrencyRounded(row.full_cost)}</td>
+                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrencyRounded(row.margin)}</td>
                     <td class="col-percent right mono" style="font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
                 </tr>
                 `;

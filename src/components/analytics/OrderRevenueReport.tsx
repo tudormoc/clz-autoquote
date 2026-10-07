@@ -1,6 +1,6 @@
 'use client';
 
-import { getOrderRevenueDataAction } from '@/app/analytics/analytics-actions';
+import { getOrderRevenueDataAction, type OrderRevenueRow } from '@/app/analytics/analytics-actions';
 import { FlagCell, MarginCell } from '@/components/analytics/report/ReportCells';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import { SplitRevenueToggle } from '@/components/analytics/report/SplitRevenueToggle';
@@ -14,21 +14,6 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatHours } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface OrderRevenueRow {
-    commessa_display: string;
-    commessa_full: string;
-    order_description: string;
-    client_code: string;
-    client_name: string;
-    total_revenue: number;
-    delivered_revenue: number;
-    total_cost: number;
-    total_quantity: number;
-    work_time: number;
-    work_cost: number;
-    has_split_revenue: number;
-}
 
 interface Filters {
     commessa: string;
@@ -58,10 +43,6 @@ const toQuery = (f: Filters) => ({
     includeAllRevenueForSplit: f.includeAllRevenueForSplit,
 });
 
-const totalCost = (row: OrderRevenueRow) => row.total_cost + row.work_cost;
-/** Margin on what was delivered in the period (same figure in the table and in Excel) */
-const margin = (row: OrderRevenueRow) => row.delivered_revenue - totalCost(row);
-
 const columns: DataTableColumn<OrderRevenueRow>[] = [
     {
         key: 'commessa',
@@ -76,15 +57,15 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
         cell: (row) => <StackedCell tone="muted" primary={row.client_code} secondary={row.client_name} maxWidth="lg" />,
     },
     { key: 'delivered_revenue', header: copy.deliveredValue, variant: 'total', cell: (row) => formatCurrency(row.delivered_revenue) },
-    { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.total_cost) },
-    { key: 'work_time', header: copy.workTime, variant: 'total', sortable: false, cell: (row) => formatHours(row.work_time) },
-    { key: 'work_cost', header: copy.laborCost, variant: 'number', sortable: false, cell: (row) => formatCurrency(row.work_cost) },
-    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrency(totalCost(row)) },
+    { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.material_cost) },
+    { key: 'work_time', header: copy.workTime, variant: 'total', cell: (row) => formatHours(row.work_time) },
+    { key: 'work_cost', header: copy.laborCost, variant: 'number', cell: (row) => formatCurrency(row.work_cost) },
+    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrency(row.full_cost) },
     {
         key: 'margin',
         header: copy.margin,
         align: 'right',
-        cell: (row) => <MarginCell revenue={row.delivered_revenue} margin={margin(row)} format={formatCurrency} />,
+        cell: (row) => <MarginCell revenue={row.delivered_revenue} margin={row.margin} format={formatCurrency} />,
     },
     {
         key: 'split',
@@ -104,12 +85,11 @@ const excelColumns: ExcelColumn<OrderRevenueRow>[] = [
     { header: copy.export.clientCode, value: (row) => row.client_code, width: 15 },
     { header: copy.export.clientName, value: (row) => row.client_name, width: 35 },
     { header: copy.export.quantity, value: (row) => row.total_quantity, width: 12 },
-    { header: copy.export.invoicedValue, value: (row) => Number(row.total_revenue.toFixed(2)), width: 15 },
     { header: copy.export.deliveredValue, value: (row) => Number(row.delivered_revenue.toFixed(2)), width: 15 },
-    { header: copy.export.materialCost, value: (row) => Number(row.total_cost.toFixed(2)), width: 15 },
+    { header: copy.export.materialCost, value: (row) => Number(row.material_cost.toFixed(2)), width: 15 },
     { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)), width: 12 },
     { header: copy.export.laborCost, value: (row) => Number(row.work_cost.toFixed(2)), width: 15 },
-    { header: copy.export.margin, value: (row) => Number(margin(row).toFixed(2)), width: 15 },
+    { header: copy.export.margin, value: (row) => Number(row.margin.toFixed(2)), width: 15 },
     { header: copy.export.partialRevenue, value: (row) => (row.has_split_revenue === 1 ? 'SI' : 'NO'), width: 18 },
 ];
 

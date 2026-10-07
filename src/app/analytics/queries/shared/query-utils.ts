@@ -125,19 +125,33 @@ export function buildOrderAreaSummaryOrderBy(
     }
 }
 
+/** UI sort key → the row value it sorts on */
+export type RowSortColumns<T> = Record<string, (row: T) => number | string>;
+
 /**
- * ORDER BY for a report sorted on the server. `columns` maps the UI sort keys to SQL expressions; an unknown key
- * sorts by `fallback`. The tie-breaker keeps paging stable when many rows share the same value.
+ * Sorts all rows of a report, then cuts the requested page. For reports whose rows are completed after the query
+ * (labour cost from NetPro), so every column, margin included, sorts on the value shown. An unknown sort key uses
+ * `fallback` (descending when no sort is given); the tie-breaker keeps the order stable across pages.
  */
-export function buildOrderBy(
-    columns: Record<string, string>,
+export function sortAndPage<T>(
+    rows: T[],
     sort: SortConfig | undefined,
+    columns: RowSortColumns<T>,
     fallback: string,
-    tieBreaker: string
-): string {
-    const column = (sort && columns[sort.column]) || columns[fallback];
-    const direction = sort?.direction === 'asc' ? 'ASC' : 'DESC';
-    return column === tieBreaker ? `${column} ${direction}` : `${column} ${direction}, ${tieBreaker}`;
+    tieBreaker: (row: T) => string,
+    page: number,
+    limit: number
+): { data: T[]; pagination: PaginationResult } {
+    const value = (sort && columns[sort.column]) || columns[fallback];
+    const direction = sort?.direction === 'asc' ? 1 : -1;
+    const sorted = [...rows].sort((a, b) => {
+        const va = value(a);
+        const vb = value(b);
+        const diff = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
+        return diff * direction || tieBreaker(a).localeCompare(tieBreaker(b));
+    });
+    const offset = calculateOffset(page, limit);
+    return { data: sorted.slice(offset, offset + limit), pagination: buildPaginationResult(page, limit, rows.length) };
 }
 
 /**
@@ -194,17 +208,6 @@ export function businessOrderCodesSql(table: string, column: string): string {
 /** Drops temp tables; used at the start of a batch (left over from a failed run on the same connection) and at the end */
 export function dropTempTablesSql(tables: string[]): string {
     return tables.map((table) => `DROP TABLE IF EXISTS ${table};`).join(' ');
-}
-
-/**
- * Last statements of a temp-table report batch that collected its rows in `#Rows`: the row count (first recordset),
- * the requested page (second recordset), then cleanup. Needs the `@offset` and `@limit` parameters.
- */
-export function pageOfRowsSql(orderBy: string, tables: string[]): string {
-    return `
-        SELECT COUNT(*) AS total FROM #Rows;
-        SELECT * FROM #Rows ORDER BY ${orderBy} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
-        ${dropTempTablesSql(tables)}`;
 }
 
 /** Error text for a failed report query: a timeout gets a hint, anything else its own message */

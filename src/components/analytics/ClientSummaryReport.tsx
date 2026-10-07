@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { getClientSummaryDataAction, getClientSummaryStatsAction } from '@/app/analytics/analytics-actions';
+import { getClientSummaryDataAction, getClientSummaryStatsAction, type ClientSummaryRow } from '@/app/analytics/analytics-actions';
 import { generateClientSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
 import { FlagCell, MarginCell } from '@/components/analytics/report/ReportCells';
@@ -20,17 +20,6 @@ import { downloadBase64File } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrencyRounded } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface ClientSummaryRow {
-    client_code: string;
-    client_name: string;
-    total_orders: number;
-    total_revenue: number;
-    total_cost: number;
-    total_quantity: number;
-    work_cost: number;
-    split_orders_count: number;
-}
 
 interface Filters {
     client: string;
@@ -61,9 +50,6 @@ const toQuery = (f: Filters) => ({
     includeAllRevenueForSplit: f.includeAllRevenueForSplit,
 });
 
-const totalCost = (row: ClientSummaryRow) => row.total_cost + row.work_cost;
-const margin = (row: ClientSummaryRow) => row.total_revenue - totalCost(row);
-
 const columns: DataTableColumn<ClientSummaryRow>[] = [
     {
         key: 'client',
@@ -72,14 +58,14 @@ const columns: DataTableColumn<ClientSummaryRow>[] = [
         cell: (row) => <StackedCell primary={row.client_code} secondary={row.client_name} maxWidth="lg" />,
     },
     { key: 'revenue', header: copy.headers.revenue, variant: 'total', cell: (row) => formatCurrencyRounded(row.total_revenue) },
-    { key: 'cost', header: copy.headers.materialCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.total_cost) },
-    { key: 'work_cost', header: copy.headers.laborCost, variant: 'number', sortable: false, cell: (row) => formatCurrencyRounded(row.work_cost) },
-    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrencyRounded(totalCost(row)) },
+    { key: 'cost', header: copy.headers.materialCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.material_cost) },
+    { key: 'work_cost', header: copy.headers.laborCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.work_cost) },
+    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrencyRounded(row.full_cost) },
     {
         key: 'margin',
         header: copy.headers.margin,
         align: 'right',
-        cell: (row) => <MarginCell revenue={row.total_revenue} margin={margin(row)} format={formatCurrencyRounded} />,
+        cell: (row) => <MarginCell revenue={row.total_revenue} margin={row.margin} format={formatCurrencyRounded} />,
     },
     {
         key: 'split',
@@ -98,10 +84,10 @@ const excelColumns: ExcelColumn<ClientSummaryRow>[] = [
     { header: copy.export.clientName, value: (row) => row.client_name, width: 35 },
     { header: copy.export.totalOrders, value: (row) => row.total_orders, width: 12 },
     { header: copy.export.revenue, value: (row) => Math.round(row.total_revenue), width: 15 },
-    { header: copy.export.materialCost, value: (row) => Math.round(row.total_cost), width: 15 },
+    { header: copy.export.materialCost, value: (row) => Math.round(row.material_cost), width: 15 },
     { header: copy.export.laborCost, value: (row) => Math.round(row.work_cost), width: 15 },
-    { header: common.totalCost, value: (row) => Math.round(totalCost(row)), width: 15 },
-    { header: copy.export.margin, value: (row) => Math.round(margin(row)), width: 15 },
+    { header: common.totalCost, value: (row) => Math.round(row.full_cost), width: 15 },
+    { header: copy.export.margin, value: (row) => Math.round(row.margin), width: 15 },
     { header: copy.export.quantity, value: (row) => row.total_quantity, width: 10 },
     { header: copy.export.splitWarning, value: (row) => row.split_orders_count, width: 28 },
 ];

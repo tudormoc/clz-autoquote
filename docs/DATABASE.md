@@ -74,14 +74,17 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
    with costs in 2024 needs those costs for its real margin. The same for work hours (`fetchWorkTimesForCommessas`).
 3. **Always `dw_commeca > 0`** on cost queries, or general expenses inflate the costs.
 4. **Labour cost** = work hours × `APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE`.
-5. **Margin** = revenue − (material cost + labour cost). In Ricavo Ordini the revenue is the value *delivered* in the
-   period, in the table and in Excel alike (decided 2026-10-07).
+5. **Margin** = revenue − (material cost + labour cost), computed once on the server (`full_cost`, `margin` in the
+   rows) and used as is by the table, Excel and PDF. In Ricavo Ordini the revenue is the value *delivered* in the period
+   (decided 2026-10-07).
 6. **Speed**: `dwarehe` has ~15M rows. Never join or filter it on the computed core (`RIGHT(CAST(…))`) outside a date
    range: that reads the whole table (30–60 s). Read the period's orders into a `#temp` table first, collect their full
    codes with `businessOrderCodesSql` (→ `#OrderCodes`), then join `dwarehe` on `dw_commeca` (indexed). One batch,
    `SET NOCOUNT ON`, `dropTempTablesSql` at the start and the end. Example: `business-queries.ts` (about 2 s per report).
-7. Paging: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`, 100 rows per page. The ORDER BY needs a unique
-   tie-breaker (`buildOrderBy`), or rows with equal values move between pages and the export repeats some and loses others.
+7. Paging: 100 rows per page. In SQL: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY` with a unique tie-breaker in
+   the ORDER BY, or rows with equal values move between pages and the export repeats some and loses others. When a
+   sortable column is added after the query (labour from NetPro), fetch all rows, complete them, then `sortAndPage`
+   (Sommario Clienti, Ricavo Ordini).
 
 ## Reusable query helpers (`src/app/analytics/queries/shared/`)
 
@@ -89,9 +92,9 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
   one value → `LIKE` on code or name.
 - Commessa search by **description** in Business: skip the single-term filter on the order rows
   (`buildCommessaFilterBUSINESS(…, true)`) and add `buildCommessaDescriptionFilter` once `commess` is joined.
-- `query-utils.ts` — offset, pagination result, ORDER BY builders (`buildOrderBy`: UI sort key → SQL, with tie-breaker),
-  date parameters, the `#temp` batch helpers (`businessOrderCore`, `businessOrderCodesSql`, `dropTempTablesSql`,
-  `pageOfRowsSql`) and `queryErrorMessage`.
+- `query-utils.ts` — offset, pagination result, ORDER BY builders, `sortAndPage` (sort and page completed rows),
+  date parameters, the `#temp` batch helpers (`businessOrderCore`, `businessOrderCodesSql`, `dropTempTablesSql`)
+  and `queryErrorMessage`.
 - `work-time-fetcher.ts` — NetPro work hours / costs for a list of commesse (cross-database).
 
 ## Server actions

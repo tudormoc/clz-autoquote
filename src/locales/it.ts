@@ -511,13 +511,11 @@ export const APP_COPY = {
     orderRevenue: {
       commessa: "Commessa",
       client: "Cliente",
-      invoicedValue: "Valore Fatturato",
       deliveredValue: "Valore Consegnato",
       materialCost: "Costo Materiali",
       workTime: "Ore Lavoro",
       laborCost: "Costo Lavoro",
       margin: "Margine",
-      partialRevenue: "Fatturato Parziale",
       partialRevenueHint: "Fatturato parziale (ordini fatturati anche fuori dal periodo)",
       export: {
         commessa: "Commessa",
@@ -525,7 +523,6 @@ export const APP_COPY = {
         clientCode: "Codice Cliente",
         clientName: "Nome Cliente",
         quantity: "Quantità",
-        invoicedValue: "Fatturato (Valfatt)",
         deliveredValue: "Fatturato Consegnato (Valore)",
         materialCost: "Costo Materiali",
         workTime: "Ore Lavoro",
