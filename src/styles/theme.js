@@ -58,9 +58,10 @@ const NEUTRAL = {
 // ─── 3. Shape, type & layout ───────────────────────────────────────────────────
 const RADIUS = '0.5rem';
 
+// The fonts themselves (Inter, JetBrains Mono) are loaded in src/app/layout.tsx and exposed as these variables
 const FONT_FAMILY = {
-    sans: ['Inter', 'system-ui', 'sans-serif'],
-    mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
+    sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+    mono: ['var(--font-mono)', 'Consolas', 'Monaco', 'monospace'],
 };
 
 // Sizes below Tailwind's text-xs (12px), for dense tables and badges: text-2xs, text-3xs, text-4xs

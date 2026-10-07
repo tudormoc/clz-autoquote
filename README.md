@@ -36,6 +36,8 @@ npm run excel:examples      # Excel export
 - Dev: this PC. Prod: VM `192.168.1.93:3000`, folder `C:\tm\clz-autoquote`, run by PM2 (`ecosystem.config.js`):
   `clz-autoquote` (the app) and `clz-scheduler` (daily auto-exit, `scripts/scheduler.js`).
 - Deploy: commit and push to `main` (`gitsync.bat "message"`), then run `update.ps1` on the VM (pull, install, build, restart).
+  The build downloads the two fonts (Inter, JetBrains Mono, `src/app/layout.tsx`) from Google, so the VM needs internet while
+  building; the running app serves them itself.
 - Presence Excel files: `\\SERVER2019\Office\…`, with `Z:\` as fallback on the VM.
 
 ## Where things are
