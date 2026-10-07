@@ -20,10 +20,6 @@ export function getDayKind(dateStr: string, rules: PresenceRulesConfig): DayKind
     return 'off';
 }
 
-export function isWorkingDay(dateStr: string, rules: PresenceRulesConfig): boolean {
-    return getDayKind(dateStr, rules) === 'working';
-}
-
 /** A day the prefill may touch: working or extra day, strictly before today. */
 export function isPrefillableDay(dateStr: string, todayStr: string, rules: PresenceRulesConfig): boolean {
     return dateStr < todayStr && getDayKind(dateStr, rules) !== 'off';

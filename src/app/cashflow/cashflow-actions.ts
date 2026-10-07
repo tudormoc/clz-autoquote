@@ -2,6 +2,7 @@
 
 import { queryMSSQL } from '@/lib/mssql';
 import { CASHFLOW_CONFIG, CashflowPayrollConfig } from '@/config/cashflowConfig';
+import { monthName } from '@/lib/format';
 
 export interface MonthlyBankBreakdownItem {
     accountCode: number;
@@ -118,11 +119,6 @@ export interface CashflowDataResult {
     topSuppliers: CounterpartySummary[];
     error?: string;
 }
-
-const MONTH_NAMES = [
-    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
-];
 
 /**
  * Server Action to fetch monthly Incomes (Clienti an_tipo='C') & Expenses (Fornitori an_tipo='F') from BUSINESS database.
@@ -649,7 +645,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
 
             monthlyBreakdown.push({
                 month: m,
-                monthName: MONTH_NAMES[m - 1],
+                monthName: monthName(m),
                 incomeAmount: incomeAmt,
                 expenseAmount: expenseAmt,
                 payrollAmount: payrollAmt,
@@ -882,7 +878,7 @@ export async function getBankAccountTransactionsAction(
 
             monthlySummaries.push({
                 month: m,
-                monthName: MONTH_NAMES[m - 1],
+                monthName: monthName(m),
                 openingBalance: Number(curMonthOpening.toFixed(2)),
                 totalDare: Number(mDare.toFixed(2)),
                 totalAvere: Number(mAvere.toFixed(2)),

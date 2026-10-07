@@ -60,3 +60,19 @@ Timestamps use DB `GETDATE()` (a JS Date would be 2h off).
 **Sync safety guard:** the button refuses commesse with more than one edition or more than one NetPro MAKE order (not edition-aware yet).
 
 **Tested live (fase 85/90, materials):** add/edit/delete phase, add/update/delete material — each diffed before/after; only the expected rows changed.
+
+## Production flow on the Avanzamento Lavori page (`/work-progress`)
+
+Operations are grouped by their area (NetPro `CENTRI.REPARTO` → `AREE.DESCRIZIONE`, read by the query) into the phases
+of `APP_CONFIG.ANALYTICS.PRODUCTION_FLOW` (`src/config/constants.ts`). The array order is the display order; an area in
+no array is shown under "Altre operazioni".
+
+| Phase | Areas |
+|---|---|
+| Flow A — block (in parallel with B) | Taglio Carta, Piega, Raccolta, Cucitura |
+| Flow B — cover | Taglio Cartone, Taglio Plancia, Copertine |
+| Assembly (needs A and B) | Messa in colla, Incassatura, Imbavatura |
+| Finishing | Accavallatura, Stampa a caldo, Finissaggio/lavori manuali, Lavorazione esterna, Generico |
+
+Several editions of one order: operations with the same description and machine are merged and show the most
+urgent state — EXE (in work) if any edition is in work, else SUS (suspended), COM (completed) only when all are completed.

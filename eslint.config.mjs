@@ -23,7 +23,7 @@ const eslintConfig = [
   ...compat.extends("next/typescript"),
   {
     // TEMPLATE.ts is the copy-me skeleton for new pricing formulas, unused on purpose
-    ignores: [".next/", "node_modules/", "dist/", "out/", "inspect_*.js", "scripts/**", "ecosystem.config.js", "src/lib/pricing/formulas/TEMPLATE.ts"],
+    ignores: [".next/", "node_modules/", "dist/", "out/", "scripts/**", "ecosystem.config.js", "src/lib/pricing/formulas/TEMPLATE.ts"],
   },
   {
     rules: {

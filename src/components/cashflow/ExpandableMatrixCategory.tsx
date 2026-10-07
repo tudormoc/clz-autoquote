@@ -22,7 +22,7 @@ interface ExpandableMatrixCategoryProps {
     /** Total amount across all months for this category */
     totalAmount: number;
     /** 12-month array of short month names */
-    shortMonths: string[];
+    shortMonths: readonly string[];
     /** Global loading state */
     loading?: boolean;
     /** Helper function to format compact EUR */

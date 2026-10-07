@@ -190,63 +190,6 @@ export interface PresenceSettingRow {
     FVALUE01: number | null;
 }
 
-export interface CaricoDocument {
-    anno: number;
-    serie: string;
-    numdoc: number;
-    riga: number;
-    datdoc: string;
-    codart: string;
-    descr: string;
-    quant: number;
-    valore: number;
-    commeca: number;
-}
-
-export interface ReconciledMaterialRow {
-    part_number: string;
-    description: string;
-    unit_of_measure: string;
-    order_quantity: number;
-    carico_quantity: number;
-    diff_quantity: number;
-    carico_valore: number;
-    order_flevas?: string;
-    status: 'MATCH' | 'DIFF' | 'ORDER_ONLY' | 'CARICO_ONLY';
-    // Order row identifiers (movord)
-    order_anno?: number;
-    order_serie?: string;
-    order_numord?: number;
-    order_riga?: number;
-    // Carico row identifiers (movmag)
-    carico_anno?: number;
-    carico_serie?: string;
-    carico_numdoc?: number;
-    carico_riga?: number;
-    carico_prezzo?: number;
-}
-
-export interface ProductionOrderDocument {
-    anno: number;
-    serie: string;
-    numord: number;
-    riga: number;
-    datord?: string;
-    datcons?: string;
-    codart: string;
-    descr: string;
-    quant: number;
-    quaeva: number;
-    flevas: string;
-    commeca: number;
-}
-
-export interface MaterialReconciliationData {
-    productionOrders: ProductionOrderDocument[];
-    carichi: CaricoDocument[];
-    materials: ReconciledMaterialRow[];
-}
-
 export interface DibaOperationRow {
     riga: number;
     fase: number;

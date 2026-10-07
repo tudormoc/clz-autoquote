@@ -30,10 +30,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
     const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(initialMonth || 'all');
     const [searchTerm, setSearchTerm] = useState<string>('');
 
-    const shortMonths = [
-        'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
-        'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
-    ];
+    const shortMonths = APP_COPY.months.short;
 
     useEffect(() => {
         startTransition(async () => {

@@ -59,6 +59,8 @@ const toQuery = (f: Filters) => ({
 });
 
 const totalCost = (row: OrderRevenueRow) => row.total_cost + row.work_cost;
+/** Margin on what was delivered in the period (same figure in the table and in Excel) */
+const margin = (row: OrderRevenueRow) => row.delivered_revenue - totalCost(row);
 
 const columns: DataTableColumn<OrderRevenueRow>[] = [
     {
@@ -82,10 +84,7 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
         key: 'margin',
         header: copy.margin,
         align: 'right',
-        // Margin on what was delivered in the period
-        cell: (row) => (
-            <MarginCell revenue={row.delivered_revenue} margin={row.delivered_revenue - totalCost(row)} format={formatCurrency} />
-        ),
+        cell: (row) => <MarginCell revenue={row.delivered_revenue} margin={margin(row)} format={formatCurrency} />,
     },
     {
         key: 'split',
@@ -110,8 +109,7 @@ const excelColumns: ExcelColumn<OrderRevenueRow>[] = [
     { header: copy.export.materialCost, value: (row) => Number(row.total_cost.toFixed(2)), width: 15 },
     { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)), width: 12 },
     { header: copy.export.laborCost, value: (row) => Number(row.work_cost.toFixed(2)), width: 15 },
-    // Margin on the invoiced value (the table shows it on the delivered value)
-    { header: copy.export.margin, value: (row) => Number((row.total_revenue - totalCost(row)).toFixed(2)), width: 15 },
+    { header: copy.export.margin, value: (row) => Number(margin(row).toFixed(2)), width: 15 },
     { header: copy.export.partialRevenue, value: (row) => (row.has_split_revenue === 1 ? 'SI' : 'NO'), width: 18 },
 ];
 

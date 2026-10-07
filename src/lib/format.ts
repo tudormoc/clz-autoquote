@@ -5,6 +5,7 @@
  * (large tables call these thousands of times per render).
  */
 import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY } from '@/locales';
 
 const { LANGUAGE, CURRENCY } = APP_CONFIG.LOCALE;
 
@@ -76,6 +77,16 @@ export function formatDate(value: Date | string | null | undefined): string {
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     return `${dd}/${mm}/${date.getFullYear()}`;
+}
+
+/** 1 → "Gennaio" */
+export function monthName(month: number): string {
+    return APP_COPY.months.long[month - 1] ?? '';
+}
+
+/** 1 → "Gen" */
+export function monthShortName(month: number): string {
+    return APP_COPY.months.short[month - 1] ?? '';
 }
 
 /** "2026-10-06" → "06/10" */

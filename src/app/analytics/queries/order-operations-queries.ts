@@ -505,11 +505,8 @@ export async function syncOrderFromDibaAction(params: {
         const articleFather = (articleFatherHint || busOrder.mo_codart).trim();
         const orderFatherQuant = Number(busOrder.mo_quant) || 1000;
         const anno = busOrder.mo_anno;
-        const serie = busOrder.mo_serie || ' ';
         const numord = busOrder.mo_numord;
         const rigaPadre = busOrder.mo_riga;
-        const commeca = busOrder.mo_commeca;
-        const datcons = busOrder.mo_datcons;
 
         // 2. Get NetPro Order (ORDINI TIPO 'MAKE')
         const netOrderRes = await queryMSSQL(`

@@ -1022,36 +1022,6 @@ export async function getAllPresenceSettingsAction() {
 }
 
 /**
- * Get a single presence configuration parameter from NETPRO.VALORI_TABELLE
- */
-export async function getPresenceSettingAction(parametro: string) {
-    try {
-        const query = `
-            SELECT TABELLA, PARAMETRO, VALORE, DESCRIZIONE, FVALUE01
-            FROM VALORI_TABELLE WITH (NOLOCK)
-            WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro
-        `;
-        const result = await queryMSSQL(query, { parametro }, 'NETPRO');
-        if (result.recordset.length > 0) {
-            return {
-                success: true,
-                data: result.recordset[0] as PresenceSettingRow,
-            };
-        }
-        return {
-            success: true,
-            data: null,
-        };
-    } catch (err: any) {
-        return {
-            success: false,
-            error: err.message as string,
-            data: null,
-        };
-    }
-}
-
-/**
  * Update or Insert a presence configuration parameter in NETPRO.VALORI_TABELLE
  */
 export async function updatePresenceSettingAction(

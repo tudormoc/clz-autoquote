@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
-import { formatCurrencyRounded, formatHours } from '@/lib/format';
+import { formatCurrencyRounded, formatHours, monthName } from '@/lib/format';
 import { toIsoDate } from '@/lib/dateUtils';
 import { calcExpectedHours } from '@/lib/expectedHours';
 
@@ -71,7 +71,7 @@ export async function generateAreaSummaryPDFAction(
                 );
 
                 return {
-                    month: new Date(year, month - 1).toLocaleString('it-IT', { month: 'long' }),
+                    month: monthName(month),
                     year,
                     data: result.success ? result.data : []
                 };
@@ -657,7 +657,7 @@ export async function generateOrderAreaSummaryPDFAction(
             );
 
             return {
-                month: new Date(year, month - 1).toLocaleString('it-IT', { month: 'long' }),
+                month: monthName(month),
                 year,
                 data: result.success ? result.data : []
             };
@@ -1179,7 +1179,7 @@ export async function generateClientSummaryPDFAction(
 
         // Build the period label for the PDF header
         const periodLabels = sortedMonths.map(m =>
-            `${new Date(year, m - 1).toLocaleString('it-IT', { month: 'long' })} ${year}`
+            `${monthName(m)} ${year}`
         );
 
         const result = await getClientSummaryDataAction(

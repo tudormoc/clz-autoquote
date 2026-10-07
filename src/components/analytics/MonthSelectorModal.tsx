@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { X } from 'lucide-react';
 import { APP_COPY } from '@/locales';
+import { monthShortName } from '@/lib/format';
 
 interface MonthSelectorModalProps {
     isOpen: boolean;
@@ -18,20 +19,7 @@ interface MonthSelectorModalProps {
     hideFormatSelector?: boolean;
 }
 
-const MONTHS = [
-    { num: 1, name: 'Gennaio' },
-    { num: 2, name: 'Febbraio' },
-    { num: 3, name: 'Marzo' },
-    { num: 4, name: 'Aprile' },
-    { num: 5, name: 'Maggio' },
-    { num: 6, name: 'Giugno' },
-    { num: 7, name: 'Luglio' },
-    { num: 8, name: 'Agosto' },
-    { num: 9, name: 'Settembre' },
-    { num: 10, name: 'Ottobre' },
-    { num: 11, name: 'Novembre' },
-    { num: 12, name: 'Dicembre' }
-];
+const MONTHS = APP_COPY.months.long.map((name, i) => ({ num: i + 1, name }));
 
 /** Returns the number of ISO weeks in a given year (52 or 53). */
 const getISOWeeksInYear = (year: number): number => {
@@ -198,7 +186,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                                             ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                                         `}
                                     >
-                                        {month.name.slice(0, 3)}
+                                        {monthShortName(month.num)}
                                     </button>
                                 ))}
                             </div>

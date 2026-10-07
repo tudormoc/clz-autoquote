@@ -38,6 +38,7 @@ function getValidPath(): string | null {
     return null;
 }
 
+// Month names as they appear in the presence file names on the share (lowercase Italian)
 const MONTH_NAMES = [
     'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
     'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'
@@ -48,18 +49,6 @@ interface PresenceRow {
     week: number;
     group: string;
     hours: number;
-}
-
-/**
- * Get column letter from index (0 = A, 1 = B, etc.)
- */
-function getColumnLetter(index: number): string {
-    let letter = '';
-    while (index >= 0) {
-        letter = String.fromCharCode((index % 26) + 65) + letter;
-        index = Math.floor(index / 26) - 1;
-    }
-    return letter;
 }
 
 /**
@@ -318,12 +307,8 @@ export async function getPresenceDataAction(
         // Filter by specific months if provided
         let filesToProcess = files;
         if (months.length > 0) {
-            const monthNames = [
-                'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-                'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'
-            ];
             filesToProcess = files.filter(file => {
-                return months.some(m => file.toLowerCase().includes(monthNames[m - 1]));
+                return months.some(m => file.toLowerCase().includes(MONTH_NAMES[m - 1]));
             });
         }
         

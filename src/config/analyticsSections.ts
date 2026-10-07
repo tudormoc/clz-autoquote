@@ -8,11 +8,11 @@
  * 3. Register it in REPORT_COMPONENTS (src/components/analytics/reportComponents.ts)
  */
 
-import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, Archive, Briefcase, CalendarDays } from 'lucide-react';
+import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, CalendarDays } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 /** Sidebar groups, in display order */
-export const ANALYTICS_CATEGORIES = ['production', 'clients', 'revenue', 'other'] as const;
+export const ANALYTICS_CATEGORIES = ['production', 'clients', 'revenue'] as const;
 export type AnalyticsCategory = (typeof ANALYTICS_CATEGORIES)[number];
 
 export interface AnalyticsSectionConfig {
@@ -39,8 +39,6 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
     { id: 'order-revenue', label: reports.orderRevenue, icon: DollarSign, category: 'revenue', description: descriptions.orderRevenue },
     { id: 'external-work', label: reports.externalWork, icon: Truck, category: 'revenue', description: descriptions.externalWork },
     { id: 'annual-presence-report', label: reports.annualPresenceReport, icon: CalendarDays, category: 'production', description: descriptions.annualPresenceReport },
-    { id: 'rimanenze', label: reports.rimanenze, icon: Archive, category: 'other', description: descriptions.rimanenze },
-    { id: 'rimanenze-labor', label: reports.rimanenzeLabor, icon: Briefcase, category: 'other', description: descriptions.rimanenzeLabor },
 ];
 
 export function getAnalyticsSection(id: string): AnalyticsSectionConfig | undefined {

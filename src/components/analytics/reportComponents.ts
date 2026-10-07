@@ -11,8 +11,6 @@ import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { AnnualPresenceReport } from '@/components/analytics/AnnualPresenceReport';
 import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
-import { RimanenzeReport } from '@/components/analytics/RimanenzeReport';
-import { RimanenzeLaborReport } from '@/components/analytics/RimanenzeLaborReport';
 
 export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'production-metrics': ProductionReport,
@@ -24,6 +22,4 @@ export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
     'order-revenue': OrderRevenueReport,
     'external-work': ExternalWorkReport,
     'annual-presence-report': AnnualPresenceReport,
-    'rimanenze': RimanenzeReport,
-    'rimanenze-labor': RimanenzeLaborReport,
 };

@@ -153,11 +153,6 @@ export const APP_CONFIG = {
     // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
     // Used to filter out short/insignificant tasks (noise)
     MIN_WORK_TIME_MINUTES: 30,
-
-    // Rimanenze Exclusion List
-    // Order numbers (commessa display format - 4 digits) to exclude from rimanenze reports
-    // These are typically internal orders, test orders, or special cases that should not be counted as inventory
-    RIMANENZE_EXCLUDED_ORDERS: ['9994', '9993', '9990', '9998', '9997', '0'] as string[],
   },
 
   // Blueprint Preview Defaults
@@ -370,12 +365,5 @@ export const OPERATION_CATEGORIES = [
   { value: 'packaging', label: 'Packaging', order: 6 },
   { value: 'other', label: 'Other', order: 7 },
 ] as const;
-
-export type OperationCategoryValue = typeof OPERATION_CATEGORIES[number]['value'];
-
-// Helper to get category label from value
-export function getCategoryLabel(value: string): string {
-  return OPERATION_CATEGORIES.find(c => c.value === value)?.label || value;
-}
 
 // ============================================================================

@@ -107,10 +107,7 @@ export const CashflowMonthlyMatrix: React.FC<CashflowMonthlyMatrixProps> = ({
         }));
     };
 
-    const shortMonths = [
-        'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
-        'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
-    ];
+    const shortMonths = APP_COPY.months.short;
 
     // Current calendar month for visual indicator
     const currentCalendarMonth = new Date().getMonth() + 1;

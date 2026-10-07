@@ -1,6 +1,6 @@
 # Presence rules — quick reference
 
-All formulas behind `/presence/monthly-summary` live here. They are pure functions
+All formulas behind `/presence/monthly-summary` live in `src/lib/presence/`. They are pure functions
 that read every number from a `PresenceRulesConfig`. Nothing is hardcoded.
 
 ## Where a value comes from
@@ -19,15 +19,15 @@ formulas/*   ← server actions + MonthlyHoursTable
 
 | File | Formula |
 |------|---------|
-| `formulas/counted-times.ts` | Entry rule (shift snap / ceil 15), exit rule (floor 15), totale = end − start − pausa |
-| `formulas/distribution.ts` | Prefill: absence / partial / full → which fields get which hours |
-| `formulas/coverage.ts` | Controllo 8h: Σ coveredFields = workdayHours, day status |
-| `formulas/edit-effects.ts` | Cell edit side effects (permesso clears ferie, causale → full ferie) |
-| `formulas/rounding.ts` | Shared rounding (step + floor/nearest/ceil) |
-| `calendar.ts` | Working days, date ranges, local today |
-| `categories.ts` | ENTITA → category, tracked reparti |
-| `config.ts` | Setting definitions (DB key ↔ config field), parser, defaults |
-| `examples.ts` | Validated example table — run with `npm run presence:examples` |
+| `src/lib/presence/formulas/counted-times.ts` | Entry rule (shift snap / ceil 15), exit rule (floor 15), totale = end − start − pausa |
+| `src/lib/presence/formulas/distribution.ts` | Prefill: absence / partial / full → which fields get which hours |
+| `src/lib/presence/formulas/coverage.ts` | Controllo 8h: Σ coveredFields = workdayHours, day status |
+| `src/lib/presence/formulas/edit-effects.ts` | Cell edit side effects (permesso clears ferie, causale → full ferie) |
+| `src/lib/presence/formulas/rounding.ts` | Shared rounding (step + floor/nearest/ceil) |
+| `src/lib/presence/calendar.ts` | Working days, date ranges, local today |
+| `src/lib/presence/categories.ts` | ENTITA → category, tracked reparti |
+| `src/lib/presence/config.ts` | Setting definitions (DB key ↔ config field), parser, defaults |
+| `src/lib/presence/examples.ts` | Validated example table — run with `npm run presence:examples` |
 
 ## The formula (defaults)
 

@@ -16,7 +16,7 @@ interface BankMatrixRowGroupProps {
     banks: MonthlyBankBreakdownItem[];
     monthlyData: MonthlyFinancialItem[];
     bankBalances: BankAccountBalance[];
-    shortMonths: string[];
+    shortMonths: readonly string[];
     year: number;
     loading?: boolean;
     formatCompactEUR: (amount?: number) => string;

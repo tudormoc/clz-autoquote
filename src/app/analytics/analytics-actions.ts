@@ -29,7 +29,6 @@
  * FILE ORGANIZATION:
  * - queries/netpro-queries.ts: Production and Order Summary reports (NETPRO only)
  * - queries/business-queries.ts: Client Summary and Order Revenue (BUSINESS + NETPRO)
- * - queries/debug-queries.ts: Inspection and testing utilities
  * - queries/shared/: Reusable filter builders, query utils, and work time fetcher
  * 
  * ============================================================================
@@ -51,14 +50,6 @@ import {
     getOrderRevenueDataAction as getOrderRevenueData
 } from './queries/business-queries';
 
-import {
-    inspectSituazioniAction as inspectSituazioni,
-    inspectOrdiniAction as inspectOrdini,
-    inspectCommessAction as inspectCommess,
-    inspectCommessaDataAction as inspectCommessaData,
-    testSpecificQuery as testSpecific
-} from './queries/debug-queries';
-
 // Re-export with proper async wrappers for 'use server'
 export const getProductionDataAction = getProductionData;
 export const getOrderSummaryDataAction = getOrderSummaryData;
@@ -67,11 +58,6 @@ export const getOrderAreaSummaryDataAction = getOrderAreaSummaryData;
 export const getClientSummaryDataAction = getClientSummaryData;
 export const getClientSummaryStatsAction = getClientSummaryStats;
 export const getOrderRevenueDataAction = getOrderRevenueData;
-export const inspectSituazioniAction = inspectSituazioni;
-export const inspectOrdiniAction = inspectOrdini;
-export const inspectCommessAction = inspectCommess;
-export const inspectCommessaDataAction = inspectCommessaData;
-export const testSpecificQuery = testSpecific;
 
 import {
     getClientDeliveriesDataAction as getClientDeliveriesData,
@@ -84,16 +70,6 @@ import {
     getMonthlyPresenceDataAction as getMonthlyPresenceData
 } from './queries/presence-queries';
 
-import {
-    getRimanenzeDataAction as getRimanenzeData,
-    getRimanenzeStatsAction as getRimanenzeStats
-} from './queries/rimanenze-queries';
-
-import {
-    getRimanenzeLaborDataAction as getRimanenzeLaborData,
-    getRimanenzeLaborStatsAction as getRimanenzeLaborStats
-} from './queries/rimanenze-labor-queries';
-
 // Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
 export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
@@ -102,11 +78,3 @@ export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 export const getPresenceDataAction = getPresenceData;
 export const getAvailableMonthsAction = getAvailableMonths;
 export const getMonthlyPresenceDataAction = getMonthlyPresenceData;
-
-// Export Rimanenze action
-export const getRimanenzeDataAction = getRimanenzeData;
-export const getRimanenzeStatsAction = getRimanenzeStats;
-
-// Export Rimanenze Labor action
-export const getRimanenzeLaborDataAction = getRimanenzeLaborData;
-export const getRimanenzeLaborStatsAction = getRimanenzeLaborStats;

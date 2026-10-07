@@ -1,6 +1,6 @@
 'use server'
 
-import { queryMSSQL, getMSSQLPool, MSSQL_DB } from '@/lib/mssql';
+import { queryMSSQL, MSSQL_DB } from '@/lib/mssql';
 
 export async function getTablesAction(db: MSSQL_DB = 'BUSINESS') {
     try {
@@ -62,16 +62,6 @@ export async function getTableDataAction(tableName: string, searchTerm?: string,
             columns: columns,
             rows: data.recordset
         };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-}
-
-export async function testConnectionAction(db: MSSQL_DB = 'BUSINESS') {
-    try {
-        const pool = await getMSSQLPool(db);
-        const result = await pool.request().query('SELECT @@VERSION as version');
-        return { success: true, version: result.recordset[0].version };
     } catch (err: any) {
         return { success: false, error: err.message };
     }

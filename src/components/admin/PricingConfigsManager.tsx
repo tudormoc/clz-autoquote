@@ -452,10 +452,10 @@ export function PricingConfigsManager() {
                                     <table className="w-full text-left border-collapse">
                                         <thead className="bg-card/50 text-3xs uppercase tracking-wider text-fg-muted font-bold border-b">
                                             <tr>
-                                                <th className="px-6 py-3">Operation</th>
-                                                <th className="px-6 py-3">Setup Base</th>
-                                                <th className="px-6 py-3">Variable</th>
-                                                <th className="px-6 py-3">Prod Base</th>
+                                                <th className="px-6 py-3">{APP_COPY.admin.pricingRules.operation}</th>
+                                                <th className="px-6 py-3">{APP_COPY.admin.pricingRules.setupBase}</th>
+                                                <th className="px-6 py-3">{APP_COPY.admin.pricingRules.variable}</th>
+                                                <th className="px-6 py-3">{APP_COPY.admin.pricingRules.productionBase}</th>
                                                 <th className="px-6 py-3">Disc S%</th>
                                                 <th className="px-6 py-3">Disc P%</th>
                                                 <th className="px-6 py-3">Surch S%</th>
