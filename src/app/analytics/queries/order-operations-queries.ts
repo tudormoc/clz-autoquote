@@ -15,6 +15,7 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
+import { BUSINESS_COMPANY } from '@/config/constants';
 import { buildNetProOverrides, buildBusinessOverrides, cloneRowInsert, NOW } from '@/lib/orderSync';
 import { compareOperations, compareMaterials, countDiscrepancies, dibaMaterialQty, isPlaceholderMaterial } from '@/lib/orderCompare';
 import { 
@@ -222,7 +223,7 @@ async function fetchOrderOperationsManagement(
                 RTRIM(mo_netpid) as netpid,
                 CONVERT(VARCHAR(10), mo_datcons, 120) as datcons
             FROM movord WITH (NOLOCK) 
-            WHERE codditt = 'COOPZANARDI' AND mo_tipork = 'H'
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H'
               AND ${commessaFull ? 'mo_commeca = @commessaFull' : 'LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey'}
             ORDER BY mo_anno DESC, mo_numord DESC, mo_riga ASC
         `, commessaFull ? { commessaFull } : { rootCommessaKey }, 'BUSINESS');
@@ -269,7 +270,7 @@ async function fetchOrderOperationsManagement(
                 FROM cicli dd WITH (NOLOCK)
                 LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = dd.codditt AND tl.tb_codlavo = dd.dd_codlavo
                 LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = dd.codditt AND tc.tb_codcent = dd.dd_codcent
-                WHERE dd.codditt = 'COOPZANARDI'
+                WHERE dd.codditt = '${BUSINESS_COMPANY}'
                   AND dd.dd_coddb = @cleanPartNumber
                 ORDER BY dd.dd_riga ASC
             `, { cleanPartNumber }, 'BUSINESS');
@@ -321,7 +322,7 @@ async function fetchOrderOperationsManagement(
                     AND asr.as_riga = at.at_riga AND asr.as_fase = at.at_fase
                 LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = at.codditt AND tl.tb_codlavo = at.at_codlavo
                 LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = at.codditt AND tc.tb_codcent = asr.as_codcent
-                WHERE at.codditt = 'COOPZANARDI'
+                WHERE at.codditt = '${BUSINESS_COMPANY}'
                   AND at.at_tipork = 'H'
                   AND at.at_anno = @anno
                   AND at.at_numord = @numord
@@ -362,7 +363,7 @@ async function fetchOrderOperationsManagement(
                     RTRIM(md.md_unmis) as unmis
                 FROM movdis md WITH (NOLOCK)
                 LEFT JOIN artico ar WITH (NOLOCK) ON ar.codditt = md.codditt AND ar.ar_codart = md.md_codfigli
-                WHERE md.codditt = 'COOPZANARDI' AND md.md_coddb = @cleanPartNumber
+                WHERE md.codditt = '${BUSINESS_COMPANY}' AND md.md_coddb = @cleanPartNumber
                 ORDER BY md.md_riga ASC
             `, { cleanPartNumber }, 'BUSINESS');
             diba_materials = dibaMatRes.recordset;
@@ -379,7 +380,7 @@ async function fetchOrderOperationsManagement(
                     mo_quant as quant,
                     RTRIM(mo_unmis) as unmis
                 FROM movord WITH (NOLOCK)
-                WHERE codditt = 'COOPZANARDI' 
+                WHERE codditt = '${BUSINESS_COMPANY}' 
                   AND mo_tipork = 'Y'
                   AND mo_anno = @anno
                   AND mo_numord = @numord
@@ -472,7 +473,7 @@ export async function syncOrderFromDibaAction(params: {
             SELECT TOP 1 
                 mo_anno, mo_serie, mo_numord, mo_riga, mo_codart, mo_quant, mo_commeca, mo_datcons
             FROM movord WITH (NOLOCK)
-            WHERE codditt = 'COOPZANARDI'
+            WHERE codditt = '${BUSINESS_COMPANY}'
               AND mo_tipork = 'H'
               AND LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
             ORDER BY mo_anno DESC, mo_numord DESC
@@ -487,7 +488,7 @@ export async function syncOrderFromDibaAction(params: {
         // statements are not filtered by edition, so refuse instead of risking writes on other editions.
         const editionCheck = await queryMSSQL(`
             SELECT COUNT(*) AS n FROM movord WITH (NOLOCK)
-            WHERE codditt = 'COOPZANARDI' AND mo_tipork = 'H'
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H'
               AND LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey
         `, { rootCommessaKey }, 'BUSINESS');
         const netOrderCheck = await queryMSSQL(`
@@ -534,7 +535,7 @@ export async function syncOrderFromDibaAction(params: {
             FROM cicli dd WITH (NOLOCK)
             LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = dd.codditt AND tl.tb_codlavo = dd.dd_codlavo
             LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = dd.codditt AND tc.tb_codcent = dd.dd_codcent
-            WHERE dd.codditt = 'COOPZANARDI'
+            WHERE dd.codditt = '${BUSINESS_COMPANY}'
               AND dd.dd_coddb = @articleFather
             ORDER BY dd.dd_fase ASC
         `, { articleFather }, 'BUSINESS');
@@ -559,10 +560,10 @@ export async function syncOrderFromDibaAction(params: {
             await queryMSSQL(`DELETE FROM TASKS WHERE TASK = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
             await queryMSSQL(`DELETE FROM OPERAZIONI WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
             await queryMSSQL(`
-                DELETE FROM assris WHERE codditt = 'COOPZANARDI' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase
+                DELETE FROM assris WHERE codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase
             `, { numord, anno, fase: op.SEQUENZA }, 'BUSINESS');
             await queryMSSQL(`
-                DELETE FROM attivit WHERE codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
+                DELETE FROM attivit WHERE codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
             `, { numord, anno, fase: op.SEQUENZA }, 'BUSINESS');
         }
 
@@ -586,11 +587,11 @@ export async function syncOrderFromDibaAction(params: {
             }
 
             // Business: attivit + assris (cloned from existing rows of this order)
-            if (!(await exists('attivit', "codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase", { numord, anno, fase: op.fase }, 'BUSINESS'))) {
-                await cloneRowInsert('BUSINESS', 'attivit', "codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno", { numord, anno }, bv.attivit);
+            if (!(await exists('attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
+                await cloneRowInsert('BUSINESS', 'attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno`, { numord, anno }, bv.attivit);
             }
-            if (!(await exists('assris', "codditt = 'COOPZANARDI' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase", { numord, anno, fase: op.fase }, 'BUSINESS'))) {
-                await cloneRowInsert('BUSINESS', 'assris', "codditt = 'COOPZANARDI' AND as_numord = @numord AND as_anno = @anno", { numord, anno }, bv.assris);
+            if (!(await exists('assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
+                await cloneRowInsert('BUSINESS', 'assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno`, { numord, anno }, bv.assris);
             }
         }
 
@@ -607,7 +608,7 @@ export async function syncOrderFromDibaAction(params: {
                     at_qtapr      = @orderFatherQuant,
                     at_terzista   = @terzista,
                     at_note       = @note
-                WHERE codditt = 'COOPZANARDI'
+                WHERE codditt = '${BUSINESS_COMPANY}'
                   AND at_numord = @numord
                   AND at_anno   = @anno
                   AND at_fase   = @fase
@@ -617,7 +618,7 @@ export async function syncOrderFromDibaAction(params: {
             await queryMSSQL(`
                 UPDATE assris
                 SET as_codcent = @codcent
-                WHERE codditt = 'COOPZANARDI'
+                WHERE codditt = '${BUSINESS_COMPANY}'
                   AND as_numord = @numord
                   AND as_anno   = @anno
                   AND as_fase   = @fase
@@ -666,7 +667,7 @@ export async function syncOrderFromDibaAction(params: {
             await queryMSSQL(`
                 UPDATE attivit
                 SET at_sufase = @next, at_suanno = @suanno, at_sunumord = @sunumord, at_suriga = @suriga
-                WHERE codditt = 'COOPZANARDI' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
+                WHERE codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
             `, {
                 next: next ? next.SEQUENZA : 0,
                 suanno: next ? anno : 0, sunumord: next ? numord : 0, suriga: next ? rigaPadre : 0,
@@ -687,7 +688,7 @@ export async function syncOrderFromDibaAction(params: {
                 RTRIM(md.md_unmis) as unmis
             FROM movdis md WITH (NOLOCK)
             LEFT JOIN artico ar WITH (NOLOCK) ON ar.codditt = md.codditt AND ar.ar_codart = md.md_codfigli
-            WHERE md.codditt = 'COOPZANARDI' AND md.md_coddb = @articleFather
+            WHERE md.codditt = '${BUSINESS_COMPANY}' AND md.md_coddb = @articleFather
             ORDER BY md.md_riga ASC
         `, { articleFather }, 'BUSINESS');
         // MP_FITTIZIA placeholder is never synced (not added, updated or removed)
@@ -699,7 +700,7 @@ export async function syncOrderFromDibaAction(params: {
                 mo_riga, RTRIM(mo_codart) as codart, mo_quant, RTRIM(mo_descr) as descr, RTRIM(mo_unmis) as unmis,
                 mo_disbasriga as disbasriga
             FROM movord WITH (NOLOCK)
-            WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y'
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y'
               AND mo_rigaor = @rigaPadre
             ORDER BY mo_riga ASC
         `, { numord, anno, rigaPadre }, 'BUSINESS');
@@ -724,12 +725,12 @@ export async function syncOrderFromDibaAction(params: {
 
             await queryMSSQL(`
                 DELETE FROM keyord
-                WHERE codditt = 'COOPZANARDI' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
+                WHERE codditt = '${BUSINESS_COMPANY}' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
             `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
 
             await queryMSSQL(`
                 DELETE FROM movord
-                WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
+                WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
             `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
 
             await queryMSSQL(`
@@ -753,7 +754,7 @@ export async function syncOrderFromDibaAction(params: {
                 await queryMSSQL(`
                     UPDATE movord
                     SET mo_quant = @expectedQuant, mo_colli = @expectedQuant, mo_ultagg = GETDATE()
-                    WHERE codditt = 'COOPZANARDI' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
+                    WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
                 `, { expectedQuant, numord, anno, riga }, 'BUSINESS');
 
                 // Update NetPro MATERIALI_ORDINI
@@ -767,7 +768,7 @@ export async function syncOrderFromDibaAction(params: {
                 const newRiga = maxRiga;
 
                 const tplParams = { anno, numord };
-                const busTpl = "codditt = 'COOPZANARDI' AND mo_anno = @anno AND mo_numord = @numord AND mo_tipork = 'Y'";
+                const busTpl = `codditt = '${BUSINESS_COMPANY}' AND mo_anno = @anno AND mo_numord = @numord AND mo_tipork = 'Y'`;
                 // Business movord (cloned from an existing material row of this order; price fields not recalculated)
                 await cloneRowInsert('BUSINESS', 'movord', busTpl, tplParams, {
                     mo_riga: newRiga, mo_codart: dm.codfigli, mo_unmis: dm.unmis || 'Nr', mo_ump: dm.unmis || 'Nr',
@@ -777,7 +778,7 @@ export async function syncOrderFromDibaAction(params: {
                 });
                 // Business keyord (ko_conto etc. copied from the order's existing rows)
                 await cloneRowInsert('BUSINESS', 'keyord',
-                    "codditt = 'COOPZANARDI' AND ko_anno = @anno AND ko_numord = @numord AND ko_tipork = 'Y'", tplParams,
+                    `codditt = '${BUSINESS_COMPANY}' AND ko_anno = @anno AND ko_numord = @numord AND ko_tipork = 'Y'`, tplParams,
                     { ko_riga: newRiga, ko_codart: dm.codfigli });
                 // NetPro MATERIALI_ORDINI (cloned from an existing row of this order)
                 await cloneRowInsert('NETPRO', 'MATERIALI_ORDINI', 'ORDINE = @netOrdine', { netOrdine }, {

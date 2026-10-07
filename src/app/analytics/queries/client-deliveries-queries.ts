@@ -7,6 +7,7 @@
 
 import { getMSSQLPool } from '@/lib/mssql';
 import sql from 'mssql';
+import { BUSINESS_COMPANY } from '@/config/constants';
 import type { SortConfig } from './shared/query-utils';
 
 interface ClientDeliveryRow {
@@ -56,7 +57,7 @@ export async function getClientDeliveriesDataAction(
             'dw.dw_tipork = @tipoRec'
         ];
 
-        request.input('company', sql.VarChar, 'COOPZANARDI');
+        request.input('company', sql.VarChar, BUSINESS_COMPANY);
         request.input('year', sql.Int, year);
         request.input('clientType', sql.VarChar, 'C');
         request.input('tipoRec', sql.VarChar, 'B');
@@ -190,7 +191,7 @@ export async function getClientDeliveriesStatsAction(
             'dw.dw_tipork = @tipoRec'
         ];
 
-        request.input('company', sql.VarChar, 'COOPZANARDI');
+        request.input('company', sql.VarChar, BUSINESS_COMPANY);
         request.input('year', sql.Int, year);
         request.input('clientType', sql.VarChar, 'C');
         request.input('tipoRec', sql.VarChar, 'B');

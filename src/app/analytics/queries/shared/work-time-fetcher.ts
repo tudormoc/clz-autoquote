@@ -15,6 +15,7 @@
  */
 
 import { queryMSSQL } from '@/lib/mssql';
+import { BUSINESS_COMPANY } from '@/config/constants';
 
 /**
  * Fetch work times for a list of commessa codes
@@ -99,7 +100,7 @@ export async function fetchWorkCostsForClients(
 
     // First get all commessas for these clients that have invoices in the date range
     const commessaParams: Record<string, any> = {
-        codditt: 'COOPZANARDI',
+        codditt: BUSINESS_COMPANY,
         startDate,
         endDate,
         year
@@ -166,7 +167,7 @@ export async function fetchOrderBusinessData(
         return {};
     }
 
-    const params: Record<string, any> = { codditt: 'COOPZANARDI' };
+    const params: Record<string, any> = { codditt: BUSINESS_COMPANY };
     const placeholders = commessaCodes.map((code, i) => {
         params[`code${i}`] = code;
         return `@code${i}`;

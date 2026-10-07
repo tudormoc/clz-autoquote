@@ -6,6 +6,9 @@
 //
 // Use this file ONLY for true static configuration (e.g., UI timeouts, pagination limits).
 
+/** Company code (codditt) of every Business ERP row the app reads or writes */
+export const BUSINESS_COMPANY = 'COOPZANARDI';
+
 export const APP_CONFIG = {
   // UI & UX Configuration
   UI: {

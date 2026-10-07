@@ -12,7 +12,8 @@ Three SQL Server databases, all reached through `queryMSSQL(query, params, db)` 
 (presence edits, "Riallinea Ordine da DiBa", admin tables) and change production data immediately.
 
 Business tables give every column a 2–3 letter prefix (`an_*` anagra, `mo_*` movord, `dw_*` dwarehe, `co_*` commess).
-Company filter everywhere in Business: `codditt = 'COOPZANARDI'`.
+Company filter everywhere in Business: `codditt = 'COOPZANARDI'` — write it as `BUSINESS_COMPANY` (`src/config/constants.ts`),
+as a parameter or as `'${BUSINESS_COMPANY}'` inside the SQL template.
 
 ## Commessa (order number) formats
 

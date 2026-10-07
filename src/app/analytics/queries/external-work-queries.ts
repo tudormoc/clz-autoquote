@@ -13,7 +13,7 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
-import { APP_CONFIG } from '@/config/constants';
+import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import type { SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
@@ -61,7 +61,7 @@ export async function getExternalWorkDataAction(
         // Build WHERE conditions
         const conditions: string[] = [
             'dw.dw_scenario = 1',
-            "dw.codditt = 'COOPZANARDI'",
+            `dw.codditt = '${BUSINESS_COMPANY}'`,
             'dw.dw_anno >= @year',
             "an.an_tipo = 'F'",
             'dw.dw_acqvalore <> 0',
@@ -208,7 +208,7 @@ export async function getExternalWorkStatsAction(
         // Build WHERE conditions (same as main query)
         const conditions: string[] = [
             'dw.dw_scenario = 1',
-            "dw.codditt = 'COOPZANARDI'",
+            `dw.codditt = '${BUSINESS_COMPANY}'`,
             'dw.dw_anno >= @year',
             "an.an_tipo = 'F'",
             'dw.dw_acqvalore <> 0',

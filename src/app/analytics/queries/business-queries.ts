@@ -14,7 +14,7 @@
 
 'use server'
 
-import { APP_CONFIG } from '@/config/constants';
+import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import {
     buildCommessaFilterBUSINESS,
@@ -38,7 +38,6 @@ import {
     fetchWorkCostsForClients
 } from './shared/work-time-fetcher';
 
-const CODDITT = 'COOPZANARDI';
 /** dw_tipork of delivery notes, whose dw_valore is the delivered value */
 const DELIVERY_NOTE = 'B';
 const TIMEOUT = APP_CONFIG.ANALYTICS.REPORT_QUERY_TIMEOUT_MS;
@@ -113,7 +112,7 @@ export async function getOrderRevenueDataAction(
         ];
 
         const params: Record<string, any> = {
-            codditt: CODDITT,
+            codditt: BUSINESS_COMPANY,
             year,
             startDate,
             endDate,
@@ -282,7 +281,7 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
     ];
 
     const params: Record<string, any> = {
-        codditt: CODDITT,
+        codditt: BUSINESS_COMPANY,
         year,
         startDate,
         endDate,

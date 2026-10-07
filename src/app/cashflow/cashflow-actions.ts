@@ -1,6 +1,7 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
+import { BUSINESS_COMPANY } from '@/config/constants';
 import { CASHFLOW_CONFIG, CashflowPayrollConfig } from '@/config/cashflowConfig';
 import { monthName } from '@/lib/format';
 
@@ -163,7 +164,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             FROM prinot p WITH (NOLOCK)
             JOIN anagra a WITH (NOLOCK) 
               ON p.pn_conto = a.an_conto AND p.codditt = a.codditt
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
             GROUP BY p.pn_conto, a.an_descr1
             ORDER BY p.pn_conto
@@ -179,7 +180,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             INNER JOIN anagra an WITH (NOLOCK)
                 ON sc.sc_conto = an.an_conto
                AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'D'
               AND an.an_tipo = 'C'
               AND YEAR(sc.sc_datsca) = @year
@@ -197,7 +198,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             INNER JOIN anagra an WITH (NOLOCK)
                 ON sc.sc_conto = an.an_conto
                AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'A'
               AND an.an_tipo = 'F'
               AND YEAR(sc.sc_datsca) = @year
@@ -208,7 +209,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
         const maxBankMonthQuery = `
             SELECT MAX(MONTH(p.pn_datreg)) as max_month
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
         `;
@@ -221,7 +222,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 ISNULL(SUM(p.pn_importo), 0) as net_change,
                 COUNT(*) as row_count
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY MONTH(p.pn_datreg)
@@ -232,7 +233,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             SELECT 
                 ISNULL(SUM(p.pn_importo), 0) as start_balance
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) < @year
         `;
@@ -244,7 +245,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 ISNULL(SUM(p.pn_importo), 0) as start_balance
             FROM prinot p WITH (NOLOCK)
             JOIN anagra a WITH (NOLOCK) ON p.pn_conto = a.an_conto AND p.codditt = a.codditt
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) < @year
             GROUP BY p.pn_conto, a.an_descr1
@@ -257,7 +258,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 MONTH(p.pn_datreg) as month_num,
                 ISNULL(SUM(p.pn_importo), 0) as net_change
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${enabledCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
@@ -270,7 +271,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 MONTH(p.pn_datreg) AS month_num,
                 ABS(ISNULL(SUM(CASE WHEN p.pn_importo < 0 THEN p.pn_importo ELSE 0 END), 0)) AS cash_out
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${payrollCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
@@ -284,7 +285,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 MONTH(p.pn_datreg) AS month_num,
                 ABS(ISNULL(SUM(CASE WHEN p.pn_importo < 0 THEN p.pn_importo ELSE 0 END), 0)) AS cash_out
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto IN (${extraExpenseCodes.join(',')})
               AND YEAR(p.pn_datreg) = @year
             GROUP BY p.pn_conto, MONTH(p.pn_datreg)
@@ -302,7 +303,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             INNER JOIN anagra an WITH (NOLOCK) 
                 ON sc.sc_conto = an.an_conto 
                AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'A'
               AND an.an_tipo = 'F'
               AND YEAR(sc.sc_datsca) = @year
@@ -321,7 +322,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             INNER JOIN anagra an WITH (NOLOCK) 
                 ON sc.sc_conto = an.an_conto 
                AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'D'
               AND an.an_tipo = 'C'
               AND YEAR(sc.sc_datsca) = @year
@@ -339,7 +340,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
             INNER JOIN anagra an WITH (NOLOCK) 
                 ON sc.sc_conto = an.an_conto 
                AND sc.codditt = an.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'D'
               AND an.an_tipo = 'C'
               AND YEAR(sc.sc_datsca) = @year
@@ -358,7 +359,7 @@ export async function getCashflowMonthlyDataAction(year: number = 2026): Promise
                 ON sc.sc_conto = sup.an_conto AND sc.codditt = sup.codditt
             LEFT JOIN anagra ca WITH (NOLOCK)
                 ON sup.an_controp = ca.an_conto AND sup.codditt = ca.codditt
-            WHERE sc.codditt = 'COOPZANARDI'
+            WHERE sc.codditt = '${BUSINESS_COMPANY}'
               AND sc.sc_darave = 'A'
               AND sup.an_tipo = 'F'
               AND YEAR(sc.sc_datsca) = @year
@@ -791,7 +792,7 @@ export async function getBankAccountTransactionsAction(
         const nameQuery = `
             SELECT TOP 1 an_descr1 
             FROM anagra WITH (NOLOCK) 
-            WHERE codditt = 'COOPZANARDI' AND an_conto = @accountCode
+            WHERE codditt = '${BUSINESS_COMPANY}' AND an_conto = @accountCode
         `;
         const nameRes = await queryMSSQL(nameQuery, { accountCode }, 'BUSINESS');
         const accountName = nameRes.recordset[0]?.an_descr1 
@@ -802,7 +803,7 @@ export async function getBankAccountTransactionsAction(
         const priorQuery = `
             SELECT ISNULL(SUM(pn_importo), 0) as start_balance
             FROM prinot WITH (NOLOCK)
-            WHERE codditt = 'COOPZANARDI'
+            WHERE codditt = '${BUSINESS_COMPANY}'
               AND pn_conto = @accountCode
               AND YEAR(pn_datreg) < @year
         `;
@@ -824,7 +825,7 @@ export async function getBankAccountTransactionsAction(
                 ISNULL(p.pn_avere, 0) as pn_avere,
                 ISNULL(p.pn_importo, 0) as pn_importo
             FROM prinot p WITH (NOLOCK)
-            WHERE p.codditt = 'COOPZANARDI'
+            WHERE p.codditt = '${BUSINESS_COMPANY}'
               AND p.pn_conto = @accountCode
               AND YEAR(p.pn_datreg) = @year
             ORDER BY p.pn_datreg ASC, p.pn_numreg ASC, p.pn_riga ASC
