@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { FileText } from 'lucide-react';
 import { getAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
 import { generateAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
-import { APP_COPY } from '@/locales';
-import { Input } from '@/components/ui/Input';
+import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
+import { scoreTone } from '@/components/analytics/report/ReportCells';
+import { ReportView } from '@/components/analytics/report/ReportView';
 import { Button } from '@/components/ui/Button';
-import { DatePicker } from '@/components/ui/DatePicker';
-import { MonthSelectorModal } from './MonthSelectorModal';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download, FileText } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import type { DataTableColumn } from '@/components/ui/DataTable';
+import { DateRangeFields } from '@/components/ui/DateRangeFields';
+import { SearchField } from '@/components/ui/SearchField';
+import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
+import { useReportTable } from '@/hooks/useReportTable';
+import { getLastYearEnd, getLastYearStart, getTodayDate } from '@/lib/dateUtils';
+import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
+import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
+import { APP_COPY } from '@/locales';
 
 interface AreaSummaryRow {
     area_name: string;
@@ -29,133 +35,70 @@ interface Filters {
     dateTo: string;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+const copy = APP_COPY.analytics.areaSummary;
+const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
+const { EXCELLENT, ACCEPTABLE } = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
+
+const initialFilters = (): Filters => ({ area: '', dateFrom: getLastYearStart(), dateTo: getLastYearEnd() });
+
+const toQuery = (f: Filters) => ({
+    machine: f.area || undefined, // the query still calls the area filter "machine"
+    dateFrom: f.dateFrom || undefined,
+    dateTo: f.dateTo || undefined,
+});
+
+const columns: DataTableColumn<AreaSummaryRow>[] = [
+    { key: 'area_name', header: copy.headers.area, cell: (row) => <StackedCell tone="plain" primary={row.area_name} /> },
+    {
+        key: 'requested_quantity',
+        header: copy.headers.quantity,
+        variant: 'number',
+        cellClassName: 'text-fg-strong',
+        cell: (row) => formatNumber(row.requested_quantity),
+    },
+    { key: 'work_time', header: copy.headers.workTime, variant: 'number', cellClassName: 'text-fg-strong', cell: (row) => formatHours(row.work_time) },
+    {
+        key: 'velocity',
+        header: copy.headers.velocity,
+        variant: 'number',
+        cellClassName: 'text-fg-strong',
+        cell: (row) => (
+            <>
+                <div>{row.velocity.toFixed(1)}</div>
+                <div className="text-xs text-fg-subtle">/ {row.target_velocity}</div>
+            </>
+        ),
+    },
+    {
+        key: 'efficiency',
+        header: copy.headers.efficiency,
+        align: 'right',
+        cell: (row) => (
+            <span className={`font-mono font-semibold ${scoreTone(row.efficiency, EXCELLENT, ACCEPTABLE)}`}>{row.efficiency.toFixed(0)}%</span>
+        ),
+    },
+];
+
+const excelColumns: ExcelColumn<AreaSummaryRow>[] = [
+    { header: copy.export.area, value: (row) => row.area_name },
+    { header: copy.export.quantity, value: (row) => row.requested_quantity },
+    { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)) },
+    { header: copy.export.velocity, value: (row) => Number(row.velocity.toFixed(1)) },
+    { header: copy.export.target, value: (row) => row.target_velocity },
+    { header: copy.export.efficiency, value: (row) => Number(row.efficiency.toFixed(0)) },
+];
 
 export function AreaSummaryReport() {
-    const [data, setData] = useState<AreaSummaryRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-    const [showMonthModal, setShowMonthModal] = useState(false);
+    const [showPdfModal, setShowPdfModal] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
-    
-    const [filters, setFilters] = useState<Filters>({
-        area: '',
-        dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+
+    const report = useReportTable<Filters, AreaSummaryRow>({
+        initialFilters,
+        defaultSort: { column: 'display_order', direction: 'asc' },
+        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
+            getAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'display_order',
-        direction: 'asc'
-    });
-
-    const limit = 100;
-
-    useEffect(() => {
-        if (appliedFilters !== null) {
-            loadData();
-        }
-    }, [page, appliedFilters, sortConfig]);
-
-    const loadData = async () => {
-        if (!appliedFilters) return;
-        
-        setLoading(true);
-        const result = await getAreaSummaryDataAction(2024, page, limit, {
-            machine: appliedFilters.area || undefined, // API still uses 'machine' param name
-            dateFrom: appliedFilters.dateFrom || undefined,
-            dateTo: appliedFilters.dateTo || undefined
-        }, sortConfig);
-        
-        if (result.success) {
-            setData(result.data);
-            setTotal(result.pagination.total);
-            setTotalPages(result.pagination.totalPages);
-            setError(null);
-        } else {
-            setError(result.error);
-        }
-        setLoading(false);
-    };
-
-    const handleSort = (column: string) => {
-        setSortConfig(prev => ({
-            column,
-            direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
-        }));
-        setPage(1);
-    };
-
-    const getSortIcon = (column: string) => {
-        if (sortConfig.column !== column) {
-            return <ArrowUpDown size={14} className="opacity-50" />;
-        }
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} /> : 
-            <ArrowDown size={14} />;
-    };
-
-    const handleApplyFilters = () => {
-        setAppliedFilters({...filters});
-        setPage(1);
-    };
-
-    const handleClearFilters = () => {
-        const clearedFilters = {
-            area: '',
-            dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
-        };
-        setFilters(clearedFilters);
-        setAppliedFilters(null);
-        setData([]);
-        setTotal(0);
-        setTotalPages(1);
-        setSortConfig({
-            column: 'display_order',
-            direction: 'asc'
-        });
-        setPage(1);
-    };
-
-    const handleExportExcel = async () => {
-        if (!appliedFilters || loading) return;
-        
-        setLoading(true);
-        try {
-            const result = await getAreaSummaryDataAction(2024, 1, 999999, {
-                machine: appliedFilters.area || undefined, // API still uses 'machine' param name
-                dateFrom: appliedFilters.dateFrom || undefined,
-                dateTo: appliedFilters.dateTo || undefined
-            }, sortConfig, true);
-
-            if (result.success && result.data.length > 0) {
-                const excelData = result.data.map(row => ({
-                    [APP_COPY.analytics.areaSummary.export.area]: row.area_name,
-                    [APP_COPY.analytics.areaSummary.export.quantity]: row.requested_quantity,
-                    [APP_COPY.analytics.areaSummary.export.workTime]: row.work_time.toFixed(2),
-                    [APP_COPY.analytics.areaSummary.export.velocity]: row.velocity.toFixed(1),
-                    [APP_COPY.analytics.areaSummary.export.target]: row.target_velocity,
-                    [APP_COPY.analytics.areaSummary.export.efficiency]: row.efficiency.toFixed(0)
-                }));
-
-                const ws = XLSX.utils.json_to_sheet(excelData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Area Summary');
-                XLSX.writeFile(wb, `area-summary-${new Date().toISOString().split('T')[0]}.xlsx`);
-            }
-        } catch (err) {
-            console.error('Export failed:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { filters, updateFilters, applied } = report;
 
     const handleGeneratePDF = async (
         year: number,
@@ -165,268 +108,59 @@ export function AreaSummaryReport() {
         mode: 'months' | 'weeks' = 'months',
         weeks: number[] = []
     ) => {
-        if (!appliedFilters) return;
-        
+        if (!applied) return;
         setPdfLoading(true);
         try {
-            // If separateByArea is true and no specific area filter is active,
-            // generate one PDF for each area visible in the current results.
-            const areasToProcess = (separateByArea && !appliedFilters.area)
-                ? data.map(row => row.area_name)
-                : [appliedFilters.area || undefined];
-
-            for (const area of areasToProcess) {
+            // "Separate by area" without an area filter: one PDF for each area listed in the results
+            const areas = separateByArea && !applied.area ? report.rows.map((row) => row.area_name) : [applied.area || undefined];
+            for (const area of areas) {
                 const result = await generateAreaSummaryPDFAction(year, months, area, mode, weeks);
-
                 if (result.success && result.pdf) {
-                    // Convert base64 to blob and download
-                    const byteCharacters = atob(result.pdf);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/pdf' });
-
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = result.filename;
-                    document.body.appendChild(a);
-                    a.click();
-
-                    // Cleanup
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    }, 100);
-
-                    // Small delay between multiple downloads to avoid browser blocking
-                    if (areasToProcess.length > 1) {
-                        await new Promise(resolve => setTimeout(resolve, 600));
-                    }
+                    downloadBase64File(result.pdf, result.filename);
+                    if (areas.length > 1) await wait(DOWNLOAD_GAP_MS);
                 } else {
                     console.error(`PDF generation failed for area ${area}:`, result.error);
                 }
             }
-
-            setShowMonthModal(false);
+            setShowPdfModal(false);
         } catch (err) {
             console.error('PDF generation error:', err);
-            alert('Failed to generate PDF');
+            alert(APP_COPY.analytics.pdfError);
         } finally {
             setPdfLoading(false);
         }
     };
 
-    if (loading && page === 1 && appliedFilters !== null) {
-        return (
-            <div className="text-center py-12 text-fg-muted">
-                {APP_COPY.analytics.loading}
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center py-12 text-danger">
-                {APP_COPY.analytics.error}: {error}
-            </div>
-        );
-    }
-
     return (
-        <>
+        <ReportView
+            report={report}
+            columns={columns}
+            filterColumns={3}
+            filters={
+                <>
+                    <DateRangeFields dateFrom={filters.dateFrom} dateTo={filters.dateTo} onChange={updateFilters} />
+                    <SearchField label={copy.headers.area} value={filters.area} onChange={(area) => updateFilters({ area })} />
+                </>
+            }
+            actions={
+                <Button type="button" variant="secondary" onClick={() => setShowPdfModal(true)} disabled={!applied || pdfLoading}>
+                    <FileText size={16} />
+                    {copy.pdfButton}
+                </Button>
+            }
+            excel={{
+                columns: excelColumns,
+                sheetName: 'Area Summary',
+                fileName: () => `area-summary-${getTodayDate()}.xlsx`,
+            }}
+        >
             <MonthSelectorModal
-                isOpen={showMonthModal}
-                onClose={() => setShowMonthModal(false)}
+                isOpen={showPdfModal}
+                onClose={() => setShowPdfModal(false)}
                 onGenerate={handleGeneratePDF}
                 loading={pdfLoading}
                 showWeekMode
             />
-            <div className="space-y-4">
-            {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateFrom}
-                            </label>
-                            <DatePicker
-                                value={filters.dateFrom}
-                                onChange={(value) => setFilters({ ...filters, dateFrom: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateTo}
-                            </label>
-                            <DatePicker
-                                value={filters.dateTo}
-                                onChange={(value) => setFilters({ ...filters, dateTo: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.areaSummary.headers.area}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.area}
-                                onChange={(e) => setFilters({ ...filters, area: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <Button type="submit" className="flex items-center gap-2">
-                            <Search size={16} />
-                            {APP_COPY.analytics.common.apply}
-                        </Button>
-                        <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
-                            <X size={16} />
-                            {APP_COPY.analytics.common.clear}
-                        </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
-                            <Download size={16} />
-                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
-                        </Button>
-                        <Button type="button" onClick={() => setShowMonthModal(true)} variant="secondary" className="flex items-center gap-2">
-                            <FileText size={16} />
-                            {APP_COPY.analytics.areaSummary.pdfButton}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-fg-muted">
-                <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
-                </div>
-                <div className="flex items-center gap-2">
-                        <Button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1 || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        <ChevronLeft size={16} />
-                        {APP_COPY.analytics.common.previous}
-                    </Button>
-                    <span className="text-fg-muted">
-                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-fg-strong font-mono">{totalPages}</span>
-                    </span>
-                    <Button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        {APP_COPY.analytics.common.next}
-                        <ChevronRight size={16} />
-                    </Button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                {data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-card border-b border-border">
-                                <tr>
-                                    <th 
-                                        className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('area_name')}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            {APP_COPY.analytics.areaSummary.headers.area}
-                                            {getSortIcon('area_name')}
-                                        </div>
-                                    </th>
-                                    <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('requested_quantity')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.areaSummary.headers.quantity}
-                                            {getSortIcon('requested_quantity')}
-                                        </div>
-                                    </th>
-                                    <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('work_time')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.areaSummary.headers.workTime}
-                                            {getSortIcon('work_time')}
-                                        </div>
-                                    </th>
-                                    <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('velocity')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.areaSummary.headers.velocity}
-                                            {getSortIcon('velocity')}
-                                        </div>
-                                    </th>
-                                    <th 
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('efficiency')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.areaSummary.headers.efficiency}
-                                            {getSortIcon('efficiency')}
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {data.map((row, idx) => {
-                                    const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
-                                    
-                                    const efficiencyColor = 
-                                        row.efficiency >= thresholds.EXCELLENT ? 'text-success-500' :
-                                        row.efficiency >= thresholds.ACCEPTABLE ? 'text-warning-300' :
-                                        'text-danger';
-                                    
-                                    return (
-                                        <tr key={idx} className="hover:bg-card/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="font-medium text-fg-strong">{row.area_name}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
-                                                {formatNumber(row.requested_quantity)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
-                                                {formatHours(row.work_time)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-right font-mono text-fg-strong">
-                                                <div>{row.velocity.toFixed(1)}</div>
-                                                <div className="text-xs text-fg-subtle">/ {row.target_velocity}</div>
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm text-right font-mono font-semibold ${efficiencyColor}`}>
-                                                {row.efficiency.toFixed(0)}%
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="text-center py-12 text-fg-subtle">
-                        {APP_COPY.analytics.empty}
-                    </div>
-                )}
-            </div>
-        </div>
-        </>
+        </ReportView>
     );
 }

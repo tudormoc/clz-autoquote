@@ -135,11 +135,20 @@ export const APP_CONFIG = {
     } as const,
 
     // Efficiency thresholds for color coding
+    // Area efficiency (%): >= EXCELLENT green, >= ACCEPTABLE amber, below red
     EFFICIENCY_THRESHOLDS: {
-      EXCELLENT: 60,  // >= 100% = Green (meeting or exceeding target)
-      ACCEPTABLE: 40,  // >= 80% = Yellow (below target but acceptable)
-      // < 80% = Red (significantly below target)
+      EXCELLENT: 60,
+      ACCEPTABLE: 40,
     } as const,
+
+    // Margin on revenue (%): >= GOOD green, >= FAIR amber, below red
+    MARGIN_THRESHOLDS: {
+      GOOD: 20,
+      FAIR: 10,
+    } as const,
+
+    // Year passed to the report queries; they only use it when no date filter is set
+    FALLBACK_YEAR: 2024,
 
     // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
     // Used to filter out short/insignificant tasks (noise)

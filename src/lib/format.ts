@@ -11,6 +11,9 @@ const { LANGUAGE, CURRENCY } = APP_CONFIG.LOCALE;
 /** Placeholder shown for missing values */
 export const EMPTY_VALUE = '-';
 
+// Thousands separator on every number, also 4-digit ones (Italian default omits it: "5186" next to "12.582")
+const GROUPING = { useGrouping: 'always' } as const;
+
 const currencyFormatters = new Map<number, Intl.NumberFormat>();
 const numberFormatters = new Map<number, Intl.NumberFormat>();
 
@@ -22,6 +25,7 @@ function currencyFormatter(decimals: number) {
             currency: CURRENCY,
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
+            ...GROUPING,
         });
         currencyFormatters.set(decimals, f);
     }
@@ -31,7 +35,7 @@ function currencyFormatter(decimals: number) {
 function numberFormatter(decimals: number) {
     let f = numberFormatters.get(decimals);
     if (!f) {
-        f = new Intl.NumberFormat(LANGUAGE, { maximumFractionDigits: decimals });
+        f = new Intl.NumberFormat(LANGUAGE, { maximumFractionDigits: decimals, ...GROUPING });
         numberFormatters.set(decimals, f);
     }
     return f;

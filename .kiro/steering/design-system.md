@@ -19,7 +19,14 @@ Clean, fast, readable. Minimal shadows, tight spacing. Every pixel serves purpos
 | Section sidebars, header icons, home cards | `src/config/navigation.ts` |
 | Buttons (also links styled as buttons) | `src/components/ui/Button.tsx` → `Button`, `buttonClasses()` |
 | Empty / landing panels | `src/components/ui/EmptyState.tsx` |
+| Tables: building blocks / column-driven table | `src/components/ui/Table.tsx` / `src/components/ui/DataTable.tsx` |
+| Table cells (code + name, chips) | `src/components/ui/TableCells.tsx` |
+| Filters: panel, labelled field, text search, date range | `src/components/ui/{FilterPanel,Field,SearchField,DateRangeFields}.tsx` |
+| Paging, Excel export button | `src/components/ui/{Pagination,ExportExcelButton}.tsx` |
+| A full report (filters + summary + table + export) | `src/components/analytics/report/ReportView.tsx` + `src/hooks/useReportTable.ts` |
 | Numbers, money, hours, dates | `src/lib/format.ts` |
+| Excel files | `src/lib/excel.ts` (xlsx is loaded only when exporting) |
+| File downloads (PDF from the server) | `src/lib/download.ts` |
 
 Restyle the whole app by editing `src/styles/theme.js` only.
 

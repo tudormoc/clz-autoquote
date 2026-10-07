@@ -37,7 +37,7 @@ export async function testDatabaseConnections() {
         results.quotes.success = true;
         results.quotes.message = 'Successfully connected to Quotes DB';
         results.quotes.data = quotesResult.recordset[0];
-    } catch (err: any) {
+    } catch {
         // Fallback if signatures table doesn't exist yet or is empty
         try {
             const fallback = await queryMSSQL('SELECT 1 as connection_test', {}, 'QUOTES');

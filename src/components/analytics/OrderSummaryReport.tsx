@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { getOrderSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { ReportView } from '@/components/analytics/report/ReportView';
+import type { DataTableColumn } from '@/components/ui/DataTable';
+import { DateRangeFields } from '@/components/ui/DateRangeFields';
+import { SearchField } from '@/components/ui/SearchField';
+import { StackedCell } from '@/components/ui/TableCells';
+import { APP_CONFIG } from '@/config/constants';
+import { useReportTable } from '@/hooks/useReportTable';
+import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import type { ExcelColumn } from '@/lib/excel';
+import { formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
-import { formatDate, formatHours, formatNumber } from '@/lib/format';
 
 interface OrderSummaryRow {
     machine: string;
@@ -29,412 +31,72 @@ interface Filters {
     dateTo: string;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+const copy = APP_COPY.analytics.orderSummary;
+const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
+
+const initialFilters = (): Filters => ({ commessa: '', machine: '', dateFrom: getLastYearStart(), dateTo: getLastYearEnd() });
+
+const toQuery = (f: Filters) => ({
+    commessa: f.commessa || undefined,
+    machine: f.machine || undefined,
+    dateFrom: f.dateFrom || undefined,
+    dateTo: f.dateTo || undefined,
+});
+
+const columns: DataTableColumn<OrderSummaryRow>[] = [
+    {
+        key: 'commessa',
+        header: copy.headers.commessa,
+        className: 'w-40',
+        cell: (row) => <StackedCell primary={row.commessa_display} secondary={row.order_description} maxWidth="md" />,
+    },
+    {
+        key: 'machine',
+        header: copy.headers.machine,
+        className: 'w-32',
+        cell: (row) => <StackedCell tone="muted" primary={row.machine} secondary={row.machine_name} maxWidth="sm" />,
+    },
+    { key: 'time', header: copy.headers.time, variant: 'total', cell: (row) => formatHours(row.work_time) },
+    { key: 'qty_requested', header: copy.headers.qtyReq, variant: 'number', cell: (row) => formatNumber(row.qty_requested) },
+    { key: 'qty', header: copy.headers.qtyDone, variant: 'number', cell: (row) => formatNumber(row.qty_completed) },
+];
+
+const excelColumns: ExcelColumn<OrderSummaryRow>[] = [
+    { header: copy.export.commessa, value: (row) => Number(row.commessa_display), width: 10, format: 'integer' },
+    { header: copy.export.description, value: (row) => row.order_description, width: 30 },
+    { header: copy.export.machine, value: (row) => Number(row.machine), width: 10, format: 'integer' },
+    { header: copy.export.machineName, value: (row) => row.machine_name, width: 25 },
+    { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)), width: 12 },
+    { header: copy.export.qtyRequested, value: (row) => row.qty_requested || 0, width: 15 },
+    { header: copy.export.qtyCompleted, value: (row) => row.qty_completed, width: 15 },
+];
 
 export function OrderSummaryReport() {
-    const [data, setData] = useState<OrderSummaryRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-    
-    const [filters, setFilters] = useState<Filters>({
-        commessa: '',
-        machine: '',
-        dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+    const report = useReportTable<Filters, OrderSummaryRow>({
+        initialFilters,
+        defaultSort: { column: 'commessa', direction: 'asc' },
+        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
+            getOrderSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'commessa',
-        direction: 'asc'
-    });
-
-    const limit = 100;
-
-    useEffect(() => {
-        if (appliedFilters !== null) {
-            loadData();
-        }
-    }, [page, appliedFilters, sortConfig]);
-
-    const loadData = async () => {
-        if (!appliedFilters) return;
-        
-        setLoading(true);
-        const result = await getOrderSummaryDataAction(2024, page, limit, {
-            commessa: appliedFilters.commessa || undefined,
-            machine: appliedFilters.machine || undefined,
-            dateFrom: appliedFilters.dateFrom || undefined,
-            dateTo: appliedFilters.dateTo || undefined,
-        }, sortConfig);
-        
-        if (result.success) {
-            setData(result.data);
-            setTotal(result.pagination.total);
-            setTotalPages(result.pagination.totalPages);
-            setError(null);
-        } else {
-            setError(result.error);
-        }
-        setLoading(false);
-    };
-
-    const handleSort = (column: string) => {
-        setSortConfig(prev => ({
-            column,
-            direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
-        }));
-        setPage(1);
-    };
-
-    const getSortIcon = (column: string) => {
-        if (sortConfig.column !== column) {
-            return <ArrowUpDown size={14} className="opacity-50" />;
-        }
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} /> : 
-            <ArrowDown size={14} />;
-    };
-
-    const handleApplyFilters = () => {
-        setAppliedFilters(filters);
-        setPage(1);
-    };
-
-    const handleClearFilters = () => {
-        const clearedFilters = {
-            commessa: '',
-            machine: '',
-            dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
-        };
-        setFilters(clearedFilters);
-        setAppliedFilters(null);
-        setData([]);
-        setTotal(0);
-        setTotalPages(1);
-        setSortConfig({
-            column: 'commessa',
-            direction: 'asc'
-        });
-        setPage(1);
-    };
-
-    const handleExportExcel = async () => {
-        setLoading(true);
-        try {
-            const result = await getOrderSummaryDataAction(2024, 1, 999999, {
-                commessa: appliedFilters?.commessa || undefined,
-                machine: appliedFilters?.machine || undefined,
-                dateFrom: appliedFilters?.dateFrom || undefined,
-                dateTo: appliedFilters?.dateTo || undefined,
-            }, sortConfig, true);
-
-            if (result.success && result.data.length > 0) {
-                const excelData = result.data.map(row => {
-                    return {
-                        [APP_COPY.analytics.orderSummary.export.commessa]: Number(row.commessa_display),
-                        [APP_COPY.analytics.orderSummary.export.description]: row.order_description,
-                        [APP_COPY.analytics.orderSummary.export.machine]: Number(row.machine),
-                        [APP_COPY.analytics.orderSummary.export.machineName]: row.machine_name,
-                        [APP_COPY.analytics.orderSummary.export.workTime]: Number(row.work_time.toFixed(2)),
-                        [APP_COPY.analytics.orderSummary.export.qtyRequested]: row.qty_requested || 0,
-                        [APP_COPY.analytics.orderSummary.export.qtyCompleted]: row.qty_completed
-                    };
-                });
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(excelData);
-
-                ws['!cols'] = [
-                    { wch: 10 },
-                    { wch: 30 },
-                    { wch: 10 },
-                    { wch: 25 },
-                    { wch: 12 },
-                    { wch: 15 },
-                    { wch: 15 }
-                ];
-
-                // Format ID columns as numbers (remove text-to-number conversion warnings)
-                const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-                for (let row = 1; row <= range.e.r; row++) {
-                    // Commessa column (A)
-                    const commessaCell = XLSX.utils.encode_cell({ r: row, c: 0 });
-                    if (ws[commessaCell]) {
-                        ws[commessaCell].t = 'n'; // number type
-                        ws[commessaCell].z = '0'; // number format
-                    }
-                    // Machine column (C)
-                    const machineCell = XLSX.utils.encode_cell({ r: row, c: 2 });
-                    if (ws[machineCell]) {
-                        ws[machineCell].t = 'n'; // number type
-                        ws[machineCell].z = '0'; // number format
-                    }
-                }
-
-                XLSX.utils.book_append_sheet(wb, ws, 'Order Summary');
-
-                const filename = `order_summary_${appliedFilters?.dateFrom || 'start'}_${appliedFilters?.dateTo || 'end'}.xlsx`;
-                
-                XLSX.writeFile(wb, filename);
-            }
-        } catch (err) {
-            console.error('Export error:', err);
-        }
-        setLoading(false);
-    };
-
-    if (loading && page === 1 && appliedFilters !== null) {
-        return (
-            <div className="text-center py-12 text-fg-muted">
-                {APP_COPY.analytics.loading}
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center py-12 text-danger">
-                {APP_COPY.analytics.error}: {error}
-            </div>
-        );
-    }
+    const { filters, updateFilters } = report;
 
     return (
-        <div className="space-y-4">
-            {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateFrom}
-                            </label>
-                            <DatePicker
-                                value={filters.dateFrom}
-                                onChange={(value) => setFilters({ ...filters, dateFrom: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateTo}
-                            </label>
-                            <DatePicker
-                                value={filters.dateTo}
-                                onChange={(value) => setFilters({ ...filters, dateTo: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.orderSummary.headers.commessa}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.commessa}
-                                onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.orderSummary.headers.machine}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.machine}
-                                onChange={(e) => setFilters({ ...filters, machine: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <Button type="submit" className="flex items-center gap-2">
-                            <Search size={16} />
-                            {APP_COPY.analytics.common.apply}
-                        </Button>
-                        <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
-                            <X size={16} />
-                            {APP_COPY.analytics.common.clear}
-                        </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
-                            <Download size={16} />
-                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-fg-muted">
-                <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
-                </div>
-                <div className="flex items-center gap-2">
-                        <Button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1 || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        <ChevronLeft size={16} />
-                        {APP_COPY.analytics.common.previous}
-                    </Button>
-                    <span className="text-fg-muted">
-                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-fg-strong font-mono">{totalPages}</span>
-                    </span>
-                    <Button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        {APP_COPY.analytics.common.next}
-                        <ChevronRight size={16} />
-                    </Button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                {data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                        <thead className="bg-card border-b border-border">
-                            <tr>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-40"
-                                    onClick={() => handleSort('commessa')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.orderSummary.headers.commessa}
-                                        {getSortIcon('commessa')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
-                                    onClick={() => handleSort('machine')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.orderSummary.headers.machine}
-                                        {getSortIcon('machine')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('time')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.orderSummary.headers.time}
-                                        {getSortIcon('time')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('qty_requested')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.orderSummary.headers.qtyReq}
-                                        {getSortIcon('qty_requested')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('qty')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.orderSummary.headers.qtyDone}
-                                        {getSortIcon('qty')}
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.common.loading}
-                                    </td>
-                                </tr>
-                            ) : data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            ) : (
-                                data.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-card/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm w-40">
-                                            <div className="font-mono text-primary truncate max-w-[10rem]">{row.commessa_display}</div>
-                                            <div className="text-xs text-fg-subtle truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-fg-secondary w-32">
-                                            <div className="font-mono text-fg-muted truncate max-w-[8rem]">{row.machine}</div>
-                                            <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.machine_name}>{row.machine_name}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
-                                            {formatHours(row.work_time)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                            {formatNumber(row.qty_requested)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                            {formatNumber(row.qty_completed)}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                    </div>
-                ) : (
-                    <table className="w-full">
-                         <thead>
-                            <tr className="bg-card border-b border-border">
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-40">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderSummary.headers.commessa}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderSummary.headers.machine}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.time}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.qtyReq}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderSummary.headers.qtyDone}</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.common.loading}
-                                    </td>
-                                </tr>
-                            ) : (
-                                <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-        </div>
+        <ReportView
+            report={report}
+            columns={columns}
+            filterColumns={4}
+            filters={
+                <>
+                    <DateRangeFields dateFrom={filters.dateFrom} dateTo={filters.dateTo} onChange={updateFilters} />
+                    <SearchField label={copy.headers.commessa} value={filters.commessa} onChange={(commessa) => updateFilters({ commessa })} />
+                    <SearchField label={copy.headers.machine} value={filters.machine} onChange={(machine) => updateFilters({ machine })} />
+                </>
+            }
+            excel={{
+                columns: excelColumns,
+                sheetName: 'Order Summary',
+                fileName: (f) => `order_summary_${f.dateFrom || 'start'}_${f.dateTo || 'end'}.xlsx`,
+            }}
+        />
     );
 }

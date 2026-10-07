@@ -2,14 +2,17 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+// Table building blocks: the one place where table spacing, lines and header style are defined.
+// For data lists with sorting, paging and loading states use DataTable, which is built on these.
+
 const Table = React.forwardRef<
     HTMLTableElement,
     React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    <div className="relative w-full overflow-x-auto">
         <table
             ref={ref}
-            className={cn("w-full caption-bottom text-sm", className)}
+            className={cn("w-full text-sm", className)}
             {...props}
         />
     </div>
@@ -20,7 +23,7 @@ const TableHeader = React.forwardRef<
     HTMLTableSectionElement,
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+    <thead ref={ref} className={cn("bg-card border-b border-border", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -28,11 +31,7 @@ const TableBody = React.forwardRef<
     HTMLTableSectionElement,
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-    <tbody
-        ref={ref}
-        className={cn("[&_tr:last-child]:border-0", className)}
-        {...props}
-    />
+    <tbody ref={ref} className={cn("divide-y divide-border", className)} {...props} />
 ))
 TableBody.displayName = "TableBody"
 
@@ -42,10 +41,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <tfoot
         ref={ref}
-        className={cn(
-            "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
-            className
-        )}
+        className={cn("border-t border-border bg-muted/50 font-medium", className)}
         {...props}
     />
 ))
@@ -57,10 +53,7 @@ const TableRow = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <tr
         ref={ref}
-        className={cn(
-            "border-b border-border transition-colors hover:bg-card/50 data-[state=selected]:bg-card",
-            className
-        )}
+        className={cn("transition-colors hover:bg-muted/40", className)}
         {...props}
     />
 ))
@@ -72,10 +65,7 @@ const TableHead = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <th
         ref={ref}
-        className={cn(
-            "h-12 px-4 text-left align-middle font-medium text-fg-subtle text-xs [&:has([role=checkbox])]:pr-0",
-            className
-        )}
+        className={cn("px-4 py-3 text-left align-middle text-xs font-semibold text-fg-muted", className)}
         {...props}
     />
 ))
@@ -87,23 +77,11 @@ const TableCell = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <td
         ref={ref}
-        className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+        className={cn("px-4 py-3 align-middle", className)}
         {...props}
     />
 ))
 TableCell.displayName = "TableCell"
-
-const TableCaption = React.forwardRef<
-    HTMLTableCaptionElement,
-    React.HTMLAttributes<HTMLTableCaptionElement>
->(({ className, ...props }, ref) => (
-    <caption
-        ref={ref}
-        className={cn("mt-4 text-sm text-fg-subtle", className)}
-        {...props}
-    />
-))
-TableCaption.displayName = "TableCaption"
 
 export {
     Table,
@@ -113,5 +91,4 @@ export {
     TableHead,
     TableRow,
     TableCell,
-    TableCaption,
 }

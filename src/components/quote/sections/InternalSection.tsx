@@ -58,9 +58,6 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
     // Calculate total pages based on the size field (which we'll sync with the selected type)
     const totalManualPages = watchCustomSignatures?.reduce((sum, sig) => sum + ((sig.amount || 0) * (sig.size || 0)), 0) || 0;
 
-    // Calculate informative signatures count
-    const signatures = watchCustomSignatures?.reduce((sum, sig) => sum + (sig.amount || 0), 0) || 0;
-
     // Map signature types to Select options
     const signatureOptions = signatureTypes.map(type => ({
         label: `${type.name} (${type.pages} pp)`,

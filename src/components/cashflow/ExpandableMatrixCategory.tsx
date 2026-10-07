@@ -30,7 +30,6 @@ interface ExpandableMatrixCategoryProps {
     /** Indentation level (default 1 = pl-6, level 2 = pl-10) */
     level?: 1 | 2;
     /** Custom empty message when items array is empty */
-    emptyMessage?: string;
 }
 
 export const ExpandableMatrixCategory: React.FC<ExpandableMatrixCategoryProps> = ({
@@ -43,7 +42,6 @@ export const ExpandableMatrixCategory: React.FC<ExpandableMatrixCategoryProps> =
     loading = false,
     formatCompactEUR,
     level = 1,
-    emptyMessage = "Nessun dato registrato per l'anno"
 }) => {
     const hasItems = items && items.length > 0;
 

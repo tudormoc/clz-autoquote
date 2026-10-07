@@ -22,12 +22,14 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals"),
   ...compat.extends("next/typescript"),
   {
-    ignores: [".next/", "node_modules/", "dist/", "out/", "inspect_*.js", "scripts/**", "ecosystem.config.js"],
+    // TEMPLATE.ts is the copy-me skeleton for new pricing formulas, unused on purpose
+    ignores: [".next/", "node_modules/", "dist/", "out/", "inspect_*.js", "scripts/**", "ecosystem.config.js", "src/lib/pricing/formulas/TEMPLATE.ts"],
   },
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Prefix a parameter with _ when it must exist (callback signatures) but is not used
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
       "react-hooks/exhaustive-deps": "warn",
       "no-restricted-syntax": [
         "error",

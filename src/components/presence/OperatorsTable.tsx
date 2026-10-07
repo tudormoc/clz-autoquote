@@ -122,7 +122,8 @@ export function OperatorsTable() {
     const toggleStato = (stato: string | null) => {
         setActiveStati((prev) => {
             const next = new Set(prev);
-            next.has(stato) ? next.delete(stato) : next.add(stato);
+            if (next.has(stato)) next.delete(stato);
+            else next.add(stato);
             return next;
         });
     };

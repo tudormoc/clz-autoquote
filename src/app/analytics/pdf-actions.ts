@@ -6,6 +6,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
 import { formatCurrencyRounded, formatHours } from '@/lib/format';
 import { toIsoDate } from '@/lib/dateUtils';
+import { calcExpectedHours } from '@/lib/expectedHours';
 
 interface MonthData {
     month: string; // period label: month name ("Gennaio") or week label ("S3")
@@ -721,19 +722,6 @@ function generateOrderReportHTML(monthsData: MonthData[], commessaFilter?: strin
     const copy = APP_COPY.analytics;
     const pdfCopy = copy.pdf;
     const orderCopy = copy.orderAreaSummary;
-    const AREA_EXPECTED_VELOCITY = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY;
-    const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
-
-    function calcExpectedHours(areaName: string, qtyRequested: number | null, fogli: number | null = null): number | null {
-        const velocity = AREA_EXPECTED_VELOCITY[areaName as keyof typeof AREA_EXPECTED_VELOCITY] ?? 0;
-        if (!velocity) return null;
-        if (areaName === 'Piega') {
-            if (fogli == null) return null;
-            return fogli / velocity;
-        }
-        if (qtyRequested == null) return null;
-        return qtyRequested / velocity;
-    }
 
     const getEfficiencyColor = (eff: number) => {
         if (eff >= 100) return '#10b981';
@@ -1248,7 +1236,6 @@ export async function generateClientSummaryPDFAction(
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         }
 
-        const copy = APP_COPY.analytics.pdf;
         const pdfBuffer = await page.pdf({
             format: 'A4',
             landscape: false,
@@ -1282,7 +1269,7 @@ export async function generateClientSummaryPDFAction(
     }
 }
 
-function generateClientSummaryReportHTML(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, format: 'A4' | 'A3' = 'A4'): string {
+function generateClientSummaryReportHTML(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, _format: 'A4' | 'A3' = 'A4'): string {
     const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
     const totalCost = data.reduce((sum, r) => sum + r.total_cost, 0);
     const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);

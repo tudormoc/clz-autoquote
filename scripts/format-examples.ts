@@ -16,9 +16,10 @@ function expect(label: string, actual: string, expected: string) {
     }
 }
 
-// Old per-component implementations (copied verbatim) — new formatters must match them
-const oldCurrency = (v: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(v);
-const oldCurrencyRounded = (v: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(v));
+// Old per-component implementations — new formatters must match them, except that every number now
+// gets a thousands separator (useGrouping 'always': "5.186 €" instead of the Italian default "5186 €")
+const oldCurrency = (v: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, useGrouping: 'always' }).format(v);
+const oldCurrencyRounded = (v: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: 'always' }).format(Math.round(v));
 const oldTime = (hours: number) => {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
@@ -43,6 +44,9 @@ expect('formatHours(null)', formatHours(null), '-');
 
 expect('formatNumber(1234567)', formatNumber(1234567), '1.234.567');
 expect('formatNumber(12345.678, 2)', formatNumber(12345.678, 2), '12.345,68');
+expect('formatNumber(5186) — 4 digits grouped', formatNumber(5186), '5.186');
+expect('formatCurrencyRounded(5186)', formatCurrencyRounded(5186), '5.186 €'); // Intl puts a no-break space before €
+expect('formatCurrency(1234.5)', formatCurrency(1234.5), '1.234,50 €');
 expect('formatNumber(undefined)', formatNumber(undefined), '-');
 
 expect('formatDate(iso)', formatDate('2026-10-06'), '06/10/2026');

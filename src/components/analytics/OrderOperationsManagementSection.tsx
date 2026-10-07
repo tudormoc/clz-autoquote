@@ -26,13 +26,7 @@ import {
     Sparkles,
     X
 } from 'lucide-react';
-import { 
-    OrderOperationsManagementData, 
-    DibaOperationRow, 
-    OrderProductionOperationRow,
-    DibaMaterialRow,
-    OrderMaterialSummaryRow
-} from '@/types';
+import { OrderOperationsManagementData } from '@/types';
 import { 
     refreshOrderOperationsManagementAction,
     syncOrderFromDibaAction

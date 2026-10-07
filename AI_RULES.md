@@ -94,7 +94,7 @@ All analytics in `src/app/analytics/`. Adding a new report:
 2. Use shared utilities from `queries/shared/` — never duplicate filter or pagination logic
 3. Re-export from `analytics-actions.ts`
 4. Add to `src/config/analyticsSections.ts` (label + description in `it.ts`) and register the component in `src/components/analytics/reportComponents.ts`
-5. Build UI component with: filters, pagination, sorting, export, loading/empty/error states
+5. Build the UI with `useReportTable` + `ReportView` (filters, paging, sorting, Excel export, summary, loading/empty/error states come with them). Copy a short existing report, e.g. `ClientDeliveriesReport.tsx`: only the row type, filters, columns and Excel columns are written per report.
 
 **Query rules:** `NOLOCK` always · no date filter on costs · group by full commessa number · filter `dw_commeca > 0`
 

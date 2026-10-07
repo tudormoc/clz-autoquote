@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ADMIN_TABLES, getTablesByCategory } from '@/config/adminTables';
+import { getTablesByCategory } from '@/config/adminTables';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
-import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers, FileText } from 'lucide-react';
+import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import {
     getBankAccountTransactionsAction,
     BankAccountDetailsResult,
-    BankTransactionItem,
 } from '@/app/cashflow/cashflow-actions';
 import { formatCurrency } from '@/lib/format';
 

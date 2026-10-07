@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "presence:examples": "tsx --tsconfig tsconfig.json scripts/presence-examples.ts",
-    "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts"
+    "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts",
+    "excel:examples": "tsx --tsconfig tsconfig.json scripts/excel-examples.ts",
+    "typecheck": "tsc --noEmit --incremental false",
+    "check": "npm run typecheck && npm run lint && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run build"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",

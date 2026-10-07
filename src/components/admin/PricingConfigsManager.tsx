@@ -6,7 +6,7 @@ import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/ap
 import { PricingRule } from '@/lib/pricing/types';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { OPERATION_CATEGORIES, getCategoryLabel } from '@/config/constants';
+import { OPERATION_CATEGORIES } from '@/config/constants';
 import { APP_COPY } from '@/locales';
 
 export function PricingConfigsManager() {

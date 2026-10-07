@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, ShieldCheck, Info, Edit2, Check, X, Database, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Clock, Info, Edit2, Check, X, Database, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';

@@ -73,26 +73,6 @@ export const inspectCommessAction = inspectCommess;
 export const inspectCommessaDataAction = inspectCommessaData;
 export const testSpecificQuery = testSpecific;
 
-/**
- * Placeholder action for generic analytics data fetching
- * Can be implemented for specific use cases as needed
- */
-export async function getAnalyticsDataAction(reportId: string, params?: Record<string, any>) {
-    try {
-        // Placeholder - will be implemented based on specific report needs
-        return {
-            success: true,
-            data: [],
-            message: 'Analytics action ready for implementation'
-        };
-    } catch (err: any) {
-        return {
-            success: false,
-            error: err.message
-        };
-    }
-}
-
 import {
     getClientDeliveriesDataAction as getClientDeliveriesData,
     getClientDeliveriesStatsAction as getClientDeliveriesStats

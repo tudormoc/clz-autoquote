@@ -17,7 +17,7 @@ export function DBStatusSummary() {
         runTest();
     }, []);
 
-    const StatusCard = ({ name, title, target, result }: { name: string, title: string, target: string, result: any }) => (
+    const StatusCard = ({ title, target, result }: { title: string, target: string, result: any }) => (
         <div className="bg-card border border-border p-4 rounded-lg">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -53,19 +53,16 @@ export function DBStatusSummary() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <StatusCard
-                name="business"
                 title="Business ERP"
                 target="COOPZANARDI"
                 result={results?.business}
             />
             <StatusCard
-                name="netpro"
                 title="NetPro Production"
                 target="NETPRO"
                 result={results?.netpro}
             />
             <StatusCard
-                name="quotes"
                 title="Quotes & Engine"
                 target="CLZDWHQANDPROG"
                 result={results?.quotes}

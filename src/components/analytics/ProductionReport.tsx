@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { getProductionDataAction } from '@/app/analytics/analytics-actions';
-import { APP_COPY } from '@/locales';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { getLastYearStart, getLastYearEnd } from '@/lib/dateUtils';
+import { ReportView } from '@/components/analytics/report/ReportView';
+import type { DataTableColumn } from '@/components/ui/DataTable';
+import { DateRangeFields } from '@/components/ui/DateRangeFields';
+import { SearchField } from '@/components/ui/SearchField';
+import { StackedCell } from '@/components/ui/TableCells';
+import { APP_CONFIG } from '@/config/constants';
+import { useReportTable } from '@/hooks/useReportTable';
+import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import type { ExcelColumn } from '@/lib/excel';
 import { formatDate, formatHours, formatNumber } from '@/lib/format';
+import { APP_COPY } from '@/locales';
 
 interface ProductionRow {
     date: string;
@@ -33,485 +35,96 @@ interface Filters {
     dateTo: string;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+const copy = APP_COPY.analytics.production;
+const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
+
+const initialFilters = (): Filters => ({
+    commessa: '',
+    machine: '',
+    operator: '',
+    dateFrom: getLastYearStart(),
+    dateTo: getLastYearEnd(),
+});
+
+const toQuery = (f: Filters) => ({
+    commessa: f.commessa || undefined,
+    machine: f.machine || undefined,
+    operator: f.operator || undefined,
+    dateFrom: f.dateFrom || undefined,
+    dateTo: f.dateTo || undefined,
+});
+
+/** Calendar day of a row, without the time (Excel shows it as a date) */
+const dayOf = (value: string) => {
+    const date = new Date(value);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
+const columns: DataTableColumn<ProductionRow>[] = [
+    { key: 'date', header: copy.headers.date, className: 'w-28', cellClassName: 'text-fg-secondary', cell: (row) => formatDate(row.date) },
+    {
+        key: 'commessa',
+        header: copy.headers.commessa,
+        className: 'w-40',
+        cell: (row) => <StackedCell primary={row.commessa_display} secondary={row.order_description} maxWidth="md" />,
+    },
+    {
+        key: 'machine',
+        header: copy.headers.machine,
+        className: 'w-32',
+        cell: (row) => <StackedCell tone="muted" primary={row.machine} secondary={row.machine_name} maxWidth="sm" />,
+    },
+    {
+        key: 'operator',
+        header: copy.headers.operator,
+        className: 'w-32',
+        cell: (row) => <StackedCell tone="muted" primary={row.operator} secondary={row.operator_name} maxWidth="sm" />,
+    },
+    { key: 'time', header: copy.headers.time, variant: 'total', cell: (row) => formatHours(row.work_time) },
+    { key: 'qty_requested', header: copy.headers.qtyReq, variant: 'number', cell: (row) => formatNumber(row.qty_requested) },
+    { key: 'qty', header: copy.headers.qtyDone, variant: 'number', cell: (row) => formatNumber(row.qty_completed) },
+];
+
+const excelColumns: ExcelColumn<ProductionRow>[] = [
+    { header: copy.export.date, value: (row) => dayOf(row.date), width: 12, format: 'date' },
+    { header: copy.export.commessa, value: (row) => Number(row.commessa_display), width: 10, format: 'integer' },
+    { header: copy.export.description, value: (row) => row.order_description, width: 30 },
+    { header: copy.export.machine, value: (row) => Number(row.machine), width: 10, format: 'integer' },
+    { header: copy.export.machineName, value: (row) => row.machine_name, width: 25 },
+    { header: copy.export.operator, value: (row) => Number(row.operator), width: 10, format: 'integer' },
+    { header: copy.export.operatorName, value: (row) => row.operator_name, width: 25 },
+    { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)), width: 12 },
+    { header: copy.export.qtyRequested, value: (row) => row.qty_requested || 0, width: 15 },
+    { header: copy.export.qtyCompleted, value: (row) => row.qty_completed, width: 15 },
+];
 
 export function ProductionReport() {
-    const [data, setData] = useState<ProductionRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-    
-    const [filters, setFilters] = useState<Filters>({
-        commessa: '',
-        machine: '',
-        operator: '',
-        dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd()
+    const report = useReportTable<Filters, ProductionRow>({
+        initialFilters,
+        defaultSort: { column: 'date', direction: 'asc' },
+        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
+            getProductionDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'date',
-        direction: 'asc'
-    });
-
-    const limit = 100;
-
-    useEffect(() => {
-        if (appliedFilters !== null) {
-            loadData();
-        }
-    }, [page, appliedFilters, sortConfig]);
-
-    const loadData = async () => {
-        if (!appliedFilters) return;
-        
-        setLoading(true);
-        const result = await getProductionDataAction(2024, page, limit, {
-            commessa: appliedFilters.commessa || undefined,
-            machine: appliedFilters.machine || undefined,
-            operator: appliedFilters.operator || undefined,
-            dateFrom: appliedFilters.dateFrom || undefined,
-            dateTo: appliedFilters.dateTo || undefined,
-        }, sortConfig);
-        
-        if (result.success) {
-            setData(result.data);
-            setTotal(result.pagination.total);
-            setTotalPages(result.pagination.totalPages);
-            setError(null);
-        } else {
-            setError(result.error);
-        }
-        setLoading(false);
-    };
-
-    const handleSort = (column: string) => {
-        setSortConfig(prev => ({
-            column,
-            direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
-        }));
-        setPage(1); // Reset to first page when sorting
-    };
-
-    const getSortIcon = (column: string) => {
-        if (sortConfig.column !== column) {
-            return <ArrowUpDown size={14} className="opacity-50" />;
-        }
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} /> : 
-            <ArrowDown size={14} />;
-    };
-
-    const handleApplyFilters = () => {
-        setAppliedFilters(filters);
-        setPage(1);
-    };
-
-    const handleClearFilters = () => {
-        const clearedFilters = {
-            commessa: '',
-            machine: '',
-            operator: '',
-            dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd()
-        };
-        setFilters(clearedFilters);
-        setAppliedFilters(null);
-        setData([]);
-        setTotal(0);
-        setTotalPages(1);
-        setSortConfig({
-            column: 'date',
-            direction: 'asc'
-        });
-        setPage(1);
-    };
-
-    const handleExportExcel = async () => {
-        setLoading(true);
-        try {
-            // Fetch all data with current filters (no pagination)
-            const result = await getProductionDataAction(2024, 1, 999999, {
-                commessa: appliedFilters?.commessa || undefined,
-                machine: appliedFilters?.machine || undefined,
-                operator: appliedFilters?.operator || undefined,
-                dateFrom: appliedFilters?.dateFrom || undefined,
-                dateTo: appliedFilters?.dateTo || undefined,
-            }, sortConfig, true);
-
-            if (result.success && result.data.length > 0) {
-                // Format data for Excel
-                const excelData = result.data.map(row => {
-                    // Parse date and remove time component
-                    const date = new Date(row.date);
-                    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                    
-                    return {
-                        [APP_COPY.analytics.production.export.date]: dateOnly,
-                        [APP_COPY.analytics.production.export.commessa]: Number(row.commessa_display),
-                        [APP_COPY.analytics.production.export.description]: row.order_description,
-                        [APP_COPY.analytics.production.export.machine]: Number(row.machine),
-                        [APP_COPY.analytics.production.export.machineName]: row.machine_name,
-                        [APP_COPY.analytics.production.export.operator]: Number(row.operator),
-                        [APP_COPY.analytics.production.export.operatorName]: row.operator_name,
-                        [APP_COPY.analytics.production.export.workTime]: Number(row.work_time.toFixed(2)),
-                        [APP_COPY.analytics.production.export.qtyRequested]: row.qty_requested || 0,
-                        [APP_COPY.analytics.production.export.qtyCompleted]: row.qty_completed
-                    };
-                });
-
-                // Create workbook and worksheet
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(excelData);
-
-                // Set column widths
-                ws['!cols'] = [
-                    { wch: 12 }, // Data
-                    { wch: 10 }, // Commessa
-                    { wch: 30 }, // Descrizione
-                    { wch: 10 }, // Macchina
-                    { wch: 25 }, // Nome Macchina
-                    { wch: 10 }, // Operatore
-                    { wch: 25 }, // Nome Operatore
-                    { wch: 12 }, // Ore Lavoro
-                    { wch: 15 }, // Quantità Richiesta
-                    { wch: 15 }  // Quantità Completata
-                ];
-
-                // Format date and ID columns
-                const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-                for (let row = 1; row <= range.e.r; row++) {
-                    // Date column (A)
-                    const dateCell = XLSX.utils.encode_cell({ r: row, c: 0 });
-                    if (ws[dateCell]) {
-                        ws[dateCell].z = 'dd/mm/yyyy'; // Italian date format
-                    }
-                    // Commessa column (B)
-                    const commessaCell = XLSX.utils.encode_cell({ r: row, c: 1 });
-                    if (ws[commessaCell]) {
-                        ws[commessaCell].t = 'n'; // number type
-                        ws[commessaCell].z = '0'; // number format
-                    }
-                    // Machine column (D)
-                    const machineCell = XLSX.utils.encode_cell({ r: row, c: 3 });
-                    if (ws[machineCell]) {
-                        ws[machineCell].t = 'n'; // number type
-                        ws[machineCell].z = '0'; // number format
-                    }
-                    // Operator column (F)
-                    const operatorCell = XLSX.utils.encode_cell({ r: row, c: 5 });
-                    if (ws[operatorCell]) {
-                        ws[operatorCell].t = 'n'; // number type
-                        ws[operatorCell].z = '0'; // number format
-                    }
-                }
-
-                XLSX.utils.book_append_sheet(wb, ws, 'Produzione');
-
-                // Generate filename with date range
-                const filename = `produzione_${appliedFilters?.dateFrom || 'start'}_${appliedFilters?.dateTo || 'end'}.xlsx`;
-                
-                // Download file
-                XLSX.writeFile(wb, filename);
-            }
-        } catch (err) {
-            console.error('Export error:', err);
-        }
-        setLoading(false);
-    };
-
-    if (loading && page === 1 && appliedFilters !== null) {
-        return (
-            <div className="text-center py-12 text-fg-muted">
-                {APP_COPY.analytics.loading}
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center py-12 text-danger">
-                {APP_COPY.analytics.error}: {error}
-            </div>
-        );
-    }
+    const { filters, updateFilters } = report;
 
     return (
-        <div className="space-y-4">
-            {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateFrom}
-                            </label>
-                            <DatePicker
-                                value={filters.dateFrom}
-                                onChange={(value) => setFilters({ ...filters, dateFrom: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateTo}
-                            </label>
-                            <DatePicker
-                                value={filters.dateTo}
-                                onChange={(value) => setFilters({ ...filters, dateTo: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.production.headers.commessa}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.commessa}
-                                onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.production.headers.machine}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.machine}
-                                onChange={(e) => setFilters({ ...filters, machine: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.production.headers.operator}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.operator}
-                                onChange={(e) => setFilters({ ...filters, operator: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <Button type="submit" className="flex items-center gap-2">
-                            <Search size={16} />
-                            {APP_COPY.analytics.common.apply}
-                        </Button>
-                        <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
-                            <X size={16} />
-                            {APP_COPY.analytics.common.clear}
-                        </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto">
-                            <Download size={16} />
-                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-fg-muted">
-                <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
-                </div>
-                <div className="flex items-center gap-2">
-                        <Button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1 || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        <ChevronLeft size={16} />
-                        {APP_COPY.analytics.common.previous}
-                    </Button>
-                    <span className="text-fg-muted">
-                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-fg-strong font-mono">{totalPages}</span>
-                    </span>
-                    <Button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        {APP_COPY.analytics.common.next}
-                        <ChevronRight size={16} />
-                    </Button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                {data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                        <thead className="bg-card border-b border-border">
-                            <tr>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-28"
-                                    onClick={() => handleSort('date')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.production.headers.date}
-                                        {getSortIcon('date')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-40"
-                                    onClick={() => handleSort('commessa')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.production.headers.commessa}
-                                        {getSortIcon('commessa')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
-                                    onClick={() => handleSort('machine')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.production.headers.machine}
-                                        {getSortIcon('machine')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
-                                    onClick={() => handleSort('operator')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {APP_COPY.analytics.production.headers.operator}
-                                        {getSortIcon('operator')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('time')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.production.headers.time}
-                                        {getSortIcon('time')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('qty_requested')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.production.headers.qtyReq}
-                                        {getSortIcon('qty_requested')}
-                                    </div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => handleSort('qty')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        {APP_COPY.analytics.production.headers.qtyDone}
-                                        {getSortIcon('qty')}
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.common.loading}
-                                    </td>
-                                </tr>
-                            ) : data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            ) : (
-                                data.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-card/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm text-fg-secondary w-28">
-                                            {formatDate(row.date)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm w-40">
-                                            <div className="font-mono text-primary truncate max-w-[10rem]">{row.commessa_display}</div>
-                                            <div className="text-xs text-fg-subtle truncate max-w-[10rem]" title={row.order_description}>{row.order_description}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-fg-secondary w-32">
-                                            <div className="font-mono text-fg-muted truncate max-w-[8rem]">{row.machine}</div>
-                                            <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.machine_name}>{row.machine_name}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-fg-secondary w-32">
-                                            <div className="font-mono text-fg-muted truncate max-w-[8rem]">{row.operator}</div>
-                                            <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.operator_name}>{row.operator_name}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
-                                            {formatHours(row.work_time)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                            {formatNumber(row.qty_requested)}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                            {formatNumber(row.qty_completed)}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                    </div>
-                ) : (
-                    <table className="w-full">
-                        <thead className="bg-card border-b border-border">
-                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-28">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.date}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-40">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.commessa}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.machine}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.production.headers.operator}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.time}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyReq}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.production.headers.qtyDone}</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.common.loading}
-                                    </td>
-                                </tr>
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-        </div>
+        <ReportView
+            report={report}
+            columns={columns}
+            filterColumns={5}
+            filters={
+                <>
+                    <DateRangeFields dateFrom={filters.dateFrom} dateTo={filters.dateTo} onChange={updateFilters} />
+                    <SearchField label={copy.headers.commessa} value={filters.commessa} onChange={(commessa) => updateFilters({ commessa })} />
+                    <SearchField label={copy.headers.machine} value={filters.machine} onChange={(machine) => updateFilters({ machine })} />
+                    <SearchField label={copy.headers.operator} value={filters.operator} onChange={(operator) => updateFilters({ operator })} />
+                </>
+            }
+            excel={{
+                columns: excelColumns,
+                sheetName: 'Produzione',
+                fileName: (f) => `produzione_${f.dateFrom || 'start'}_${f.dateTo || 'end'}.xlsx`,
+            }}
+        />
     );
 }

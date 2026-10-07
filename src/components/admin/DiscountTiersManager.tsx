@@ -6,7 +6,6 @@ import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/ap
 import { DiscountTier } from '@/lib/pricing/types';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 
 import { APP_COPY } from '@/locales';
 

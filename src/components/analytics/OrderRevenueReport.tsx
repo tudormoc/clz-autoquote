@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { getOrderRevenueDataAction } from '@/app/analytics/analytics-actions';
-import { APP_COPY } from '@/locales';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { DatePicker } from '@/components/ui/DatePicker';
-import { ChevronLeft, ChevronRight, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { getLastYearStart, getLastYearEnd, getTodayDate } from '@/lib/dateUtils';
+import { FlagCell, MarginCell } from '@/components/analytics/report/ReportCells';
+import { ReportView } from '@/components/analytics/report/ReportView';
+import { SplitRevenueToggle } from '@/components/analytics/report/SplitRevenueToggle';
+import type { DataTableColumn } from '@/components/ui/DataTable';
+import { DateRangeFields } from '@/components/ui/DateRangeFields';
+import { SearchField } from '@/components/ui/SearchField';
+import { StackedCell } from '@/components/ui/TableCells';
+import { APP_CONFIG } from '@/config/constants';
+import { useReportTable } from '@/hooks/useReportTable';
+import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatHours } from '@/lib/format';
+import { APP_COPY } from '@/locales';
 
 interface OrderRevenueRow {
     commessa_display: string;
@@ -34,540 +38,115 @@ interface Filters {
     includeAllRevenueForSplit: boolean;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+const copy = APP_COPY.analytics.orderRevenue;
+const common = APP_COPY.analytics.common;
+const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
+
+const initialFilters = (): Filters => ({
+    commessa: '',
+    client: '',
+    dateFrom: getLastYearStart(),
+    dateTo: getLastYearEnd(),
+    includeAllRevenueForSplit: false,
+});
+
+const toQuery = (f: Filters) => ({
+    commessa: f.commessa || undefined,
+    client: f.client || undefined,
+    dateFrom: f.dateFrom || undefined,
+    dateTo: f.dateTo || undefined,
+    includeAllRevenueForSplit: f.includeAllRevenueForSplit,
+});
+
+const totalCost = (row: OrderRevenueRow) => row.total_cost + row.work_cost;
+
+const columns: DataTableColumn<OrderRevenueRow>[] = [
+    {
+        key: 'commessa',
+        header: copy.commessa,
+        className: 'w-32',
+        cell: (row) => <StackedCell primary={row.commessa_display} secondary={row.order_description} maxWidth="sm" />,
+    },
+    {
+        key: 'client',
+        header: copy.client,
+        className: 'w-48',
+        cell: (row) => <StackedCell tone="muted" primary={row.client_code} secondary={row.client_name} maxWidth="lg" />,
+    },
+    { key: 'delivered_revenue', header: copy.deliveredValue, variant: 'total', cell: (row) => formatCurrency(row.delivered_revenue) },
+    { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.total_cost) },
+    { key: 'work_time', header: copy.workTime, variant: 'total', cell: (row) => formatHours(row.work_time) },
+    { key: 'work_cost', header: copy.laborCost, variant: 'number', cell: (row) => formatCurrency(row.work_cost) },
+    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrency(totalCost(row)) },
+    {
+        key: 'margin',
+        header: copy.margin,
+        align: 'right',
+        // Margin on what was delivered in the period
+        cell: (row) => (
+            <MarginCell revenue={row.delivered_revenue} margin={row.delivered_revenue - totalCost(row)} format={formatCurrency} />
+        ),
+    },
+    {
+        key: 'split',
+        header: '⚠️',
+        headerTitle: copy.partialRevenueHint,
+        align: 'center',
+        compact: true,
+        sortable: false,
+        className: 'w-12',
+        cell: (row) => <FlagCell on={row.has_split_revenue === 1} />,
+    },
+];
+
+const excelColumns: ExcelColumn<OrderRevenueRow>[] = [
+    { header: copy.export.commessa, value: (row) => row.commessa_display, width: 10 },
+    { header: copy.export.description, value: (row) => row.order_description || '', width: 40 },
+    { header: copy.export.clientCode, value: (row) => row.client_code, width: 15 },
+    { header: copy.export.clientName, value: (row) => row.client_name, width: 35 },
+    { header: copy.export.quantity, value: (row) => row.total_quantity, width: 12 },
+    { header: copy.export.invoicedValue, value: (row) => Number(row.total_revenue.toFixed(2)), width: 15 },
+    { header: copy.export.deliveredValue, value: (row) => Number(row.delivered_revenue.toFixed(2)), width: 15 },
+    { header: copy.export.materialCost, value: (row) => Number(row.total_cost.toFixed(2)), width: 15 },
+    { header: copy.export.workTime, value: (row) => Number(row.work_time.toFixed(2)), width: 12 },
+    { header: copy.export.laborCost, value: (row) => Number(row.work_cost.toFixed(2)), width: 15 },
+    // Margin on the invoiced value (the table shows it on the delivered value)
+    { header: copy.export.margin, value: (row) => Number((row.total_revenue - totalCost(row)).toFixed(2)), width: 15 },
+    { header: copy.export.partialRevenue, value: (row) => (row.has_split_revenue === 1 ? 'SI' : 'NO'), width: 18 },
+];
 
 export function OrderRevenueReport() {
-    const [data, setData] = useState<OrderRevenueRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [total, setTotal] = useState(0);
-
-    const [filters, setFilters] = useState<Filters>({
-        commessa: '',
-        client: '',
-        dateFrom: getLastYearStart(),
-        dateTo: getLastYearEnd(),
-        includeAllRevenueForSplit: false
+    const report = useReportTable<Filters, OrderRevenueRow>({
+        initialFilters,
+        defaultSort: { column: 'revenue', direction: 'desc' },
+        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
+            getOrderRevenueDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
     });
-    const [appliedFilters, setAppliedFilters] = useState<Filters | null>(null);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'revenue',
-        direction: 'desc'
-    });
-
-    const limit = 100;
-
-    useEffect(() => {
-        if (appliedFilters !== null) {
-            loadData();
-        }
-    }, [page, appliedFilters, sortConfig]);
-
-    const loadData = async () => {
-        if (!appliedFilters) return;
-        
-        setLoading(true);
-        const result = await getOrderRevenueDataAction(2024, page, limit, {
-            commessa: appliedFilters.commessa || undefined,
-            client: appliedFilters.client || undefined,
-            dateFrom: appliedFilters.dateFrom || undefined,
-            dateTo: appliedFilters.dateTo || undefined,
-            includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
-        }, sortConfig);
-
-        if (result.success) {
-            setData(result.data);
-            setTotal(result.pagination.total);
-            setTotalPages(result.pagination.totalPages);
-            setError(null);
-        } else {
-            setError(result.error);
-        }
-        setLoading(false);
-    };
-
-    const handleSort = (column: string) => {
-        setSortConfig(prev => ({
-            column,
-            direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
-        }));
-        setPage(1);
-    };
-
-    const getSortIcon = (column: string) => {
-        if (sortConfig.column !== column) {
-            return <ArrowUpDown size={14} className="opacity-50" />;
-        }
-        return sortConfig.direction === 'asc' ?
-            <ArrowUp size={14} /> :
-            <ArrowDown size={14} />;
-    };
-
-    const handleApplyFilters = () => {
-        setAppliedFilters(filters);
-        setPage(1);
-        loadData();
-    };
-
-    const handleClearFilters = () => {
-        const clearedFilters = {
-            commessa: '',
-            client: '',
-            dateFrom: getLastYearStart(),
-            dateTo: getLastYearEnd(),
-            includeAllRevenueForSplit: false
-        };
-        setFilters(clearedFilters);
-        setAppliedFilters(null);
-        setData([]);
-        setTotal(0);
-        setTotalPages(1);
-        setSortConfig({
-            column: 'revenue',
-            direction: 'desc'
-        });
-        setPage(1);
-    };
-
-    const handleExportExcel = async () => {
-        if (loading || !appliedFilters) return; // Prevent export if no data loaded
-        setLoading(true);
-        try {
-            const result = await getOrderRevenueDataAction(2024, 1, 999999, {
-                commessa: appliedFilters.commessa || undefined,
-                client: appliedFilters.client || undefined,
-                dateFrom: appliedFilters.dateFrom || undefined,
-                dateTo: appliedFilters.dateTo || undefined,
-                includeAllRevenueForSplit: appliedFilters.includeAllRevenueForSplit
-            }, sortConfig, true);
-
-            if (result.success && result.data.length > 0) {
-                const excelData = result.data.map(row => {
-                    const totalCosts = row.total_cost + row.work_cost;
-                    const margin = row.total_revenue - totalCosts;
-
-                    return {
-                        [APP_COPY.analytics.orderRevenue.export.commessa]: row.commessa_display,
-                        [APP_COPY.analytics.orderRevenue.export.description]: row.order_description || '',
-                        [APP_COPY.analytics.orderRevenue.export.clientCode]: row.client_code,
-                        [APP_COPY.analytics.orderRevenue.export.clientName]: row.client_name,
-                        [APP_COPY.analytics.orderRevenue.export.quantity]: row.total_quantity,
-                        [APP_COPY.analytics.orderRevenue.export.invoicedValue]: Number(row.total_revenue.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.deliveredValue]: Number(row.delivered_revenue.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.materialCost]: Number(row.total_cost.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.workTime]: Number(row.work_time.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.laborCost]: Number(row.work_cost.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.margin]: Number(margin.toFixed(2)),
-                        [APP_COPY.analytics.orderRevenue.export.partialRevenue]: row.has_split_revenue === 1 ? 'SI' : 'NO'
-                    };
-                });
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(excelData);
-
-                ws['!cols'] = [
-                    { wch: 10 },  // Commessa
-                    { wch: 40 },  // Descrizione
-                    { wch: 15 },  // Codice Cliente
-                    { wch: 35 },  // Nome Cliente
-                    { wch: 12 },  // Quantità
-                    { wch: 15 },  // Fatturato
-                    { wch: 15 },  // Fatturato Consegnato
-                    { wch: 15 },  // Costo Materiali
-                    { wch: 12 },  // Ore Lavoro
-                    { wch: 15 },  // Costo Lavoro
-                    { wch: 15 },  // Margine
-                    { wch: 18 }   // Fatturato Parziale
-                ];
-
-                XLSX.utils.book_append_sheet(wb, ws, 'Order Revenue');
-
-                const filename = `order_revenue_${appliedFilters.dateFrom}_${appliedFilters.dateTo}.xlsx`;
-
-                XLSX.writeFile(wb, filename);
-            }
-        } catch (err) {
-            console.error('Export error:', err);
-        }
-        setLoading(false);
-    };
-
-    if (loading && page === 1 && appliedFilters !== null) {
-        return (
-            <div className="text-center py-12 text-fg-muted">
-                {APP_COPY.analytics.loading}
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center py-12 text-danger">
-                {APP_COPY.analytics.error}: {error}
-            </div>
-        );
-    }
+    const { filters, updateFilters } = report;
 
     return (
-        <div className="space-y-4">
-            {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateFrom}
-                            </label>
-                            <DatePicker
-                                value={filters.dateFrom}
-                                onChange={(value) => setFilters({ ...filters, dateFrom: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.dateTo}
-                            </label>
-                            <DatePicker
-                                value={filters.dateTo}
-                                onChange={(value) => setFilters({ ...filters, dateTo: value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                Commessa
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.commessa}
-                                onChange={(e) => setFilters({ ...filters, commessa: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                Client
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={APP_COPY.analytics.common.search}
-                                value={filters.client}
-                                onChange={(e) => setFilters({ ...filters, client: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <Button type="submit" className="flex items-center gap-2">
-                            <Search size={16} />
-                            {APP_COPY.analytics.common.apply}
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => setFilters({ ...filters, includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
-                            variant={filters.includeAllRevenueForSplit ? "primary" : "secondary"}
-                            className={`flex items-center gap-1.5 transition-all ${filters.includeAllRevenueForSplit
-                                ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20'
-                                : 'hover:border-warning-300/50'
-                                }`}
-                            title={filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFullTitle : APP_COPY.analytics.clientSummary.toggleSplitTitle}
-                        >
-                            <span className="text-base leading-none">⚠️</span>
-                            <span className="text-sm font-medium">
-                                {filters.includeAllRevenueForSplit ? APP_COPY.analytics.clientSummary.toggleFull : APP_COPY.analytics.clientSummary.toggleSplit}
-                            </span>
-                        </Button>
-                        <Button type="button" onClick={handleClearFilters} variant="secondary" className="flex items-center gap-2">
-                            <X size={16} />
-                            {APP_COPY.analytics.common.clear}
-                        </Button>
-                        <Button type="button" onClick={handleExportExcel} variant="secondary" className="flex items-center gap-2 ml-auto" disabled={loading}>
-                            <Download size={16} />
-                            {loading ? APP_COPY.analytics.common.exporting : APP_COPY.analytics.common.exportExcel}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Stats */}
-            {appliedFilters !== null && total > 0 && (
-            <div className="flex items-center justify-between text-sm text-fg-muted">
-                <div>
-                    {APP_COPY.analytics.common.showing} <span className="text-fg-strong font-mono">{(page - 1) * limit + 1}</span> {APP_COPY.analytics.common.to}{' '}
-                    <span className="text-fg-strong font-mono">{Math.min(page * limit, total)}</span> {APP_COPY.analytics.common.of}{' '}
-                    <span className="text-fg-strong font-mono">{total}</span> {APP_COPY.analytics.common.records}
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1 || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        <ChevronLeft size={16} />
-                        {APP_COPY.analytics.common.previous}
-                    </Button>
-                    <span className="text-fg-muted">
-                        {APP_COPY.analytics.common.page} <span className="text-fg-strong font-mono">{page}</span> {APP_COPY.analytics.common.of}{' '}
-                        <span className="text-fg-strong font-mono">{totalPages}</span>
-                    </span>
-                    <Button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages || loading}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                    >
-                        {APP_COPY.analytics.common.next}
-                        <ChevronRight size={16} />
-                    </Button>
-                </div>
-            </div>
-            )}
-
-            {/* Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-                {appliedFilters === null ? (
-                    <table className="w-full">
-                        <thead className="bg-card border-b border-border">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.commessa}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-48">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.client}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.deliveredValue}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.materialCost}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.workTime}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.laborCost}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">Total Cost</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.margin}</div>
-                                </th>
-                                <th className="px-2 py-3 text-center text-xs font-semibold text-fg-muted w-12" title="Partial Revenue">
-                                    <div className="flex items-center justify-center">⚠️</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            <tr>
-                                <td colSpan={9} className="px-4 py-8 text-center text-fg-muted">
-                                    Apply filters to load data
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                ) : data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-card border-b border-border">
-                                <tr>
-                                    <th
-                                        className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-32"
-                                        onClick={() => handleSort('commessa')}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            {APP_COPY.analytics.orderRevenue.commessa}
-                                            {getSortIcon('commessa')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-left text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors w-48"
-                                        onClick={() => handleSort('client')}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            {APP_COPY.analytics.orderRevenue.client}
-                                            {getSortIcon('client')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('delivered_revenue')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.orderRevenue.deliveredValue}
-                                            {getSortIcon('delivered_revenue')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('cost')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.orderRevenue.materialCost}
-                                            {getSortIcon('cost')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('work_time')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.orderRevenue.workTime}
-                                            {getSortIcon('work_time')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('work_cost')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.orderRevenue.laborCost}
-                                            {getSortIcon('work_cost')}
-                                        </div>
-                                    </th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                        <div className="flex items-center justify-end gap-2">
-                                            Total Cost
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-4 py-3 text-right text-xs font-semibold text-fg-muted cursor-pointer hover:text-primary transition-colors"
-                                        onClick={() => handleSort('margin')}
-                                    >
-                                        <div className="flex items-center justify-end gap-2">
-                                            {APP_COPY.analytics.orderRevenue.margin}
-                                            {getSortIcon('margin')}
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-2 py-3 text-center text-xs font-semibold text-fg-muted w-12"
-                                        title="Partial Revenue (outside date range)"
-                                    >
-                                        <div className="flex items-center justify-center">
-                                            ⚠️
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                            {loading ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-4 py-8 text-center text-fg-muted">
-                                            {APP_COPY.analytics.common.loading}
-                                        </td>
-                                    </tr>
-                                ) : data.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-4 py-8 text-center text-fg-muted">
-                                            {APP_COPY.analytics.empty}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    data.map((row, idx) => {
-                                        const totalCosts = row.total_cost + row.work_cost;
-                                        const margin = row.delivered_revenue - totalCosts;
-                                        const marginPercent = row.delivered_revenue > 0 ? (margin / row.delivered_revenue) * 100 : 0;
-
-                                        return (
-                                            <tr key={idx} className="hover:bg-card/50 transition-colors">
-                                                <td className="px-4 py-3 text-sm w-32">
-                                                    <div className="font-mono text-primary truncate max-w-[8rem]">{row.commessa_display}</div>
-                                                    <div className="text-xs text-fg-subtle truncate max-w-[8rem]" title={row.order_description}>{row.order_description}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm w-48">
-                                                    <div className="font-mono text-fg-muted truncate max-w-[12rem]">{row.client_code}</div>
-                                                    <div className="text-xs text-fg-subtle truncate max-w-[12rem]" title={row.client_name}>{row.client_name}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
-                                                    {formatCurrency(row.delivered_revenue)}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                                    {formatCurrency(row.total_cost)}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
-                                                    {formatHours(row.work_time)}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-mono text-right text-fg-secondary">
-                                                    {formatCurrency(row.work_cost)}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm font-mono text-right text-fg-strong font-semibold">
-                                                    {formatCurrency(totalCosts)}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-right">
-                                                    <div className="font-mono text-fg-strong font-semibold">
-                                                        {formatCurrency(margin)}
-                                                    </div>
-                                                    <div className={`text-xs font-mono ${marginPercent >= 20 ? 'text-success-500' : marginPercent >= 10 ? 'text-warning-300' : 'text-danger'}`}>
-                                                        {marginPercent.toFixed(1)}%
-                                                    </div>
-                                                </td>
-                                                <td className="px-2 py-3 text-sm text-center w-12">
-                                                    <span className={`font-mono text-xs ${row.has_split_revenue === 1 ? 'text-warning-300' : 'text-fg-subtle'}`}>
-                                                        {row.has_split_revenue === 1 ? 'Y' : 'N'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <table className="w-full">
-                        <thead className="bg-card border-b border-border">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-32">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.commessa}</div>
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-fg-muted w-48">
-                                    <div className="flex items-center gap-2">{APP_COPY.analytics.orderRevenue.client}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.deliveredValue}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.materialCost}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.workTime}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.laborCost}</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">Total Cost</div>
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-fg-muted">
-                                    <div className="flex items-center justify-end gap-2">{APP_COPY.analytics.orderRevenue.margin}</div>
-                                </th>
-                                <th className="px-2 py-3 text-center text-xs font-semibold text-fg-muted w-12" title="Partial Revenue">
-                                    <div className="flex items-center justify-center">⚠️</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={9} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.common.loading}
-                                    </td>
-                                </tr>
-                            ) : (
-                                <tr>
-                                    <td colSpan={9} className="px-4 py-8 text-center text-fg-muted">
-                                        {APP_COPY.analytics.empty}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-        </div>
+        <ReportView
+            report={report}
+            columns={columns}
+            filterColumns={4}
+            filters={
+                <>
+                    <DateRangeFields dateFrom={filters.dateFrom} dateTo={filters.dateTo} onChange={updateFilters} />
+                    <SearchField label={copy.commessa} value={filters.commessa} onChange={(commessa) => updateFilters({ commessa })} />
+                    <SearchField label={common.client} value={filters.client} onChange={(client) => updateFilters({ client })} />
+                </>
+            }
+            filterButtons={
+                <SplitRevenueToggle
+                    active={filters.includeAllRevenueForSplit}
+                    onToggle={() => updateFilters({ includeAllRevenueForSplit: !filters.includeAllRevenueForSplit })}
+                />
+            }
+            excel={{
+                columns: excelColumns,
+                sheetName: 'Order Revenue',
+                fileName: (f) => `order_revenue_${f.dateFrom}_${f.dateTo}.xlsx`,
+            }}
+        />
     );
 }

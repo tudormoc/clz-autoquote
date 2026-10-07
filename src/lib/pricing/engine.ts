@@ -10,7 +10,6 @@ import {
     applyDiscountToItem,
     findMaxFormatSurcharge,
     calculateSurchargeFactor,
-    getSurchargeLabel,
     applySurchargeToItem,
     calculateOperationCost,
     calculateGluingSlugs,
@@ -37,7 +36,6 @@ export function calculateDetailedQuote(
     // 0. Resolve format surcharge based on dimensions (max of width and height surcharges)
     const surchargePercentage = findMaxFormatSurcharge(input.format.width, input.format.height, formatSurcharges);
     const surchargeFactor = calculateSurchargeFactor(surchargePercentage);
-    const surchargeLabel = getSurchargeLabel(surchargePercentage);
 
     // 1. Resolve the relevant discount percentage for the given quantity
     const tier = findDiscountTier(input.quantity, discountTiers);

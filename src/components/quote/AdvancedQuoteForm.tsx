@@ -8,7 +8,6 @@ import { CoverSection } from './sections/CoverSection';
 import { LiveBreakdown } from './LiveBreakdown';
 import { Button } from '@/components/ui/Button';
 import { QuoteHistoryList } from '@/components/QuoteHistoryList';
-import { Quote } from '@/types';
 import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { calculateBlockThickness } from '@/lib/pricing/formulas/block';

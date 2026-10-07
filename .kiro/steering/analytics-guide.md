@@ -363,101 +363,82 @@ SELECT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display
 - [ ] Used `fetchWorkTimesForCommessas()` for labor costs
 - [ ] Exported from `analytics-actions.ts`
 - [ ] Added to `analyticsSections.ts`
-- [ ] UI component has fixed column widths
-- [ ] Tested: filters, sorting, pagination, export
+- [ ] UI built with `useReportTable` + `ReportView` (no hand-made table, filters or paging)
+- [ ] All texts in `src/locales/it.ts`, values shown through `src/lib/format.ts`
+- [ ] Registered in `src/components/analytics/reportComponents.ts`
+- [ ] Tested: filters, sorting, pagination, export, summary
 
 ## 🎨 UI Component Template
 
-```typescript
+Every paginated report is built from `useReportTable` (state, loading, paging, sorting, export rows, summary)
+and `ReportView` (filters, summary, paging, table, Excel button). A report file only declares its row type,
+filters, columns and Excel columns. Copy `src/components/analytics/ClientDeliveriesReport.tsx` and adapt it:
+
+```tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { getYourReportDataAction } from '@/app/analytics/analytics-actions';
+import { ReportView } from '@/components/analytics/report/ReportView';
+import type { DataTableColumn } from '@/components/ui/DataTable';
+import { DateRangeFields } from '@/components/ui/DateRangeFields';
+import { SearchField } from '@/components/ui/SearchField';
+import { StackedCell } from '@/components/ui/TableCells';
+import { APP_CONFIG } from '@/config/constants';
+import { useReportTable } from '@/hooks/useReportTable';
+import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import type { ExcelColumn } from '@/lib/excel';
+import { formatCurrency } from '@/lib/format';
+import { APP_COPY } from '@/locales';
 
-export default function YourReport() {
-    const [data, setData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    
-    // Filters
-    const [year, setYear] = useState(2024);
-    const [commessa, setCommessa] = useState('');
-    
-    // Pagination
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState({ total: 0, totalPages: 0 });
-    
-    const fetchData = async () => {
-        setLoading(true);
-        const result = await getYourReportDataAction(year, page, 100, {
-            commessa: commessa || undefined
-        });
-        if (result.success) {
-            setData(result.data);
-            setPagination(result.pagination);
-        }
-        setLoading(false);
-    };
-    
-    useEffect(() => { fetchData(); }, [year, page, commessa]);
-    
+interface Row { commessa_display: string; order_description: string; revenue: number }
+interface Filters { commessa: string; dateFrom: string; dateTo: string }
+
+const copy = APP_COPY.analytics.yourReport;          // every text lives in src/locales/it.ts
+const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
+
+const initialFilters = (): Filters => ({ commessa: '', dateFrom: getLastYearStart(), dateTo: getLastYearEnd() });
+const toQuery = (f: Filters) => ({ commessa: f.commessa || undefined, dateFrom: f.dateFrom || undefined, dateTo: f.dateTo || undefined });
+
+const columns: DataTableColumn<Row>[] = [
+    // key = sort key sent to the server
+    { key: 'commessa', header: copy.headers.commessa, className: 'w-40',
+      cell: (row) => <StackedCell primary={row.commessa_display} secondary={row.order_description} maxWidth="md" /> },
+    { key: 'revenue', header: copy.headers.revenue, variant: 'total', cell: (row) => formatCurrency(row.revenue) },
+];
+
+const excelColumns: ExcelColumn<Row>[] = [
+    { header: copy.export.commessa, value: (row) => Number(row.commessa_display), width: 10, format: 'integer' },
+    { header: copy.export.revenue, value: (row) => Number(row.revenue.toFixed(2)), width: 15 },
+];
+
+export function YourReport() {
+    const report = useReportTable<Filters, Row>({
+        initialFilters,
+        defaultSort: { column: 'revenue', direction: 'desc' },
+        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
+            getYourReportDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+    });
+    const { filters, updateFilters } = report;
+
     return (
-        <div className="space-y-4">
-            {/* Filters */}
-            <div className="flex gap-4">
-                <Input
-                    placeholder="Search commessa..."
-                    value={commessa}
-                    onChange={(e) => setCommessa(e.target.value)}
-                    className="w-64"
-                />
-            </div>
-            
-            {/* Table with FIXED widths */}
-            <table className="w-full">
-                <thead>
-                    <tr className="border-b border-zinc-800">
-                        <th className="w-32 text-left">Commessa</th>
-                        <th className="w-48 text-left">Client</th>
-                        <th className="text-right">Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.map((row, i) => (
-                        <tr key={i} className="border-b border-zinc-800/50">
-                            <td className="w-32">
-                                <div className="truncate max-w-[8rem]" title={row.commessa}>
-                                    {row.commessa}
-                                </div>
-                            </td>
-                            <td className="w-48">
-                                <div className="truncate max-w-[12rem]" title={row.client_name}>
-                                    {row.client_name}
-                                </div>
-                            </td>
-                            <td className="text-right font-mono">
-                                €{row.revenue.toFixed(2)}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            
-            {/* Pagination */}
-            <div className="flex justify-between">
-                <Button onClick={() => setPage(p => p - 1)} disabled={page === 1}>
-                    Previous
-                </Button>
-                <span>Page {page} of {pagination.totalPages}</span>
-                <Button onClick={() => setPage(p => p + 1)} disabled={page >= pagination.totalPages}>
-                    Next
-                </Button>
-            </div>
-        </div>
+        <ReportView
+            report={report}
+            columns={columns}
+            filterColumns={3}
+            filters={
+                <>
+                    <DateRangeFields dateFrom={filters.dateFrom} dateTo={filters.dateTo} onChange={updateFilters} />
+                    <SearchField label={copy.headers.commessa} value={filters.commessa} onChange={(commessa) => updateFilters({ commessa })} />
+                </>
+            }
+            excel={{ columns: excelColumns, sheetName: 'Your Report', fileName: (f) => `your_report_${f.dateFrom}_${f.dateTo}.xlsx` }}
+        />
     );
 }
 ```
+
+Optional: `fetchSummary` + `summary={{ items, copyText }}` for the "Mostra Riepilogo" panel, `autoApply: true` to load
+on open, `filterButtons` / `actions` / children for toggles, PDF buttons and their dialogs (see `ClientSummaryReport.tsx`).
 
 ## 💡 Pro Tips
 
@@ -471,5 +452,4 @@ export default function YourReport() {
 ## 📚 Further Reading
 
 - `database-schema.md` - Complete database reference
-- `REFACTORING_SUMMARY.md` - File structure and organization
 - `AI_RULES.md` Section 7 - Complete analytics architecture
