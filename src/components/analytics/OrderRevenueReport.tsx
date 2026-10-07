@@ -77,8 +77,8 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
     },
     { key: 'delivered_revenue', header: copy.deliveredValue, variant: 'total', cell: (row) => formatCurrency(row.delivered_revenue) },
     { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.total_cost) },
-    { key: 'work_time', header: copy.workTime, variant: 'total', cell: (row) => formatHours(row.work_time) },
-    { key: 'work_cost', header: copy.laborCost, variant: 'number', cell: (row) => formatCurrency(row.work_cost) },
+    { key: 'work_time', header: copy.workTime, variant: 'total', sortable: false, cell: (row) => formatHours(row.work_time) },
+    { key: 'work_cost', header: copy.laborCost, variant: 'number', sortable: false, cell: (row) => formatCurrency(row.work_cost) },
     { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrency(totalCost(row)) },
     {
         key: 'margin',
@@ -116,9 +116,9 @@ const excelColumns: ExcelColumn<OrderRevenueRow>[] = [
 export function OrderRevenueReport() {
     const report = useReportTable<Filters, OrderRevenueRow>({
         initialFilters,
-        defaultSort: { column: 'revenue', direction: 'desc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getOrderRevenueDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        defaultSort: { column: 'delivered_revenue', direction: 'desc' },
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getOrderRevenueDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
     });
     const { filters, updateFilters } = report;
 

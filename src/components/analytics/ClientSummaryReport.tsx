@@ -73,7 +73,7 @@ const columns: DataTableColumn<ClientSummaryRow>[] = [
     },
     { key: 'revenue', header: copy.headers.revenue, variant: 'total', cell: (row) => formatCurrencyRounded(row.total_revenue) },
     { key: 'cost', header: copy.headers.materialCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.total_cost) },
-    { key: 'work_cost', header: copy.headers.laborCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.work_cost) },
+    { key: 'work_cost', header: copy.headers.laborCost, variant: 'number', sortable: false, cell: (row) => formatCurrencyRounded(row.work_cost) },
     { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrencyRounded(totalCost(row)) },
     {
         key: 'margin',
@@ -113,8 +113,8 @@ export function ClientSummaryReport() {
     const report = useReportTable<Filters, ClientSummaryRow, Stats>({
         initialFilters,
         defaultSort: { column: 'revenue', direction: 'desc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getClientSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getClientSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
         fetchSummary: (filters) => getClientSummaryStatsAction(YEAR, toQuery(filters)),
     });
     const { filters, updateFilters } = report;

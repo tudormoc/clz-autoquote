@@ -337,6 +337,7 @@ export const APP_COPY = {
       noResults: "Nessun risultato trovato",
       refresh: "Aggiorna",
       noData: "Nessun dato disponibile",
+      queryTimeout: "La ricerca ha richiesto troppo tempo: riduci il periodo o aggiungi un filtro",
     },
     orderOperations: {
       pageTitle: "Avanzamento Lavori",

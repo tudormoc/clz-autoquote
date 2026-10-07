@@ -58,6 +58,9 @@ export const APP_CONFIG = {
     HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations. 40=23+17, 37=20+17.
     PARTIAL_LABOR_RATE: 23,  // €/hour - Partial labor rate for supplier cost equivalence calculations.
 
+    // Longest wait for one revenue/cost report query (Sommario Clienti, Ricavo Ordini), table or Excel export
+    REPORT_QUERY_TIMEOUT_MS: 90000,
+
     // Company Information
     COMPANY_NAME: 'TM - CLZ',
 

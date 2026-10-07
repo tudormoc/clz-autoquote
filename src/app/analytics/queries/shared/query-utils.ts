@@ -5,6 +5,8 @@
  * used across all analytics queries.
  */
 
+import { APP_COPY } from '@/locales';
+
 /**
  * Standard sort configuration
  */
@@ -124,77 +126,18 @@ export function buildOrderAreaSummaryOrderBy(
 }
 
 /**
- * Build ORDER BY clause for client summary queries (BUSINESS)
+ * ORDER BY for a report sorted on the server. `columns` maps the UI sort keys to SQL expressions; an unknown key
+ * sorts by `fallback`. The tie-breaker keeps paging stable when many rows share the same value.
  */
-export function buildClientSummaryOrderBy(
-    sortColumn: string = 'revenue',
-    sortDirection: 'asc' | 'desc' = 'desc'
+export function buildOrderBy(
+    columns: Record<string, string>,
+    sort: SortConfig | undefined,
+    fallback: string,
+    tieBreaker: string
 ): string {
-    const direction = sortDirection.toUpperCase();
-    
-    switch (sortColumn) {
-        case 'client':
-            return `cr.client_code ${direction}`;
-        case 'orders':
-            return `cr.total_orders ${direction}`;
-        case 'revenue':
-            return `cr.total_revenue ${direction}`;
-        case 'cost':
-            return `ISNULL(SUM(sc.commessa_cost), 0) ${direction}`;
-        case 'work_cost':
-            return `cr.total_revenue ${direction}`;
-        case 'margin':
-            return `(cr.total_revenue - ISNULL(SUM(sc.commessa_cost), 0)) ${direction}`;
-        case 'quantity':
-            return `cr.total_quantity ${direction}`;
-        case 'last_order':
-            return `cr.client_code ${direction}`;
-        default:
-            return `cr.total_revenue ${direction}`;
-    }
-}
-
-/**
- * Build ORDER BY clause for order revenue queries (BUSINESS)
- * Note: This returns the raw ORDER BY that needs string replacements for CTE columns
- */
-export function buildOrderRevenueOrderBy(
-    sortColumn: string = 'revenue',
-    sortDirection: 'asc' | 'desc' = 'desc'
-): string {
-    const direction = sortDirection.toUpperCase();
-    
-    switch (sortColumn) {
-        case 'commessa':
-            return `RIGHT(CAST(MIN(dw.dw_commeca) / 100 AS VARCHAR), 4) ${direction}`;
-        case 'client':
-            return `MIN(CASE WHEN an.an_tipo = 'C' THEN an.an_conto END) ${direction}`;
-        case 'revenue':
-            return `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) ${direction}`;
-        case 'cost':
-            return `SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END) ${direction}`;
-        case 'margin':
-            return `(SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) - SUM(CASE WHEN an.an_tipo = 'F' THEN dw.dw_acqvalore ELSE 0 END)) ${direction}`;
-        case 'quantity':
-            return `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_collifatt ELSE 0 END) ${direction}`;
-        default:
-            return `SUM(CASE WHEN an.an_tipo = 'C' THEN dw.dw_valfatt ELSE 0 END) ${direction}`;
-    }
-}
-
-/**
- * Transform ORDER BY clause for use after CTE in order revenue queries
- * Replaces raw table references with CTE column references
- */
-export function transformOrderByForCTE(orderByClause: string): string {
-    return orderByClause
-        .replace('MIN(dw.dw_commeca)', 'cr.commessa_full')
-        .replace('MIN(CASE WHEN an.an_tipo = \'C\' THEN an.an_conto END)', 'cr.client_code')
-        .replace('SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_valfatt ELSE 0 END)', 'cr.total_revenue')
-        .replace('SUM(CASE WHEN an.an_tipo = \'F\' THEN dw.dw_acqvalore ELSE 0 END)', 'ISNULL(sc.total_cost, 0)')
-        .replace('(SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_valfatt ELSE 0 END) - SUM(CASE WHEN an.an_tipo = \'F\' THEN dw.dw_acqvalore ELSE 0 END))', '(cr.total_revenue - ISNULL(sc.total_cost, 0))')
-        .replace('SUM(CASE WHEN an.an_tipo = \'C\' THEN dw.dw_collifatt ELSE 0 END)', 'cr.total_quantity')
-        .replace('RIGHT(CAST(MIN(dw.dw_commeca) / 100 AS VARCHAR), 4)', 'RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4)');
+    const column = (sort && columns[sort.column]) || columns[fallback];
+    const direction = sort?.direction === 'asc' ? 'ASC' : 'DESC';
+    return column === tieBreaker ? `${column} ${direction}` : `${column} ${direction}, ${tieBreaker}`;
 }
 
 /**
@@ -212,10 +155,10 @@ export function setupDateParams(
 }
 
 /**
- * Build post-CTE filter for commessa description search
- * Used in order revenue queries where description is joined after CTE
+ * Commessa search by description, once `commess` is joined (alias `co`, rows alias `cr` with `commessa_display`).
+ * Pair it with `buildCommessaFilterBUSINESS(…, true)`, which skips the single-term filter on the order rows.
  */
-export function buildPostCTECommessaFilter(
+export function buildCommessaDescriptionFilter(
     commessaInput: string | undefined,
     params: Record<string, any>
 ): string {
@@ -223,10 +166,49 @@ export function buildPostCTECommessaFilter(
 
     const commessaTerms = commessaInput.split(',').map(c => c.trim()).filter(c => c);
     if (commessaTerms.length === 1) {
-        // Single term: also search in description after CTE
         params.commessaDesc = `%${commessaTerms[0]}%`;
         return ' WHERE (cr.commessa_display LIKE @commessaDesc OR co.co_descr1 LIKE @commessaDesc)';
     }
     
     return '';
+}
+
+/** The 4-digit order number shown to users, from a Business `dw_commeca` code (docs/DATABASE.md) */
+export function businessOrderCore(column: string): string {
+    return `RIGHT(CAST(${column} / 100 AS VARCHAR), 4)`;
+}
+
+/**
+ * Fills `#OrderCodes` with every full `dw_commeca` code (any year) of the orders listed in `table.column`.
+ * Later steps join `dwarehe` on these codes through its `dw_commeca` index; joining on the computed 4-digit
+ * number instead reads all ~15M rows (30 s and more).
+ */
+export function businessOrderCodesSql(table: string, column: string): string {
+    return `
+        SELECT k.dw_commeca
+        INTO #OrderCodes
+        FROM (SELECT DISTINCT dw_commeca FROM dwarehe WITH (NOLOCK) WHERE dw_commeca > 0) k
+        WHERE ${businessOrderCore('k.dw_commeca')} IN (SELECT ${column} FROM ${table});`;
+}
+
+/** Drops temp tables; used at the start of a batch (left over from a failed run on the same connection) and at the end */
+export function dropTempTablesSql(tables: string[]): string {
+    return tables.map((table) => `DROP TABLE IF EXISTS ${table};`).join(' ');
+}
+
+/**
+ * Last statements of a temp-table report batch that collected its rows in `#Rows`: the row count (first recordset),
+ * the requested page (second recordset), then cleanup. Needs the `@offset` and `@limit` parameters.
+ */
+export function pageOfRowsSql(orderBy: string, tables: string[]): string {
+    return `
+        SELECT COUNT(*) AS total FROM #Rows;
+        SELECT * FROM #Rows ORDER BY ${orderBy} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
+        ${dropTempTablesSql(tables)}`;
+}
+
+/** Error text for a failed report query: a timeout gets a hint, anything else its own message */
+export function queryErrorMessage(err: unknown): string {
+    const message = err instanceof Error ? err.message : String(err);
+    return /timeout/i.test(message) ? APP_COPY.analytics.common.queryTimeout : message;
 }

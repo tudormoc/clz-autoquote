@@ -1,24 +1,18 @@
 /**
  * BUSINESS Database Queries
- * 
- * Complex queries that use BUSINESS database (revenue/costs) and
- * cross-reference with NETPRO database (work times).
- * 
- * DATA SOURCES:
- * - BUSINESS.dwarehe: Revenue and material costs
- * - BUSINESS.anagra: Client/supplier information
- * - BUSINESS.commess: Order descriptions
- * - NETPRO.SITUAZIONI: Work time tracking (via work-time-fetcher)
- * 
- * COST CALCULATION LOGIC:
- * - Material costs: From supplier rows (an_tipo='F') using dw_acqvalore
- * - Labor costs: Work hours from NETPRO × hourly rate from config
- * - Costs include ALL historical data for each commessa (not date-filtered)
- * - Revenue is date-filtered to show only invoices in selected period
+ *
+ * Revenue and cost reports from BUSINESS, with work times from NETPRO (work-time-fetcher).
+ *
+ * - Revenue: client rows (an_tipo = 'C') of the selected period.
+ * - Material costs: supplier rows of the whole order history (not date-filtered), so an order invoiced this year
+ *   keeps the costs it had last year. Labour cost = NETPRO work hours × hourly rate from config.
+ * - Speed: dwarehe has ~15M rows. Each report first reads the period's orders, then their full dw_commeca codes
+ *   (#OrderCodes), and joins dwarehe only on those codes through its index. The steps share #temp tables in one batch.
  */
 
 'use server'
 
+import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import {
     buildCommessaFilterBUSINESS,
@@ -28,11 +22,14 @@ import {
 import {
     calculateOffset,
     buildPaginationResult,
-    buildClientSummaryOrderBy,
-    buildOrderRevenueOrderBy,
-    transformOrderByForCTE,
+    buildOrderBy,
     setupDateParams,
-    buildPostCTECommessaFilter,
+    buildCommessaDescriptionFilter,
+    businessOrderCore,
+    businessOrderCodesSql,
+    dropTempTablesSql,
+    pageOfRowsSql,
+    queryErrorMessage,
     type SortConfig
 } from './shared/query-utils';
 import {
@@ -40,14 +37,34 @@ import {
     fetchWorkCostsForClients
 } from './shared/work-time-fetcher';
 
+const CODDITT = 'COOPZANARDI';
+/** dw_tipork of delivery notes, whose dw_valore is the delivered value */
+const DELIVERY_NOTE = 'B';
+const TIMEOUT = APP_CONFIG.ANALYTICS.REPORT_QUERY_TIMEOUT_MS;
+const ORDER_CORE = businessOrderCore('dw.dw_commeca');
+
 /**
  * ============================================================================
- * ORDER REVENUE REPORT
+ * ORDER REVENUE REPORT (Ricavo Ordini)
  * ============================================================================
- * 
- * Shows revenue, costs, and margin per order (commessa).
+ *
+ * Revenue, costs and margin per order (commessa).
+ * "Intero" (includeAllRevenueForSplit): an order with client revenue also outside the period shows its whole revenue
+ * and is flagged (has_split_revenue).
  * ============================================================================
  */
+
+const ORDER_REVENUE_TABLES = ['#ClientRevenue', '#OrderCodes', '#SupplierCosts', '#AllTimeRevenue', '#Rows'];
+
+/** UI sort key → column of #Rows. Work hours and labour cost come from NETPRO after paging, so they cannot sort. */
+const ORDER_REVENUE_SORT: Record<string, string> = {
+    commessa: 'commessa_display',
+    client: 'client_code',
+    delivered_revenue: 'delivered_revenue',
+    cost: 'total_cost',
+    margin: '(delivered_revenue - total_cost)',
+};
+
 export async function getOrderRevenueDataAction(
     year: number = 2024,
     page: number = 1,
@@ -59,13 +76,10 @@ export async function getOrderRevenueDataAction(
         dateTo?: string;
         includeAllRevenueForSplit?: boolean;
     },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    sort?: SortConfig
 ) {
     try {
-        const offset = calculateOffset(page, limit);
         const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
-        const includeAllRevenue = filters?.includeAllRevenueForSplit || false;
 
         const conditions: string[] = [
             'dw.dw_scenario = 1',
@@ -78,230 +92,102 @@ export async function getOrderRevenueDataAction(
         ];
 
         const params: Record<string, any> = {
-            codditt: 'COOPZANARDI',
+            codditt: CODDITT,
             year,
             startDate,
             endDate,
-            offset,
+            offset: calculateOffset(page, limit),
             limit,
-            tipoRec: 'B'
+            tipoRec: DELIVERY_NOTE,
+            includeAllRevenue: filters?.includeAllRevenueForSplit || false
         };
 
         buildCommessaFilterBUSINESS(filters?.commessa, conditions, params, true);
         buildClientFilterForOrderRevenue(filters?.client, conditions, params);
+        const descriptionFilter = buildCommessaDescriptionFilter(filters?.commessa, params);
+        const orderBy = buildOrderBy(ORDER_REVENUE_SORT, sort, 'delivered_revenue', 'commessa_display');
 
-        const whereClause = conditions.join(' AND ');
-        const rawOrderByClause = buildOrderRevenueOrderBy(sort?.column || 'revenue', sort?.direction || 'desc');
-        const postCTEFilter = buildPostCTECommessaFilter(filters?.commessa, params);
-        const orderByClause = transformOrderByForCTE(rawOrderByClause);
-        // Increased timeout significantly: 45s for normal queries, 90s for exports
-        const queryTimeout = exportAll ? 90000 : 45000;
+        const result = await queryMSSQL(`
+            SET NOCOUNT ON;
+            ${dropTempTablesSql(ORDER_REVENUE_TABLES)}
 
-        // Simplified query - removed SplitRevenue CTE for performance
-        // Split revenue detection will be done only if includeAllRevenue is enabled
-        const mainQuery = `
-            WITH ClientRevenue AS (
-                SELECT 
-                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                    MIN(dw.dw_commeca) as commessa_full,
-                    MIN(an.an_conto) as client_code,
-                    MAX(an.an_descr1) as client_name,
-                    ISNULL(SUM(dw.dw_valfatt), 0) as total_revenue,
-                    ISNULL(SUM(dw.dw_valore), 0) as delivered_revenue,
-                    ISNULL(SUM(dw.dw_collifatt), 0) as total_quantity
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK) 
-                    ON dw.dw_conto = an.an_conto 
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
-                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
-            ),
-            SupplierCosts AS (
-                SELECT 
-                    RIGHT(CAST(sc.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                    SUM(sc.dw_acqvalore) as total_cost
-                FROM ClientRevenue cr
-                INNER JOIN dwarehe sc WITH (NOLOCK)
-                    ON RIGHT(CAST(sc.dw_commeca / 100 AS VARCHAR), 4) = cr.commessa_display
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON sc.dw_conto = an.an_conto
-                    AND sc.codditt = an.codditt
-                WHERE sc.dw_scenario = 1
-                  AND sc.codditt = @codditt
-                  AND an.an_tipo = 'F'
-                  AND sc.dw_acqvalore <> 0
-                  AND sc.dw_commeca > 0
-                GROUP BY RIGHT(CAST(sc.dw_commeca / 100 AS VARCHAR), 4)
-            )
-            SELECT 
-                RIGHT(CAST(cr.commessa_full / 100 AS VARCHAR), 4) as commessa_display,
-                cr.commessa_full,
-                co.co_descr1 as order_description,
-                cr.client_code,
-                cr.client_name,
-                ISNULL(cr.total_revenue, 0) as total_revenue,
-                ISNULL(cr.delivered_revenue, 0) as delivered_revenue,
-                ISNULL(sc.total_cost, 0) as total_cost,
-                ISNULL(cr.total_quantity, 0) as total_quantity,
-                0 as has_split_revenue
-            FROM ClientRevenue cr
-            LEFT JOIN SupplierCosts sc ON cr.commessa_display = sc.commessa_display
-            LEFT JOIN commess co WITH (NOLOCK)
-                ON cr.commessa_full = co.co_comme
-                AND co.codditt = @codditt
-            ${postCTEFilter}
-            ORDER BY ${orderByClause}
-            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
-        `;
-
-        const countQuery = `
-            SELECT COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as total
+            -- Client revenue of the period, one row per order
+            SELECT
+                ${ORDER_CORE} AS commessa_display,
+                MIN(dw.dw_commeca) AS commessa_full,
+                MIN(an.an_conto) AS client_code,
+                MAX(an.an_descr1) AS client_name,
+                ISNULL(SUM(dw.dw_valfatt), 0) AS total_revenue,
+                ISNULL(SUM(dw.dw_valore), 0) AS delivered_revenue,
+                ISNULL(SUM(dw.dw_collifatt), 0) AS total_quantity
+            INTO #ClientRevenue
             FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON dw.dw_conto = an.an_conto 
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
+            INNER JOIN anagra an WITH (NOLOCK) ON dw.dw_conto = an.an_conto AND dw.codditt = an.codditt
+            WHERE ${conditions.join(' AND ')}
               AND an.an_tipo = 'C'
               AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
-        `;
+            GROUP BY ${ORDER_CORE};
 
-        let allRecords: any[];
-        let total: number;
+            ${businessOrderCodesSql('#ClientRevenue', 'commessa_display')}
 
-        if (exportAll) {
-            const EXPORT_PAGE_SIZE = 200;
-            const countResult = await queryMSSQL(countQuery, params, 'BUSINESS', queryTimeout);
-            total = countResult.recordset[0].total;
+            -- Material costs of those orders, whole history
+            SELECT ${ORDER_CORE} AS commessa_display, SUM(dw.dw_acqvalore) AS total_cost
+            INTO #SupplierCosts
+            FROM #OrderCodes oc
+            INNER JOIN dwarehe dw WITH (NOLOCK) ON dw.dw_commeca = oc.dw_commeca
+            INNER JOIN anagra an WITH (NOLOCK) ON dw.dw_conto = an.an_conto AND dw.codditt = an.codditt
+            WHERE dw.dw_scenario = 1
+              AND dw.codditt = @codditt
+              AND an.an_tipo = 'F'
+              AND dw.dw_acqvalore <> 0
+            GROUP BY ${ORDER_CORE};
 
-            if (total === 0) {
-                allRecords = [];
-            } else {
-                const totalExportPages = Math.ceil(total / EXPORT_PAGE_SIZE);
-                const pagePromises = Array.from({ length: totalExportPages }, (_, i) =>
-                    queryMSSQL(mainQuery, {
-                        ...params,
-                        offset: i * EXPORT_PAGE_SIZE,
-                        limit: EXPORT_PAGE_SIZE
-                    }, 'BUSINESS', queryTimeout)
-                );
-                const pageResults = await Promise.all(pagePromises);
-                allRecords = pageResults.flatMap(r => r.recordset);
-            }
-        } else {
-            const countPromise = queryMSSQL(countQuery, params, 'BUSINESS', queryTimeout);
-            const dataPromise = queryMSSQL(mainQuery, params, 'BUSINESS', queryTimeout);
-            const [countResult, result] = await Promise.all([countPromise, dataPromise]);
-            total = countResult.recordset[0].total;
-            allRecords = result.recordset;
-        }
+            -- "Intero" only: whole client revenue of each order, and whether part of it is outside the period
+            SELECT
+                ${ORDER_CORE} AS commessa_display,
+                ISNULL(SUM(dw.dw_valfatt), 0) AS total_revenue,
+                ISNULL(SUM(dw.dw_valore), 0) AS delivered_revenue,
+                MAX(CASE WHEN dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate THEN 1 ELSE 0 END) AS has_split_revenue
+            INTO #AllTimeRevenue
+            FROM #OrderCodes oc
+            INNER JOIN dwarehe dw WITH (NOLOCK) ON dw.dw_commeca = oc.dw_commeca
+            INNER JOIN anagra an WITH (NOLOCK) ON dw.dw_conto = an.an_conto AND dw.codditt = an.codditt
+            WHERE @includeAllRevenue = 1
+              AND dw.dw_scenario = 1
+              AND dw.codditt = @codditt
+              AND an.an_tipo = 'C'
+              AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
+            GROUP BY ${ORDER_CORE};
 
-        // Only detect split revenue if includeAllRevenue is enabled
-        // This saves an expensive query when the feature isn't being used
-        if (includeAllRevenue && allRecords.length > 0) {
-            // Detect which commessas have revenue outside the date range
-            const commessaCodes = allRecords.map(r => r.commessa_display);
-            const BATCH_SIZE = 100;
-            const splitDetectionSet = new Set<string>();
+            SELECT
+                cr.commessa_display,
+                cr.commessa_full,
+                co.co_descr1 AS order_description,
+                cr.client_code,
+                cr.client_name,
+                CASE WHEN atr.has_split_revenue = 1 THEN atr.total_revenue ELSE cr.total_revenue END AS total_revenue,
+                CASE WHEN atr.has_split_revenue = 1 THEN atr.delivered_revenue ELSE cr.delivered_revenue END AS delivered_revenue,
+                ISNULL(sc.total_cost, 0) AS total_cost,
+                cr.total_quantity,
+                ISNULL(atr.has_split_revenue, 0) AS has_split_revenue
+            INTO #Rows
+            FROM #ClientRevenue cr
+            LEFT JOIN #SupplierCosts sc ON sc.commessa_display = cr.commessa_display
+            LEFT JOIN #AllTimeRevenue atr ON atr.commessa_display = cr.commessa_display
+            LEFT JOIN commess co WITH (NOLOCK) ON co.co_comme = cr.commessa_full AND co.codditt = @codditt
+            ${descriptionFilter};
 
-            for (let i = 0; i < commessaCodes.length; i += BATCH_SIZE) {
-                const batch = commessaCodes.slice(i, i + BATCH_SIZE);
-                const detectParams: Record<string, any> = {
-                    codditt: 'COOPZANARDI',
-                    startDate,
-                    endDate
-                };
-                const placeholders = batch.map((code, idx) => {
-                    detectParams[`cm${idx}`] = code;
-                    return `@cm${idx}`;
-                }).join(', ');
+            ${pageOfRowsSql(orderBy, ORDER_REVENUE_TABLES)}
+        `, params, 'BUSINESS', TIMEOUT);
 
-                const detectResult = await queryMSSQL(`
-                    SELECT DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display
-                    FROM dwarehe dw WITH (NOLOCK)
-                    INNER JOIN anagra an WITH (NOLOCK)
-                        ON dw.dw_conto = an.an_conto
-                        AND dw.codditt = an.codditt
-                    WHERE dw.dw_scenario = 1
-                      AND dw.codditt = @codditt
-                      AND an.an_tipo = 'C'
-                      AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
-                      AND dw.dw_commeca > 0
-                      AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
-                      AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})
-                `, detectParams, 'BUSINESS', 10000);
+        const [[{ total }], rows] = result.recordsets as any[];
 
-                detectResult.recordset.forEach(row => splitDetectionSet.add(row.commessa_display));
-            }
-
-            // Mark split revenue records
-            allRecords.forEach(record => {
-                record.has_split_revenue = splitDetectionSet.has(record.commessa_display) ? 1 : 0;
-            });
-
-            // Fetch full revenue for split commessas
-            const splitCommessas = allRecords.filter(r => r.has_split_revenue === 1).map(r => r.commessa_display) as string[];
-
-            if (splitCommessas.length > 0) {
-                const ADJ_BATCH_SIZE = 100; // Increased batch size
-                const adjustments: Record<string, { rev: number, del: number }> = {};
-                const adjBatches: string[][] = [];
-                for (let i = 0; i < splitCommessas.length; i += ADJ_BATCH_SIZE) {
-                    adjBatches.push(splitCommessas.slice(i, i + ADJ_BATCH_SIZE));
-                }
-
-                await Promise.all(adjBatches.map(async (batch) => {
-                    const adjParams: Record<string, any> = { codditt: 'COOPZANARDI' };
-                    const placeholders = batch.map((code, i) => {
-                        adjParams[`cm${i}`] = code;
-                        return `@cm${i}`;
-                    }).join(', ');
-
-                    const adjResult = await queryMSSQL(`
-                        SELECT 
-                            RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display,
-                            ISNULL(SUM(dw.dw_valfatt), 0) as all_time_revenue,
-                            ISNULL(SUM(dw.dw_valore), 0) as all_time_delivered
-                        FROM dwarehe dw WITH (NOLOCK)
-                        INNER JOIN anagra an WITH (NOLOCK)
-                            ON dw.dw_conto = an.an_conto
-                            AND dw.codditt = an.codditt
-                        WHERE dw.dw_scenario = 1
-                          AND dw.codditt = @codditt
-                          AND an.an_tipo = 'C'
-                          AND (dw.dw_valfatt > 0 OR dw.dw_valore > 0)
-                          AND RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) IN (${placeholders})
-                        GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
-                    `, adjParams, 'BUSINESS', 15000);
-
-                    adjResult.recordset.forEach(row => {
-                        adjustments[row.commessa_display] = {
-                            rev: row.all_time_revenue,
-                            del: row.all_time_delivered
-                        };
-                    });
-                }));
-
-                allRecords.forEach(record => {
-                    if (record.has_split_revenue === 1 && adjustments[record.commessa_display]) {
-                        record.total_revenue = adjustments[record.commessa_display].rev;
-                        record.delivered_revenue = adjustments[record.commessa_display].del;
-                    }
-                });
-            }
-        }
-
-        // Fetch work times in batches for better performance
-        const allCommessaCodes = allRecords.map(row => row.commessa_display);
-        const workTimes = allCommessaCodes.length > 0 
-            ? await fetchWorkTimesForCommessas(allCommessaCodes) 
+        const workTimes = rows.length > 0
+            ? await fetchWorkTimesForCommessas(rows.map((row: any) => row.commessa_display))
             : {};
-
-        const { APP_CONFIG } = await import('@/config/constants');
         const hourlyRate = APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE;
 
-        const enrichedData = allRecords.map(row => ({
+        const enrichedData = rows.map((row: any) => ({
             ...row,
             work_time: workTimes[row.commessa_display] || 0,
             work_cost: (workTimes[row.commessa_display] || 0) * hourlyRate
@@ -314,195 +200,187 @@ export async function getOrderRevenueDataAction(
         };
     } catch (err: any) {
         console.error('OrderRevenueDataAction error:', err);
-        const errorMessage = err.message || 'Unknown error occurred';
-        const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
-        
-        return { 
-            success: false, 
-            error: isTimeout 
-                ? 'Query timeout - try narrowing your date range or adding more specific filters' 
-                : errorMessage, 
-            data: [], 
-            pagination: buildPaginationResult(page, limit, 0) 
+        return {
+            success: false,
+            error: queryErrorMessage(err),
+            data: [],
+            pagination: buildPaginationResult(page, limit, 0)
         };
     }
 }
 
 /**
  * ============================================================================
- * CLIENT SUMMARY REPORT
+ * CLIENT SUMMARY REPORT (Sommario Clienti)
+ * ============================================================================
+ *
+ * Delivered value (delivery notes), material and labour costs per client.
+ * ⚠️ split_orders_count: orders of the period for which the same client also has value outside the period.
+ * "Intero" (includeAllRevenueForSplit) adds that outside value to the client's revenue.
  * ============================================================================
  */
+
+interface ClientSummaryFilters {
+    client?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    includeAllRevenueForSplit?: boolean;
+}
+
+const CLIENT_SUMMARY_TABLES = ['#ClientRevenue', '#ClientOrders', '#OrderCodes', '#OrderCosts', '#OutsidePeriod', '#Rows'];
+
+/** UI sort key → column of #Rows. Labour cost comes from NETPRO after paging, so it cannot sort. */
+const CLIENT_SUMMARY_SORT: Record<string, string> = {
+    client: 'client_code',
+    revenue: 'total_revenue',
+    cost: 'total_cost',
+    margin: '(total_revenue - total_cost)',
+};
+
+/**
+ * Batch shared by the table and its total card, in two parts the caller joins and then ends with its SELECT and cleanup:
+ * - revenueSql: delivered value of the period per client in #ClientRevenue (all the card needs without "Intero")
+ * - detailSql: one row per client in #Rows
+ *   (client_code, client_name, total_orders, total_revenue, total_cost, total_quantity, split_orders_count)
+ */
+function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
+    const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
+
+    const conditions: string[] = [
+        'dw.dw_scenario = 1',
+        'dw.codditt = @codditt',
+        'dw.dw_anno >= @year',
+        'dw.dw_datmov >= @startDate',
+        'dw.dw_datmov <= @endDate'
+    ];
+
+    const params: Record<string, any> = {
+        codditt: CODDITT,
+        year,
+        startDate,
+        endDate,
+        tipoRec: DELIVERY_NOTE,
+        includeAllRevenue: filters?.includeAllRevenueForSplit || false
+    };
+
+    buildClientFilter(filters?.client, conditions, params);
+    const periodWhere = conditions.join(' AND ');
+    const inPeriod = 'dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year';
+
+    const revenueSql = `
+        SET NOCOUNT ON;
+        ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}
+
+        -- Delivered value of the period per client (delivery notes)
+        SELECT
+            an.an_conto AS client_code,
+            an.an_descr1 AS client_name,
+            COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN ${ORDER_CORE} END) AS total_orders,
+            SUM(dw.dw_valore) AS total_revenue,
+            SUM(dw.dw_collifatt) AS total_quantity
+        INTO #ClientRevenue
+        FROM dwarehe dw WITH (NOLOCK)
+        INNER JOIN anagra an WITH (NOLOCK) ON dw.dw_conto = an.an_conto AND dw.codditt = an.codditt
+        WHERE ${periodWhere}
+          AND dw.dw_tipork = @tipoRec
+          AND an.an_tipo = 'C'
+          AND dw.dw_valore <> 0
+        GROUP BY an.an_conto, an.an_descr1;
+    `;
+
+    const detailSql = `
+        -- Orders of each client with value in the period, any document type;
+        -- on_delivery_note = 1 when a delivery note is among them (the order counts in the revenue above)
+        SELECT
+            an.an_conto AS client_code,
+            ${ORDER_CORE} AS commessa_core,
+            MAX(CASE WHEN dw.dw_tipork = @tipoRec THEN 1 ELSE 0 END) AS on_delivery_note
+        INTO #ClientOrders
+        FROM dwarehe dw WITH (NOLOCK)
+        INNER JOIN anagra an WITH (NOLOCK) ON dw.dw_conto = an.an_conto AND dw.codditt = an.codditt
+        WHERE ${periodWhere}
+          AND an.an_tipo = 'C'
+          AND dw.dw_valore <> 0
+          AND dw.dw_commeca > 0
+        GROUP BY an.an_conto, ${ORDER_CORE};
+
+        ${businessOrderCodesSql('#ClientOrders', 'commessa_core')}
+
+        -- Material costs of those orders, whole history
+        SELECT ${ORDER_CORE} AS commessa_core, SUM(dw.dw_acqvalore) AS commessa_cost
+        INTO #OrderCosts
+        FROM #OrderCodes oc
+        INNER JOIN dwarehe dw WITH (NOLOCK) ON dw.dw_commeca = oc.dw_commeca
+        WHERE dw.dw_scenario = 1
+          AND dw.codditt = @codditt
+          AND dw.dw_acqvalore <> 0
+        GROUP BY ${ORDER_CORE};
+
+        -- Value of the same orders for the same client outside the period
+        SELECT
+            o.client_code,
+            COUNT(DISTINCT CASE WHEN ${inPeriod} THEN NULL ELSE o.commessa_core END) AS split_orders_count,
+            SUM(CASE WHEN ${inPeriod} THEN 0 ELSE dw.dw_valore END) AS outside_revenue
+        INTO #OutsidePeriod
+        FROM #OrderCodes oc
+        INNER JOIN dwarehe dw WITH (NOLOCK) ON dw.dw_commeca = oc.dw_commeca
+        INNER JOIN #ClientOrders o ON o.client_code = dw.dw_conto AND o.commessa_core = ${ORDER_CORE}
+        WHERE dw.dw_scenario = 1
+          AND dw.codditt = @codditt
+          AND dw.dw_valore <> 0
+        GROUP BY o.client_code;
+
+        SELECT
+            cr.client_code,
+            cr.client_name,
+            cr.total_orders,
+            cr.total_revenue + CASE WHEN @includeAllRevenue = 1 THEN ISNULL(op.outside_revenue, 0) ELSE 0 END AS total_revenue,
+            ISNULL(cost.total_cost, 0) AS total_cost,
+            cr.total_quantity,
+            ISNULL(op.split_orders_count, 0) AS split_orders_count
+        INTO #Rows
+        FROM #ClientRevenue cr
+        LEFT JOIN (
+            SELECT o.client_code, SUM(c.commessa_cost) AS total_cost
+            FROM #ClientOrders o
+            INNER JOIN #OrderCosts c ON c.commessa_core = o.commessa_core
+            WHERE o.on_delivery_note = 1
+            GROUP BY o.client_code
+        ) cost ON cost.client_code = cr.client_code
+        LEFT JOIN #OutsidePeriod op ON op.client_code = cr.client_code;
+    `;
+
+    return { revenueSql, detailSql, params, startDate, endDate };
+}
+
 export async function getClientSummaryDataAction(
     year: number = 2024,
     page: number = 1,
     limit: number = 100,
-    filters?: {
-        client?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        includeAllRevenueForSplit?: boolean;
-    },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    filters?: ClientSummaryFilters,
+    sort?: SortConfig
 ) {
     try {
-        const offset = calculateOffset(page, limit);
-        const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
-        const includeAllRevenue = filters?.includeAllRevenueForSplit || false;
+        const { revenueSql, detailSql, params, startDate, endDate } = buildClientSummaryBatch(year, filters);
+        const orderBy = buildOrderBy(CLIENT_SUMMARY_SORT, sort, 'revenue', 'client_code');
 
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            'dw.codditt = @codditt',
-            'dw.dw_anno >= @year',
-            'dw.dw_datmov >= @startDate',
-            'dw.dw_datmov <= @endDate',
-            'dw.dw_tipork = @tipoRec'
-        ];
+        const result = await queryMSSQL(
+            revenueSql + detailSql + pageOfRowsSql(orderBy, CLIENT_SUMMARY_TABLES),
+            { ...params, offset: calculateOffset(page, limit), limit },
+            'BUSINESS',
+            TIMEOUT
+        );
+        const [[{ total }], rows] = result.recordsets as any[];
 
-        const params: Record<string, any> = {
-            codditt: 'COOPZANARDI',
+        const workCosts = await fetchWorkCostsForClients(
+            rows.map((row: any) => row.client_code),
             year,
             startDate,
             endDate,
-            offset,
-            limit,
-            tipoRec: 'B'
-        };
+            APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE
+        );
 
-        buildClientFilter(filters?.client, conditions, params);
-        const whereClause = conditions.join(' AND ');
-        const orderByClause = buildClientSummaryOrderBy(sort?.column || 'revenue', sort?.direction || 'desc');
-        // Set reasonable timeout: 60s for normal queries, 90s for exports
-        const queryTimeout = exportAll ? 90000 : 60000;
-
-        const mainQuery = `
-            WITH ClientRevenue AS (
-                SELECT 
-                    an.an_conto as client_code,
-                    an.an_descr1 as client_name,
-                    COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) END) as total_orders,
-                    SUM(dw.dw_valore) as total_revenue,
-                    SUM(dw.dw_collifatt) as total_quantity
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK) 
-                    ON dw.dw_conto = an.an_conto 
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valore <> 0
-                GROUP BY an.an_conto, an.an_descr1
-            ),
-            SupplierCosts AS (
-                SELECT 
-                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core,
-                    SUM(dw.dw_acqvalore) as commessa_cost
-                FROM dwarehe dw WITH (NOLOCK)
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND dw.dw_acqvalore <> 0
-                  AND dw.dw_commeca > 0
-                GROUP BY RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)
-            ),
-            ClientCommessas AS (
-                SELECT DISTINCT
-                    an.an_conto as client_code,
-                    RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE ${whereClause}
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valore <> 0
-                  AND dw.dw_commeca > 0
-            ),
-            SplitRevenue AS (
-                SELECT 
-                    an.an_conto as client_code,
-                    COUNT(DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)) as split_count
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valore <> 0
-                  AND dw.dw_commeca > 0
-                  AND (dw.dw_datmov < @startDate OR dw.dw_datmov > @endDate)
-                GROUP BY an.an_conto
-            )
-            SELECT 
-                cr.client_code,
-                cr.client_name,
-                cr.total_orders,
-                cr.total_revenue,
-                ISNULL(SUM(sc.commessa_cost), 0) as total_cost,
-                cr.total_quantity,
-                ISNULL(sr.split_count, 0) as split_orders_count
-            FROM ClientRevenue cr
-            LEFT JOIN ClientCommessas cc ON cr.client_code = cc.client_code
-            LEFT JOIN SupplierCosts sc ON cc.commessa_core = sc.commessa_core
-            LEFT JOIN SplitRevenue sr ON cr.client_code = sr.client_code
-            GROUP BY cr.client_code, cr.client_name, cr.total_orders, cr.total_revenue, cr.total_quantity, ISNULL(sr.split_count, 0)
-            ORDER BY ${orderByClause}
-            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
-        `;
-
-        const countQuery = `
-            SELECT COUNT(DISTINCT an.an_conto) as total
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON dw.dw_conto = an.an_conto 
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
-              AND an.an_tipo = 'C'
-              AND dw.dw_valore <> 0
-        `;
-
-        const [countResult, result] = await Promise.all([
-            queryMSSQL(countQuery, params, 'BUSINESS'),
-            queryMSSQL(mainQuery, params, 'BUSINESS', queryTimeout)
-        ]);
-
-        const allRecords = result.recordset;
-        const total = countResult.recordset[0].total;
-
-        if (includeAllRevenue && allRecords.length > 0) {
-            const splitClientCodes = Array.from(new Set(allRecords.filter(r => r.split_orders_count > 0).map(r => r.client_code))) as string[];
-            if (splitClientCodes.length > 0) {
-                const adjustments: Record<string, number> = {};
-                await Promise.all(splitClientCodes.map(async (code) => {
-                    const adjParams = { codditt: 'COOPZANARDI', year, startDate, endDate, client: code };
-                    const adjResult = await queryMSSQL(`
-                        WITH PeriodCommessas AS (
-                            SELECT DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
-                            FROM dwarehe dw WITH (NOLOCK)
-                            WHERE dw.dw_scenario = 1 AND dw.codditt = @codditt AND dw.dw_anno >= @year
-                              AND dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate
-                              AND dw.dw_conto = @client AND dw.dw_valore <> 0
-                              AND dw.dw_commeca > 0
-                        )
-                        SELECT SUM(dw.dw_valore) - SUM(CASE WHEN dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year THEN dw.dw_valore ELSE 0 END) as adjustment
-                        FROM dwarehe dw WITH (NOLOCK)
-                        INNER JOIN PeriodCommessas pc ON RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = pc.commessa_core
-                        WHERE dw.dw_scenario = 1 AND dw.codditt = @codditt
-                          AND dw.dw_conto = @client
-                          AND dw.dw_valore <> 0
-                    `, adjParams, 'BUSINESS');
-                    adjustments[code] = adjResult.recordset[0]?.adjustment || 0;
-                }));
-                allRecords.forEach(r => { if (adjustments[r.client_code]) r.total_revenue += adjustments[r.client_code]; });
-            }
-        }
-
-        // Fetch work costs
-        const clientCodes = allRecords.map(row => row.client_code);
-        const { APP_CONFIG } = await import('@/config/constants');
-        const workCosts = await fetchWorkCostsForClients(clientCodes, year, startDate, endDate, APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE);
-
-        const enrichedData = allRecords.map(row => ({
+        const enrichedData = rows.map((row: any) => ({
             ...row,
             work_cost: workCosts[row.client_code] || 0
         }));
@@ -510,124 +388,40 @@ export async function getClientSummaryDataAction(
         return { success: true, data: enrichedData, pagination: buildPaginationResult(page, limit, total) };
     } catch (err: any) {
         console.error('ClientSummaryDataAction error:', err);
-        const errorMessage = err.message || 'Unknown error occurred';
-        const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
-        
-        return { 
-            success: false, 
-            error: isTimeout 
-                ? 'Query timeout - try narrowing your date range or adding more specific filters' 
-                : errorMessage, 
-            data: [], 
-            pagination: buildPaginationResult(page, limit, 0) 
+        return {
+            success: false,
+            error: queryErrorMessage(err),
+            data: [],
+            pagination: buildPaginationResult(page, limit, 0)
         };
     }
 }
 
-/**
- * ============================================================================
- * CLIENT SUMMARY STATISTICS
- * ============================================================================
- */
+/** Total revenue card of Sommario Clienti: the sum of the table's revenue column over all pages */
 export async function getClientSummaryStatsAction(
     year: number = 2024,
-    filters?: {
-        client?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        includeAllRevenueForSplit?: boolean;
-    }
+    filters?: ClientSummaryFilters
 ) {
     try {
-        const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
-        const includeAllRevenue = filters?.includeAllRevenueForSplit || false;
+        const { revenueSql, detailSql, params } = buildClientSummaryBatch(year, filters);
+        const totalSql = filters?.includeAllRevenueForSplit
+            ? `${detailSql} SELECT ISNULL(SUM(total_revenue), 0) AS total_value FROM #Rows;`
+            : 'SELECT ISNULL(SUM(total_revenue), 0) AS total_value FROM #ClientRevenue;';
 
-        const conditions: string[] = [
-            'dw.dw_scenario = 1',
-            'dw.codditt = @codditt',
-            'dw.dw_anno >= @year',
-            'dw.dw_datmov >= @startDate',
-            'dw.dw_datmov <= @endDate',
-            'dw.dw_tipork = @tipoRec'
-        ];
+        const result = await queryMSSQL(
+            `${revenueSql} ${totalSql} ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}`,
+            params,
+            'BUSINESS',
+            TIMEOUT
+        );
 
-        const params: Record<string, any> = {
-            codditt: 'COOPZANARDI',
-            year,
-            startDate,
-            endDate,
-            tipoRec: 'B'
-        };
-
-        buildClientFilter(filters?.client, conditions, params);
-        const whereClause = conditions.join(' AND ');
-        const queryTimeout = 20000; // 20 second timeout for stats
-
-        const result = await queryMSSQL(`
-            SELECT ISNULL(SUM(dw.dw_valore), 0) as total_revenue
-            FROM dwarehe dw WITH (NOLOCK)
-            INNER JOIN anagra an WITH (NOLOCK) 
-                ON dw.dw_conto = an.an_conto 
-                AND dw.codditt = an.codditt
-            WHERE ${whereClause}
-              AND an.an_tipo = 'C'
-              AND dw.dw_valore <> 0
-        `, params, 'BUSINESS', queryTimeout);
-
-        let totalRevenue = result.recordset[0]?.total_revenue || 0;
-
-        if (includeAllRevenue && totalRevenue > 0) {
-            const adjResult = await queryMSSQL(`
-                WITH PeriodCommessas AS (
-                    SELECT DISTINCT RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_core
-                    FROM dwarehe dw WITH (NOLOCK)
-                    INNER JOIN anagra an WITH (NOLOCK)
-                        ON dw.dw_conto = an.an_conto
-                        AND dw.codditt = an.codditt
-                    WHERE ${whereClause}
-                      AND an.an_tipo = 'C'
-                      AND dw.dw_valore <> 0
-                      AND dw.dw_commeca > 0
-                )
-                SELECT 
-                    ISNULL(SUM(dw.dw_valore), 0) - ISNULL(SUM(CASE 
-                        WHEN dw.dw_datmov >= @startDate AND dw.dw_datmov <= @endDate AND dw.dw_anno >= @year
-                        THEN dw.dw_valore ELSE 0 
-                    END), 0) as revenue_adjustment
-                FROM dwarehe dw WITH (NOLOCK)
-                INNER JOIN anagra an WITH (NOLOCK)
-                    ON dw.dw_conto = an.an_conto
-                    AND dw.codditt = an.codditt
-                INNER JOIN PeriodCommessas pc ON RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) = pc.commessa_core
-                WHERE dw.dw_scenario = 1
-                  AND dw.codditt = @codditt
-                  AND an.an_tipo = 'C'
-                  AND dw.dw_valore <> 0
-            `, params, 'BUSINESS', queryTimeout);
-            
-            totalRevenue += (adjResult.recordset[0]?.revenue_adjustment || 0);
-        }
-
-        return {
-            success: true,
-            data: {
-                total_value: totalRevenue
-            }
-        };
-
+        return { success: true, data: { total_value: result.recordset[0].total_value } };
     } catch (err: any) {
         console.error('ClientSummaryStatsAction error:', err);
-        const errorMessage = err.message || 'Unknown error occurred';
-        const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('Timeout');
-        
         return {
             success: false,
-            error: isTimeout 
-                ? 'Query timeout - try narrowing your date range or adding more specific filters' 
-                : errorMessage,
-            data: {
-                total_value: 0
-            }
+            error: queryErrorMessage(err),
+            data: { total_value: 0 }
         };
     }
 }

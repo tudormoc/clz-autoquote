@@ -1191,9 +1191,7 @@ export async function generateClientSummaryPDFAction(
                 dateTo,
                 client: clientFilter || undefined,
                 includeAllRevenueForSplit
-            },
-            undefined,
-            true // exportAll
+            }
         );
 
         const combinedData = result.success ? [...result.data] : [];

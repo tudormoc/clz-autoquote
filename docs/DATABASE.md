@@ -20,10 +20,11 @@ The number shown to users is the 4-digit core `SSSS`. Each database stores it di
 
 | Where | Column | Format | Extract the core |
 |---|---|---|---|
-| NetPro `ORDINI` | `COMMESSA` (varchar) | `YYSSSSRR` | `SUBSTRING(ORD.COMMESSA, 4, 4)` — `25892301` → `8923` |
-| Business `dwarehe` | `dw_commeca` (int) | `YYSSSSRRR` | `RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)` — `240762150` → `7621` |
+| NetPro `ORDINI` | `COMMESSA` (varchar) | `YY0SSSSRR` | `SUBSTRING(ORD.COMMESSA, 4, 4)` — `260961105` → `9611` |
+| Business `dwarehe` | `dw_commeca` (int) | `YY0SSSSRR` | `RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4)` — `240762150` → `7621` (`businessOrderCore`) |
 
-Group by the **full** number (`dw.dw_commeca`) and only *display* the core; grouping by the core merges different orders.
+`YY` is the year, `RR` the sub-order. Revenue/cost reports group by the core so that an order's sub-orders and years add
+up. Row lists group by the full number and only *display* the core.
 
 ## NetPro tables
 
@@ -49,7 +50,9 @@ Group by the **full** number (`dw.dw_commeca`) and only *display* the core; grou
 |---|---|
 | `dw_commeca` | Order number (`0` = general expenses, not an order) |
 | `dw_conto` | Client or supplier code → `anagra.an_conto` |
-| `dw_valfatt` | Invoiced value (client revenue) |
+| `dw_tipork` | Record type: `'B'` delivery note (value in `dw_valore`), `'D'` invoice (value in `dw_valfatt`); `'E'` and `'N'` rows carry both |
+| `dw_valore` | Delivered value (client revenue on delivery notes) |
+| `dw_valfatt` | Invoiced value (client revenue on invoices; always `0` on delivery notes) |
 | `dw_acqvalore` | Delivered purchase value (**material cost**; `dw_acqvalfatt` is the old column, not used) |
 | `dw_collifatt` | Invoiced quantity |
 | `dw_datmov`, `dw_anno` | Movement date, year |
@@ -65,23 +68,30 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 
 ## Query rules (revenue, costs, margins)
 
-1. **Revenue** = client rows (`an_tipo = 'C'`, `dw_valfatt`), filtered by the date range.
+1. **Revenue** = client rows (`an_tipo = 'C'`), filtered by the date range. Sommario Clienti and Ricavo Ordini use the
+   delivered value: `dw_valore` of delivery notes (`dw_tipork = 'B'`).
 2. **Material costs** = supplier rows (`an_tipo = 'F'`, `dw_acqvalore`), **never filtered by date**: an order invoiced in 2025
    with costs in 2024 needs those costs for its real margin. The same for work hours (`fetchWorkTimesForCommessas`).
 3. **Always `dw_commeca > 0`** on cost queries, or general expenses inflate the costs.
 4. **Labour cost** = work hours × `APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE`.
 5. **Margin** = revenue − (material cost + labour cost). In Ricavo Ordini the revenue is the value *delivered* in the
    period, in the table and in Excel alike (decided 2026-10-07).
-6. Use one CTE for client revenue and one for supplier costs, joined on the commessa (see `business-queries.ts`).
-7. Paging: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`, 100 rows per page.
+6. **Speed**: `dwarehe` has ~15M rows. Never join or filter it on the computed core (`RIGHT(CAST(…))`) outside a date
+   range: that reads the whole table (30–60 s). Read the period's orders into a `#temp` table first, collect their full
+   codes with `businessOrderCodesSql` (→ `#OrderCodes`), then join `dwarehe` on `dw_commeca` (indexed). One batch,
+   `SET NOCOUNT ON`, `dropTempTablesSql` at the start and the end. Example: `business-queries.ts` (about 2 s per report).
+7. Paging: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`, 100 rows per page. The ORDER BY needs a unique
+   tie-breaker (`buildOrderBy`), or rows with equal values move between pages and the export repeats some and loses others.
 
 ## Reusable query helpers (`src/app/analytics/queries/shared/`)
 
 - `filter-builders.ts` — commessa, machine, operator and client filters. Several comma-separated values → exact match on codes;
   one value → `LIKE` on code or name.
-- Commessa search by **description** in Business: skip the single-term filter inside the CTE
-  (`buildCommessaFilterBUSINESS(…, true)`) and add `buildPostCTECommessaFilter` after the CTE, once `commess` is joined.
-- `query-utils.ts` — offset, pagination result, ORDER BY builders, date parameters.
+- Commessa search by **description** in Business: skip the single-term filter on the order rows
+  (`buildCommessaFilterBUSINESS(…, true)`) and add `buildCommessaDescriptionFilter` once `commess` is joined.
+- `query-utils.ts` — offset, pagination result, ORDER BY builders (`buildOrderBy`: UI sort key → SQL, with tie-breaker),
+  date parameters, the `#temp` batch helpers (`businessOrderCore`, `businessOrderCodesSql`, `dropTempTablesSql`,
+  `pageOfRowsSql`) and `queryErrorMessage`.
 - `work-time-fetcher.ts` — NetPro work hours / costs for a list of commesse (cross-database).
 
 ## Server actions
