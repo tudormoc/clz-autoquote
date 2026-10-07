@@ -16,6 +16,8 @@ import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import type { PresenceData, WeekDateRange, WeeklyGroupData } from '@/types';
 
+// The files live on a network share, outside the project: the turbopackIgnore hints keep the build
+// from tracing the whole project for these file-system calls
 const { EXCEL_FOLDERS, EXCEL_FILE_MARK, EXCEL_COLUMNS } = APP_CONFIG.PRESENCE;
 const copy = APP_COPY.analytics.presence;
 
@@ -27,14 +29,14 @@ interface PresenceRow {
 
 /** First folder that can be read: the share, then the mapped drive */
 function presenceFolder(): string | null {
-    return EXCEL_FOLDERS.find((folder) => fs.existsSync(folder)) ?? null;
+    return EXCEL_FOLDERS.find((folder) => fs.existsSync(/* turbopackIgnore: true */ folder)) ?? null;
 }
 
 /** Rows of one monthly file with a week number ("Totale settimana 3" → 3), a group and positive hours */
 function readPresenceFile(filePath: string): PresenceRow[] {
     try {
         // Read as a buffer first: XLSX.readFile has trouble with UNC paths
-        const workbook = XLSX.read(fs.readFileSync(filePath), { type: 'buffer' });
+        const workbook = XLSX.read(fs.readFileSync(/* turbopackIgnore: true */ filePath), { type: 'buffer' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null });
 
@@ -93,14 +95,14 @@ export async function getPresenceDataAction(year: number = new Date().getFullYea
             return { success: false, error: fmt(copy.folderNotFound, { folders: EXCEL_FOLDERS.join(' / ') }), data: null };
         }
 
-        const files = fs.readdirSync(folder).filter(
+        const files = fs.readdirSync(/* turbopackIgnore: true */ folder).filter(
             (file) => file.endsWith('.xlsx') && file.includes(EXCEL_FILE_MARK) && file.includes(String(year))
         );
         if (files.length === 0) {
             return { success: false, error: fmt(copy.noFiles, { year }), data: null };
         }
 
-        const rows = files.flatMap((file) => readPresenceFile(path.join(folder, file)));
+        const rows = files.flatMap((file) => readPresenceFile(path.join(/* turbopackIgnore: true */ folder, file)));
         if (rows.length === 0) {
             return { success: false, error: copy.noRows, data: null };
         }
