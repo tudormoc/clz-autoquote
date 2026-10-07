@@ -4,7 +4,7 @@
  * Adding a page:
  *   - a new top-level area → add it to MAIN_NAV (header icon + home card)
  *   - a page inside a section → add it to that section in SECTION_NAVS (sidebar link)
- * Analytics reports are listed in src/config/analyticsSections.ts and appear here automatically.
+ * Analytics reports (src/config/analyticsSections.ts) and settings tables (src/config/adminTables.ts) appear here automatically.
  */
 import {
     BarChart3,
@@ -19,6 +19,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { APP_COPY } from '@/locales';
+import { ADMIN_CATEGORIES, ADMIN_TABLES } from '@/config/adminTables';
 import { ANALYTICS_CATEGORIES, ANALYTICS_SECTIONS } from '@/config/analyticsSections';
 
 export interface NavItem {
@@ -56,7 +57,7 @@ export const MAIN_NAV: (NavItem & { showOnHome: boolean })[] = [
 
 const presence = APP_COPY.analytics;
 
-export type SectionNavId = 'analytics' | 'presence';
+export type SectionNavId = 'analytics' | 'presence' | 'settings';
 
 export const SECTION_NAVS: Record<SectionNavId, SectionNav> = {
     analytics: {
@@ -90,5 +91,22 @@ export const SECTION_NAVS: Record<SectionNavId, SectionNav> = {
         footer: [
             { id: 'settings', href: '/presence/settings', label: presence.presenceSidebar.settings, icon: Settings },
         ],
+    },
+    settings: {
+        title: APP_COPY.admin.sidebar.title,
+        groups: ADMIN_CATEGORIES
+            .map((category) => ({
+                label: APP_COPY.admin.categories[category],
+                items: ADMIN_TABLES
+                    .filter((table) => table.category === category)
+                    .map((table) => ({
+                        id: table.id,
+                        href: `/settings/${table.id}`,
+                        label: table.label,
+                        icon: table.icon,
+                        description: table.description,
+                    })),
+            }))
+            .filter((group) => group.items.length > 0),
     },
 };

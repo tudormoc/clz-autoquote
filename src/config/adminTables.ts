@@ -1,93 +1,40 @@
 /**
- * Admin Tables Configuration
- * Single source of truth for all admin table managers
- * 
- * To add a new table:
- * 1. Add entry to ADMIN_TABLES array
- * 2. Create manager component in src/components/admin/
- * 3. Import and add to MANAGER_COMPONENTS map
+ * Settings (admin) tables — metadata only: id, label, icon, sidebar group.
+ * The sidebar (SECTION_NAVS.settings) and the /settings/[tableId] pages are built from this list.
+ *
+ * To add a table:
+ * 1. Manager component in src/components/admin/
+ * 2. One entry here (label and description in it.ts → admin.tables)
+ * 3. One entry in MANAGER_COMPONENTS (src/components/admin/managerComponents.ts)
  */
 
-import { LucideIcon, Target, Layers, Tags, Maximize2, Settings } from 'lucide-react';
-import { DiscountTiersManager } from '@/components/admin/DiscountTiersManager';
-import { PricingConfigsManager } from '@/components/admin/PricingConfigsManager';
-import { SignaturesManager } from '@/components/admin/SignaturesManager';
-import { FormatSurchargesManager } from '@/components/admin/FormatSurchargesManager';
-import { SettingsManager } from '@/components/admin/SettingsManager';
+import { Layers, Maximize2, Settings, Tags, Target, type LucideIcon } from 'lucide-react';
+import { APP_COPY } from '@/locales';
+
+export type AdminCategory = keyof typeof APP_COPY.admin.categories;
 
 export interface AdminTableConfig {
     id: string;
     label: string;
     icon: LucideIcon;
-    category: 'pricing' | 'operations' | 'clients' | 'materials' | 'settings' | 'other';
+    category: AdminCategory;
     description?: string;
 }
 
-/**
- * All admin tables configuration
- * Order determines sidebar display order
- */
+const tables = APP_COPY.admin.tables;
+
+/** Sidebar groups, in display order */
+export const ADMIN_CATEGORIES: AdminCategory[] = ['settings', 'pricing', 'operations', 'clients', 'materials', 'other'];
+
+/** All settings tables; the order is the sidebar order within each group */
 export const ADMIN_TABLES: AdminTableConfig[] = [
-    {
-        id: 'settings',
-        label: 'Settings',
-        icon: Settings,
-        category: 'settings',
-        description: 'Application settings and configuration'
-    },
-    {
-        id: 'pricing-configs',
-        label: 'Pricing Rules',
-        icon: Target,
-        category: 'pricing',
-        description: 'Base pricing configurations'
-    },
-    {
-        id: 'signature-types',
-        label: 'Signature Types',
-        icon: Layers,
-        category: 'operations',
-        description: 'Signature definitions and pricing'
-    },
-    {
-        id: 'discount-tiers',
-        label: 'Discount Tiers',
-        icon: Tags,
-        category: 'pricing',
-        description: 'Volume-based discount rules'
-    },
-    {
-        id: 'format-surcharges',
-        label: 'Format Surcharges',
-        icon: Maximize2,
-        category: 'pricing',
-        description: 'Size-based surcharge rules'
-    }
+    { id: 'general', ...tables.settings, icon: Settings, category: 'settings' },
+    { id: 'pricing-configs', ...tables.pricingConfigs, icon: Target, category: 'pricing' },
+    { id: 'discount-tiers', ...tables.discountTiers, icon: Tags, category: 'pricing' },
+    { id: 'format-surcharges', ...tables.formatSurcharges, icon: Maximize2, category: 'pricing' },
+    { id: 'signature-types', ...tables.signatureTypes, icon: Layers, category: 'operations' },
 ];
 
-/**
- * Map table IDs to their manager components
- */
-export const MANAGER_COMPONENTS: Record<string, React.ComponentType> = {
-    'settings': SettingsManager,
-    'pricing-configs': PricingConfigsManager,
-    'signature-types': SignaturesManager,
-    'discount-tiers': DiscountTiersManager,
-    'format-surcharges': FormatSurchargesManager
-};
-
-/**
- * Get tables grouped by category
- */
-export function getTablesByCategory() {
-    const grouped: Record<string, AdminTableConfig[]> = {};
-    
-    ADMIN_TABLES.forEach(table => {
-        if (!grouped[table.category]) {
-            grouped[table.category] = [];
-        }
-        grouped[table.category].push(table);
-    });
-    
-    return grouped;
+export function getAdminTable(id: string): AdminTableConfig | undefined {
+    return ADMIN_TABLES.find((table) => table.id === id);
 }

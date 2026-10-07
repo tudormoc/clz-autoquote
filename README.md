@@ -42,14 +42,14 @@ npm run excel:examples      # Excel export
 
 | What | Where |
 |---|---|
-| Pages | `src/app/<area>/page.tsx`; sections with a sidebar have a `layout.tsx` (`analytics`, `presence`) |
+| Pages | `src/app/<area>/page.tsx`; sections with a sidebar have a `layout.tsx` (`analytics`, `presence`, `settings`) |
 | Server actions (DB access) | `src/app/**/*-actions.ts`, analytics queries in `src/app/analytics/queries/` |
 | All UI text | `src/locales/it.ts` → `APP_COPY` |
 | Numbers and settings | `src/config/constants.ts` → `APP_CONFIG`, `PRICING_FORMULAS`, `PRESENCE_RULES` |
 | Look: colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` |
 | Areas, header icons, home cards, section sidebars | `src/config/navigation.ts` |
 | Analytics report list / their components | `src/config/analyticsSections.ts` / `src/components/analytics/reportComponents.ts` |
-| Settings (admin) tables | `src/config/adminTables.ts` |
+| Settings (admin) tables / their components | `src/config/adminTables.ts` / `src/components/admin/managerComponents.ts` (pages `/settings/<id>`) |
 | Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `SectionSidebar`, `Header`) |
 | Shared UI parts | `src/components/ui/` |
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
@@ -104,7 +104,8 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
    change the row type, filters, columns and Excel columns. Register it in `reportComponents.ts`.
 
 **New settings table**: manager component in `src/components/admin/` (generic CRUD via `src/app/admin-actions.ts`),
-then one entry in `ADMIN_TABLES` and one in `MANAGER_COMPONENTS` (`src/config/adminTables.ts`); the sidebar picks it up.
+then one entry in `ADMIN_TABLES` (`src/config/adminTables.ts`, texts in `it.ts` → `admin.tables`) and one in
+`MANAGER_COMPONENTS` (`src/components/admin/managerComponents.ts`); the sidebar and the `/settings/<id>` page follow.
 
 **New pricing operation / presence rule**: see [docs/PRICING.md](docs/PRICING.md) and [docs/PRESENCE.md](docs/PRESENCE.md).
 

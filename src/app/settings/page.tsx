@@ -1,10 +1,7 @@
-import AdminDashboard from '@/components/admin/AdminDashboard';
-import { AppShell } from '@/components/layout/AppShell';
+import { redirect } from 'next/navigation';
+import { ADMIN_TABLES } from '@/config/adminTables';
 
-export default function AdminPage() {
-    return (
-        <AppShell layout="bare">
-            <AdminDashboard />
-        </AppShell>
-    );
+/** /settings opens the first table */
+export default function SettingsPage() {
+    redirect(`/settings/${ADMIN_TABLES[0].id}`);
 }
