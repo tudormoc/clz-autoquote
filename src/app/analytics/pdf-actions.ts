@@ -51,8 +51,7 @@ export async function generateAreaSummaryPDFAction(
             const result = await getAreaSummaryDataAction(
                 year, 1, ALL_ROWS,
                 { dateFrom, dateTo, machine: areaFilter || undefined },
-                { column: 'display_order', direction: 'asc' },
-                true
+                { column: 'display_order', direction: 'asc' }
             );
             return { month: label, year, data: result.success ? result.data : [] };
         };
@@ -105,9 +104,7 @@ export async function generateOrderAreaSummaryPDFAction(
             months.map(async (month): Promise<PeriodData> => {
                 const result = await getOrderAreaSummaryDataAction(
                     year, 1, ALL_ROWS,
-                    { ...monthRange(year, month), commessa: commessaFilter || undefined, area: areaFilter || undefined, complexOnly },
-                    undefined,
-                    true
+                    { ...monthRange(year, month), commessa: commessaFilter || undefined, area: areaFilter || undefined, complexOnly }
                 );
                 return { month: monthName(month), year, data: result.success ? result.data : [] };
             })

@@ -102,8 +102,8 @@ export function ProductionReport() {
     const report = useReportTable<Filters, ProductionRow>({
         initialFilters,
         defaultSort: { column: 'date', direction: 'asc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getProductionDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getProductionDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
     });
     const { filters, updateFilters } = report;
 

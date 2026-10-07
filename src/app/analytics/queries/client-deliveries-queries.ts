@@ -84,8 +84,7 @@ export async function getClientDeliveriesDataAction(
     page: number = 1,
     limit: number = 100,
     filters: Filters = {},
-    sortConfig: SortConfig = { column: 'delivery_date', direction: 'desc' },
-    skipPagination: boolean = false
+    sortConfig: SortConfig = { column: 'delivered_value', direction: 'desc' }
 ) {
     try {
         const { request, where } = await deliveriesRequest(year, filters);
@@ -105,8 +104,8 @@ export async function getClientDeliveriesDataAction(
 
         const sortColumn = SORT_COLUMNS[sortConfig.column] || SORT_COLUMNS.delivered_value;
         const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
-        request.input('offset', sql.Int, skipPagination ? 0 : calculateOffset(page, limit));
-        request.input('limit', sql.Int, skipPagination ? total : limit);
+        request.input('offset', sql.Int, calculateOffset(page, limit));
+        request.input('limit', sql.Int, limit);
 
         const dataResult = await request.query<ClientDeliveryRow>(`
             SELECT

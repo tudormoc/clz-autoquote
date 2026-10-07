@@ -165,6 +165,17 @@ export const APP_CONFIG = {
     // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
     // Used to filter out short/insignificant tasks (noise)
     MIN_WORK_TIME_MINUTES: 30,
+    // Production report rows with less work than this (hours) are left out (stray clicks)
+    MIN_ROW_WORK_HOURS: 0.1,
+    // Order numbers that are not real orders (internal / placeholders), left out of Sommario Ordini per Area
+    EXCLUDED_ORDER_NUMBERS: ['9990', '9998', '9999'],
+    // Sommario Area: the quantity used for the speed gets this excess (2% spoilage)
+    AREA_QUANTITY_EXCESS: 1.02,
+    // Sommario Area: order lines asking for fewer pieces than this are ignored for the quantity (samples, tests)
+    AREA_MIN_REQUESTED_QTY: 10,
+    // The folding area: its quantity is the sum of completed pieces (Sommario Area) and its expected hours are
+    // measured in sheets (fogli) instead of requested pieces (Sommario Ordini per Area)
+    FOLDING_AREA: 'Piega',
   },
 
   // Blueprint Preview Defaults

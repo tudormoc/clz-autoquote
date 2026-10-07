@@ -1,20 +1,18 @@
 /**
- * NETPRO Database Queries
- * 
- * Queries that use only the NETPRO database (production tracking).
- * These are simpler than cross-database queries.
- * 
- * DATA SOURCE: NETPRO database
- * - SITUAZIONI: Time tracking records
- * - ORDINI: Order information
- * - JOBSET: Links tasks to orders
- * - MACCHINE: Machine details
- * - OPERATORI: Operator details
+ * NETPRO Database Queries (production tracking)
+ *
+ * - SITUAZIONI: time tracking (TIPO 'WORK'; TIPO_OGGETTO 'OPE' operator time, 'MAC' machine time)
+ * - JOBSET → ORDINI: the order of each task; MACCHINE, OPERATORI: names
+ *
+ * Production and Ordini group and page in SQL; the two area reports group machines into the areas of
+ * APP_CONFIG.ANALYTICS.MACHINE_AREAS in code, then sort and page with sortAndPage.
  */
 
 'use server'
 
+import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
+import type { RowSortColumns } from '@/lib/sort';
 import {
     buildCommessaFilterNETPRO,
     buildMachineFilter,
@@ -22,32 +20,86 @@ import {
 } from './shared/filter-builders';
 import { fetchOrderBusinessData } from './shared/work-time-fetcher';
 import {
-    calculateOffset,
     buildPaginationResult,
-    buildProductionOrderBy,
-    buildOrderSummaryOrderBy,
-    buildOrderAreaSummaryOrderBy,
+    buildSqlOrderBy,
+    calculateOffset,
+    netproOrderCore,
+    sortAndPage,
     type SortConfig
 } from './shared/query-utils';
 
+const ANALYTICS = APP_CONFIG.ANALYTICS;
+const MACHINE_AREAS = ANALYTICS.MACHINE_AREAS as Record<string, readonly string[]>;
+const ORDER_CORE = netproOrderCore('ORD.COMMESSA');
+const MIN_ORDER_CORE = netproOrderCore('MIN(ORD.COMMESSA)');
+
+const WORK_ROWS = `
+    FROM SITUAZIONI SIT WITH (NOLOCK)
+    LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+    LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE`;
+const MACHINE_JOIN = 'LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA';
+const OPERATOR_JOIN = 'LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE';
+
+/** Work rows of the period (default: from 1 January of `year` for two years) for operator or machine time */
+function workFilter(year: number, tipoOggetto: 'OPE' | 'MAC', dates?: { dateFrom?: string; dateTo?: string }) {
+    const conditions = ['SIT.DATA >= @startDate', 'SIT.DATA <= @endDate', 'SIT.TIPO = @tipo', 'SIT.TIPO_OGGETTO = @tipoOggetto'];
+    const params: Record<string, unknown> = {
+        startDate: dates?.dateFrom || `${year}-01-01`,
+        endDate: dates?.dateTo || `${year + 2}-01-01`,
+        tipo: 'WORK',
+        tipoOggetto,
+    };
+    return { conditions, params };
+}
+
+/** A report grouped in SQL: the number of groups, then the requested page of them */
+async function groupedPage(
+    query: { select: string; from: string; where: string; groupBy: string; orderBy: string },
+    params: Record<string, unknown>,
+    page: number,
+    limit: number
+) {
+    const having = `HAVING SUM(SIT.LAVORO) > ${ANALYTICS.MIN_ROW_WORK_HOURS}`;
+    const countResult = await queryMSSQL(`
+        SELECT COUNT(*) as total
+        FROM (SELECT 1 as dummy ${query.from} WHERE ${query.where} GROUP BY ${query.groupBy} ${having}) AS grouped_data
+    `, params, 'NETPRO');
+
+    const result = await queryMSSQL(`
+        SELECT ${query.select}
+        ${query.from}
+        WHERE ${query.where}
+        GROUP BY ${query.groupBy}
+        ${having}
+        ORDER BY ${query.orderBy}
+        OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+    `, { ...params, offset: calculateOffset(page, limit), limit }, 'NETPRO');
+
+    return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, countResult.recordset[0].total) };
+}
+
+const failure = (err: any, page: number, limit: number) => ({
+    success: false,
+    error: err.message as string,
+    data: [],
+    pagination: buildPaginationResult(page, limit, 0),
+});
+
 /**
  * ============================================================================
- * PRODUCTION REPORT
- * ============================================================================
- * 
- * Shows operator work time by date, machine, and commessa.
- * 
- * FILTERS:
- * - Date range (required)
- * - Commessa code or description (fuzzy search)
- * - Machine code or name (fuzzy search)
- * - Operator code or name (fuzzy search)
- * 
- * GROUPING: By date + machine + operator + commessa (4-digit display code)
- * 
- * PERFORMANCE: Fast - single database, indexed columns
+ * PRODUCTION REPORT: operator work time per date, machine, operator and order
  * ============================================================================
  */
+const PRODUCTION_SORT: Record<string, string> = {
+    date: 'SIT.DATA',
+    commessa: MIN_ORDER_CORE,
+    machine: 'SIT.MACCHINA',
+    operator: 'SIT.OGGETTO',
+    time: 'SUM(SIT.LAVORO)',
+    qty: 'SUM(SIT.QTA_COMPLETATA)',
+    qty_requested: 'MAX(JST.QTA_RICHIESTA)',
+};
+
 export async function getProductionDataAction(
     year: number = 2024,
     page: number = 1,
@@ -59,66 +111,18 @@ export async function getProductionDataAction(
         dateFrom?: string;
         dateTo?: string;
     },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    sort?: SortConfig
 ) {
     try {
-        const offset = calculateOffset(page, limit);
-        const startDate = filters?.dateFrom || `${year}-01-01`;
-        const endDate = filters?.dateTo || `${year + 2}-01-01`;
-
-        // Build WHERE conditions
-        const conditions: string[] = [
-            'SIT.DATA >= @startDate',
-            'SIT.DATA <= @endDate',
-            'SIT.TIPO = @tipo',
-            'SIT.TIPO_OGGETTO = @tipoOggetto',
-            'ORD.COMMESSA IS NOT NULL'
-        ];
-
-        const params: Record<string, any> = {
-            startDate,
-            endDate,
-            tipo: 'WORK',
-            tipoOggetto: 'OPE',
-            offset,
-            limit
-        };
-
-        // Apply filters using shared utilities
+        const { conditions, params } = workFilter(year, 'OPE', filters);
+        conditions.push('ORD.COMMESSA IS NOT NULL');
         buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
         buildMachineFilter(filters?.machine, conditions, params);
         buildOperatorFilter(filters?.operator, conditions, params);
 
-        const whereClause = conditions.join(' AND ');
-
-        // Build ORDER BY clause
-        const orderByClause = buildProductionOrderBy(
-            sort?.column || 'date',
-            sort?.direction || 'asc'
-        );
-
-        // Get total count for pagination (includes all joins needed for filters)
-        const countResult = await queryMSSQL(`
-            SELECT COUNT(*) as total
-            FROM (
-                SELECT 1 as dummy
-                FROM SITUAZIONI SIT WITH (NOLOCK)
-                LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-                LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-                LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
-                LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
-                WHERE ${whereClause}
-                GROUP BY SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, SUBSTRING(ORD.COMMESSA, 4, 4)
-                HAVING SUM(SIT.LAVORO) > 0.1
-            ) AS grouped_data
-        `, params, 'NETPRO');
-
-        const total = countResult.recordset[0].total;
-
-        // Get paginated data with grouping by core commessa number
-        const result = await queryMSSQL(`
-            SELECT 
+        const groupBy = `SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, ${ORDER_CORE}`;
+        return await groupedPage({
+            select: `
                 SIT.DATA as date,
                 SIT.MACCHINA as machine,
                 MAX(MAC.DESCRIZIONE) as machine_name,
@@ -128,53 +132,31 @@ export async function getProductionDataAction(
                 SUM(SIT.QTA_COMPLETATA) as qty_completed,
                 MAX(JST.QTA_RICHIESTA) as qty_requested,
                 MIN(ORD.COMMESSA) as commessa_full,
-                SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_display,
-                MIN(ORD.DESCRIZIONE) as order_description
-            FROM SITUAZIONI SIT WITH (NOLOCK)
-            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-            LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
-            LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON SIT.OGGETTO = OPE.OPERATORE
-            WHERE ${whereClause}
-            GROUP BY SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, SUBSTRING(ORD.COMMESSA, 4, 4)
-            HAVING SUM(SIT.LAVORO) > 0.1
-            ORDER BY ${orderByClause}
-            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
-        `, params, 'NETPRO');
-
-        return {
-            success: true,
-            data: result.recordset,
-            pagination: buildPaginationResult(page, limit, total)
-        };
+                ${MIN_ORDER_CORE} as commessa_display,
+                MIN(ORD.DESCRIZIONE) as order_description`,
+            from: `${WORK_ROWS} ${MACHINE_JOIN} ${OPERATOR_JOIN}`,
+            where: conditions.join(' AND '),
+            groupBy,
+            orderBy: buildSqlOrderBy(PRODUCTION_SORT, sort, { column: 'date', direction: 'asc' }, groupBy),
+        }, params, page, limit);
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: buildPaginationResult(page, limit, 0)
-        };
+        return failure(err, page, limit);
     }
 }
 
 /**
  * ============================================================================
- * ORDER SUMMARY REPORT
- * ============================================================================
- * 
- * Get order summary data grouped by machine (sums operator time per machine).
- * Uses same data source as Production Report (TIPO_OGGETTO='OPE') but groups by machine.
- * 
- * FILTERS:
- * - Date range (required)
- * - Commessa code or description (fuzzy search)
- * - Machine code or name (fuzzy search)
- * 
- * GROUPING: By machine + commessa (4-digit display code)
- * 
- * PERFORMANCE: Fast - single database, indexed columns
+ * ORDER SUMMARY REPORT (Sommario Ordini): operator work time per machine and order, all dates
  * ============================================================================
  */
+const ORDER_SUMMARY_SORT: Record<string, string> = {
+    commessa: MIN_ORDER_CORE,
+    machine: 'SIT.MACCHINA',
+    time: 'SUM(SIT.LAVORO)',
+    qty: 'SUM(SIT.QTA_COMPLETATA)',
+    qty_requested: 'MAX(JST.QTA_RICHIESTA)',
+};
+
 export async function getOrderSummaryDataAction(
     year: number = 2024,
     page: number = 1,
@@ -185,340 +167,194 @@ export async function getOrderSummaryDataAction(
         dateFrom?: string;
         dateTo?: string;
     },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    sort?: SortConfig
 ) {
     try {
-        const offset = calculateOffset(page, limit);
-        const startDate = filters?.dateFrom || `${year}-01-01`;
-        const endDate = filters?.dateTo || `${year + 2}-01-01`;
-
-        // Build WHERE conditions - using OPE data (same as Production Report)
-        const conditions: string[] = [
-            'SIT.DATA >= @startDate',
-            'SIT.DATA <= @endDate',
-            'SIT.TIPO = @tipo',
-            'SIT.TIPO_OGGETTO = @tipoOggetto',
-            'ORD.COMMESSA IS NOT NULL'
-        ];
-
-        const params: Record<string, any> = {
-            startDate,
-            endDate,
-            tipo: 'WORK',
-            tipoOggetto: 'OPE',
-            offset,
-            limit
-        };
-
-        // Apply filters using shared utilities
+        const { conditions, params } = workFilter(year, 'OPE', filters);
+        conditions.push('ORD.COMMESSA IS NOT NULL');
         buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
         buildMachineFilter(filters?.machine, conditions, params);
 
-        const whereClause = conditions.join(' AND ');
-
-        // Build ORDER BY clause
-        const orderByClause = buildOrderSummaryOrderBy(
-            sort?.column || 'commessa',
-            sort?.direction || 'asc'
-        );
-
-        // Get total count for pagination
-        const countResult = await queryMSSQL(`
-            SELECT COUNT(*) as total
-            FROM (
-                SELECT 1 as dummy
-                FROM SITUAZIONI SIT WITH (NOLOCK)
-                LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-                LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-                LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
-                WHERE ${whereClause}
-                GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
-                HAVING SUM(SIT.LAVORO) > 0.1
-            ) AS grouped_data
-        `, params, 'NETPRO');
-
-        const total = countResult.recordset[0].total;
-
-        // Get paginated data grouped by machine + commessa (summing all operators and dates)
-        const result = await queryMSSQL(`
-            SELECT 
+        const groupBy = `SIT.MACCHINA, ${ORDER_CORE}`;
+        return await groupedPage({
+            select: `
                 SIT.MACCHINA as machine,
                 MAX(MAC.DESCRIZIONE) as machine_name,
                 SUM(SIT.LAVORO) as work_time,
                 SUM(SIT.QTA_COMPLETATA) as qty_completed,
                 MAX(JST.QTA_RICHIESTA) as qty_requested,
                 MIN(ORD.COMMESSA) as commessa_full,
-                SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_display,
-                MIN(ORD.DESCRIZIONE) as order_description
-            FROM SITUAZIONI SIT WITH (NOLOCK)
-            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-            LEFT JOIN MACCHINE MAC WITH (NOLOCK) ON SIT.MACCHINA = MAC.MACCHINA
-            WHERE ${whereClause}
-            GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
-            HAVING SUM(SIT.LAVORO) > 0.1
-            ORDER BY ${orderByClause}
-            ${exportAll ? '' : 'OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY'}
-        `, params, 'NETPRO');
-
-        return {
-            success: true,
-            data: result.recordset,
-            pagination: buildPaginationResult(page, limit, total)
-        };
+                ${MIN_ORDER_CORE} as commessa_display,
+                MIN(ORD.DESCRIZIONE) as order_description`,
+            from: `${WORK_ROWS} ${MACHINE_JOIN}`,
+            where: conditions.join(' AND '),
+            groupBy,
+            orderBy: buildSqlOrderBy(ORDER_SUMMARY_SORT, sort, { column: 'commessa', direction: 'asc' }, groupBy),
+        }, params, page, limit);
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: buildPaginationResult(page, limit, 0)
-        };
+        return failure(err, page, limit);
     }
 }
 
-
 /**
  * ============================================================================
- * AREA SUMMARY REPORT (Custom Area Grouping by Machine Time)
+ * AREA SUMMARY REPORT (Sommario Area): machine work time and speed per area
  * ============================================================================
- * 
- * Shows total MACHINE work time grouped by custom-defined areas.
- * Uses TIPO_OGGETTO='MAC' (machine time, not operator time).
- * Areas are defined in APP_CONFIG.ANALYTICS.MACHINE_AREAS.
- * 
- * FILTERS:
- * - Date range (required)
- * - Area name (fuzzy search, optional)
- * 
- * GROUPING: By custom area (machines grouped per area config)
- * 
- * PERFORMANCE: Fast - aggregates machine data then groups by area in application layer
- * ============================================================================
+ * Machine time (TIPO_OGGETTO 'MAC') per machine, summed per area. Quantity per area: the requested quantity of
+ * each order once (the folding area: the sum of completed pieces), plus AREA_QUANTITY_EXCESS for the speed.
  */
+interface AreaSummaryRow {
+    area_name: string;
+    work_time: number;
+    requested_quantity: number;
+    velocity: number;
+    target_velocity: number;
+    efficiency: number;
+    machine_count: number;
+    /** Position of the area in MACHINE_AREAS (production flow) */
+    display_order: number;
+}
+
+const AREA_SUMMARY_SORT: RowSortColumns<AreaSummaryRow> = {
+    area_name: (row) => row.area_name,
+    requested_quantity: (row) => row.requested_quantity,
+    work_time: (row) => row.work_time,
+    velocity: (row) => row.velocity,
+    efficiency: (row) => row.efficiency,
+    display_order: (row) => row.display_order,
+};
+
 export async function getAreaSummaryDataAction(
     year: number = 2024,
     page: number = 1,
     limit: number = 100,
     filters?: {
-        machine?: string; // Now used as area filter
+        machine?: string; // area name filter
         dateFrom?: string;
         dateTo?: string;
     },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    sort?: SortConfig
 ) {
     try {
-        const startDate = filters?.dateFrom || `${year}-01-01`;
-        const endDate = filters?.dateTo || `${year + 2}-01-01`;
+        const { conditions, params } = workFilter(year, 'MAC', filters);
+        conditions.push('SIT.LAVORO > 0');
+        const where = conditions.join(' AND ');
 
-        // Build WHERE conditions - using MAC data (machine time, not operator time)
-        const conditions: string[] = [
-            'SIT.DATA >= @startDate',
-            'SIT.DATA <= @endDate',
-            'SIT.TIPO = @tipo',
-            'SIT.TIPO_OGGETTO = @tipoOggetto',
-            'SIT.LAVORO > 0'  // Ignore rows with zero work time
-        ];
-
-        const params: Record<string, any> = {
-            startDate,
-            endDate,
-            tipo: 'WORK',
-            tipoOggetto: 'MAC',
-        };
-
-        const whereClause = conditions.join(' AND ');
-
-        // Get machine work times WITHOUT joining to avoid duplicates
-        // We'll get quantities separately since they're at order level
-        const workTimeResult = await queryMSSQL(`
-            SELECT 
-                SIT.MACCHINA as machine_code,
-                SUM(SIT.LAVORO) as work_time
+        // Work time per machine, without joins (a join would repeat the rows)
+        const workTimeResult = await queryMSSQL<{ machine_code: string; work_time: number }>(`
+            SELECT SIT.MACCHINA as machine_code, SUM(SIT.LAVORO) as work_time
             FROM SITUAZIONI SIT WITH (NOLOCK)
-            WHERE ${whereClause}
+            WHERE ${where}
             GROUP BY SIT.MACCHINA
         `, params, 'NETPRO');
 
-        // Get quantities per machine-order for areas that need it
-        const quantityResult = await queryMSSQL(`
-            SELECT 
+        // Quantities per machine and order (they belong to the order, not to the time rows)
+        const quantityResult = await queryMSSQL<{ machine_code: string; ordine: number; requested_quantity: number; completed_quantity: number }>(`
+            SELECT
                 SIT.MACCHINA as machine_code,
                 JST.ORDINE as ordine,
                 MAX(ISNULL(JST.QTA_RICHIESTA, 0)) as requested_quantity,
                 SUM(ISNULL(SIT.QTA_COMPLETATA, 0)) as completed_quantity
             FROM SITUAZIONI SIT WITH (NOLOCK)
             INNER JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-            WHERE ${whereClause}
-              AND (JST.QTA_RICHIESTA IS NULL OR JST.QTA_RICHIESTA >= 10)
+            WHERE ${where}
+              AND (JST.QTA_RICHIESTA IS NULL OR JST.QTA_RICHIESTA >= ${ANALYTICS.AREA_MIN_REQUESTED_QTY})
             GROUP BY SIT.MACCHINA, JST.ORDINE
         `, params, 'NETPRO');
 
-        // Import machine areas config
-        const { APP_CONFIG } = await import('@/config/constants');
-        const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
+        const machineWorkTime = new Map(workTimeResult.recordset.map((row) => [row.machine_code, row.work_time]));
+        const areaOfMachine = new Map(Object.entries(MACHINE_AREAS).flatMap(([area, codes]) => codes.map((code) => [code, area] as const)));
 
-        // Create work time map by machine (no duplicates)
-        const machineWorkTime = new Map<string, number>();
-        workTimeResult.recordset.forEach(row => {
-            machineWorkTime.set(row.machine_code, row.work_time);
-        });
-
-        // Group machines by custom areas
-        const areaMap = new Map<string, { 
-            work_time: number; 
-            commessas: Map<number, number>;
-        }>();
-        
-        // Add work time per area (from work time map, no duplicates)
-        for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
-            const codes = machineCodes as readonly string[];
-            let totalWorkTime = 0;
-            
-            codes.forEach(machineCode => {
-                totalWorkTime += machineWorkTime.get(machineCode) || 0;
-            });
-            
-            areaMap.set(areaName, {
-                work_time: totalWorkTime,
-                commessas: new Map()
-            });
+        // Quantity per area and order
+        const orderQty = new Map<string, Map<number, number>>(Object.keys(MACHINE_AREAS).map((area) => [area, new Map()]));
+        for (const row of quantityResult.recordset) {
+            const area = areaOfMachine.get(row.machine_code);
+            if (!area || !row.ordine) continue;
+            const orders = orderQty.get(area)!;
+            if (area === ANALYTICS.FOLDING_AREA) orders.set(row.ordine, (orders.get(row.ordine) || 0) + row.completed_quantity);
+            else if (!orders.has(row.ordine)) orders.set(row.ordine, row.requested_quantity);
         }
-        
-        // Now add quantities per order (from quantity result)
-        quantityResult.recordset.forEach(row => {
-            for (const [areaName, machineCodes] of Object.entries(MACHINE_AREAS)) {
-                const codes = machineCodes as readonly string[];
-                if (codes.includes(row.machine_code)) {
-                    const current = areaMap.get(areaName);
-                    if (current && row.ordine) {
-                        if (areaName === 'Piega') {
-                            // Sum all completed quantities for this order
-                            const existingQty = current.commessas.get(row.ordine) || 0;
-                            current.commessas.set(row.ordine, existingQty + row.completed_quantity);
-                        } else {
-                            // Use requested quantity (only store once per order)
-                            if (!current.commessas.has(row.ordine)) {
-                                current.commessas.set(row.ordine, row.requested_quantity);
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-        });
 
-        // Convert to array format and sum unique commessa quantities
-        let areaData = Array.from(areaMap.entries()).map(([area_name, data], index) => {
-            const totalQty = Array.from(data.commessas.values()).reduce((sum, qty) => sum + qty, 0);
-            // Apply 2% excess for velocity calculation
-            const adjustedQty = totalQty * 1.02;
-            const velocity = data.work_time > 0 ? adjustedQty / data.work_time : 0;
-            
-            // Get target velocity and calculate efficiency
-            const targetVelocity = APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY[area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_TARGET_VELOCITY] || 0;
-            const efficiency = targetVelocity > 0 ? (velocity / targetVelocity) * 100 : 0;
-            
+        let rows: AreaSummaryRow[] = Object.entries(MACHINE_AREAS).map(([area_name, codes], index) => {
+            const work_time = codes.reduce((sum, code) => sum + (machineWorkTime.get(code) || 0), 0);
+            const requested_quantity = Array.from(orderQty.get(area_name)!.values()).reduce((sum, qty) => sum + qty, 0);
+            const velocity = work_time > 0 ? (requested_quantity * ANALYTICS.AREA_QUANTITY_EXCESS) / work_time : 0;
+            const target_velocity = ANALYTICS.AREA_TARGET_VELOCITY[area_name as keyof typeof ANALYTICS.AREA_TARGET_VELOCITY] || 0;
             return {
                 area_name,
-                work_time: data.work_time,
-                requested_quantity: totalQty,
-                velocity: velocity,
-                target_velocity: targetVelocity,
-                efficiency: efficiency,
-                machine_count: (MACHINE_AREAS[area_name as keyof typeof MACHINE_AREAS] as readonly string[])?.length || 0,
-                display_order: index // Track original order from MACHINE_AREAS
+                work_time,
+                requested_quantity,
+                velocity,
+                target_velocity,
+                efficiency: target_velocity > 0 ? (velocity / target_velocity) * 100 : 0,
+                machine_count: codes.length,
+                display_order: index,
             };
         });
 
-        // Apply area filter if provided
         if (filters?.machine) {
-            const searchTerm = filters.machine.toLowerCase();
-            areaData = areaData.filter(row => 
-                row.area_name.toLowerCase().includes(searchTerm)
-            );
+            const term = filters.machine.toLowerCase();
+            rows = rows.filter((row) => row.area_name.toLowerCase().includes(term));
         }
 
-        // Sort data (if no sort specified, use display_order from MACHINE_AREAS)
-        const sortColumn = sort?.column || 'display_order';
-        const sortDirection = sort?.direction || 'asc';
-        
-        areaData.sort((a, b) => {
-            let aVal: string | number;
-            let bVal: string | number;
-            
-            if (sortColumn === 'area_name') {
-                aVal = a.area_name;
-                bVal = b.area_name;
-            } else if (sortColumn === 'requested_quantity') {
-                aVal = a.requested_quantity;
-                bVal = b.requested_quantity;
-            } else if (sortColumn === 'velocity') {
-                aVal = a.velocity;
-                bVal = b.velocity;
-            } else if (sortColumn === 'efficiency') {
-                aVal = a.efficiency;
-                bVal = b.efficiency;
-            } else if (sortColumn === 'display_order') {
-                aVal = a.display_order;
-                bVal = b.display_order;
-            } else {
-                aVal = a.work_time;
-                bVal = b.work_time;
-            }
-            
-            if (typeof aVal === 'string') {
-                return sortDirection === 'asc' 
-                    ? aVal.localeCompare(bVal as string)
-                    : (bVal as string).localeCompare(aVal);
-            }
-            
-            return sortDirection === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
-        });
-
-        const total = areaData.length;
-        
-        // Apply pagination
-        const offset = calculateOffset(page, limit);
-        const paginatedData = exportAll ? areaData : areaData.slice(offset, offset + limit);
-
-        return {
-            success: true,
-            data: paginatedData,
-            pagination: buildPaginationResult(page, limit, total)
-        };
+        return { success: true, ...sortAndPage(rows, sort, AREA_SUMMARY_SORT, { column: 'display_order', direction: 'asc' }, undefined, page, limit) };
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: buildPaginationResult(page, limit, 0)
-        };
+        return failure(err, page, limit);
     }
 }
 
 /**
  * ============================================================================
- * ORDER AREA SUMMARY REPORT
+ * ORDER AREA SUMMARY REPORT (Sommario Ordini per Area): operator work time per order and area
  * ============================================================================
- *
- * Shows operator work time per commessa grouped by custom area.
- * Uses the same OPE data as Order Summary but maps machines to areas
- * defined in APP_CONFIG.ANALYTICS.MACHINE_AREAS.
- *
- * COLUMNS: commessa, area, ore_lavoro_atteso (null - TBD), ore_lavoro, qnta_richiesta
- *
- * FILTERS:
- * - Date range (required)
- * - Commessa code or description (fuzzy search)
- * - Area name (fuzzy search, applied in app layer)
- *
- * GROUPING: By commessa + area (app-layer aggregation over machine groups)
- *
- * PERFORMANCE: Fast - single database, indexed columns
- * ============================================================================
+ * Operator time per machine and order from SQL, summed per area in code. Areas with no expected speed and rows
+ * under MIN_WORK_TIME_MINUTES are left out. Pages and composition come from Business (movord).
  */
+interface OrderAreaRow {
+    commessa_full: string;
+    commessa_display: string;
+    order_description: string;
+    area_name: string;
+    /** Position of the area in MACHINE_AREAS (production flow) */
+    area_index: number;
+    work_time: number;
+    qty_requested: number | null;
+    client_name: string | null;
+    pages: number | null;
+    composition: string | null;
+    fogli: number | null;
+}
+
+/** Sheets of an order: the sum of the "N/" groups of its composition × the requested quantity */
+function sheetsOf(composition: string | null, qtyRequested: number | null): number | null {
+    if (!composition || qtyRequested == null) return null;
+    const groups = Array.from(composition.matchAll(/(\d+)\s*\//g), (m) => parseInt(m[1], 10));
+    return groups.length > 0 ? groups.reduce((sum, n) => sum + n, 0) * qtyRequested : null;
+}
+
+const ORDER_AREA_SORT: RowSortColumns<OrderAreaRow> = {
+    // Default order: by order number, then areas in production order
+    display_order: (row) => `${row.commessa_display}|${String(row.area_index).padStart(3, '0')}`,
+    commessa: (row) => row.commessa_display,
+    area: (row) => row.area_name,
+    time: (row) => row.work_time,
+    qty_requested: (row) => row.qty_requested,
+    pages: (row) => row.pages,
+    composition: (row) => row.composition,
+    fogli: (row) => row.fogli,
+    client_name: (row) => row.client_name,
+};
+
+/**
+ * Order of the SQL rows before they are summed per area: it decides which machine row gives an order its
+ * full number and description, so it follows the chosen column like before.
+ */
+const ORDER_AREA_SQL_SORT: Record<string, string> = {
+    commessa: MIN_ORDER_CORE,
+    time: 'SUM(SIT.LAVORO)',
+    qty_requested: 'MAX(JST.QTA_RICHIESTA)',
+};
+
 export async function getOrderAreaSummaryDataAction(
     year: number = 2024,
     page: number = 1,
@@ -530,105 +366,50 @@ export async function getOrderAreaSummaryDataAction(
         dateTo?: string;
         complexOnly?: boolean;
     },
-    sort?: SortConfig,
-    exportAll: boolean = false
+    sort?: SortConfig
 ) {
     try {
-        const startDate = filters?.dateFrom || `${year}-01-01`;
-        const endDate = filters?.dateTo || `${year + 2}-01-01`;
-
-        // Build WHERE conditions - OPE data (operator work time)
-        const conditions: string[] = [
-            'SIT.DATA >= @startDate',
-            'SIT.DATA <= @endDate',
-            'SIT.TIPO = @tipo',
-            'SIT.TIPO_OGGETTO = @tipoOggetto',
-            'ORD.COMMESSA IS NOT NULL',
-            'SUBSTRING(ORD.COMMESSA, 4, 4) NOT IN (\'9990\', \'9998\', \'9999\')'
-        ];
-
-        const params: Record<string, any> = {
-            startDate,
-            endDate,
-            tipo: 'WORK',
-            tipoOggetto: 'OPE',
-        };
-
-        // Apply commessa filter only (area filter is applied in app layer)
+        const { conditions, params } = workFilter(year, 'OPE', filters);
+        conditions.push('ORD.COMMESSA IS NOT NULL', `${ORDER_CORE} NOT IN (${ANALYTICS.EXCLUDED_ORDER_NUMBERS.map((n) => `'${n}'`).join(', ')})`);
         buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
 
-        const whereClause = conditions.join(' AND ');
+        const sqlSort = sort && ORDER_AREA_SQL_SORT[sort.column];
+        const sqlOrderBy = sqlSort ? `${sqlSort} ${sort.direction.toUpperCase()}` : 'MIN(SIT.DATA) DESC, SIT.MACCHINA ASC';
 
-        // Build ORDER BY for the SQL query (pre-aggregation sort)
-        const orderByClause = buildOrderAreaSummaryOrderBy(
-            sort?.column || '',
-            sort?.direction || 'asc'
-        );
-
-        // Fetch raw data grouped by machine + commessa (same as order summary)
         const rawResult = await queryMSSQL(`
             SELECT
                 SIT.MACCHINA as machine_code,
                 SUM(SIT.LAVORO) as work_time,
                 MAX(JST.QTA_RICHIESTA) as qty_requested,
                 MIN(ORD.COMMESSA) as commessa_full,
-                SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_display,
+                ${MIN_ORDER_CORE} as commessa_display,
                 MIN(ORD.DESCRIZIONE) as order_description,
                 MAX(CCA.descr) as client_name
-            FROM SITUAZIONI SIT WITH (NOLOCK)
-            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            ${WORK_ROWS}
             LEFT JOIN cliente_commessa_attivita CCA WITH (NOLOCK) ON ORD.COMMESSA = CCA.commessa
-            WHERE ${whereClause}
-            GROUP BY SIT.MACCHINA, SUBSTRING(ORD.COMMESSA, 4, 4)
-            HAVING SUM(SIT.LAVORO) > 0.1
-            ORDER BY ${orderByClause}
+            WHERE ${conditions.join(' AND ')}
+            GROUP BY SIT.MACCHINA, ${ORDER_CORE}
+            HAVING SUM(SIT.LAVORO) > ${ANALYTICS.MIN_ROW_WORK_HOURS}
+            ORDER BY ${sqlOrderBy}
         `, params, 'NETPRO');
 
-        // Load machine→area config
-        const { APP_CONFIG } = await import('@/config/constants');
-        const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
-        const areaOrderedList = Object.keys(MACHINE_AREAS);
+        const areaOfMachine = new Map(
+            Object.entries(MACHINE_AREAS).flatMap(([name, codes], index) => codes.map((code) => [code, { name, index }] as const))
+        );
 
-        // Build a reverse map: machine_code → { area_name, area_index }
-        const machineToArea = new Map<string, { name: string; index: number }>();
-        areaOrderedList.forEach((areaName, index) => {
-            const codes = MACHINE_AREAS[areaName as keyof typeof MACHINE_AREAS] as readonly string[];
-            codes.forEach(code => {
-                machineToArea.set(code, { name: areaName, index });
-            });
-        });
-
-        // Aggregate per commessa + area in app layer
-        // Key: `${commessa_display}__${area_name}`
-        const aggMap = new Map<string, {
-            commessa_full: string;
-            commessa_display: string;
-            order_description: string;
-            area_name: string;
-            area_index: number;
-            work_time: number;
-            qty_requested: number | null;
-            client_name: string | null;
-        }>();
-
-        rawResult.recordset.forEach(row => {
-            const area = machineToArea.get(row.machine_code) || null;
-            if (!area) return; // Skip machines not mapped to any area
-
+        // Sum per order + area; the first row of an order gives its full number and description
+        const byOrderArea = new Map<string, Omit<OrderAreaRow, 'pages' | 'composition' | 'fogli'>>();
+        for (const row of rawResult.recordset) {
+            const area = areaOfMachine.get(row.machine_code);
+            if (!area) continue; // machine not in any area
             const key = `${row.commessa_display}__${area.name}`;
-            const existing = aggMap.get(key);
+            const existing = byOrderArea.get(key);
             if (existing) {
                 existing.work_time += row.work_time || 0;
-                // Use max of qty_requested across machines for same commessa+area
-                if (row.qty_requested != null) {
-                    existing.qty_requested = Math.max(existing.qty_requested ?? 0, row.qty_requested);
-                }
-                if (row.client_name) {
-                    existing.client_name = row.client_name;
-                }
+                if (row.qty_requested != null) existing.qty_requested = Math.max(existing.qty_requested ?? 0, row.qty_requested);
+                if (row.client_name) existing.client_name = row.client_name;
             } else {
-                aggMap.set(key, {
+                byOrderArea.set(key, {
                     commessa_full: row.commessa_full,
                     commessa_display: row.commessa_display,
                     order_description: row.order_description,
@@ -639,144 +420,37 @@ export async function getOrderAreaSummaryDataAction(
                     client_name: row.client_name || null,
                 });
             }
-        });
-
-        // Aggregated per commessa + area in app layer
-        // Filter by minimum work time and exclude zero velocity areas
-        const minTimeHours = APP_CONFIG.ANALYTICS.MIN_WORK_TIME_MINUTES / 60;
-        const filteredAggMapEntries = Array.from(aggMap.values()).filter(row => {
-            const velocity = APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY[row.area_name as keyof typeof APP_CONFIG.ANALYTICS.AREA_EXPECTED_VELOCITY] ?? 0;
-            return velocity > 0 && row.work_time >= minTimeHours;
-        });
-
-        // Convert to array
-        let resultData = filteredAggMapEntries;
-
-        // Fetch business data from BUSINESS DB for all unique commessas
-        const uniqueCommessas = Array.from(new Set(resultData.map(r => r.commessa_display)));
-        let businessDataMap: Record<string, { pages: number, composition: string }> = {};
-        if (uniqueCommessas.length > 0) {
-            businessDataMap = await fetchOrderBusinessData(uniqueCommessas);
         }
 
-        // Add pages and composition to resultData
-        const enrichedResultData = resultData.map(r => {
-            const bData = businessDataMap[r.commessa_display];
-            const comp = bData?.composition || null;
-            
-            // Calculate fogli
-            let fogli: number | null = null;
-            if (comp) {
-                const regex = /(\d+)\s*\//g;
-                let sum = 0;
-                let found = false;
-                let match;
-                while ((match = regex.exec(comp)) !== null) {
-                    sum += parseInt(match[1], 10);
-                    found = true;
-                }
-                if (found && r.qty_requested != null) {
-                    fogli = sum * r.qty_requested;
-                }
-            }
-
-            return {
-                ...r,
-                pages: bData?.pages ?? null,
-                composition: comp,
-                fogli: fogli
-            };
+        const minHours = ANALYTICS.MIN_WORK_TIME_MINUTES / 60;
+        const kept = Array.from(byOrderArea.values()).filter((row) => {
+            const velocity = ANALYTICS.AREA_EXPECTED_VELOCITY[row.area_name as keyof typeof ANALYTICS.AREA_EXPECTED_VELOCITY] ?? 0;
+            return velocity > 0 && row.work_time >= minHours;
         });
-        
-        resultData = enrichedResultData;
 
-        // Filter by number of areas per commessa (Complex projects only)
+        // Pages and composition from Business
+        const orderNumbers = Array.from(new Set(kept.map((row) => row.commessa_display)));
+        const businessData = orderNumbers.length > 0 ? await fetchOrderBusinessData(orderNumbers) : {};
+        let rows: OrderAreaRow[] = kept.map((row) => {
+            const order = businessData[row.commessa_display];
+            const composition = order?.composition || null;
+            return { ...row, pages: order?.pages ?? null, composition, fogli: sheetsOf(composition, row.qty_requested) };
+        });
+
+        // "Solo complessi": orders worked in more than two areas
         if (filters?.complexOnly) {
-            const commessaAreaCounts = new Map<string, number>();
-            resultData.forEach(r => {
-                commessaAreaCounts.set(r.commessa_display, (commessaAreaCounts.get(r.commessa_display) || 0) + 1);
-            });
-            resultData = resultData.filter(r => (commessaAreaCounts.get(r.commessa_display) || 0) > 2);
+            const areasPerOrder = new Map<string, number>();
+            rows.forEach((row) => areasPerOrder.set(row.commessa_display, (areasPerOrder.get(row.commessa_display) || 0) + 1));
+            rows = rows.filter((row) => (areasPerOrder.get(row.commessa_display) || 0) > 2);
         }
 
-        // Apply area filter in app layer
         if (filters?.area) {
-            const searchTerm = filters.area.toLowerCase();
-            resultData = resultData.filter(r =>
-                r.area_name.toLowerCase().includes(searchTerm)
-            );
+            const term = filters.area.toLowerCase();
+            rows = rows.filter((row) => row.area_name.toLowerCase().includes(term));
         }
 
-        // Sort in app layer
-        // If no sort column specified, sort by area_index (default area order) then commessa
-        const sortColumn = sort?.column || 'display_order';
-        const sortDirection = sort?.direction || 'asc';
-        
-        resultData.sort((a, b) => {
-            let aVal: string | number;
-            let bVal: string | number;
-
-            if (sortColumn === 'display_order') {
-                // Primary sort: Commessa (Ascending - chronological by number)
-                if (a.commessa_display !== b.commessa_display) {
-                    return a.commessa_display.localeCompare(b.commessa_display);
-                }
-                // Secondary sort: Area Index (Ascending - production flow)
-                return a.area_index - b.area_index;
-            }
-
-            if (sortColumn === 'area') {
-                aVal = a.area_name;
-                bVal = b.area_name;
-            } else if (sortColumn === 'time') {
-                aVal = a.work_time;
-                bVal = b.work_time;
-            } else if (sortColumn === 'qty_requested') {
-                aVal = a.qty_requested ?? 0;
-                bVal = b.qty_requested ?? 0;
-            } else if (sortColumn === 'pages') {
-                aVal = (a as any).pages ?? 0;
-                bVal = (b as any).pages ?? 0;
-            } else if (sortColumn === 'composition') {
-                aVal = (a as any).composition ?? '';
-                bVal = (b as any).composition ?? '';
-            } else if (sortColumn === 'fogli') {
-                aVal = (a as any).fogli ?? 0;
-                bVal = (b as any).fogli ?? 0;
-            } else if (sortColumn === 'client_name') {
-                aVal = a.client_name ?? '';
-                bVal = b.client_name ?? '';
-            } else {
-                // Default: commessa
-                aVal = a.commessa_display;
-                bVal = b.commessa_display;
-            }
-
-            if (typeof aVal === 'string') {
-                return sortDirection === 'asc'
-                    ? aVal.localeCompare(bVal as string)
-                    : (bVal as string).localeCompare(aVal);
-            }
-            return sortDirection === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
-        });
-
-        const total = resultData.length;
-
-        // Apply pagination in app layer
-        const offset = calculateOffset(page, limit);
-        const paginatedData = exportAll ? resultData : resultData.slice(offset, offset + limit);
-
-        return {
-            success: true,
-            data: paginatedData,
-            pagination: buildPaginationResult(page, limit, total)
-        };
+        return { success: true, ...sortAndPage(rows, sort, ORDER_AREA_SORT, { column: 'display_order', direction: 'asc' }, undefined, page, limit) };
     } catch (err: any) {
-        return {
-            success: false,
-            error: err.message,
-            data: [],
-            pagination: buildPaginationResult(page, limit, 0)
-        };
+        return failure(err, page, limit);
     }
 }

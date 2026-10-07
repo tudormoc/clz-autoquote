@@ -75,8 +75,8 @@ export function OrderSummaryReport() {
     const report = useReportTable<Filters, OrderSummaryRow>({
         initialFilters,
         defaultSort: { column: 'commessa', direction: 'asc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getOrderSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getOrderSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
     });
     const { filters, updateFilters } = report;
 

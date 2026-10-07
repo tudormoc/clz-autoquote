@@ -96,8 +96,8 @@ export function AreaSummaryReport() {
     const report = useReportTable<Filters, AreaSummaryRow>({
         initialFilters,
         defaultSort: { column: 'display_order', direction: 'asc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
     });
     const { filters, updateFilters, applied } = report;
 

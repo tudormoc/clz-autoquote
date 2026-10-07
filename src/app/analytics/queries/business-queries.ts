@@ -207,7 +207,7 @@ export async function getOrderRevenueDataAction(
 
         return {
             success: true,
-            ...sortAndPage(rows, sort, ORDER_REVENUE_SORT, 'delivered_revenue', (row) => row.commessa_display, page, limit)
+            ...sortAndPage(rows, sort, ORDER_REVENUE_SORT, { column: 'delivered_revenue', direction: 'desc' }, (row) => row.commessa_display, page, limit)
         };
     } catch (err: any) {
         console.error('OrderRevenueDataAction error:', err);
@@ -413,7 +413,7 @@ export async function getClientSummaryDataAction(
 
         return {
             success: true,
-            ...sortAndPage(rows, sort, CLIENT_SUMMARY_SORT, 'revenue', (row) => String(row.client_code), page, limit)
+            ...sortAndPage(rows, sort, CLIENT_SUMMARY_SORT, { column: 'revenue', direction: 'desc' }, (row) => String(row.client_code), page, limit)
         };
     } catch (err: any) {
         console.error('ClientSummaryDataAction error:', err);

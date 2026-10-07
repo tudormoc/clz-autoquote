@@ -165,12 +165,12 @@ export function OrderAreaSummaryReport() {
         initialFilters,
         // No order until the user picks a column: the query then uses its own default order
         defaultSort: null,
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getOrderAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll) as Promise<
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getOrderAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined) as Promise<
                 PageResult<OrderAreaSummaryRow>
             >,
         fetchSummary: async (filters) => {
-            const result = await getOrderAreaSummaryDataAction(YEAR, 1, EXPORT_LIMIT, toQuery(filters), undefined, true);
+            const result = await getOrderAreaSummaryDataAction(YEAR, 1, EXPORT_LIMIT, toQuery(filters));
             return { success: result.success, data: result.success ? summarizeByCommessa(result.data as OrderAreaSummaryRow[]) : null };
         },
     });

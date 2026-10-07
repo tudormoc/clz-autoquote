@@ -46,98 +46,40 @@ export function buildPaginationResult(
 }
 
 /**
- * Build ORDER BY clause for production-related queries (NETPRO)
+ * ORDER BY of a report sorted in SQL: `columns` maps the UI sort keys to SQL expressions. No sort → `defaultSort`;
+ * an unknown key → the default column in the requested direction. `tieBreaker` (the GROUP BY columns) keeps pages
+ * stable when values repeat.
  */
-export function buildProductionOrderBy(
-    sortColumn: string = 'date',
-    sortDirection: 'asc' | 'desc' = 'asc'
+export function buildSqlOrderBy(
+    columns: Record<string, string>,
+    sort: SortConfig | undefined,
+    defaultSort: SortConfig,
+    tieBreaker: string
 ): string {
-    const direction = sortDirection.toUpperCase();
-    
-    switch (sortColumn) {
-        case 'date':
-            return `SIT.DATA ${direction}`;
-        case 'commessa':
-            return `SUBSTRING(MIN(ORD.COMMESSA), 4, 4) ${direction}`;
-        case 'machine':
-            return `SIT.MACCHINA ${direction}`;
-        case 'operator':
-            return `SIT.OGGETTO ${direction}`;
-        case 'time':
-            return `SUM(SIT.LAVORO) ${direction}`;
-        case 'qty':
-            return `SUM(SIT.QTA_COMPLETATA) ${direction}`;
-        case 'qty_requested':
-            return `MAX(JST.QTA_RICHIESTA) ${direction}`;
-        default:
-            return `SIT.DATA ${direction}`;
-    }
+    const column = (sort && columns[sort.column]) || columns[defaultSort.column];
+    const direction = (sort?.direction ?? defaultSort.direction).toUpperCase();
+    // SQL Server rejects a column listed twice
+    const ties = tieBreaker.split(',').map((t) => t.trim()).filter((t) => t !== column);
+    return [`${column} ${direction}`, ...ties].join(', ');
 }
 
 /**
- * Build ORDER BY clause for order summary queries (NETPRO, grouped by machine)
- */
-export function buildOrderSummaryOrderBy(
-    sortColumn: string = 'commessa',
-    sortDirection: 'asc' | 'desc' = 'asc'
-): string {
-    const direction = sortDirection.toUpperCase();
-    
-    switch (sortColumn) {
-        case 'commessa':
-            return `SUBSTRING(MIN(ORD.COMMESSA), 4, 4) ${direction}`;
-        case 'machine':
-            return `SIT.MACCHINA ${direction}`;
-        case 'time':
-            return `SUM(SIT.LAVORO) ${direction}`;
-        case 'qty':
-            return `SUM(SIT.QTA_COMPLETATA) ${direction}`;
-        case 'qty_requested':
-            return `MAX(JST.QTA_RICHIESTA) ${direction}`;
-        default:
-            return `SUBSTRING(MIN(ORD.COMMESSA), 4, 4) ${direction}`;
-    }
-}
-
-/**
- * Build ORDER BY clause for order area summary queries (NETPRO, grouped by machine + commessa).
- * Area grouping is handled in the application layer (post-SQL), but pre-grouping sort is still needed.
- */
-export function buildOrderAreaSummaryOrderBy(
-    sortColumn: string = '',
-    sortDirection: 'asc' | 'desc' = 'asc'
-): string {
-    const direction = sortDirection.toUpperCase();
-
-    switch (sortColumn) {
-        case 'commessa':
-            return `SUBSTRING(MIN(ORD.COMMESSA), 4, 4) ${direction}`;
-        case 'time':
-            return `SUM(SIT.LAVORO) ${direction}`;
-        case 'qty_requested':
-            return `MAX(JST.QTA_RICHIESTA) ${direction}`;
-        default:
-            // Natural order: by date (newest first) if no sort is specified
-            return `MIN(SIT.DATA) DESC, SIT.MACCHINA ASC`;
-    }
-}
-
-/**
- * Sorts all rows of a report, then cuts the requested page. For reports whose rows are completed after the query
- * (labour cost from NetPro), so every column, margin included, sorts on the value shown. An unknown sort key uses
- * `fallback` (descending when no sort is given); the tie-breaker keeps the order stable across pages.
+ * Sorts all rows of a report, then cuts the requested page. For reports whose rows are built or completed after the
+ * query (labour cost from NetPro, areas), so every column sorts on the value shown. No sort → `defaultSort`; an
+ * unknown sort key → the default column in the requested direction. The tie-breaker keeps pages stable.
  */
 export function sortAndPage<T>(
     rows: T[],
     sort: SortConfig | undefined,
     columns: RowSortColumns<T>,
-    fallback: string,
-    tieBreaker: (row: T) => string,
+    defaultSort: SortConfig,
+    tieBreaker: ((row: T) => string) | undefined,
     page: number,
     limit: number
 ): { data: T[]; pagination: PaginationResult } {
-    const value = (sort && columns[sort.column]) || columns[fallback];
-    const sorted = sortRows(rows, value, sort?.direction ?? 'desc', (a, b) => tieBreaker(a).localeCompare(tieBreaker(b)));
+    const value = (sort && columns[sort.column]) || columns[defaultSort.column];
+    const direction = sort?.direction ?? defaultSort.direction;
+    const sorted = sortRows(rows, value, direction, tieBreaker && ((a, b) => tieBreaker(a).localeCompare(tieBreaker(b))));
     const offset = calculateOffset(page, limit);
     return { data: sorted.slice(offset, offset + limit), pagination: buildPaginationResult(page, limit, rows.length) };
 }
@@ -173,6 +115,11 @@ export function buildCommessaDescriptionFilter(
     }
     
     return '';
+}
+
+/** The 4-digit order number shown to users, from a NetPro `ORDINI.COMMESSA` code (docs/DATABASE.md) */
+export function netproOrderCore(column: string): string {
+    return `SUBSTRING(${column}, 4, 4)`;
 }
 
 /** The 4-digit order number shown to users, from a Business `dw_commeca` code (docs/DATABASE.md) */

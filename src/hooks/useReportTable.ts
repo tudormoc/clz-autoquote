@@ -22,8 +22,6 @@ export interface PageQuery<F> {
     limit: number;
     /** null when the report has no default order and the user has not sorted yet */
     sort: SortState | null;
-    /** true for exports: every row, no paging */
-    exportAll: boolean;
 }
 
 interface UseReportTableOptions<F, R, S> {
@@ -85,7 +83,7 @@ export function useReportTable<F, R, S = never>({
         if (applied === null) return;
         const id = ++requestId.current;
         setLoading(true);
-        fetchPageRef.current({ filters: applied, page, limit: pageSize, sort, exportAll: false })
+        fetchPageRef.current({ filters: applied, page, limit: pageSize, sort })
             .then((result) => {
                 if (id !== requestId.current) return;
                 if (result.success) {
@@ -144,7 +142,7 @@ export function useReportTable<F, R, S = never>({
     /** Every row for the applied filters and current order (used by exports) */
     const fetchAll = async (): Promise<R[]> => {
         if (applied === null) return [];
-        const result = await fetchPageRef.current({ filters: applied, page: 1, limit: EXPORT_LIMIT, sort, exportAll: true });
+        const result = await fetchPageRef.current({ filters: applied, page: 1, limit: EXPORT_LIMIT, sort });
         return result.success ? result.data : [];
     };
 

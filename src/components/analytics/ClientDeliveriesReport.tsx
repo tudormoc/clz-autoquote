@@ -64,8 +64,8 @@ export function ClientDeliveriesReport() {
     const report = useReportTable<Filters, ClientDeliveryRow, Stats>({
         initialFilters,
         defaultSort: { column: 'delivered_value', direction: 'desc' },
-        fetchPage: ({ filters, page, limit, sort, exportAll }) =>
-            getClientDeliveriesDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined, exportAll),
+        fetchPage: ({ filters, page, limit, sort }) =>
+            getClientDeliveriesDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined),
         fetchSummary: (filters) => getClientDeliveriesStatsAction(YEAR, toQuery(filters)),
     });
     const { filters, updateFilters } = report;
