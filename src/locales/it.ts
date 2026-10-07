@@ -706,6 +706,11 @@ export const APP_COPY = {
         turno: "Turno",
       },
       employeeCategory: "Categoria Dipendente",
+      causale: {
+        placeholder: "Causale...",
+        remove: "Rimuovi",
+        removeTitle: "Rimuovi causale",
+      },
       totals: {
         label: "Totale",
       },

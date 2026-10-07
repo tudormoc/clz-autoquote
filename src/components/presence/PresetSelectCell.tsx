@@ -1,229 +1,96 @@
 'use client';
 
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Loader2, X } from 'lucide-react';
+import { PresetPopup } from '@/components/presence/PresetPopup';
+import { useInlineEditor } from '@/hooks/useInlineEditor';
+import { EMPTY_VALUE } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 
 interface PresetSelectCellProps {
     value: string | null;
     presets?: string[];
     onSave: (newValue: string | null) => Promise<boolean>;
-    placeholder?: string;
-    disabled?: boolean;
 }
 
-/**
- * Dedicated inline cell for Causale (Ferie / Permesso) preset tag selection and custom text.
- */
-export function PresetSelectCell({
-    value,
-    presets = [],
-    onSave,
-    placeholder = '—',
-    disabled = false,
-}: PresetSelectCellProps) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editValue, setEditValue] = useState<string>('');
-    const [saving, setSaving] = useState(false);
-    const [openAbove, setOpenAbove] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+const copy = APP_COPY.analytics.monthlySummary.causale;
 
-    const updatePopupPosition = (targetElement?: HTMLElement | null) => {
-        const el = targetElement || containerRef.current || inputRef.current;
-        if (!el) return;
+/** Typed or picked text → value to save: upper-cased, '' → null */
+const toCausale = (text: string): string | null => text.trim().toUpperCase() || null;
 
-        const rect = el.getBoundingClientRect();
-        const spaceBelowViewport = window.innerHeight - rect.bottom;
+/** Causale cell (ferie / permesso) of the monthly table: pick a preset tag or type a text; can be removed. */
+export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCellProps) {
+    const editor = useInlineEditor<string | null>({ onSave });
 
-        const tr = el.closest('tr');
-        const isLastRow = tr ? !tr.nextElementSibling : false;
-
-        const tableContainer = el.closest('.overflow-x-auto') || el.closest('table');
-        let tableSpaceBelow = spaceBelowViewport;
-        if (tableContainer) {
-            const tableRect = tableContainer.getBoundingClientRect();
-            tableSpaceBelow = tableRect.bottom - rect.bottom;
-        }
-
-        const effectiveSpaceBelow = Math.min(spaceBelowViewport, tableSpaceBelow);
-        setOpenAbove(isLastRow || effectiveSpaceBelow < 140);
+    const commit = () => {
+        if (!editor.isEditing || editor.saving) return;
+        const next = toCausale(editor.editValue);
+        if (next === (value || null)) editor.close();
+        else editor.save(next);
     };
 
-    useEffect(() => {
-        if (isEditing && inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.select();
-            updatePopupPosition(inputRef.current);
-
-            const handleScroll = () => updatePopupPosition(inputRef.current);
-            window.addEventListener('scroll', handleScroll, true);
-            return () => window.removeEventListener('scroll', handleScroll, true);
-        }
-    }, [isEditing]);
-
-    const handleStartEdit = (e?: React.MouseEvent<HTMLElement>) => {
-        if (disabled || saving) return;
-        if (e?.currentTarget) {
-            updatePopupPosition(e.currentTarget);
-        }
-        setEditValue(value || '');
-        setIsEditing(true);
-    };
-
-    const handleCancel = () => {
-        setIsEditing(false);
-        setEditValue('');
-    };
-
-    const handleSavePreset = async (presetText: string) => {
-        setSaving(true);
-        try {
-            const trimmed = presetText.trim().toUpperCase();
-            const success = await onSave(trimmed === '' ? null : trimmed);
-            if (success) {
-                setIsEditing(false);
-            }
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleClear = async () => {
-        setSaving(true);
-        try {
-            const success = await onSave(null);
-            if (success) {
-                setIsEditing(false);
-            }
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleCommit = async () => {
-        if (!isEditing || saving) return;
-        const trimmed = editValue.trim().toUpperCase();
-        const finalVal = trimmed === '' ? null : trimmed;
-
-        if (finalVal === (value || null)) {
-            setIsEditing(false);
-            return;
-        }
-
-        setSaving(true);
-        try {
-            const success = await onSave(finalVal);
-            if (success) {
-                setIsEditing(false);
-            }
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleCommit();
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            handleCancel();
-        }
-    };
-
-    if (saving) {
+    if (editor.saving) {
         return (
             <div className="flex items-center justify-center px-2 py-1 text-xs text-primary font-mono gap-1">
                 <Loader2 size={12} className="animate-spin" />
-                <span>{editValue || '...'}</span>
+                <span>{editor.editValue || '...'}</span>
             </div>
         );
     }
 
-    if (isEditing) {
+    if (editor.isEditing) {
         return (
-            <div ref={containerRef} className="relative flex items-center justify-center z-30">
+            <div className="relative flex items-center justify-center z-30">
                 <input
-                    ref={inputRef}
+                    ref={editor.inputRef}
                     type="text"
-                    value={editValue}
-                    placeholder="Causale..."
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={handleCommit}
-                    onKeyDown={handleKeyDown}
-                    className="h-7 min-w-[7rem] max-w-[14rem] px-2 text-xs text-center font-semibold uppercase bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
+                    value={editor.editValue}
+                    placeholder={copy.placeholder}
+                    onChange={(e) => editor.setEditValue(e.target.value)}
+                    onBlur={commit}
+                    onKeyDown={editor.keyDown(commit)}
+                    className="h-7 w-32 px-2 text-xs text-center font-semibold uppercase bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
                 />
-                <div
-                    className={`absolute ${
-                        openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                    } z-50 flex items-center gap-1 bg-card border border-border-strong p-1.5 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap`}
-                >
-                    {presets.map((p) => (
-                        <button
-                            key={p}
-                            type="button"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                handleSavePreset(p);
-                            }}
-                            className="px-2 py-0.5 text-3xs font-semibold bg-muted hover:bg-warning-600/30 hover:text-warning-300 text-fg-secondary border border-border-strong rounded transition-colors cursor-pointer"
-                        >
-                            {p}
-                        </button>
-                    ))}
+                <PresetPopup presets={presets} openAbove={editor.openAbove} onPick={(preset) => editor.save(toCausale(preset))}>
                     {value && (
                         <button
                             type="button"
                             onMouseDown={(e) => {
                                 e.preventDefault();
-                                handleClear();
+                                editor.save(null);
                             }}
-                            title="Rimuovi causale"
-                            className="px-1.5 py-0.5 text-3xs font-medium bg-danger-950/40 hover:bg-danger-900/60 text-danger-300 border border-danger-800/50 rounded transition-colors cursor-pointer flex items-center gap-1"
+                            title={copy.removeTitle}
+                            className="px-1.5 py-0.5 text-3xs font-medium bg-danger-950/40 hover:bg-danger-900/60 text-danger-300 border border-danger-800/50 rounded transition-colors flex items-center gap-1"
                         >
                             <X size={10} />
-                            <span>Rimuovi</span>
+                            <span>{copy.remove}</span>
                         </button>
                     )}
-                </div>
+                </PresetPopup>
             </div>
         );
     }
 
-    const hasValue = Boolean(value && value.trim() !== '');
-
-    if (hasValue) {
-        return (
-            <div className="flex justify-center">
-                <span
-                    onClick={handleStartEdit}
-                    title={disabled ? undefined : APP_COPY.common.clickToEdit}
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold transition-colors ${
-                        disabled
-                            ? 'bg-muted text-fg-muted'
-                            : 'bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 cursor-pointer'
-                    }`}
-                >
-                    {value}
-                </span>
-            </div>
-        );
-    }
+    const start = (e: React.MouseEvent<HTMLElement>) => editor.start(value || '', e);
 
     return (
         <div className="flex justify-center">
-            <span
-                onClick={handleStartEdit}
-                title={disabled ? undefined : APP_COPY.common.clickToEdit}
-                className={`px-2 py-0.5 rounded text-xs font-mono text-center block transition-colors ${
-                    disabled
-                        ? 'text-fg-faint cursor-default'
-                        : 'cursor-pointer hover:bg-muted/80 hover:text-fg-secondary text-fg-faint italic'
-                }`}
-            >
-                {placeholder}
-            </span>
+            {value && value.trim() !== '' ? (
+                <span
+                    onClick={start}
+                    title={APP_COPY.common.clickToEdit}
+                    className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold transition-colors bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 cursor-pointer"
+                >
+                    {value}
+                </span>
+            ) : (
+                <span
+                    onClick={start}
+                    title={APP_COPY.common.clickToEdit}
+                    className="px-2 py-0.5 rounded text-xs font-mono text-center block transition-colors cursor-pointer hover:bg-muted/80 hover:text-fg-secondary text-fg-faint italic"
+                >
+                    {EMPTY_VALUE}
+                </span>
+            )}
         </div>
     );
 }
