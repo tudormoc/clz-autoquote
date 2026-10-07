@@ -173,6 +173,10 @@ export const APP_CONFIG = {
     AUTO_EXIT_TIME_SATURDAY: '11:00:00',
     // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
     TRIGGER_HOUR: 19,
+    // Starting values of the "Aggiungi Evento" form in Daily Events
+    NEW_EVENT_DEFAULTS: { operator: '98', event: 'EXT', time: '17:35:00' },
+    // Event types the form can add
+    NEW_EVENT_TYPES: ['ENT', 'EXT'],
   },
 
   // External Report Services

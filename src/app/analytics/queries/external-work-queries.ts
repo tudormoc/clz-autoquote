@@ -14,6 +14,7 @@
 
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
+import type { SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
     commessa?: string;
@@ -22,10 +23,6 @@ interface SupplierFilters {
     dateTo?: string;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
 
 /**
  * ============================================================================

@@ -6,14 +6,11 @@
  */
 
 import { APP_COPY } from '@/locales';
+import { sortRows, type RowSortColumns, type SortState } from '@/lib/sort';
 
-/**
- * Standard sort configuration
- */
-export interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+/** Sort requested by a report (UI column key + direction) */
+export type SortConfig = SortState;
+export type { RowSortColumns };
 
 /**
  * Standard pagination result
@@ -125,9 +122,6 @@ export function buildOrderAreaSummaryOrderBy(
     }
 }
 
-/** UI sort key → the row value it sorts on */
-export type RowSortColumns<T> = Record<string, (row: T) => number | string>;
-
 /**
  * Sorts all rows of a report, then cuts the requested page. For reports whose rows are completed after the query
  * (labour cost from NetPro), so every column, margin included, sorts on the value shown. An unknown sort key uses
@@ -143,13 +137,7 @@ export function sortAndPage<T>(
     limit: number
 ): { data: T[]; pagination: PaginationResult } {
     const value = (sort && columns[sort.column]) || columns[fallback];
-    const direction = sort?.direction === 'asc' ? 1 : -1;
-    const sorted = [...rows].sort((a, b) => {
-        const va = value(a);
-        const vb = value(b);
-        const diff = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
-        return diff * direction || tieBreaker(a).localeCompare(tieBreaker(b));
-    });
+    const sorted = sortRows(rows, value, sort?.direction ?? 'desc', (a, b) => tieBreaker(a).localeCompare(tieBreaker(b)));
     const offset = calculateOffset(page, limit);
     return { data: sorted.slice(offset, offset + limit), pagination: buildPaginationResult(page, limit, rows.length) };
 }

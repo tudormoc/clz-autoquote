@@ -1,409 +1,156 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Button } from '@/components/ui/Button';
-import { Search, X, ArrowUpDown, ArrowUp, ArrowDown, Save, X as XIcon } from 'lucide-react';
+import { useState } from 'react';
 import { getOperatorsAction, updateOperatorAction, type OperatorRow } from '@/app/presence/presence-actions';
-import { APP_COPY } from '@/locales';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { EditableCell } from '@/components/ui/EditableCell';
+import { FilterPanel } from '@/components/ui/FilterPanel';
+import { Input } from '@/components/ui/Input';
+import { RecordCount } from '@/components/ui/RecordCount';
+import { SearchField } from '@/components/ui/SearchField';
+import { Select } from '@/components/ui/Select';
+import { MissingValue } from '@/components/ui/TableCells';
+import { ToggleChips } from '@/components/ui/ToggleChips';
+import { useClientSort } from '@/hooks/useClientSort';
+import { useListQuery } from '@/hooks/useListQuery';
+import { EMPTY_VALUE } from '@/lib/format';
+import type { RowSortColumns } from '@/lib/sort';
+import { cn, toggleInSet } from '@/lib/utils';
+import { APP_COPY, fmt } from '@/locales';
 
-// Column keys that can be sorted
-type SortColumn = keyof OperatorRow;
+type EditableColumn = 'BADGE' | 'NOME' | 'STATO_FISICO';
 
-interface SortConfig {
-    column: SortColumn;
-    direction: 'asc' | 'desc';
-}
+const copy = APP_COPY.analytics.operators;
 
-interface EditingCell {
-    operatore: string;
-    colName: 'BADGE' | 'NOME' | 'STATO_FISICO';
+const SORT_COLUMNS: RowSortColumns<OperatorRow> = {
+    OPERATORE: (row) => row.OPERATORE,
+    BADGE: (row) => row.BADGE,
+    NOME: (row) => row.NOME,
+    STATO_FISICO: (row) => row.STATO_FISICO,
+};
+
+/** Chip key of a row: its stato fisico, '' when it has none */
+const statoKey = (row: OperatorRow) => row.STATO_FISICO || '';
+
+/** Editor of a text cell, for EditableCell's renderEditor */
+function textEditor(className?: string) {
+    return function TextEditor(draft: string, setDraft: (value: string) => void) {
+        return <Input type="text" value={draft} onChange={(e) => setDraft(e.target.value)} className={cn('h-8 text-xs', className)} autoFocus />;
+    };
 }
 
 export function OperatorsTable() {
-    const [search, setSearch] = useState('');
-    const [appliedSearch, setAppliedSearch] = useState<string | undefined>(undefined);
-    const [data, setData] = useState<OperatorRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({
-        column: 'OPERATORE',
-        direction: 'asc',
+    const list = useListQuery({
+        initialFilters: () => ({ search: '' }),
+        load: (filters: { search: string }) => getOperatorsAction(filters.search || undefined),
     });
-    // Set of active STATO_FISICO values — all active by default after load
-    const [activeStati, setActiveStati] = useState<Set<string | null>>(new Set());
-    const [allStati, setAllStati] = useState<string[]>([]);
+    const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'OPERATORE', direction: 'asc' });
 
-    // Editing cell state
-    const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-    const [editValue, setEditValue] = useState('');
-    const [saving, setSaving] = useState(false);
+    const allStati = list.result?.allStati ?? [];
+    // null = default: every stato on. Operators without a stato get their own chip, off by default.
+    const [chosenStati, setChosenStati] = useState<Set<string> | null>(null);
+    const activeStati = chosenStati ?? new Set(allStati);
+    const hasNoStato = list.rows.some((row) => statoKey(row) === '');
+    const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)));
 
-    const copy = APP_COPY.analytics.operators;
+    const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
+        const result = await updateOperatorAction(operatore, column, value.trim() || null);
+        if (!result.success) {
+            alert(fmt(APP_COPY.common.actionError, { error: result.error ?? '' }));
+            return false;
+        }
+        await list.reload();
+        return true;
+    };
 
-    // ── Derived: visible rows after stato filter ───────────────────────────────
-
-    const visibleRows = useMemo(
-        () => data.filter((r) => activeStati.has(r.STATO_FISICO)),
-        [data, activeStati]
+    const editable = (row: OperatorRow, column: EditableColumn, editor: (draft: string, setDraft: (value: string) => void) => React.ReactNode) => (
+        <EditableCell
+            display={row[column] ?? <MissingValue />}
+            startValue={() => row[column] ?? ''}
+            renderEditor={editor}
+            onSave={saveField(row.OPERATORE, column)}
+        />
     );
 
-    // ── Data fetching ──────────────────────────────────────────────────────────
+    const columns: DataTableColumn<OperatorRow>[] = [
+        { key: 'OPERATORE', header: copy.headers.id, className: 'w-32', cellClassName: 'font-mono text-fg-secondary', cell: (row) => row.OPERATORE },
+        {
+            key: 'BADGE',
+            header: copy.headers.badge,
+            className: 'w-56',
+            cellClassName: 'font-mono text-fg-secondary',
+            cell: (row) => editable(row, 'BADGE', textEditor('font-mono w-48')),
+        },
+        { key: 'NOME', header: copy.headers.nome, cellClassName: 'text-fg-secondary', cell: (row) => editable(row, 'NOME', textEditor()) },
+        {
+            key: 'STATO_FISICO',
+            header: copy.headers.statoFisico,
+            className: 'w-44',
+            cellClassName: 'text-fg-secondary',
+            cell: (row) =>
+                editable(row, 'STATO_FISICO', (draft, setDraft) => (
+                    <Select
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        options={allStati.map((stato) => ({ label: stato, value: stato }))}
+                        className="h-8 text-xs w-36"
+                        autoFocus
+                    />
+                )),
+        },
+    ];
 
-    const handleApplyFilters = async () => {
-        setLoading(true);
-        setAppliedSearch(search);
-        setError(null);
-
-        try {
-            const result = await getOperatorsAction(search || undefined);
-            if (result.success) {
-                const sorted = sortData(result.data, sortConfig);
-                setData(sorted);
-                if (result.allStati.length > 0) {
-                    setAllStati(result.allStati);
-                    // Only initialize activeStati if empty (first load)
-                    if (activeStati.size === 0) {
-                        setActiveStati(new Set(result.allStati));
-                    }
-                }
-            } else {
-                setError(result.error ?? 'Errore sconosciuto');
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleClearFilters = () => {
-        setSearch('');
-        setAppliedSearch(undefined);
-        setData([]);
-        setActiveStati(new Set());
-        setError(null);
-        setEditingCell(null);
-    };
-
-    // ── Editing cell ────────────────────────────────────────────────────────────
-
-    const handleEditCell = (operatore: string, colName: 'BADGE' | 'NOME' | 'STATO_FISICO', currentValue: string | null) => {
-        setEditingCell({ operatore, colName });
-        setEditValue(currentValue ?? '');
-    };
-
-    const handleSaveCell = async () => {
-        if (!editingCell) return;
-        setSaving(true);
-        const result = await updateOperatorAction(
-            editingCell.operatore,
-            editingCell.colName,
-            editValue.trim() || null
-        );
-
-        if (result.success) {
-            setEditingCell(null);
-            handleApplyFilters();
-        } else {
-            alert(`Error: ${result.error}`);
-        }
-        setSaving(false);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingCell(null);
-        setEditValue('');
-    };
-
-    // ── Stato toggle ───────────────────────────────────────────────────────────
-
-    const toggleStato = (stato: string | null) => {
-        setActiveStati((prev) => {
-            const next = new Set(prev);
-            if (next.has(stato)) next.delete(stato);
-            else next.add(stato);
-            return next;
-        });
-    };
-
-    // ── Sorting ────────────────────────────────────────────────────────────────
-
-    const sortData = (rows: OperatorRow[], config: SortConfig): OperatorRow[] =>
-        [...rows].sort((a, b) => {
-            const aVal = a[config.column] ?? '';
-            const bVal = b[config.column] ?? '';
-            const cmp = String(aVal).localeCompare(String(bVal));
-            return config.direction === 'asc' ? cmp : -cmp;
-        });
-
-    const handleSort = (column: SortColumn) => {
-        const next: SortConfig = {
-            column,
-            direction: sortConfig.column === column && sortConfig.direction === 'asc' ? 'desc' : 'asc',
-        };
-        setSortConfig(next);
-        setData(sortData(data, next));
-    };
-
-    const SortIcon = ({ column }: { column: SortColumn }) => {
-        if (sortConfig.column !== column) return <ArrowUpDown size={14} className="opacity-40" />;
-        return sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
-    };
-
-    // ── Render ─────────────────────────────────────────────────────────────────
-
-    if (error) {
-        return (
-            <div className="text-center py-12 text-danger">
-                {APP_COPY.analytics.error}: {error}
-            </div>
-        );
-    }
+    const statoOptions = [
+        ...allStati.map((stato) => ({ key: stato, label: stato })),
+        ...(hasNoStato ? [{ key: '', label: EMPTY_VALUE }] : []),
+    ];
 
     return (
         <div className="space-y-4">
-            {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <form onSubmit={(e) => { e.preventDefault(); handleApplyFilters(); }}>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {APP_COPY.analytics.common.search}
-                            </label>
-                            <Input
-                                type="text"
-                                placeholder={copy.searchPlaceholder}
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Stato Fisico toggle buttons — shown only after data is loaded */}
-                    {allStati.length > 0 && (
-                        <div className="mt-4">
-                            <label className="block text-xs font-medium text-fg-muted mb-2">
-                                {copy.headers.statoFisico}
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {allStati.map((stato) => {
-                                    const isActive = activeStati.has(stato);
-                                    const label = stato ?? '—';
-                                    return (
-                                        <button
-                                            key={label}
-                                            type="button"
-                                            onClick={() => toggleStato(stato)}
-                                            className={`px-3 py-1 rounded text-xs font-medium transition-colors border ${
-                                                isActive
-                                                    ? 'bg-primary/10 border-primary/40 text-primary'
-                                                    : 'bg-transparent border-border-strong text-fg-subtle hover:border-fg-subtle hover:text-fg-secondary'
-                                            }`}
-                                        >
-                                            {label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex gap-2 mt-4">
-                        <Button type="submit" className="flex items-center gap-2">
-                            <Search size={16} />
-                            {APP_COPY.analytics.common.apply}
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleClearFilters}
-                            variant="secondary"
-                            className="flex items-center gap-2"
-                        >
-                            <X size={16} />
-                            {APP_COPY.analytics.common.clear}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Row count & info */}
-            {appliedSearch !== undefined && visibleRows.length > 0 && (
-                <div className="flex items-center justify-between text-sm text-fg-muted">
-                    <span>
-                        {APP_COPY.analytics.common.showing}{' '}
-                        <strong className="text-primary">{visibleRows.length}</strong>{' '}
-                        {APP_COPY.analytics.common.records}
-                    </span>
-                    <span className="text-xs text-fg-subtle">
-                        Click on Badge, Nome, or Stato Fisico cells to edit
-                    </span>
+            <FilterPanel
+                columns={3}
+                onApply={list.apply}
+                onClear={() => {
+                    list.clear();
+                    setChosenStati(null);
+                }}
+                below={
+                    statoOptions.length > 0 && (
+                        <ToggleChips
+                            label={copy.headers.statoFisico}
+                            options={statoOptions}
+                            active={activeStati}
+                            onToggle={(key) => setChosenStati(toggleInSet(activeStati, key))}
+                        />
+                    )
+                }
+            >
+                <div className="md:col-span-2">
+                    <SearchField
+                        label={APP_COPY.analytics.common.search}
+                        placeholder={copy.searchPlaceholder}
+                        value={list.filters.search}
+                        onChange={(search) => list.updateFilters({ search })}
+                    />
                 </div>
+            </FilterPanel>
+
+            {visibleRows.length > 0 && (
+                <RecordCount count={visibleRows.length}>
+                    <span className="text-xs text-fg-subtle">{copy.editHint}</span>
+                </RecordCount>
             )}
 
-            {/* Table */}
-            {appliedSearch !== undefined && (
-                <div className="bg-card border border-border rounded-lg">
-                    {loading ? (
-                        <div className="p-8 text-center">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                        </div>
-                    ) : visibleRows.length === 0 ? (
-                        <div className="p-8 text-center text-fg-subtle">
-                            {copy.noResults}
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-card/50 border-b border-border">
-                                    <tr>
-                                        {/* Operatore (ID) */}
-                                        <th
-                                            onClick={() => handleSort('OPERATORE')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-32"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {copy.headers.id}
-                                                <SortIcon column="OPERATORE" />
-                                            </div>
-                                        </th>
-                                        {/* Badge */}
-                                        <th
-                                            onClick={() => handleSort('BADGE')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-56"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {copy.headers.badge}
-                                                <SortIcon column="BADGE" />
-                                            </div>
-                                        </th>
-                                        {/* Nome */}
-                                        <th
-                                            onClick={() => handleSort('NOME')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {copy.headers.nome}
-                                                <SortIcon column="NOME" />
-                                            </div>
-                                        </th>
-                                        {/* Stato Fisico */}
-                                        <th
-                                            onClick={() => handleSort('STATO_FISICO')}
-                                            className="px-4 py-3 text-left text-xs font-semibold text-fg-muted uppercase tracking-wider cursor-pointer hover:text-primary transition-colors w-44"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {copy.headers.statoFisico}
-                                                <SortIcon column="STATO_FISICO" />
-                                            </div>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {visibleRows.map((row) => {
-                                        const isEditingBadge = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'BADGE';
-                                        const isEditingNome = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'NOME';
-                                        const isEditingStato = editingCell?.operatore === row.OPERATORE && editingCell?.colName === 'STATO_FISICO';
-
-                                        return (
-                                            <tr key={row.OPERATORE} className="hover:bg-card/30">
-                                                <td className="px-4 py-3 text-sm font-mono text-fg-secondary">
-                                                    {row.OPERATORE}
-                                                </td>
-                                                {/* BADGE */}
-                                                <td className="px-4 py-3 text-sm font-mono text-fg-secondary">
-                                                    {isEditingBadge ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <Input
-                                                                type="text"
-                                                                value={editValue}
-                                                                onChange={(e) => setEditValue(e.target.value)}
-                                                                className="h-8 text-xs font-mono w-48"
-                                                                autoFocus
-                                                            />
-                                                            <Button onClick={handleSaveCell} disabled={saving} size="sm" className="h-8 w-8 p-0">
-                                                                <Save size={14} />
-                                                            </Button>
-                                                            <Button onClick={handleCancelEdit} disabled={saving} variant="secondary" size="sm" className="h-8 w-8 p-0">
-                                                                <XIcon size={14} />
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <span
-                                                            onClick={() => handleEditCell(row.OPERATORE, 'BADGE', row.BADGE)}
-                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
-                                                            title="Click to edit"
-                                                        >
-                                                            {row.BADGE ?? <span className="text-fg-faint italic">—</span>}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                {/* NOME */}
-                                                <td className="px-4 py-3 text-sm text-fg-secondary">
-                                                    {isEditingNome ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <Input
-                                                                type="text"
-                                                                value={editValue}
-                                                                onChange={(e) => setEditValue(e.target.value)}
-                                                                className="h-8 text-xs"
-                                                                autoFocus
-                                                            />
-                                                            <Button onClick={handleSaveCell} disabled={saving} size="sm" className="h-8 w-8 p-0">
-                                                                <Save size={14} />
-                                                            </Button>
-                                                            <Button onClick={handleCancelEdit} disabled={saving} variant="secondary" size="sm" className="h-8 w-8 p-0">
-                                                                <XIcon size={14} />
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <span
-                                                            onClick={() => handleEditCell(row.OPERATORE, 'NOME', row.NOME)}
-                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
-                                                            title="Click to edit"
-                                                        >
-                                                            {row.NOME ?? <span className="text-fg-faint italic">N/A</span>}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                {/* STATO FISICO */}
-                                                <td className="px-4 py-3 text-sm text-fg-secondary">
-                                                    {isEditingStato ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <Select
-                                                                value={editValue}
-                                                                onChange={(e) => setEditValue(e.target.value)}
-                                                                options={allStati.map((s) => ({ label: s, value: s }))}
-                                                                className="h-8 text-xs w-36"
-                                                                autoFocus
-                                                            />
-                                                            <Button onClick={handleSaveCell} disabled={saving} size="sm" className="h-8 w-8 p-0">
-                                                                <Save size={14} />
-                                                            </Button>
-                                                            <Button onClick={handleCancelEdit} disabled={saving} variant="secondary" size="sm" className="h-8 w-8 p-0">
-                                                                <XIcon size={14} />
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <span
-                                                            onClick={() => handleEditCell(row.OPERATORE, 'STATO_FISICO', row.STATO_FISICO)}
-                                                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors inline-block"
-                                                            title="Click to edit"
-                                                        >
-                                                            {row.STATO_FISICO ?? <span className="text-fg-faint italic">—</span>}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+            <DataTable
+                columns={columns}
+                rows={visibleRows}
+                getRowKey={(row) => row.OPERATORE}
+                sort={sort}
+                onSort={toggleSort}
+                loading={list.loading}
+                error={list.error}
+                emptyMessage={list.applied ? copy.noResults : APP_COPY.analytics.applyFiltersHint}
+            />
         </div>
     );
 }

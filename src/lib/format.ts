@@ -5,6 +5,7 @@
  * (large tables call these thousands of times per render).
  */
 import { APP_CONFIG } from '@/config/constants';
+import { dbDateTimeParts } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
 
 const { LANGUAGE, CURRENCY } = APP_CONFIG.LOCALE;
@@ -77,6 +78,14 @@ export function formatDate(value: Date | string | null | undefined): string {
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     return `${dd}/${mm}/${date.getFullYear()}`;
+}
+
+/** Database datetime (stored wall-clock time, read as UTC) → "06/10/2026, 17:35:00", without a timezone shift */
+export function formatDbDateTime(value: Date | string | null | undefined): string {
+    const parts = value ? dbDateTimeParts(value) : null;
+    if (!parts) return EMPTY_VALUE;
+    const [y, m, d] = parts.date.split('-');
+    return `${d}/${m}/${y}, ${parts.time}`;
 }
 
 /** 1 → "Gennaio" */

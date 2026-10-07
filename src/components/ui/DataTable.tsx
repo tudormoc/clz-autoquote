@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import type { SortState } from '@/hooks/useReportTable';
@@ -7,7 +7,7 @@ import type { SortState } from '@/hooks/useReportTable';
 type Align = 'left' | 'right' | 'center';
 
 export interface DataTableColumn<R> {
-    /** Unique id; also the sort key sent to the server */
+    /** Unique id; also the sort key (sent to the server, or used by useClientSort) */
     key: string;
     header: React.ReactNode;
     /** Tooltip on the header */
@@ -37,6 +37,10 @@ interface DataTableProps<R> {
     error?: string | null;
     /** Shown when there are no rows (e.g. "apply the filters" before the first search) */
     emptyMessage?: React.ReactNode;
+    /** Totals row(s): <TableRow>s rendered in the table footer when there are rows */
+    footer?: React.ReactNode;
+    /** Keep every header and cell on one line (wide tables that scroll sideways) */
+    nowrap?: boolean;
 }
 
 const TEXT_ALIGN: Record<Align, string> = { left: 'text-left', right: 'text-right', center: 'text-center' };
@@ -51,7 +55,7 @@ function SortIcon({ active, direction }: { active: boolean; direction?: 'asc' | 
     return direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
 }
 
-/** Column-driven table with server-side sorting, loading, empty and error states. */
+/** Column-driven table with sorting, loading, empty and error states and an optional totals footer. */
 export function DataTable<R>({
     columns,
     rows,
@@ -62,6 +66,8 @@ export function DataTable<R>({
     loading,
     error,
     emptyMessage = APP_COPY.common.noData,
+    footer,
+    nowrap,
 }: DataTableProps<R>) {
     const alignOf = (column: DataTableColumn<R>): Align => column.align ?? (column.variant ? 'right' : 'left');
     const statusRow = (content: React.ReactNode, tone = 'text-fg-muted') => (
@@ -74,7 +80,7 @@ export function DataTable<R>({
 
     return (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <Table>
+            <Table className={cn(nowrap && 'whitespace-nowrap')}>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
                         {columns.map((column) => {
@@ -126,6 +132,7 @@ export function DataTable<R>({
                                 </TableRow>
                             ))}
                 </TableBody>
+                {footer && !error && rows.length > 0 && <TableFooter>{footer}</TableFooter>}
             </Table>
         </div>
     );

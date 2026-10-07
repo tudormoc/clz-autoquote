@@ -198,7 +198,7 @@ export function PresetSelectCell({
             <div className="flex justify-center">
                 <span
                     onClick={handleStartEdit}
-                    title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
+                    title={disabled ? undefined : APP_COPY.common.clickToEdit}
                     className={`inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold transition-colors ${
                         disabled
                             ? 'bg-muted text-fg-muted'
@@ -215,7 +215,7 @@ export function PresetSelectCell({
         <div className="flex justify-center">
             <span
                 onClick={handleStartEdit}
-                title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
+                title={disabled ? undefined : APP_COPY.common.clickToEdit}
                 className={`px-2 py-0.5 rounded text-xs font-mono text-center block transition-colors ${
                     disabled
                         ? 'text-fg-faint cursor-default'

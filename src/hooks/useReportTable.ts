@@ -1,11 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { nextSort, type SortState } from '@/lib/sort';
 
-export interface SortState {
-    column: string;
-    direction: 'asc' | 'desc';
-}
+export type { SortState };
 
 /** Shape returned by every paginated analytics server action */
 export interface PageResult<R> {
@@ -138,10 +136,7 @@ export function useReportTable<F, R, S = never>({
     };
 
     const toggleSort = (column: string) => {
-        setSort((prev) => ({
-            column,
-            direction: prev?.column === column && prev.direction === 'asc' ? 'desc' : 'asc',
-        }));
+        setSort((prev) => nextSort(prev, column));
         setPage(1);
     };
 

@@ -1,14 +1,16 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/90",
   secondary: "bg-muted text-fg hover:bg-muted-strong border border-border-strong",
   outline: "border border-border-strong bg-transparent hover:bg-muted text-fg",
-  ghost: "hover:bg-muted text-fg"
+  ghost: "hover:bg-muted text-fg",
+  /** Confirms a deletion */
+  danger: "bg-danger-600 text-fg-strong hover:bg-danger-500"
 };
 
 const SIZES: Record<ButtonSize, string> = {

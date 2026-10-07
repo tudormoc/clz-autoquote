@@ -48,3 +48,8 @@ export function TagCell({ children }: { children: React.ReactNode }) {
         </span>
     );
 }
+
+/** Faint placeholder for an empty cell */
+export function MissingValue() {
+    return <span className="text-fg-faint italic">{EMPTY_VALUE}</span>;
+}

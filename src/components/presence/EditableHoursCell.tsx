@@ -220,7 +220,7 @@ export function EditableHoursCell({
             <div className="flex justify-end">
                 <span
                     onClick={handleStartEdit}
-                    title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
+                    title={disabled ? undefined : APP_COPY.common.clickToEdit}
                     className="cursor-pointer inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 transition-colors"
                 >
                     {String(value)}
@@ -234,7 +234,7 @@ export function EditableHoursCell({
     return (
         <span
             onClick={handleStartEdit}
-            title={disabled ? undefined : APP_COPY.analytics.monthlySummary.headers.clickToEdit}
+            title={disabled ? undefined : APP_COPY.common.clickToEdit}
             className={`px-2 py-1 rounded text-sm font-mono text-right block transition-colors ${
                 disabled
                     ? 'text-fg-faint cursor-default'

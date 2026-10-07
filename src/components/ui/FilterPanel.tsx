@@ -23,10 +23,12 @@ interface FilterPanelProps {
     buttons?: React.ReactNode;
     /** Buttons on the right (export, PDF …) */
     actions?: React.ReactNode;
+    /** Full-width rows under the fields (toggle chips …) */
+    below?: React.ReactNode;
 }
 
 /** Filter box of a report or list: fields, then Apply / Clear and the page actions. Enter applies. */
-export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, actions }: FilterPanelProps) {
+export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, actions, below }: FilterPanelProps) {
     return (
         <form
             className="bg-card border border-border rounded-lg p-4"
@@ -36,6 +38,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
             }}
         >
             <div className={cn('grid grid-cols-1 gap-4', GRID[columns])}>{children}</div>
+            {below && <div className="mt-4 pt-4 border-t border-border space-y-4">{below}</div>}
             <div className="flex gap-2 mt-4">
                 <Button type="submit">
                     <Search size={16} />
@@ -46,7 +49,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                     <X size={16} />
                     {APP_COPY.common.clear}
                 </Button>
-                {actions && <div className="flex gap-2 ml-auto">{actions}</div>}
+                {actions && <div className="flex flex-wrap items-center gap-2 ml-auto">{actions}</div>}
             </div>
         </form>
     );

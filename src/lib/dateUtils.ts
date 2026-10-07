@@ -35,3 +35,14 @@ export function getLastYearEnd(): string {
 export function getTodayDate(): string {
     return toIsoDate(new Date());
 }
+
+/**
+ * A database datetime as mssql returns it (the stored wall-clock time, delivered as UTC)
+ * → its unshifted "YYYY-MM-DD" and "HH:MM:SS" parts. null when the value is not a date.
+ */
+export function dbDateTimeParts(value: Date | string): { date: string; time: string } | null {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const iso = date.toISOString();
+    return { date: iso.slice(0, 10), time: iso.slice(11, 19) };
+}

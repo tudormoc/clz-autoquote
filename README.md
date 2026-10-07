@@ -55,6 +55,7 @@ npm run excel:examples      # Excel export
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
 | Report state (filters, paging, sorting, export) | `src/hooks/useReportTable.ts` |
+| List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
 | Presence rules | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) |
 | Order sync DiBa → Business → NetPro | `src/lib/orderSync.ts`, `src/lib/orderCompare.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
@@ -74,8 +75,9 @@ classes and `text-[Npx]`, so a component can only use tokens:
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
 
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
-`DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel`, `Pagination`, `DataTable`
-(+ `Table` primitives, `StackedCell`, `TagCell`), `ExportExcelButton`.
+`DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
+`Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals),
+`EditableCell` (click-to-edit cell), `StatusBadge`, `ExportExcelButton`.
 
 ## Rules for new code
 

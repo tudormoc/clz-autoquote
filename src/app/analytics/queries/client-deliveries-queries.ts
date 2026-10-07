@@ -7,6 +7,7 @@
 
 import { getMSSQLPool } from '@/lib/mssql';
 import sql from 'mssql';
+import type { SortConfig } from './shared/query-utils';
 
 interface ClientDeliveryRow {
     client_code: string;
@@ -20,10 +21,6 @@ interface Filters {
     dateTo?: string;
 }
 
-interface SortConfig {
-    column: string;
-    direction: 'asc' | 'desc';
-}
 
 interface PaginationResult {
     total: number;

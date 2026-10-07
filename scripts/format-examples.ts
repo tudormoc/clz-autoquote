@@ -2,7 +2,7 @@
  * Checks src/lib/format.ts against the formatters it replaced.
  * Run: npm run format:examples
  */
-import { formatCurrency, formatCurrencyRounded, formatDate, formatDayMonth, formatHours, formatNumber } from '@/lib/format';
+import { formatCurrency, formatCurrencyRounded, formatDate, formatDayMonth, formatDbDateTime, formatHours, formatNumber } from '@/lib/format';
 import { toIsoDate } from '@/lib/dateUtils';
 
 let failures = 0;
@@ -51,6 +51,9 @@ expect('formatNumber(undefined)', formatNumber(undefined), '-');
 
 expect('formatDate(iso)', formatDate('2026-10-06'), '06/10/2026');
 expect('formatDate(datetime)', formatDate('2026-01-09T14:30:00'), '09/01/2026');
+expect('formatDbDateTime(Date)', formatDbDateTime(new Date('2026-10-06T17:35:09.000Z')), '06/10/2026, 17:35:09');
+expect('formatDbDateTime(string)', formatDbDateTime('2026-01-09T07:05:00.000Z'), '09/01/2026, 07:05:00');
+expect('formatDbDateTime(invalid)', formatDbDateTime('not a date'), '-');
 expect('formatDate(Date)', formatDate(new Date(2026, 11, 31)), '31/12/2026');
 expect('formatDate(empty)', formatDate(''), '-');
 expect('formatDate(invalid)', formatDate('not a date'), '-');

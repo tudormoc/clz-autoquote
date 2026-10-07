@@ -170,6 +170,25 @@ export interface OperatorHoursRow {
     banca_ore_mese_n: number | null;
 }
 
+/** One presence event (EVENTI, TASK 'presenza') of the Daily Events list */
+export interface PresenceEventRow {
+    OGGETTO: string;
+    operator_name: string | null;
+    EVENTO: string;
+    /** Stored wall-clock time; a Date object at runtime (server actions keep Dates) */
+    ORA_EVENTO: string;
+}
+
+/** An event offered for deletion together with a presence event (same operator, same span of time) */
+export interface ConnectedEvent {
+    label: string;
+    oraEvento: string;
+    oggetto: string;
+    task: string;
+    tipoOggetto: string;
+    evento: string;
+}
+
 export type HoursDistributionField =
     | 'ore_ordinarie'
     | 'ore_straordinarie'
