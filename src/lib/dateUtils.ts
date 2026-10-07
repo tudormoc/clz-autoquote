@@ -36,6 +36,15 @@ export function getTodayDate(): string {
     return toIsoDate(new Date());
 }
 
+/** Monday of ISO week `week` (1 to 53) of `year`: week 1 is the week with 4 January */
+export function isoWeekStart(year: number, week: number): Date {
+    const jan4 = new Date(year, 0, 4);
+    const dayOfWeek = jan4.getDay() || 7; // Sunday (0) → 7
+    const monday = new Date(year, 0, 4 - (dayOfWeek - 1));
+    monday.setDate(monday.getDate() + (week - 1) * 7);
+    return monday;
+}
+
 /**
  * A database datetime as mssql returns it (the stored wall-clock time, delivered as UTC)
  * → its unshifted "YYYY-MM-DD" and "HH:MM:SS" parts. null when the value is not a date.

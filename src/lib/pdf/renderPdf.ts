@@ -87,15 +87,3 @@ export function monthRange(year: number, month: number): { dateFrom: string; dat
     const lastDay = new Date(year, month, 0).getDate();
     return { dateFrom: `${year}-${mm}-01`, dateTo: `${year}-${mm}-${String(lastDay).padStart(2, '0')}` };
 }
-
-/** Monday of ISO week `week` in `year` (1 to 53) */
-export function isoWeekStart(year: number, week: number): Date {
-    // 4 January is always in ISO week 1
-    const jan4 = new Date(year, 0, 4);
-    const dayOfWeek = jan4.getDay() || 7; // Sunday (0) → 7
-    const week1Monday = new Date(jan4);
-    week1Monday.setDate(jan4.getDate() - (dayOfWeek - 1));
-    const target = new Date(week1Monday);
-    target.setDate(week1Monday.getDate() + (week - 1) * 7);
-    return target;
-}

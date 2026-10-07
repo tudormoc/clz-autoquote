@@ -1,44 +1,46 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import { Button } from '@/components/ui/Button';
 import { PresenceData } from '@/types';
 import { Clock, Copy } from 'lucide-react';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatDayMonth } from '@/lib/format';
 
+const copy = APP_COPY.analytics.presence;
+
 export function AnnualPresenceReport() {
+    const year = new Date().getFullYear();
     const [data, setData] = useState<PresenceData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [filesProcessed, setFilesProcessed] = useState(0);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
         
         try {
-            // Empty months array = all months
-            const result = await getPresenceDataAction(2026, []);
-            
+            const result = await getPresenceDataAction(year);
+
             if (result.success && result.data) {
                 setData(result.data);
                 setFilesProcessed(result.filesProcessed || 0);
             } else {
-                setError(result.error || 'Failed to load data');
+                setError(result.error || APP_COPY.common.loadError);
             }
         } catch (err: any) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [year]);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     // Plain whole hours (no thousands separator): also pasted into spreadsheets via the copy button
     const toWholeHours = (hours: number) => Math.round(hours).toString();
@@ -64,7 +66,7 @@ export function AnnualPresenceReport() {
         const dateRange = getWeekDateRange(weekNum);
         
         // Build formatted text table with tabs for alignment
-        let text = `Settimana ${weekNum}${dateRange ? ` (${dateRange})` : ''}\n`;
+        let text = `${copy.week} ${weekNum}${dateRange ? ` (${dateRange})` : ''}\n`;
         
         weekData.forEach((item, idx) => {
             // First row: 2 tabs, second row onwards: 1 tab
@@ -86,7 +88,7 @@ export function AnnualPresenceReport() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-semibold text-fg">
-                        {APP_COPY.analytics.presence.annualTitle}
+                        {fmt(copy.annualTitle, { year })}
                     </h2>
                     <p className="text-sm text-fg-subtle mt-1">
                         {APP_COPY.analytics.presence.annualSubtitle}

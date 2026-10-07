@@ -66,11 +66,7 @@ import {
     getClientDeliveriesStatsAction as getClientDeliveriesStats
 } from './queries/client-deliveries-queries';
 
-import {
-    getPresenceDataAction as getPresenceData,
-    getAvailableMonthsAction as getAvailableMonths,
-    getMonthlyPresenceDataAction as getMonthlyPresenceData
-} from './queries/presence-queries';
+import { getPresenceDataAction as getPresenceData } from './queries/presence-queries';
 
 // Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
@@ -78,5 +74,3 @@ export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 
 // Export Presence action
 export const getPresenceDataAction = getPresenceData;
-export const getAvailableMonthsAction = getAvailableMonths;
-export const getMonthlyPresenceDataAction = getMonthlyPresenceData;

@@ -641,12 +641,15 @@ export const APP_COPY = {
         separateReportsDescription: "Scarica un file PDF distinto per ogni area selezionata",
     },
     presence: {
-      annualTitle: "Presenza Annuale 2026",
+      annualTitle: "Presenza Annuale {year}",
       annualSubtitle: "Ore ordinarie per gruppo operatori - Anno completo per settimana",
       week: "Settimana",
       total: "Totale",
       copy: "Copia",
       filesProcessed: "File elaborati",
+      folderNotFound: "Cartella dei file presenze non raggiungibile: {folders}",
+      noFiles: "Nessun file Excel trovato per l'anno {year}",
+      noRows: "Nessun dato valido nei file Excel",
     },
     operators: {
       title: "Operatori",

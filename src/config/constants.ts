@@ -193,6 +193,11 @@ export const APP_CONFIG = {
     AUTO_EXIT_TIME_SATURDAY: '11:00:00',
     // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
     TRIGGER_HOUR: 19,
+    // Monthly production Excel files ("01 Produzione gennaio 2026.xlsx") read by the Presenze Annuali report:
+    // folders tried in order (share, then the mapped drive on the VM), and the 0-based columns used
+    EXCEL_FOLDERS: ['\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE', 'Z:\\'],
+    EXCEL_FILE_MARK: 'Produzione',
+    EXCEL_COLUMNS: { WEEK: 38 /* AM */, HOURS: 39 /* AN */, GROUP: 40 /* AO */ },
     // Starting values of the "Aggiungi Evento" form in Daily Events
     NEW_EVENT_DEFAULTS: { operator: '98', event: 'EXT', time: '17:35:00' },
     // Event types the form can add

@@ -126,19 +126,6 @@ export interface PresenceData {
     weekDateRanges: WeekDateRange[];
 }
 
-export interface MonthlyGroupData {
-    group: string;
-    [key: string]: number | string;
-}
-
-export interface MonthlyPresenceData {
-    groups: MonthlyGroupData[];
-    monthTotals: {
-        [key: string]: number;
-    };
-    monthNumbers: number[];
-}
-
 export interface OperatorHoursRow {
     operatore: string;
     matricola: string | null;
