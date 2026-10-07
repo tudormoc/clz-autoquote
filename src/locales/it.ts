@@ -242,6 +242,8 @@ export const APP_COPY = {
     volumeDiscount: "Sconto Volume:",
     included: "(incluso sopra)",
     unitPrice: "/ unità",
+    // Name of the cover line; {type} = standard / fast / manual (other line names come from the price rules)
+    coverProduction: "Cover Production ({type})",
   },
   admin: {
     title: "Impostazioni Preventivo",

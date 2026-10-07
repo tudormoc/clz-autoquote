@@ -1,5 +1,6 @@
 import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier, SignatureType } from './types';
 import { FormatSurcharge } from '@/types';
+import { APP_COPY, fmt } from '@/locales';
 import {
     calculateCoverProductionType,
     calculateCFGSProductionRate,
@@ -15,6 +16,8 @@ import {
     calculateGluingSlugs,
     calculateGluingProductionRate
 } from './formulas';
+
+type OperationCost = ReturnType<typeof calculateOperationCost>;
 
 /**
  * Calculates a detailed quote breakdown based on inputs and rules.
@@ -42,6 +45,27 @@ export function calculateDetailedQuote(
     const discountFactor = calculateDiscountFactor(tier);
     const discountLabel = getDiscountLabel(tier);
 
+    /** Adds one priced operation: format surcharge first, then volume discount (each with the rule's multipliers) */
+    const addOperation = (rule: PricingRule, cost: OperationCost) => {
+        applySurchargeToItem(
+            cost,
+            surchargeFactor,
+            surchargePercentage,
+            rule.surcharge_multiplier_setup ?? 1.0,
+            rule.surcharge_multiplier_production ?? 1.0
+        );
+        applyDiscountToItem(
+            cost,
+            discountFactor,
+            discountLabel,
+            rule.discount_multiplier_setup ?? 1.0,
+            rule.discount_multiplier_production ?? 1.0
+        );
+        items.push(cost.item);
+        setupTotal += cost.setup;
+        productionTotal += cost.production;
+    };
+
     // --- 2. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
     const cfgsRule = getRule('cfgs');
     if (cfgsRule) {
@@ -56,94 +80,26 @@ export function calculateDetailedQuote(
 
         // Update details with signature breakdown
         cost.item.details = `Setup (sigs-1): ${cost.setup.toFixed(2)} | Prod (${details}): ${unitProductionRate.toFixed(4)}/unit`;
-
-        // Apply surcharge first (with separate setup/production multipliers)
-        applySurchargeToItem(
-            cost, 
-            surchargeFactor, 
-            surchargePercentage,
-            cfgsRule.surcharge_multiplier_setup ?? 1.0,
-            cfgsRule.surcharge_multiplier_production ?? 1.0
-        );
-        
-        // Then apply discount (with separate setup/production multipliers)
-        applyDiscountToItem(
-            cost, 
-            discountFactor, 
-            discountLabel,
-            cfgsRule.discount_multiplier_setup ?? 1.0,
-            cfgsRule.discount_multiplier_production ?? 1.0
-        );
-        
-        items.push(cost.item);
-        setupTotal += cost.setup;
-        productionTotal += cost.production;
+        addOperation(cfgsRule, cost);
     }
 
     // --- 3. Cover Production Mode ---
     const prodType = calculateCoverProductionType(input);
     const prodRule = getRule(`cover_${prodType}`);
-
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
-        
-        // Apply surcharge first (with separate setup/production multipliers)
-        applySurchargeToItem(
-            cost, 
-            surchargeFactor, 
-            surchargePercentage,
-            prodRule.surcharge_multiplier_setup ?? 1.0,
-            prodRule.surcharge_multiplier_production ?? 1.0
-        );
-        
-        // Then apply discount (with separate setup/production multipliers)
-        applyDiscountToItem(
-            cost, 
-            discountFactor, 
-            discountLabel,
-            prodRule.discount_multiplier_setup ?? 1.0,
-            prodRule.discount_multiplier_production ?? 1.0
-        );
-        
-        cost.item.name = `Cover Production (${prodType})`;
-        items.push(cost.item);
-        setupTotal += cost.setup;
-        productionTotal += cost.production;
+        cost.item.name = fmt(APP_COPY.breakdown.coverProduction, { type: prodType });
+        addOperation(prodRule, cost);
     }
 
     // --- 4. Gluing Operations ---
-    const gluingSlugs = calculateGluingSlugs(input);
-    
-    gluingSlugs.forEach(slug => {
+    for (const slug of calculateGluingSlugs(input)) {
         const gluingRule = getRule(slug);
         if (gluingRule) {
             const unitRate = calculateGluingProductionRate(slug, input);
-            const cost = calculateOperationCost(gluingRule, input.quantity, 1, unitRate);
-            
-            // Apply surcharge first (with separate setup/production multipliers)
-            applySurchargeToItem(
-                cost, 
-                surchargeFactor, 
-                surchargePercentage,
-                gluingRule.surcharge_multiplier_setup ?? 1.0,
-                gluingRule.surcharge_multiplier_production ?? 1.0
-            );
-            
-            // Then apply discount (with separate setup/production multipliers)
-            applyDiscountToItem(
-                cost, 
-                discountFactor, 
-                discountLabel,
-                gluingRule.discount_multiplier_setup ?? 1.0,
-                gluingRule.discount_multiplier_production ?? 1.0
-            );
-            
-            items.push(cost.item);
-            setupTotal += cost.setup;
-            productionTotal += cost.production;
+            addOperation(gluingRule, calculateOperationCost(gluingRule, input.quantity, 1, unitRate));
         }
-    });
-
+    }
 
     // Final Totals
     const totalBeforeDiscount = setupTotal + productionTotal;
