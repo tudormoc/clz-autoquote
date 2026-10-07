@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { prefillAbsencesAction, type PrefillResult } from '@/app/presence/presence-actions';
+import { notify } from '@/lib/notify';
 import type { PresenceRulesConfig } from '@/lib/presence';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -12,9 +13,6 @@ export type PrefillSummary = Pick<
 >;
 
 const copy = APP_COPY.analytics.monthlySummary.prefill;
-
-const showError = (error: unknown) =>
-    alert(fmt(APP_COPY.common.actionError, { error: error instanceof Error ? error.message : String(error ?? '') }));
 
 interface Options {
     /** Applied period of the table, null before the first search */
@@ -43,7 +41,7 @@ export function usePrefillAbsences({ period, rules, onRules, onDone }: Options) 
         try {
             const res = await prefillAbsencesAction(period.dateFrom, period.dateTo, true);
             if (!res.success) {
-                showError(res.error);
+                notify.failure(res.error);
             } else if (res.totalCount > 0) {
                 if (res.rules) onRules(res.rules);
                 setSummary(res);
@@ -51,7 +49,7 @@ export function usePrefillAbsences({ period, rules, onRules, onDone }: Options) 
                 setFeedback(res.message ?? copy.noCandidates);
             }
         } catch (err) {
-            showError(err);
+            notify.failure(err);
         } finally {
             setChecking(false);
         }
@@ -67,10 +65,10 @@ export function usePrefillAbsences({ period, rules, onRules, onDone }: Options) 
                 setFeedback(`${res.totalCount} ${fmt(copy.successMessage, { h: rules.workdayHours })}`);
                 await onDone();
             } else {
-                showError(res.error);
+                notify.failure(res.error);
             }
         } catch (err) {
-            showError(err);
+            notify.failure(err);
         } finally {
             setPrefilling(false);
         }

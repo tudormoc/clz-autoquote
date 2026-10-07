@@ -7,6 +7,8 @@ import { DiscountTier } from '@/lib/pricing/types';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+import { confirmDelete } from '@/lib/confirm';
+import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 
 export function DiscountTiersManager() {
@@ -44,14 +46,15 @@ export function DiscountTiersManager() {
             setEditingId(null);
             loadData();
         } else {
-            alert('Error: ' + res.error);
+            notify.failure(res.error);
         }
     };
 
     const handleDelete = async (id: number | string) => {
-        if (confirm(APP_COPY.admin.discountTiers.deleteConfirm)) {
+        if (await confirmDelete(APP_COPY.admin.discountTiers.deleteConfirm)) {
             const res = await deleteRecordAction('QUOTES', 'discount_tiers', id, 'id');
             if (res.success) loadData();
+            else notify.failure(res.error);
         }
     };
 
@@ -67,7 +70,7 @@ export function DiscountTiersManager() {
             setEditForm({});
             loadData();
         } else {
-            alert('Error adding: ' + res.error);
+            notify.failure(res.error);
         }
     };
 

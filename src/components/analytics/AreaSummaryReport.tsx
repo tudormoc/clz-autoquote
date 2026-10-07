@@ -18,6 +18,7 @@ import { getLastYearEnd, getLastYearStart, getTodayDate } from '@/lib/dateUtils'
 import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
+import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 
 interface AreaSummaryRow {
@@ -125,7 +126,7 @@ export function AreaSummaryReport() {
             setShowPdfModal(false);
         } catch (err) {
             console.error('PDF generation error:', err);
-            alert(APP_COPY.analytics.pdfError);
+            notify.error(APP_COPY.analytics.pdfError);
         } finally {
             setPdfLoading(false);
         }

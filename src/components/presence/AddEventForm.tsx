@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { APP_CONFIG } from '@/config/constants';
 import { getTodayDate } from '@/lib/dateUtils';
-import { APP_COPY, fmt } from '@/locales';
+import { notify } from '@/lib/notify';
+import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.analytics.dailyEvents.add;
 const DEFAULTS = APP_CONFIG.PRESENCE.NEW_EVENT_DEFAULTS;
@@ -34,7 +35,7 @@ export function AddEventForm({ onCreated, onCancel }: AddEventFormProps) {
         try {
             const result = await createEventAction(operator.trim(), event.trim(), `${date} ${time}`);
             if (result.success) onCreated();
-            else alert(fmt(APP_COPY.common.actionError, { error: result.error ?? '' }));
+            else notify.failure(result.error);
         } finally {
             setCreating(false);
         }

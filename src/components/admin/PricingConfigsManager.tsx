@@ -7,6 +7,8 @@ import { PricingRule } from '@/lib/pricing/types';
 import { Plus, Trash2, Save, Edit2, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { OPERATION_CATEGORIES } from '@/config/constants';
+import { confirmDelete } from '@/lib/confirm';
+import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 
 export function PricingConfigsManager() {
@@ -80,15 +82,15 @@ export function PricingConfigsManager() {
             setEditingId(null);
             loadData();
         } else {
-            alert('Error updating config: ' + res.error);
+            notify.failure(res.error);
         }
     };
 
     const handleDelete = async (id: number | string) => {
-        if (confirm(APP_COPY.admin.pricingRules.deleteConfirm)) {
+        if (await confirmDelete(APP_COPY.admin.pricingRules.deleteConfirm)) {
             const res = await deleteRecordAction('QUOTES', 'pricing_configs', id, 'id');
             if (res.success) loadData();
-            else alert('Error deleting: ' + res.error);
+            else notify.failure(res.error);
         }
     };
 
@@ -107,7 +109,7 @@ export function PricingConfigsManager() {
         });
 
         if (!operationRes.success) {
-            alert('Error adding operation: ' + operationRes.error);
+            notify.failure(operationRes.error);
             return;
         }
 
@@ -125,7 +127,7 @@ export function PricingConfigsManager() {
             setEditForm({});
             loadData();
         } else {
-            alert('Error adding pricing config: ' + configRes.error);
+            notify.failure(configRes.error);
         }
     };
 

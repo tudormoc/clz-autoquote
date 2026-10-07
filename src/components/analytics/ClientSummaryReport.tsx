@@ -19,6 +19,7 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import { downloadBase64File } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrencyRounded } from '@/lib/format';
+import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 
 interface Filters {
@@ -116,11 +117,11 @@ export function ClientSummaryReport() {
                 setShowPdfModal(false);
             } else {
                 console.error('Failed to generate PDF:', result.error);
-                alert(APP_COPY.analytics.pdfError);
+                notify.error(APP_COPY.analytics.pdfError);
             }
         } catch (err) {
             console.error('PDF Generation Error:', err);
-            alert(APP_COPY.analytics.pdfError);
+            notify.error(APP_COPY.analytics.pdfError);
         } finally {
             setPdfLoading(false);
         }

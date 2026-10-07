@@ -39,6 +39,7 @@ import {
     todayLocal,
     type PresenceRulesConfig,
 } from '@/lib/presence';
+import { notify } from '@/lib/notify';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { HoursDistributionField, OperatorHoursRow } from '@/types';
@@ -113,7 +114,7 @@ export function MonthlyHoursTable() {
 
     const saveHours = async (row: OperatorHoursRow, field: HoursDistributionField, value: number | string | null): Promise<boolean> => {
         const fail = (error: unknown) => {
-            alert(fmt(APP_COPY.common.actionError, { error: error instanceof Error ? error.message : String(error ?? '') }));
+            notify.failure(error);
             return false;
         };
         try {

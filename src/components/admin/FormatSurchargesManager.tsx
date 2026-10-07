@@ -6,6 +6,8 @@ import { updateRecordAction, deleteRecordAction, insertRecordAction } from '@/ap
 import { Plus, Trash2, Save, Edit2, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+import { confirmDelete } from '@/lib/confirm';
+import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 
 interface FormatSurcharge {
@@ -53,14 +55,15 @@ export function FormatSurchargesManager() {
             setEditingId(null);
             loadData();
         } else {
-            alert('Error: ' + res.error);
+            notify.failure(res.error);
         }
     };
 
     const handleDelete = async (id: number | string) => {
-        if (confirm(APP_COPY.admin.formatSurcharges.deleteConfirm)) {
+        if (await confirmDelete(APP_COPY.admin.formatSurcharges.deleteConfirm)) {
             const res = await deleteRecordAction('QUOTES', 'format_surcharges', id, 'id');
             if (res.success) loadData();
+            else notify.failure(res.error);
         }
     };
 
@@ -78,7 +81,7 @@ export function FormatSurchargesManager() {
             setEditForm({});
             loadData();
         } else {
-            alert('Error adding: ' + res.error);
+            notify.failure(res.error);
         }
     };
 

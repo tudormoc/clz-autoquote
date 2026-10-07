@@ -77,7 +77,9 @@ classes and `text-[Npx]`, so a component can only use tokens:
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals),
-`EditableCell` (click-to-edit cell), `StatusBadge`, `ExportExcelButton`.
+`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `Modal` (every popup window), `ExportExcelButton`.
+Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
+(`src/lib/confirm.ts`) — never `alert()` or `confirm()`.
 
 ## Rules for new code
 

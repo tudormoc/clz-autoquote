@@ -1,6 +1,7 @@
-import { CalendarCheck, Loader2, X } from 'lucide-react';
+import { CalendarCheck, Loader2 } from 'lucide-react';
 import { presenceFieldLabel as fieldLabel } from '@/components/presence/presenceLabels';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import type { PrefillSummary } from '@/hooks/usePrefillAbsences';
 import { PREFILL_CATEGORIES, type PresenceRulesConfig } from '@/lib/presence';
 import { APP_COPY, fmt } from '@/locales';
@@ -34,85 +35,15 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
     );
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 backdrop-blur-sm p-4">
-            <div className="bg-card border border-border rounded-lg shadow-2xl max-w-xl w-full max-h-full flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-border bg-card/50 flex-shrink-0">
-                    <div className="flex items-center gap-2 text-warning-400">
-                        <CalendarCheck size={20} />
-                        <h3 className="font-semibold text-fg text-sm">{copy.prefill.modalTitle}</h3>
-                    </div>
-                    <button type="button" onClick={onClose} disabled={prefilling} className="text-fg-muted hover:text-fg transition-colors">
-                        <X size={18} />
-                    </button>
-                </div>
-
-                {/* Scrolls when taller than the window */}
-                <div className="p-4 space-y-3 text-sm overflow-y-auto flex-1 min-h-0">
-                    <p className="text-fg-soft">
-                        {copy.prefill.found} <strong className="text-warning-400 font-bold text-base">{summary.totalCount}</strong>{' '}
-                        {copy.prefill.summaryText}
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {card(
-                            fmt(copy.prefill.fullTitle, { h: workdayLabel }),
-                            <>
-                                {fmt(copy.prefill.fullDetail, { h: workdayLabel })}
-                                {summary.overflowCount > 0 && (
-                                    <span className="text-warning-400 ml-1">
-                                        ({summary.overflowCount}{' '}
-                                        {fmt(copy.prefill.overflowDetail, { min: rules.overflowMinHours, field: fieldLabel(rules.overflowField) })})
-                                    </span>
-                                )}
-                            </>,
-                            summary.fullCount
-                        )}
-                        {card(
-                            fmt(copy.prefill.partialTitle, { h: workdayLabel }),
-                            fmt(copy.prefill.partialDetail, { h: workdayLabel, step: rules.ordinarieRounding.step, field: fieldLabel(rules.partialFillField) }),
-                            summary.partialCount
-                        )}
-                        {card(
-                            copy.prefill.absencesTitle,
-                            fmt(copy.prefill.absencesDetail, { h: workdayLabel, field: fieldLabel(rules.absenceField) }),
-                            summary.absencesCount
-                        )}
-                        {fixedCategories.length > 0 &&
-                            card(
-                                fmt(copy.prefill.fixedTitle, { categories: fixedCategories.map((c) => c.label).join(', ') }),
-                                fmt(copy.prefill.fixedDetail, { h: workdayLabel }),
-                                summary.fixedCount
-                            )}
-                        {rules.extraDays.length > 0 &&
-                            card(
-                                fmt(copy.prefill.extraTitle, { days: weekdays(rules.extraDays) }),
-                                fmt(copy.prefill.extraDetail, { max: rules.extraMaxHours, field: fieldLabel(rules.extraField), step: rules.extraRounding.step }),
-                                summary.extraCount
-                            )}
-                    </div>
-
-                    <div className="bg-success-950/30 border border-success-800/40 rounded p-3 text-xs space-y-1">
-                        <div className="font-semibold text-success-300 flex items-center gap-1.5">
-                            <span>✓</span> {fmt(copy.prefill.ruleTitle, { h: workdayLabel })}
-                        </div>
-                        <div className="text-success-400/90 text-2xs">
-                            {fmt(copy.prefill.ruleDesc, { h: rules.workdayHours, fields: rules.coveredFields.map(fieldLabel).join(' + ') })}
-                        </div>
-                    </div>
-
-                    <div className="bg-background/60 border border-border/80 rounded p-3 text-xs text-fg-muted space-y-1">
-                        <div className="font-medium text-2xs">
-                            {copy.prefill.period} <span className="text-fg font-semibold font-mono">{period.dateFrom}</span> &rarr;{' '}
-                            <span className="text-fg font-semibold font-mono">{period.dateTo}</span>
-                        </div>
-                        <div>&bull; {fmt(copy.prefill.workingDaysOnly, { days: weekdays(rules.workingDays) })}</div>
-                        <div>&bull; {copy.prefill.pastDatesOnly}</div>
-                        <div>&bull; {copy.prefill.noOverwrite}</div>
-                        <div>&bull; {fmt(copy.prefill.categoriesOnly, { categories: standardCategoriesLabel })}</div>
-                    </div>
-                </div>
-
-                <div className="flex justify-end gap-2 p-4 border-t border-border bg-card/30 flex-shrink-0">
+        <Modal
+            title={copy.prefill.modalTitle}
+            icon={CalendarCheck}
+            iconTone="warning"
+            size="xl"
+            onClose={onClose}
+            busy={prefilling}
+            footer={
+                <>
                     <Button type="button" variant="secondary" onClick={onClose} disabled={prefilling}>
                         {APP_COPY.common.cancel}
                     </Button>
@@ -120,8 +51,73 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
                         {prefilling ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
                         {copy.prefill.confirmButton} ({summary.totalCount})
                     </Button>
+                </>
+            }
+        >
+            <div className="space-y-3">
+                <p className="text-fg-soft">
+                    {copy.prefill.found} <strong className="text-warning-400 font-bold text-base">{summary.totalCount}</strong>{' '}
+                    {copy.prefill.summaryText}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {card(
+                        fmt(copy.prefill.fullTitle, { h: workdayLabel }),
+                        <>
+                            {fmt(copy.prefill.fullDetail, { h: workdayLabel })}
+                            {summary.overflowCount > 0 && (
+                                <span className="text-warning-400 ml-1">
+                                    ({summary.overflowCount}{' '}
+                                    {fmt(copy.prefill.overflowDetail, { min: rules.overflowMinHours, field: fieldLabel(rules.overflowField) })})
+                                </span>
+                            )}
+                        </>,
+                        summary.fullCount
+                    )}
+                    {card(
+                        fmt(copy.prefill.partialTitle, { h: workdayLabel }),
+                        fmt(copy.prefill.partialDetail, { h: workdayLabel, step: rules.ordinarieRounding.step, field: fieldLabel(rules.partialFillField) }),
+                        summary.partialCount
+                    )}
+                    {card(
+                        copy.prefill.absencesTitle,
+                        fmt(copy.prefill.absencesDetail, { h: workdayLabel, field: fieldLabel(rules.absenceField) }),
+                        summary.absencesCount
+                    )}
+                    {fixedCategories.length > 0 &&
+                        card(
+                            fmt(copy.prefill.fixedTitle, { categories: fixedCategories.map((c) => c.label).join(', ') }),
+                            fmt(copy.prefill.fixedDetail, { h: workdayLabel }),
+                            summary.fixedCount
+                        )}
+                    {rules.extraDays.length > 0 &&
+                        card(
+                            fmt(copy.prefill.extraTitle, { days: weekdays(rules.extraDays) }),
+                            fmt(copy.prefill.extraDetail, { max: rules.extraMaxHours, field: fieldLabel(rules.extraField), step: rules.extraRounding.step }),
+                            summary.extraCount
+                        )}
+                </div>
+
+                <div className="bg-success-950/30 border border-success-800/40 rounded p-3 text-xs space-y-1">
+                    <div className="font-semibold text-success-300 flex items-center gap-1.5">
+                        <span>✓</span> {fmt(copy.prefill.ruleTitle, { h: workdayLabel })}
+                    </div>
+                    <div className="text-success-400/90 text-2xs">
+                        {fmt(copy.prefill.ruleDesc, { h: rules.workdayHours, fields: rules.coveredFields.map(fieldLabel).join(' + ') })}
+                    </div>
+                </div>
+
+                <div className="bg-background/60 border border-border/80 rounded p-3 text-xs text-fg-muted space-y-1">
+                    <div className="font-medium text-2xs">
+                        {copy.prefill.period} <span className="text-fg font-semibold font-mono">{period.dateFrom}</span> &rarr;{' '}
+                        <span className="text-fg font-semibold font-mono">{period.dateTo}</span>
+                    </div>
+                    <div>&bull; {fmt(copy.prefill.workingDaysOnly, { days: weekdays(rules.workingDays) })}</div>
+                    <div>&bull; {copy.prefill.pastDatesOnly}</div>
+                    <div>&bull; {copy.prefill.noOverwrite}</div>
+                    <div>&bull; {fmt(copy.prefill.categoriesOnly, { categories: standardCategoriesLabel })}</div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }

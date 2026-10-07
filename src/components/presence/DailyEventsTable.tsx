@@ -20,7 +20,8 @@ import { useListQuery } from '@/hooks/useListQuery';
 import { dbDateTimeParts, getTodayDate } from '@/lib/dateUtils';
 import { formatDbDateTime } from '@/lib/format';
 import type { RowSortColumns } from '@/lib/sort';
-import { APP_COPY, fmt } from '@/locales';
+import { notify } from '@/lib/notify';
+import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
 
 interface Filters {
@@ -53,7 +54,7 @@ export function DailyEventsTable() {
         // Date and time go to the database as typed, no timezone conversion
         const result = await updateEventAction(row.OGGETTO, row.ORA_EVENTO, 'ORA_EVENTO', `${date} ${time}`);
         if (!result.success) {
-            alert(fmt(APP_COPY.common.actionError, { error: result.error ?? '' }));
+            notify.failure(result.error);
             return false;
         }
         await list.reload();

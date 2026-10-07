@@ -9,7 +9,9 @@
 export const APP_CONFIG = {
   // UI & UX Configuration
   UI: {
-    TOAST_DURATION: 3000,
+    // How long an on-screen notice stays (ms); errors stay longer so they can be read
+    TOAST_DURATION: 4000,
+    ERROR_TOAST_DURATION: 8000,
   },
 
   // Display locale for numbers, money and dates (used by src/lib/format.ts).
@@ -152,6 +154,8 @@ export const APP_CONFIG = {
 
     // Year passed to the report queries; they only use it when no date filter is set
     FALLBACK_YEAR: 2024,
+    // First year offered by the PDF period picker (data before it is not reliable)
+    PDF_FIRST_YEAR: 2024,
 
     // Minimum work time threshold (minutes) for rows to be included in Order Area Summary
     // Used to filter out short/insignificant tasks (noise)

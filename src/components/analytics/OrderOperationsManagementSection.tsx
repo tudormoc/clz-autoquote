@@ -31,7 +31,9 @@ import {
     refreshOrderOperationsManagementAction,
     syncOrderFromDibaAction
 } from '@/app/analytics/queries/order-operations-queries';
-import { APP_COPY } from '@/locales';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { APP_COPY, fmt } from '@/locales';
 import { compareOperations, compareMaterials, type OpField } from '@/lib/orderCompare';
 import { formatNumber } from '@/lib/format';
 
@@ -630,81 +632,39 @@ export function OrderOperationsManagementSection({
                 </div>
             )}
 
-            {/* SYNC CONFIRMATION MODAL */}
             {showSyncConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/70 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-lg rounded-2xl border border-border-strong bg-card shadow-2xl overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-warning-500/20 text-warning-300">
-                                    <Sparkles className="w-6 h-6 text-warning-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-base font-bold text-fg">
-                                        {t.syncConfirmTitle}
-                                    </h3>
-                                    <p className="text-xs text-fg-muted mt-0.5">
-                                        Commessa: <span className="font-mono text-fg-soft">{rootCommessaKey}</span> | Articolo: <span className="font-mono text-fg-soft">{data.article_father}</span>
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowSyncConfirm(false)}
-                                className="p-1.5 rounded-lg text-fg-muted hover:text-fg-soft hover:bg-muted transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <div className="text-xs text-fg-secondary leading-relaxed bg-background/60 p-4 rounded-xl border border-border space-y-3">
-                            <p className="font-medium text-fg-soft">
-                                {t.syncConfirmDescription}
-                            </p>
-                            <ul className="space-y-1.5 text-fg-muted list-disc list-inside">
-                                <li>
-                                    <strong className="text-fg-soft">Business Cube ERP:</strong> aggiorna le <span className="text-highlight-300">Lavorazioni collegate</span> (fasi attive) e gli <span className="text-success-300">Impegni collegati</span> (materiali).
-                                </li>
-                                <li>
-                                    <strong className="text-fg-soft">NetPro MES:</strong> aggiorna istantaneamente <span className="text-info-300">OPERAZIONI</span> e <span className="text-info-300">MATERIALI_ORDINI</span> per i reparti.
-                                </li>
-                                <li>
-                                    <strong className="text-fg-soft">Nessuna duplicazione:</strong> gli ordini mantengono lo stesso identico ID (#{data.order_bus_numord || '-'}). L&apos;inventario rimane invariato fino al completamento.
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowSyncConfirm(false)}
-                                disabled={isSyncing}
-                                className="px-4 py-2 rounded-xl bg-muted text-fg-secondary hover:bg-muted-strong text-xs font-semibold transition-colors disabled:opacity-50"
-                            >
+                <Modal
+                    title={t.syncConfirmTitle}
+                    subtitle={fmt(t.syncConfirmSubtitle, { commessa: rootCommessaKey ?? '-', article: data.article_father ?? '-' })}
+                    icon={Sparkles}
+                    iconTone="warning"
+                    size="lg"
+                    onClose={() => setShowSyncConfirm(false)}
+                    busy={isSyncing}
+                    footer={
+                        <>
+                            <Button variant="secondary" onClick={() => setShowSyncConfirm(false)} disabled={isSyncing}>
                                 {t.cancel}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleSyncFromDiba}
-                                disabled={isSyncing}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-warning-500 text-fg-inverse hover:bg-warning-400 text-xs font-bold transition-all shadow-lg disabled:opacity-50"
-                            >
-                                {isSyncing ? (
-                                    <>
-                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                        <span>{t.syncing}</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="w-3.5 h-3.5" />
-                                        <span>{t.syncConfirmButton}</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                            </Button>
+                            <Button onClick={handleSyncFromDiba} disabled={isSyncing} className="bg-warning-500 text-fg-inverse hover:bg-warning-400">
+                                {isSyncing ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                                {isSyncing ? t.syncing : t.syncConfirmButton}
+                            </Button>
+                        </>
+                    }
+                >
+                    <div className="text-xs text-fg-secondary leading-relaxed bg-background/60 p-4 rounded-lg border border-border space-y-3">
+                        <p className="font-medium text-fg-soft">{t.syncConfirmDescription}</p>
+                        <ul className="space-y-1.5 text-fg-muted list-disc list-inside">
+                            {t.syncConfirmEffects.map((effect) => (
+                                <li key={effect.title}>
+                                    <strong className="text-fg-soft">{effect.title}</strong>{' '}
+                                    {fmt(effect.text, { order: data.order_bus_numord || '-' })}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

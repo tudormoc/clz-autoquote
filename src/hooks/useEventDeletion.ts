@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { deleteEventsAction, getConnectedEventsAction } from '@/app/presence/presence-actions';
 import { dbDateTimeParts } from '@/lib/dateUtils';
 import { formatDbDateTime } from '@/lib/format';
+import { notify } from '@/lib/notify';
 import { APP_COPY, fmt } from '@/locales';
 import type { ConnectedEvent, PresenceEventRow } from '@/types';
 
@@ -73,7 +74,7 @@ export function useEventDeletion(onDeleted: () => Promise<void>) {
                 setPending(null);
                 await onDeleted();
             } else {
-                alert(fmt(APP_COPY.common.actionError, { error: result.error ?? '' }));
+                notify.failure(result.error);
             }
         } finally {
             setDeleting(false);

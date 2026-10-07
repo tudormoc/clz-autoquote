@@ -1,0 +1,85 @@
+'use client';
+
+import { useEffect, useId } from 'react';
+import { X, type LucideIcon } from 'lucide-react';
+import { APP_COPY } from '@/locales';
+import { cn } from '@/lib/utils';
+
+const SIZES = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+} as const;
+
+const ICON_TONES = {
+    primary: 'bg-primary/15 text-primary',
+    warning: 'bg-warning-500/20 text-warning-400',
+    danger: 'bg-danger-500/20 text-danger-400',
+    success: 'bg-success-500/20 text-success-400',
+} as const;
+
+interface ModalProps {
+    title: React.ReactNode;
+    subtitle?: React.ReactNode;
+    icon?: LucideIcon;
+    iconTone?: keyof typeof ICON_TONES;
+    size?: keyof typeof SIZES;
+    onClose: () => void;
+    /** While true (saving, generating …) the window cannot be closed */
+    busy?: boolean;
+    /** Buttons at the bottom, right-aligned */
+    footer?: React.ReactNode;
+    children: React.ReactNode;
+}
+
+/** The app's popup window: title bar with close button, scrolling body, button row. Escape closes it. */
+export function Modal({ title, subtitle, icon: Icon, iconTone = 'primary', size = 'md', onClose, busy, footer, children }: ModalProps) {
+    const titleId = useId();
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && !busy) onClose();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [busy, onClose]);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                className={cn('w-full max-h-full flex flex-col overflow-hidden rounded-lg border border-border-strong bg-card shadow-2xl', SIZES[size])}
+            >
+                <div className="flex items-start justify-between gap-3 p-4 border-b border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                        {Icon && (
+                            <span className={cn('p-2 rounded-lg shrink-0', ICON_TONES[iconTone])}>
+                                <Icon size={18} />
+                            </span>
+                        )}
+                        <div className="min-w-0">
+                            <h2 id={titleId} className="text-base font-semibold text-fg-strong">
+                                {title}
+                            </h2>
+                            {subtitle && <p className="text-xs text-fg-muted mt-0.5">{subtitle}</p>}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={busy}
+                        title={APP_COPY.common.close}
+                        className="p-1 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto flex-1 min-h-0 text-sm">{children}</div>
+                {footer && <div className="flex justify-end gap-2 p-4 border-t border-border">{footer}</div>}
+            </div>
+        </div>
+    );
+}

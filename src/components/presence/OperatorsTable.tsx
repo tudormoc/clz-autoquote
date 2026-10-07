@@ -16,7 +16,8 @@ import { useListQuery } from '@/hooks/useListQuery';
 import { EMPTY_VALUE } from '@/lib/format';
 import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
-import { APP_COPY, fmt } from '@/locales';
+import { notify } from '@/lib/notify';
+import { APP_COPY } from '@/locales';
 
 type EditableColumn = 'BADGE' | 'NOME' | 'STATO_FISICO';
 
@@ -56,7 +57,7 @@ export function OperatorsTable() {
     const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
         const result = await updateOperatorAction(operatore, column, value.trim() || null);
         if (!result.success) {
-            alert(fmt(APP_COPY.common.actionError, { error: result.error ?? '' }));
+            notify.failure(result.error);
             return false;
         }
         await list.reload();

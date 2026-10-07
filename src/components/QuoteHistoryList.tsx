@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Clock, History, Trash2 } from 'lucide-react';
+import { confirmDelete } from '@/lib/confirm';
 import { APP_COPY } from '@/locales';
 import type { Quote } from '@/types';
 import { formatDate } from '@/lib/format';
@@ -40,14 +41,14 @@ export const QuoteHistoryList = ({ history, onSelectQuote, onDeleteQuote }: Quot
                                 </p>
                                 {onDeleteQuote && (
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
-                                            if (confirm(APP_COPY.history.deleteConfirm)) {
+                                            if (await confirmDelete(APP_COPY.history.deleteConfirm)) {
                                                 onDeleteQuote(quote.id);
                                             }
                                         }}
                                         className="text-fg-subtle hover:text-danger transition-colors md:opacity-0 group-hover:opacity-100 p-1"
-                                        title="Delete quote"
+                                        title={APP_COPY.common.delete}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
