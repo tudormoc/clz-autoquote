@@ -62,7 +62,9 @@ npm run excel:examples      # Excel export
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings, auto-exit; shared queries in `presence-db.ts`) |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/` (page HTML, `renderPdfBase64`) |
 | Order sync DiBa → Business → NetPro | `src/lib/orderSync.ts`, `src/lib/orderCompare.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
-| Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md) |
+| Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
+| Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orderFlow.ts` |
+| Database page | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
 
 ## Design system
 
@@ -80,9 +82,10 @@ classes and `text-[Npx]`, so a component can only use tokens:
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals),
-`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `Modal` (every popup window), `ExportExcelButton`.
+`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar`, `Section` + `RowList`/`Row` (blocks of a settings page),
+`Spinner`, `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
-(`src/lib/confirm.ts`) — never `alert()` or `confirm()`.
+(`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any`.
 
 ## Rules for new code
 
