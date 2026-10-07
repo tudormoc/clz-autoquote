@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { getDailyEventsAction, updateEventAction } from '@/app/presence/presence-actions';
+import { getDailyEventsAction, updateEventAction } from '@/app/presence/events-actions';
 import { AddEventForm } from '@/components/presence/AddEventForm';
 import { DeleteEventsDialog } from '@/components/presence/DeleteEventsDialog';
 import { Button } from '@/components/ui/Button';

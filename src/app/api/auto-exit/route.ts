@@ -1,4 +1,4 @@
-import { runAutoExitAction } from '@/app/presence/presence-actions';
+import { runAutoExitAction } from '@/app/presence/auto-exit-actions';
 
 /**
  * GET /api/auto-exit

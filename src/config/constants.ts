@@ -157,6 +157,8 @@ export const APP_CONFIG = {
 
     // Year passed to the report queries; they only use it when no date filter is set
     FALLBACK_YEAR: 2024,
+    // Row limit meaning "every row, no paging" (Excel exports, PDFs, summaries)
+    ALL_ROWS_LIMIT: 999999,
     // First year offered by the PDF period picker (data before it is not reliable)
     PDF_FIRST_YEAR: 2024,
 

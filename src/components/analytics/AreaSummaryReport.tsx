@@ -121,6 +121,7 @@ export function AreaSummaryReport() {
                     if (areas.length > 1) await wait(DOWNLOAD_GAP_MS);
                 } else {
                     console.error(`PDF generation failed for area ${area}:`, result.error);
+                    notify.error(APP_COPY.analytics.pdfError);
                 }
             }
             setShowPdfModal(false);

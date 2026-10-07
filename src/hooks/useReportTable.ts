@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { APP_CONFIG } from '@/config/constants';
 import { nextSort, type SortState } from '@/lib/sort';
 
 export type { SortState };
@@ -38,7 +39,7 @@ interface UseReportTableOptions<F, R, S> {
 }
 
 /** Row limit when every row is fetched (exports, summaries): no paging */
-export const EXPORT_LIMIT = 999999;
+export const EXPORT_LIMIT = APP_CONFIG.ANALYTICS.ALL_ROWS_LIMIT;
 const DEFAULT_PAGE_SIZE = 100;
 
 /**

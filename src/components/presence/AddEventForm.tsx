@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createEventAction } from '@/app/presence/presence-actions';
+import { createEventAction } from '@/app/presence/events-actions';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Field } from '@/components/ui/Field';

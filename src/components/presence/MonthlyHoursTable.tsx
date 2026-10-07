@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarCheck, Loader2 } from 'lucide-react';
-import {
-    getMonthlyHoursAction,
-    getPresenceRulesAction,
-    updateHoursDistributionAction,
-} from '@/app/presence/presence-actions';
+import { getMonthlyHoursAction, getPresenceRulesAction, updateHoursDistributionAction } from '@/app/presence/hours-actions';
 import { byOperatorName, monthlyHoursColumns, monthlyHoursSortColumns } from '@/components/presence/monthlyHoursColumns';
 import { PrefillConfirmDialog } from '@/components/presence/PrefillConfirmDialog';
 import { Button } from '@/components/ui/Button';

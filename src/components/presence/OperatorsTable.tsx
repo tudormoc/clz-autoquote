@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getOperatorsAction, updateOperatorAction, type OperatorRow } from '@/app/presence/presence-actions';
+import { getOperatorsAction, updateOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { FilterPanel } from '@/components/ui/FilterPanel';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { deleteEventsAction, getConnectedEventsAction } from '@/app/presence/presence-actions';
+import { deleteEventsAction, getConnectedEventsAction } from '@/app/presence/events-actions';
 import { dbDateTimeParts } from '@/lib/dateUtils';
 import { formatDbDateTime } from '@/lib/format';
 import { notify } from '@/lib/notify';

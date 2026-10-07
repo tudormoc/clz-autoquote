@@ -1,5 +1,5 @@
 // Presence rules module — pure functions, no DB, no React.
-// Both the server actions (src/app/presence/presence-actions.ts) and the
+// Both the server actions (src/app/presence/*-actions.ts) and the
 // dashboard components import from here. See docs/PRESENCE.md.
 
 export * from './types';

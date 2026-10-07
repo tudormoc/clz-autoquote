@@ -5,14 +5,8 @@ import { Clock, Info, Edit2, Check, X, Database, ChevronDown } from 'lucide-reac
 import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
-import {
-    getAllPresenceSettingsAction,
-    updatePresenceSettingAction,
-    renamePresencePresetAction,
-    getTurno2OperatorsAction,
-    searchOperatorsAction,
-    setOperatorGruppoAction,
-} from '@/app/presence/presence-actions';
+import { getTurno2OperatorsAction, searchOperatorsAction, setOperatorGruppoAction } from '@/app/presence/operators-actions';
+import { getAllPresenceSettingsAction, updatePresenceSettingAction, renamePresencePresetAction } from '@/app/presence/presence-settings-actions';
 import type { PresenceSettingRow } from '@/types';
 import { PresetTagEditor } from './PresetTagEditor';
 import { getPresenceSettingDefinition } from '@/lib/presence';

@@ -57,7 +57,8 @@ npm run excel:examples      # Excel export
 | Report state (filters, paging, sorting, export) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
-| Presence rules | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) |
+| Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings, auto-exit; shared queries in `presence-db.ts`) |
+| PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/` (page HTML, `renderPdfBase64`) |
 | Order sync DiBa → Business → NetPro | `src/lib/orderSync.ts`, `src/lib/orderCompare.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md) |
 
