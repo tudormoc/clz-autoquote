@@ -56,7 +56,7 @@ export function AdvancedQuoteForm() {
                 blueprintWindow.postMessage({
                     type: 'BLUEPRINT_DATA',
                     dimensions: blueprintData
-                }, '*');
+                }, window.location.origin);
             };
 
             // Listen for data request from blueprint window

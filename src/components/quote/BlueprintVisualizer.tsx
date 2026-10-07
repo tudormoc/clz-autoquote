@@ -1,363 +1,188 @@
 'use client';
 
-import React from 'react';
+import { DimensionLine } from '@/components/quote/blueprint/DimensionLine';
+import { APP_COPY, fmt } from '@/locales';
 
-interface BlueprintDimensions {
-  boardWidth: number;
-  boardHeight: number;
-  spineWidth: number;
-  hingeGap: number;
-  turnIn: number;
-  bleed: number;
+const copy = APP_COPY.blueprint;
+
+export interface BlueprintDimensions {
+    boardWidth: number;
+    boardHeight: number;
+    spineWidth: number;
+    hingeGap: number;
+    turnIn: number;
+    bleed: number;
 }
 
 interface BlueprintVisualizerProps {
-  dimensions: BlueprintDimensions;
+    dimensions: BlueprintDimensions;
 }
 
+/**
+ * Flat drawing of a hard cover (all mm): rimbocco, back board, cerniera, dorso, cerniera, front board, rimbocco,
+ * with bleed area, registration marks, fold and turn-in guides and the measurements around it.
+ * Colours are theme tokens (Tailwind fill / stroke classes).
+ */
 export function BlueprintVisualizer({ dimensions }: BlueprintVisualizerProps) {
-  const { boardWidth, boardHeight, spineWidth, hingeGap, turnIn, bleed } = dimensions;
+    const { boardWidth, boardHeight, spineWidth, hingeGap, turnIn, bleed } = dimensions;
 
-  // Calculate total dimensions
-  const totalWidth = turnIn + boardWidth + hingeGap + spineWidth + hingeGap + boardWidth + turnIn;
-  const totalHeight = turnIn + boardHeight + turnIn;
+    const totalWidth = turnIn + boardWidth + hingeGap + spineWidth + hingeGap + boardWidth + turnIn;
+    const totalHeight = turnIn + boardHeight + turnIn;
+    const spineStart = turnIn + boardWidth + hingeGap;
+    const spineEnd = spineStart + spineWidth;
+    const frontBoardStart = spineEnd + hingeGap;
 
-  // Calculate key positions
-  const spineStart = turnIn + boardWidth + hingeGap;
-  const spineEnd = spineStart + spineWidth;
-  const frontBoardStart = spineEnd + hingeGap;
+    // Room around the drawing for the measurements
+    const padY = totalHeight * 0.15;
+    const padX = totalWidth * 0.15;
+    const viewBox = [-bleed - padX * 0.5, -bleed - padY, totalWidth + bleed * 2 + padX * 1.2, totalHeight + bleed * 2 + padY * 2].join(' ');
 
-  // Padding for dimensions - reduced for more compact view
-  const padTop = totalHeight * 0.15;
-  const padBottom = totalHeight * 0.15;
-  const padX = totalWidth * 0.15;
+    const stroke = (factor: number) => totalWidth * factor;
+    const labelY = turnIn + boardHeight * 0.2;
+    const boardLabel = { className: 'fill-fg-strong', fontSize: totalWidth * 0.02, fontFamily: 'monospace', textAnchor: 'middle' as const, pointerEvents: 'none' };
 
-  const viewBoxX = -bleed - (padX * 0.5);
-  const viewBoxY = -bleed - padTop;
-  const viewBoxW = totalWidth + (bleed * 2) + (padX * 1.2);
-  const viewBoxH = totalHeight + (bleed * 2) + padTop + padBottom;
+    /** Registration mark (circle with cross) in the bleed area */
+    const regMark = (x: number, y: number) => {
+        const arm = totalWidth * 0.006;
+        return (
+            <g key={`${x}-${y}`} transform={`translate(${x}, ${y})`} className="stroke-overlay" strokeWidth={stroke(0.0005)}>
+                <circle cx="0" cy="0" r={totalWidth * 0.002} fill="none" />
+                <line x1={-arm} y1="0" x2={arm} y2="0" />
+                <line x1="0" y1={-arm} x2="0" y2={arm} />
+            </g>
+        );
+    };
 
-  // Colors from design system
-  const guideColor = "#06b6d4"; // Cyan-500
-  const boardColor = "#52525b"; // Zinc-600 - lighter grey for boards
-  const foldColor = "#d946ef"; // Fuschia-500
-  const dimColor = "#a1a1aa"; // Zinc-400
-  const bleedColor = "#ef4444"; // Red-500
-  const cutLineColor = "#52525b"; // Zinc-600
-  const labelColor = "#ffffff";
+    /** Short marks in the top and bottom bleed where a fold or board edge falls */
+    const bleedTick = (x: number) => (
+        <g key={x} className="stroke-overlay" strokeWidth={stroke(0.001)}>
+            <line x1={x} y1={-bleed} x2={x} y2={-bleed * 0.2} />
+            <line x1={x} y1={totalHeight + bleed} x2={x} y2={totalHeight + bleed * 0.2} />
+        </g>
+    );
 
-  // Dimension line component with smart positioning to avoid overlap
-  const DimLine = ({
-    x1, y1, x2, y2,
-    text,
-    vertical = false,
-    textAbove = false,
-    rotateText = false,
-    withExtension = false,
-    extensionY = 0,
-    extensionX = 0,
-    forceOffset = false // Force text to be offset above/below the line
-  }: any) => {
-    const fontSize = totalWidth * 0.011; // Slightly smaller for better fit
-    const tickSize = totalWidth * 0.005;
-    const textOffset = fontSize * 0.8;
+    const board = (x: number, width: number) => (
+        <rect x={x} y={turnIn} width={width} height={boardHeight} className="fill-fg-faint" opacity="0.8" />
+    );
 
-    const cx = (x1 + x2) / 2;
-    const cy = (y1 + y2) / 2;
-    const segmentLength = vertical ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
-    
-    // Calculate if segment is too small for centered text
-    const textLength = text.length;
-    const estimatedTextWidth = textLength * fontSize * 0.6;
-    const isTooSmall = segmentLength < estimatedTextWidth * 1.3;
-
-    let textX = cx;
-    let textY = cy;
-    let anchor: "start" | "middle" | "end" = "middle";
-    let baseline: "auto" | "middle" | "hanging" = "middle";
-
-    if (vertical) {
-      if (rotateText) {
-        textX = cx - textOffset;
-        textY = cy;
-        anchor = "middle";
-        baseline = "auto";
-      } else {
-        textX = x1 - tickSize * 3;
-        anchor = "end";
-      }
-    } else {
-      // Horizontal dimensions
-      if (isTooSmall || forceOffset) {
-        // For small segments, move text much higher above the line
-        textY = y1 - tickSize - (fontSize * 2.5); // Increased from 1.5 to 2.5
-        baseline = "auto";
-      } else if (textAbove) {
-        textY = y1 - tickSize - textOffset;
-        baseline = "auto";
-      } else {
-        textY = y1 + tickSize + textOffset;
-        baseline = "hanging";
-      }
-    }
-
-    // Calculate background dimensions based on text length
-    const bgWidth = textLength * fontSize * 0.65; // Increased from 0.58 for more horizontal padding
-    const bgHeight = fontSize * 1.3;
-    const bgX = textX - (bgWidth / 2);
-    const bgY = textY - (bgHeight / 2);
+    // Measurements along the bottom and the right side, with dashed lines back to the drawing
+    const bottomY = totalHeight + bleed + totalHeight * 0.1;
+    const bottomSegments: [number, number, string][] = [
+        [0, turnIn, `${turnIn}`],
+        [turnIn, turnIn + boardWidth, `${boardWidth}`],
+        [turnIn + boardWidth, spineStart, `${hingeGap}`],
+        [spineStart, spineEnd, spineWidth.toFixed(1)],
+        [spineEnd, frontBoardStart, `${hingeGap}`],
+        [frontBoardStart, frontBoardStart + boardWidth, `${boardWidth}`],
+        [frontBoardStart + boardWidth, totalWidth, `${turnIn}`],
+    ];
+    const rightX = totalWidth + bleed + totalWidth * 0.03;
+    const rightSegments: [number, number, string][] = [
+        [0, turnIn, `${turnIn}`],
+        [turnIn, totalHeight - turnIn, `${boardHeight}`],
+        [totalHeight - turnIn, totalHeight, `${turnIn}`],
+    ];
 
     return (
-      <g>
-        {withExtension && !vertical && (
-          <>
-            <line x1={x1} y1={extensionY} x2={x1} y2={y1} stroke={dimColor} strokeWidth={totalWidth * 0.0005} strokeDasharray="2 2" opacity="0.25" />
-            <line x1={x2} y1={extensionY} x2={x2} y2={y2} stroke={dimColor} strokeWidth={totalWidth * 0.0005} strokeDasharray="2 2" opacity="0.25" />
-          </>
-        )}
-        {withExtension && vertical && (
-          <>
-            <line x1={extensionX} y1={y1} x2={x1} y2={y1} stroke={dimColor} strokeWidth={totalWidth * 0.0005} strokeDasharray="2 2" opacity="0.25" />
-            <line x1={extensionX} y1={y2} x2={x2} y2={y2} stroke={dimColor} strokeWidth={totalWidth * 0.0005} strokeDasharray="2 2" opacity="0.25" />
-          </>
-        )}
+        <div className="w-full h-full flex flex-col items-center justify-center bg-card border border-border rounded-lg overflow-hidden relative">
+            <div className="absolute top-4 left-4 text-xs font-mono text-fg-subtle z-10 pointer-events-none">
+                {copy.preview}
+                {bleed > 0 && <span className="text-danger ml-2">• {fmt(copy.bleedActive, { mm: bleed })}</span>}
+            </div>
 
-        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={dimColor} strokeWidth={totalWidth * 0.001} />
+            <svg viewBox={viewBox} className="w-full h-full blueprint-svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <pattern id="diagonalHatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                        <line x1="0" y1="0" x2="0" y2="10" className="stroke-danger" strokeWidth={1} opacity={0.1} />
+                    </pattern>
+                </defs>
 
-        {vertical ? (
-          <>
-            <line x1={x1 - tickSize} y1={y1} x2={x1 + tickSize} y2={y1} stroke={dimColor} strokeWidth={totalWidth * 0.001} />
-            <line x1={x2 - tickSize} y1={y2} x2={x2 + tickSize} y2={y2} stroke={dimColor} strokeWidth={totalWidth * 0.001} />
-          </>
-        ) : (
-          <>
-            <line x1={x1} y1={y1 - tickSize} x2={x1} y2={y1 + tickSize} stroke={dimColor} strokeWidth={totalWidth * 0.001} />
-            <line x1={x2} y1={y2 - tickSize} x2={x2} y2={y2 + tickSize} stroke={dimColor} strokeWidth={totalWidth * 0.001} />
-          </>
-        )}
+                {bleed > 0 && (
+                    <>
+                        <rect
+                            x={-bleed}
+                            y={-bleed}
+                            width={totalWidth + bleed * 2}
+                            height={totalHeight + bleed * 2}
+                            fill="url(#diagonalHatch)"
+                            className="stroke-danger"
+                            strokeWidth={stroke(0.001)}
+                            strokeDasharray="4 2"
+                        />
+                        {[
+                            [totalWidth / 2, -bleed / 2],
+                            [-bleed / 2, totalHeight / 2],
+                            [totalWidth + bleed / 2, totalHeight / 2],
+                            [totalWidth / 2, totalHeight + bleed / 2],
+                        ].map(([x, y]) => regMark(x, y))}
+                        {[spineStart, spineEnd, frontBoardStart, turnIn + boardWidth].map(bleedTick)}
+                    </>
+                )}
 
-        {/* Text background for better visibility */}
-        <rect
-          x={bgX}
-          y={bgY - (bgHeight * 0.15)}
-          width={bgWidth}
-          height={bgHeight}
-          fill="#18181b"
-          opacity="0.9"
-          rx="1.5"
-          transform={rotateText ? `rotate(-90, ${textX}, ${textY})` : ""}
-        />
+                {/* Cover sheet (cut line) and the three boards */}
+                <rect x="0" y="0" width={totalWidth} height={totalHeight} className="fill-fg stroke-fg-faint" strokeWidth={stroke(0.002)} />
+                {board(turnIn, boardWidth)}
+                <text x={turnIn + boardWidth / 2} y={labelY} {...boardLabel}>{copy.back}</text>
+                {board(spineStart, spineWidth)}
+                <text
+                    x={spineStart + spineWidth / 2}
+                    y={labelY}
+                    {...boardLabel}
+                    fontSize={totalWidth * 0.015}
+                    transform={`rotate(90, ${spineStart + spineWidth / 2}, ${labelY})`}
+                >
+                    {copy.spineLabel}
+                </text>
+                {board(frontBoardStart, boardWidth)}
+                <text x={frontBoardStart + boardWidth / 2} y={labelY} {...boardLabel}>{copy.front}</text>
 
-        <text
-          x={textX}
-          y={textY}
-          fill="#e4e4e7"
-          textAnchor={anchor}
-          dominantBaseline={baseline}
-          fontSize={fontSize}
-          fontWeight="500"
-          fontFamily="monospace"
-          transform={rotateText ? `rotate(-90, ${textX}, ${textY})` : ""}
-        >
-          {text}
-        </text>
-      </g>
+                {/* Turn-in guides and spine folds */}
+                <line x1="0" y1={turnIn} x2={totalWidth} y2={turnIn} className="stroke-primary" strokeDasharray="4" strokeWidth={stroke(0.001)} />
+                <line x1="0" y1={totalHeight - turnIn} x2={totalWidth} y2={totalHeight - turnIn} className="stroke-primary" strokeDasharray="4" strokeWidth={stroke(0.001)} />
+                <line x1={spineStart} y1={0} x2={spineStart} y2={totalHeight} className="stroke-highlight" strokeDasharray="4" strokeWidth={stroke(0.002)} />
+                <line x1={spineEnd} y1={0} x2={spineEnd} y2={totalHeight} className="stroke-highlight" strokeDasharray="4" strokeWidth={stroke(0.002)} />
+
+                {/* Overall size */}
+                <DimensionLine
+                    x1={0} y1={-bleed - totalHeight * 0.06}
+                    x2={totalWidth} y2={-bleed - totalHeight * 0.06}
+                    text={fmt(copy.totalWidth, { mm: totalWidth.toFixed(1) })}
+                    scale={totalWidth}
+                    textAbove
+                />
+                <DimensionLine
+                    x1={-bleed - totalWidth * 0.03} y1={0}
+                    x2={-bleed - totalWidth * 0.03} y2={totalHeight}
+                    text={fmt(copy.totalHeight, { mm: totalHeight.toFixed(1) })}
+                    scale={totalWidth}
+                    vertical
+                    rotateText
+                />
+
+                {rightSegments.map(([from, to, text]) => (
+                    <DimensionLine
+                        key={`r${from}`}
+                        x1={rightX} y1={from} x2={rightX} y2={to}
+                        text={text}
+                        scale={totalWidth}
+                        vertical
+                        rotateText
+                        withExtension
+                        extensionX={totalWidth}
+                    />
+                ))}
+                {bottomSegments.map(([from, to, text]) => (
+                    <DimensionLine
+                        key={`b${from}`}
+                        x1={from} y1={bottomY} x2={to} y2={bottomY}
+                        text={text}
+                        scale={totalWidth}
+                        textAbove
+                        withExtension
+                        extensionY={totalHeight}
+                    />
+                ))}
+            </svg>
+        </div>
     );
-  };
-
-  const RegMark = ({ x, y }: { x: number, y: number }) => (
-    <g transform={`translate(${x}, ${y})`}>
-      <circle cx="0" cy="0" r={totalWidth * 0.002} fill="none" stroke="black" strokeWidth={totalWidth * 0.0005} />
-      <line x1={-totalWidth * 0.006} y1="0" x2={totalWidth * 0.006} y2="0" stroke="black" strokeWidth={totalWidth * 0.0005} />
-      <line x1="0" y1={-totalWidth * 0.006} x2="0" y2={totalWidth * 0.006} stroke="black" strokeWidth={totalWidth * 0.0005} />
-    </g>
-  );
-
-  const BleedTick = ({ x }: { x: number }) => (
-    <g>
-      <line x1={x} y1={-bleed} x2={x} y2={-bleed * 0.2} stroke="black" strokeWidth={totalWidth * 0.001} />
-      <line x1={x} y1={totalHeight + bleed} x2={x} y2={totalHeight + bleed * 0.2} stroke="black" strokeWidth={totalWidth * 0.001} />
-    </g>
-  );
-
-  const labelY = turnIn + (boardHeight * 0.2);
-
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-card border border-border rounded-lg overflow-hidden relative">
-      <div className="absolute top-4 left-4 text-xs font-mono text-fg-subtle z-10 pointer-events-none">
-        Blueprint Preview {bleed > 0 && <span className="text-danger ml-2">• Bleed Active ({bleed}mm)</span>}
-      </div>
-
-      <svg
-        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`}
-        className="w-full h-full blueprint-svg"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <pattern id="diagonalHatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="0" x2="0" y2="10" style={{ stroke: bleedColor, strokeWidth: 1, opacity: 0.1 }} />
-          </pattern>
-        </defs>
-
-        {bleed > 0 && (
-          <rect
-            x={-bleed}
-            y={-bleed}
-            width={totalWidth + (bleed * 2)}
-            height={totalHeight + (bleed * 2)}
-            fill="url(#diagonalHatch)"
-            stroke={bleedColor}
-            strokeWidth={totalWidth * 0.001}
-            strokeDasharray="4 2"
-          />
-        )}
-
-        {bleed > 0 && (
-          <>
-            <RegMark x={totalWidth / 2} y={-bleed / 2} />
-            <RegMark x={-bleed / 2} y={totalHeight / 2} />
-            <RegMark x={totalWidth + bleed / 2} y={totalHeight / 2} />
-            <RegMark x={totalWidth / 2} y={totalHeight + bleed / 2} />
-
-            <BleedTick x={spineStart} />
-            <BleedTick x={spineEnd} />
-            <BleedTick x={frontBoardStart} />
-            <BleedTick x={turnIn + boardWidth} />
-          </>
-        )}
-
-        <rect
-          x="0"
-          y="0"
-          width={totalWidth}
-          height={totalHeight}
-          fill="#f4f4f5"
-          stroke={cutLineColor}
-          strokeWidth={totalWidth * 0.002}
-        />
-
-        <rect
-          x={turnIn}
-          y={turnIn}
-          width={boardWidth}
-          height={boardHeight}
-          fill={boardColor}
-          opacity="0.8"
-        />
-        <text x={turnIn + boardWidth / 2} y={labelY} textAnchor="middle" fill={labelColor} fontSize={totalWidth * 0.02} fontFamily="monospace" style={{ pointerEvents: 'none' }}>BACK</text>
-
-        <rect
-          x={turnIn + boardWidth + hingeGap}
-          y={turnIn}
-          width={spineWidth}
-          height={boardHeight}
-          fill={boardColor}
-          opacity="0.8"
-        />
-        <text
-          x={turnIn + boardWidth + hingeGap + spineWidth / 2}
-          y={labelY}
-          textAnchor="middle"
-          fill={labelColor}
-          fontSize={totalWidth * 0.015}
-          fontFamily="monospace"
-          transform={`rotate(90, ${turnIn + boardWidth + hingeGap + spineWidth / 2}, ${labelY})`}
-          style={{ pointerEvents: 'none' }}
-        >
-          SPINE
-        </text>
-
-        <rect
-          x={turnIn + boardWidth + hingeGap + spineWidth + hingeGap}
-          y={turnIn}
-          width={boardWidth}
-          height={boardHeight}
-          fill={boardColor}
-          opacity="0.8"
-        />
-        <text x={frontBoardStart + boardWidth / 2} y={labelY} textAnchor="middle" fill={labelColor} fontSize={totalWidth * 0.02} fontFamily="monospace" style={{ pointerEvents: 'none' }}>FRONT</text>
-
-        <line x1="0" y1={turnIn} x2={totalWidth} y2={turnIn} stroke={guideColor} strokeDasharray="4" strokeWidth={totalWidth * 0.001} />
-        <line x1="0" y1={totalHeight - turnIn} x2={totalWidth} y2={totalHeight - turnIn} stroke={guideColor} strokeDasharray="4" strokeWidth={totalWidth * 0.001} />
-        <line x1={spineStart} y1={0} x2={spineStart} y2={totalHeight} stroke={foldColor} strokeDasharray="4" strokeWidth={totalWidth * 0.002} />
-        <line x1={spineEnd} y1={0} x2={spineEnd} y2={totalHeight} stroke={foldColor} strokeDasharray="4" strokeWidth={totalWidth * 0.002} />
-
-        {/* --- Dimensions Annotations --- */}
-
-        {/* Total Width (Top) */}
-        <DimLine
-          x1={0} y1={-bleed - (totalHeight * 0.06)}
-          x2={totalWidth} y2={-bleed - (totalHeight * 0.06)}
-          text={`Total Width: ${totalWidth.toFixed(1)}mm`}
-          textAbove={true}
-        />
-
-        {/* Total Height (Far Left) */}
-        <DimLine
-          x1={-bleed - (totalWidth * 0.03)} y1={0}
-          x2={-bleed - (totalWidth * 0.03)} y2={totalHeight}
-          text={`Total Height: ${totalHeight.toFixed(1)}mm`}
-          vertical={true}
-          rotateText={true}
-        />
-
-        {/* Detailed Vertical Breakdown (Right Side) */}
-        {(() => {
-          const dimRightX = totalWidth + bleed + (totalWidth * 0.03);
-          const objRightEdge = totalWidth;
-
-          return (
-            <>
-              <DimLine
-                x1={dimRightX} y1={0}
-                x2={dimRightX} y2={turnIn}
-                text={`${turnIn}`}
-                vertical={true}
-                rotateText={true}
-                withExtension={true}
-                extensionX={objRightEdge}
-              />
-
-              <DimLine
-                x1={dimRightX} y1={turnIn}
-                x2={dimRightX} y2={totalHeight - turnIn}
-                text={`${boardHeight}`}
-                vertical={true}
-                rotateText={true}
-                withExtension={true}
-                extensionX={objRightEdge}
-              />
-
-              <DimLine
-                x1={dimRightX} y1={totalHeight - turnIn}
-                x2={dimRightX} y2={totalHeight}
-                text={`${turnIn}`}
-                vertical={true}
-                rotateText={true}
-                withExtension={true}
-                extensionX={objRightEdge}
-              />
-            </>
-          );
-        })()}
-
-        {/* Detailed Horizontal Breakdown (Bottom) */}
-        {(() => {
-          const dimY = totalHeight + bleed + (totalHeight * 0.10); // Increased from 0.06 to 0.10 to move further down
-          const objBottom = totalHeight;
-          return (
-            <>
-              <DimLine x1={0} y1={dimY} x2={turnIn} y2={dimY} text={`${turnIn}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={turnIn} y1={dimY} x2={turnIn + boardWidth} y2={dimY} text={`${boardWidth}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={turnIn + boardWidth} y1={dimY} x2={spineStart} y2={dimY} text={`${hingeGap}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={spineStart} y1={dimY} x2={spineEnd} y2={dimY} text={`${spineWidth.toFixed(1)}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={spineEnd} y1={dimY} x2={frontBoardStart} y2={dimY} text={`${hingeGap}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={frontBoardStart} y1={dimY} x2={frontBoardStart + boardWidth} y2={dimY} text={`${boardWidth}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-              <DimLine x1={frontBoardStart + boardWidth} y1={dimY} x2={totalWidth} y2={dimY} text={`${turnIn}`} textAbove={true} withExtension={true} extensionY={objBottom} />
-            </>
-          );
-        })()}
-      </svg>
-    </div>
-  );
 }
