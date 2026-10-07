@@ -61,20 +61,17 @@ export const useAdvancedQuote = () => {
 
     const values = form.watch();
 
-    // Auto-calculate cover production type
+    // Auto-calculate cover production type when one of the fields it depends on changes
+    const { quantity } = values;
+    const { width, height } = values.format ?? {};
+    const { headbands_enabled: headbandsEnabled, spine_type: spineType } = values.cover_details ?? {};
     useEffect(() => {
-        const prodType = calculateCoverProductionType(values as QuoteInput);
-        if (prodType !== values.cover_details?.cover_production_type) {
+        const current = form.getValues();
+        const prodType = calculateCoverProductionType(current);
+        if (prodType !== current.cover_details?.cover_production_type) {
             form.setValue('cover_details.cover_production_type', prodType, { shouldValidate: true });
         }
-    }, [
-        values.quantity,
-        values.format?.width,
-        values.format?.height,
-        values.cover_details?.headbands_enabled,
-        values.cover_details?.spine_type,
-        form
-    ]);
+    }, [quantity, width, height, headbandsEnabled, spineType, form]);
 
     // Auto-calculate estimate whenever values or rules change
     useEffect(() => {

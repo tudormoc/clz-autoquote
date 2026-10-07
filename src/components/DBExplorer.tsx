@@ -15,20 +15,19 @@ export function DBExplorer() {
     const [filterValue, setFilterValue] = useState('');
     const [uniqueValues, setUniqueValues] = useState<{ value: any, count: number }[] | null>(null);
 
+    // Table list of the chosen database
     useEffect(() => {
+        const loadTables = async () => {
+            setLoading(true);
+            setTables([]);
+            setSelectedTable('');
+            setTableInfo(null);
+            const res = await getTablesAction(selectedDB);
+            if (res.success) setTables(res.tables || []);
+            setLoading(false);
+        };
         loadTables();
     }, [selectedDB]);
-
-    const loadTables = async () => {
-        setLoading(true);
-        setTables([]);
-        setSelectedTable('');
-        setTableInfo(null);
-        const res = await getTablesAction(selectedDB);
-        if (res.success) setTables(res.tables || []);
-        setLoading(false);
-    };
-
 
 
     const [activeColForUnique, setActiveColForUnique] = useState('');
