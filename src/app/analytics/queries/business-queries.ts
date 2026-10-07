@@ -82,6 +82,7 @@ const ORDER_REVENUE_SORT: RowSortColumns<OrderRevenueRow> = {
     cost: (row) => row.material_cost,
     work_time: (row) => row.work_time,
     work_cost: (row) => row.work_cost,
+    total_cost: (row) => row.full_cost,
     margin: (row) => row.margin,
 };
 
@@ -259,6 +260,7 @@ const CLIENT_SUMMARY_SORT: RowSortColumns<ClientSummaryRow> = {
     revenue: (row) => row.total_revenue,
     cost: (row) => row.material_cost,
     work_cost: (row) => row.work_cost,
+    total_cost: (row) => row.full_cost,
     margin: (row) => row.margin,
 };
 

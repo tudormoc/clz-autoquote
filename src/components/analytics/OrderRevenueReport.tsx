@@ -60,7 +60,7 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
     { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.material_cost) },
     { key: 'work_time', header: copy.workTime, variant: 'total', cell: (row) => formatHours(row.work_time) },
     { key: 'work_cost', header: copy.laborCost, variant: 'number', cell: (row) => formatCurrency(row.work_cost) },
-    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrency(row.full_cost) },
+    { key: 'total_cost', header: common.totalCost, variant: 'total', cell: (row) => formatCurrency(row.full_cost) },
     {
         key: 'margin',
         header: copy.margin,

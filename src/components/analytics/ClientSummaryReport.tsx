@@ -60,7 +60,7 @@ const columns: DataTableColumn<ClientSummaryRow>[] = [
     { key: 'revenue', header: copy.headers.revenue, variant: 'total', cell: (row) => formatCurrencyRounded(row.total_revenue) },
     { key: 'cost', header: copy.headers.materialCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.material_cost) },
     { key: 'work_cost', header: copy.headers.laborCost, variant: 'number', cell: (row) => formatCurrencyRounded(row.work_cost) },
-    { key: 'total_cost', header: common.totalCost, variant: 'total', sortable: false, cell: (row) => formatCurrencyRounded(row.full_cost) },
+    { key: 'total_cost', header: common.totalCost, variant: 'total', cell: (row) => formatCurrencyRounded(row.full_cost) },
     {
         key: 'margin',
         header: copy.headers.margin,
