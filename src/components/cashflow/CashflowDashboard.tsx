@@ -82,21 +82,7 @@ export function CashflowDashboard() {
             />
 
             {/* Monthly Executive Cashflow Matrix (Gennaio - Dicembre) */}
-            <CashflowMonthlyMatrix
-                monthlyData={cashflowData?.monthlyBreakdown}
-                bankBalances={cashflowData?.bankBalances}
-                clientMonthlySummary={cashflowData?.clientMonthlySummary}
-                payrollMonthlyBreakdown={cashflowData?.payrollMonthlyBreakdown}
-                extraExpenseBreakdown={cashflowData?.extraExpenseBreakdown}
-                supplierCostGroupBreakdown={cashflowData?.supplierCostGroupBreakdown}
-                grandTotalIncome={cashflowData?.grandTotalIncome}
-                grandTotalExpense={cashflowData?.grandTotalExpense}
-                grandTotalPayroll={cashflowData?.grandTotalPayroll}
-                grandTotalExtraExpenses={cashflowData?.grandTotalExtraExpenses}
-                grandNetCashflow={cashflowData?.grandNetCashflow}
-                year={selectedYear}
-                loading={loading || isPending}
-            />
+            <CashflowMonthlyMatrix data={cashflowData} year={selectedYear} loading={loading || isPending} />
         </>
     );
 }
