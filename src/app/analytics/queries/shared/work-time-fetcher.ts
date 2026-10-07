@@ -15,7 +15,7 @@
  */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 
 /**
@@ -38,7 +38,7 @@ export async function fetchWorkTimesForCommessas(
 
     for (let i = 0; i < commessaCodes.length; i += BATCH_SIZE) {
         const batch = commessaCodes.slice(i, i + BATCH_SIZE);
-        const timeParams: Record<string, any> = {};
+        const timeParams: SqlParams = {};
         const placeholders = batch.map((code, idx) => {
             timeParams[`code${idx}`] = code;
             return `@code${idx}`;
@@ -89,7 +89,7 @@ export async function fetchWorkTimesForCommessas(
  * @returns Record mapping client code to total work cost
  */
 export async function fetchWorkCostsForClients(
-    clientCodes: string[],
+    clientCodes: (string | number)[],
     year: number,
     startDate: string,
     endDate: string,
@@ -100,7 +100,7 @@ export async function fetchWorkCostsForClients(
     }
 
     // First get all commessas for these clients that have invoices in the date range
-    const commessaParams: Record<string, any> = {
+    const commessaParams: SqlParams = {
         codditt: BUSINESS_COMPANY,
         startDate,
         endDate,
@@ -168,7 +168,7 @@ export async function fetchOrderBusinessData(
         return {};
     }
 
-    const params: Record<string, any> = { codditt: BUSINESS_COMPANY };
+    const params: SqlParams = { codditt: BUSINESS_COMPANY };
     const placeholders = commessaCodes.map((code, i) => {
         params[`code${i}`] = code;
         return `@code${i}`;

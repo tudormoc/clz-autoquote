@@ -5,6 +5,7 @@
  * used across all analytics queries.
  */
 
+import type { SqlParams } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
 import { sortRows, type RowSortColumns, type SortState } from '@/lib/sort';
 
@@ -104,7 +105,7 @@ export function setupDateParams(
  */
 export function buildCommessaDescriptionFilter(
     commessaInput: string | undefined,
-    params: Record<string, any>
+    params: SqlParams
 ): string {
     if (!commessaInput) return '';
 

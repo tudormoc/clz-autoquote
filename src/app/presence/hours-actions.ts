@@ -27,6 +27,23 @@ import {
 } from '@/lib/presence';
 import { loadPresenceRules, buildOperatorSearch, loadDistributionMap } from './presence-db';
 
+/** One operator-day from the clock-in query (rows are also made up for days without clock-ins) */
+interface AttendanceRow {
+    operatore: string;
+    matricola: string | null;
+    nome: string;
+    gruppo: string | null;
+    reparto: string | null;
+    data: string;
+    ora_inizio: string | null;
+    ora_fine: string | null;
+    sessioni_count: number;
+    minuti_sessioni: number | null;
+    ore_lavoro: number;
+}
+
+type OperatorRow = Pick<AttendanceRow, 'operatore' | 'matricola' | 'nome' | 'gruppo' | 'reparto'>;
+
 /** Effective presence rules for client components (config-driven badges, side effects, presets). */
 export async function getPresenceRulesAction() {
     const rules = await loadPresenceRules();
@@ -91,15 +108,15 @@ export async function getMonthlyHoursAction(
         `;
 
         const [sitResult, opeResult, distMap] = await Promise.all([
-            queryMSSQL(query, params, 'NETPRO'),
-            queryMSSQL(opeQuery, opeParams, 'NETPRO'),
+            queryMSSQL<AttendanceRow>(query, params, 'NETPRO'),
+            queryMSSQL<OperatorRow>(opeQuery, opeParams, 'NETPRO'),
             loadDistributionMap(dateFrom, dateTo),
         ]);
 
         const records = [...sitResult.recordset];
 
         // Ensure every operator has a row for every calendar day in range
-        const existingPairs = new Set(records.map((r: any) => `${String(r.operatore)}_${String(r.data)}`));
+        const existingPairs = new Set(records.map((r) => `${String(r.operatore)}_${String(r.data)}`));
         for (const dateStr of eachDateInRange(dateFrom, dateTo)) {
             for (const op of opeResult.recordset) {
                 const key = `${String(op.operatore)}_${dateStr}`;
@@ -133,7 +150,7 @@ export async function getMonthlyHoursAction(
         const str = (v: unknown): string | null => (v ? String(v) : null);
 
         // Enrich each row with the counted day (rules) and hours distributions
-        const rows: OperatorHoursRow[] = records.map((row: any) => {
+        const rows: OperatorHoursRow[] = records.map((row) => {
             const isSpecial = (row.gruppo ?? '').trim().toUpperCase() === APP_CONFIG.PRESENCE.TURNO2_GROUP;
             const reparto = row.reparto ? String(row.reparto).trim() : null;
             const opRules = rulesForOperator(String(row.operatore), rules);

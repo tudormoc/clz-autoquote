@@ -3,7 +3,7 @@
 /** Daily auto-exit (run by the scheduler through /api/auto-exit). */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
@@ -32,7 +32,7 @@ export async function runAutoExitAction(testOperator?: string) {
         // Format today as YYYY-MM-DD for MSSQL date comparison
         const todayStr = now.toISOString().slice(0, 10);
 
-        const params: Record<string, any> = { today: todayStr };
+        const params: SqlParams = { today: todayStr };
         if (testOperator) params.testOperator = testOperator;
 
         // Find operators whose LAST presence event today is ENT (handles multiple ENT/EXT pairs)
@@ -50,8 +50,8 @@ export async function runAutoExitAction(testOperator?: string) {
             WHERE rn = 1 AND EVENTO = 'ENT'
         `;
 
-        const found = await queryMSSQL(findQuery, params, 'NETPRO');
-        const operators: string[] = found.recordset.map((r: any) => r.OGGETTO as string);
+        const found = await queryMSSQL<{ OGGETTO: string }>(findQuery, params, 'NETPRO');
+        const operators: string[] = found.recordset.map((r) => r.OGGETTO);
 
         if (operators.length === 0) {
             return { success: true, skipped: false, processed: 0, operators: [] };

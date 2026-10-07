@@ -49,7 +49,7 @@ export async function processQuoteAction(
         total_price: result.total_price,
         unit_price: result.unit_price,
         applied_discount: result.metadata.applied_discount || 0,
-        specifications: input as any
+        specifications: input
     };
 
     let saveResponse;

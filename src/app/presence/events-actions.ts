@@ -3,7 +3,7 @@
 /** Daily Events: presence events (EVENTI) — list, edit the time, add by hand. */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
 export async function getDailyEventsAction(
@@ -18,7 +18,7 @@ export async function getDailyEventsAction(
             'CAST(EVT.ORA_EVENTO AS DATE) <= @dateTo'
         ];
 
-        const params: Record<string, any> = {
+        const params: SqlParams = {
             task: 'presenza',
             dateFrom,
             dateTo
@@ -72,7 +72,7 @@ export async function updateEventAction(
     oggetto: string,
     oraEvento: string,
     columnName: 'EVENTO' | 'ORA_EVENTO',
-    newValue: any
+    newValue: string
 ) {
     try {
         // For datetime updates, ensure we're storing the exact value without timezone conversion

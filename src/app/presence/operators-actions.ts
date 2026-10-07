@@ -45,7 +45,7 @@ export async function getOperatorsAction(search?: string) {
 
         const result = await queryMSSQL(query, params, 'NETPRO');
 
-        const statiResult = await queryMSSQL(
+        const statiResult = await queryMSSQL<{ STATO_FISICO: string }>(
             `SELECT DISTINCT STATO_FISICO FROM OPERATORI WITH (NOLOCK) WHERE STATO_FISICO IS NOT NULL AND STATO_FISICO <> '' ORDER BY STATO_FISICO ASC`,
             {},
             'NETPRO'
@@ -54,7 +54,7 @@ export async function getOperatorsAction(search?: string) {
         return {
             success: true,
             data: result.recordset as OperatorRow[],
-            allStati: statiResult.recordset.map((r: any) => r.STATO_FISICO as string)
+            allStati: statiResult.recordset.map((r) => r.STATO_FISICO)
         };
     } catch (err) {
         return {

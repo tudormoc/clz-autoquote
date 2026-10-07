@@ -1,3 +1,4 @@
+import type { SqlParams } from '@/lib/mssql';
 import { queryMSSQL } from '../lib/mssql';
 import type { Quote, QuoteInsert, QuoteUpdate } from '@/types';
 
@@ -29,7 +30,7 @@ export const dataService = {
   /**
    * Saves a new quote to Local MSSQL
    */
-  saveQuote: async (quote: QuoteInsert): Promise<{ data: Quote | null, error: any }> => {
+  saveQuote: async (quote: QuoteInsert): Promise<{ data: Quote | null, error: unknown }> => {
     try {
       const query = `
         INSERT INTO quotes (
@@ -81,11 +82,11 @@ export const dataService = {
   /**
    * Updates an existing quote in Local MSSQL
    */
-  updateQuote: async (id: string, updates: QuoteUpdate): Promise<{ data: Quote | null, error: any }> => {
+  updateQuote: async (id: string, updates: QuoteUpdate): Promise<{ data: Quote | null, error: unknown }> => {
     try {
       // Build dynamic update query
       const sets: string[] = [];
-      const params: Record<string, any> = { id };
+      const params: SqlParams = { id };
 
       Object.entries(updates).forEach(([key, value]) => {
         if (key !== 'id' && key !== 'created_at') {
@@ -137,7 +138,7 @@ export const dataService = {
   /**
    * Deletes a quote from Local MSSQL
    */
-  deleteQuote: async (id: string): Promise<{ error: any }> => {
+  deleteQuote: async (id: string): Promise<{ error: unknown }> => {
     try {
       await queryMSSQL(
         'DELETE FROM quotes WHERE id = @id',

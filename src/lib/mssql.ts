@@ -1,6 +1,9 @@
 import mssql from 'mssql';
 import { APP_CONFIG } from '@/config/constants';
 
+/** Named values of a query (@name in the SQL) */
+export type SqlParams = Record<string, unknown>;
+
 export type MSSQL_DB = (typeof APP_CONFIG.DATABASES)[number];
 
 const baseConfig: Omit<mssql.config, 'database'> = {
@@ -72,7 +75,7 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
  */
 export const queryMSSQL = async <T = any>(
     query: string,
-    params: Record<string, any> = {},
+    params: SqlParams = {},
     db: MSSQL_DB = 'BUSINESS',
     timeout?: number
 ) => {

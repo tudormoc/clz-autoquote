@@ -79,7 +79,7 @@ async function groupedPage(
     return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, countResult.recordset[0].total) };
 }
 
-const failure = (err: any, page: number, limit: number) => ({
+const failure = (err: unknown, page: number, limit: number) => ({
     success: false,
     error: errorMessage(err),
     data: [],

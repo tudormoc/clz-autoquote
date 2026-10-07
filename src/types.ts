@@ -23,7 +23,7 @@ export interface Quote {
     status: string | null
     internal_notes: string | null
     applied_discount: number | null
-    specifications: any | null // Parsed JSON
+    specifications: unknown // The quote form values (JSON)
 }
 
 export type QuoteInsert = Omit<Partial<Quote>, 'id' | 'created_at' | 'updated_at'> & {
@@ -207,6 +207,8 @@ export interface DibaMaterialRow {
     quant: number;
     perpz: number;
     unmis: string;
+    /** Internal description of the article (ar_desint), copied to new order rows */
+    desint?: string | null;
 }
 
 export interface OrderMaterialSummaryRow {

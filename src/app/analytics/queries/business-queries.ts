@@ -15,7 +15,7 @@
 'use server'
 
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import {
     buildCommessaFilterBUSINESS,
     buildClientFilter,
@@ -72,6 +72,9 @@ export interface OrderRevenueRow {
     margin: number;
 }
 
+/** What the SQL returns; work time, labour cost, full cost and margin are added afterwards */
+type OrderRevenueSqlRow = Omit<OrderRevenueRow, 'work_time' | 'work_cost' | 'full_cost' | 'margin'>;
+
 const ORDER_REVENUE_TABLES = ['#ClientRevenue', '#OrderCodes', '#SupplierCosts', '#AllTimeRevenue'];
 
 const ORDER_REVENUE_SORT: RowSortColumns<OrderRevenueRow> = {
@@ -111,7 +114,7 @@ export async function getOrderRevenueDataAction(
             'dw.dw_tipork = @tipoRec'
         ];
 
-        const params: Record<string, any> = {
+        const params: SqlParams = {
             codditt: BUSINESS_COMPANY,
             year,
             startDate,
@@ -124,7 +127,7 @@ export async function getOrderRevenueDataAction(
         buildClientFilterForOrderRevenue(filters?.client, conditions, params);
         const descriptionFilter = buildCommessaDescriptionFilter(filters?.commessa, params);
 
-        const result = await queryMSSQL(`
+        const result = await queryMSSQL<OrderRevenueSqlRow>(`
             SET NOCOUNT ON;
             ${dropTempTablesSql(ORDER_REVENUE_TABLES)}
 
@@ -195,10 +198,10 @@ export async function getOrderRevenueDataAction(
 
         const orders = result.recordset;
         const workTimes = orders.length > 0
-            ? await fetchWorkTimesForCommessas(orders.map((row: any) => row.commessa_display))
+            ? await fetchWorkTimesForCommessas(orders.map((row) => row.commessa_display))
             : {};
 
-        const rows: OrderRevenueRow[] = orders.map((row: any) => {
+        const rows: OrderRevenueRow[] = orders.map((row) => {
             const work_time = workTimes[row.commessa_display] || 0;
             const work_cost = work_time * HOURLY_RATE;
             const full_cost = row.material_cost + work_cost;
@@ -252,6 +255,8 @@ export interface ClientSummaryRow {
     margin: number;
 }
 
+type ClientSummarySqlRow = Omit<ClientSummaryRow, 'work_cost' | 'full_cost' | 'margin'>;
+
 const CLIENT_SUMMARY_TABLES = ['#ClientRevenue', '#ClientOrders', '#OrderCodes', '#OrderCosts', '#OutsidePeriod', '#Rows'];
 
 const CLIENT_SUMMARY_SORT: RowSortColumns<ClientSummaryRow> = {
@@ -280,7 +285,7 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
         'dw.dw_datmov <= @endDate'
     ];
 
-    const params: Record<string, any> = {
+    const params: SqlParams = {
         codditt: BUSINESS_COMPANY,
         year,
         startDate,
@@ -389,7 +394,7 @@ export async function getClientSummaryDataAction(
     try {
         const { revenueSql, detailSql, params, startDate, endDate } = buildClientSummaryBatch(year, filters);
 
-        const result = await queryMSSQL(
+        const result = await queryMSSQL<ClientSummarySqlRow>(
             `${revenueSql} ${detailSql} SELECT * FROM #Rows; ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}`,
             params,
             'BUSINESS',
@@ -398,14 +403,14 @@ export async function getClientSummaryDataAction(
         const clients = result.recordset;
 
         const workCosts = await fetchWorkCostsForClients(
-            clients.map((row: any) => row.client_code),
+            clients.map((row) => row.client_code),
             year,
             startDate,
             endDate,
             HOURLY_RATE
         );
 
-        const rows: ClientSummaryRow[] = clients.map((row: any) => {
+        const rows: ClientSummaryRow[] = clients.map((row) => {
             const work_cost = workCosts[row.client_code] || 0;
             const full_cost = row.material_cost + work_cost;
             return { ...row, work_cost, full_cost, margin: row.total_revenue - full_cost };

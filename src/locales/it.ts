@@ -191,6 +191,8 @@ export const APP_COPY = {
     generalInfo: "Informazioni Generali",
     projectTitle: "Titolo Progetto",
     defaultProjectTitle: "Nuovo libro",
+    saveFailed: "Impossibile salvare il preventivo",
+    deleteFailed: "Impossibile eliminare il preventivo",
     clientName: "Nome Cliente (dal Database locale)",
     clientPlaceholder: "Inizia a digitare il nome del cliente...",
     emailAddress: "Indirizzo Email",

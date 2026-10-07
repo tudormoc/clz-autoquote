@@ -5,7 +5,7 @@
  * identity/value columns are overridden, so every column Business/NetPro
  * expects (TIPO, QTA_*, FACTIVE, MACCHINA_ASSEGNATA, ...) is always populated.
  */
-import { queryMSSQL, type MSSQL_DB } from '@/lib/mssql';
+import { queryMSSQL, type MSSQL_DB, type SqlParams } from '@/lib/mssql';
 
 export interface SyncDibaOp {
     riga: number;
@@ -64,25 +64,25 @@ export async function cloneRowInsert(
     db: MSSQL_DB,
     table: string,
     templateWhere: string,
-    templateParams: Record<string, any>,
-    overrides: Record<string, any>,
+    templateParams: SqlParams,
+    overrides: SqlParams,
 ) {
     const tpl = (await queryMSSQL(
         `SELECT TOP 1 * FROM ${table} WITH (NOLOCK) WHERE ${templateWhere}`, templateParams, db,
     )).recordset[0];
     if (!tpl) throw new Error(`Nessuna riga modello in ${table} da cui clonare il nuovo record`);
 
-    const skip = (await queryMSSQL(
+    const skip = (await queryMSSQL<{ name: string }>(
         `SELECT name FROM sys.columns
          WHERE object_id = OBJECT_ID(@t)
            AND (is_identity = 1 OR is_computed = 1 OR TYPE_NAME(user_type_id) = 'timestamp')`,
         { t: table }, db,
-    )).recordset.map((r: any) => String(r.name).toLowerCase());
+    )).recordset.map((r) => String(r.name).toLowerCase());
 
     const clean = Object.fromEntries(Object.entries(overrides).filter(([, v]) => v !== undefined));
-    const row: Record<string, any> = { ...tpl, ...clean };
+    const row: SqlParams = { ...tpl, ...clean };
     const cols = Object.keys(row).filter(c => !skip.includes(c.toLowerCase()));
-    const params: Record<string, any> = {};
+    const params: SqlParams = {};
     cols.forEach((c, i) => { if (row[c] !== NOW) params[`p${i}`] = row[c]; });
     await queryMSSQL(
         `INSERT INTO ${table} (${cols.map(c => `[${c}]`).join(',')}) VALUES (${cols.map((c, i) => (row[c] === NOW ? 'GETDATE()' : `@p${i}`)).join(',')})`,

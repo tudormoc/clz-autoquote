@@ -11,8 +11,10 @@ import { Quote } from '@/types';
 import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
 
+const copy = APP_COPY.form;
+
 const DEFAULT_VALUES: QuoteInput = {
-    project_title: APP_COPY.form.defaultProjectTitle,
+    project_title: copy.defaultProjectTitle,
     client_name: '',
     email: '',
     quantity: APP_CONFIG.DEFAULTS.QUANTITY,
@@ -102,17 +104,14 @@ export const useAdvancedQuote = () => {
         try {
             const response = await processQuoteAction(data, selectedQuoteId || undefined);
             if (response.error) {
-                setSaveError(response.error);
-                console.error(response.issues);
+                setSaveError(copy.saveFailed);
+                console.error(response.error, response.issues);
             } else {
+                // "Calcola Preventivo" saves: the selected quote is updated, a new one is created otherwise
                 getQuoteHistoryAction().then(setHistory);
-                // Clear selected ID after successful save (or keep if we want to follow up with edits)
-                // For now, let's keep it if we want to continue editing, or clear if it's a "fresh start"
-                // Actually, the user says "what if i want to edit the old quote without creating a new one?"
-                // So after "Calculate Quote" (which saves), it updates the record.
             }
         } catch (e) {
-            setSaveError("Failed to save quote");
+            setSaveError(copy.saveFailed);
             console.error(e);
         } finally {
             setIsSaving(false);
@@ -128,7 +127,7 @@ export const useAdvancedQuote = () => {
         try {
             const response = await deleteQuoteAction(id);
             if (response.error) {
-                setSaveError("Failed to delete quote");
+                setSaveError(copy.deleteFailed);
             } else {
                 getQuoteHistoryAction().then(setHistory);
                 if (selectedQuoteId === id) {
@@ -137,14 +136,14 @@ export const useAdvancedQuote = () => {
             }
         } catch (e) {
             console.error(e);
-            setSaveError("Failed to delete quote");
+            setSaveError(copy.deleteFailed);
         }
     };
 
     const selectQuote = (quote: Quote) => {
         setSelectedQuoteId(quote.id);
         if (quote.specifications) {
-            const specs = quote.specifications as any;
+            const specs = quote.specifications as QuoteInput;
             form.reset({
                 ...specs,
                 client_id: quote.customer_id || specs.client_id,
@@ -152,8 +151,8 @@ export const useAdvancedQuote = () => {
                 email: quote.customer_email || specs.email
             });
         } else {
-            // Backward compatibility
-            form.reset({
+            // Quotes saved before the form values were stored with them
+            const legacy: QuoteInput = {
                 project_title: quote.book_name,
                 client_name: quote.customer_name || undefined,
                 client_id: quote.customer_id || undefined,
@@ -173,7 +172,8 @@ export const useAdvancedQuote = () => {
                     sheet_height: 1000,
                     endpapers_enabled: false
                 }
-            } as any);
+            };
+            form.reset(legacy);
         }
     };
 

@@ -15,7 +15,7 @@
 'use server'
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type MSSQL_DB } from '@/lib/mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { buildNetProOverrides, buildBusinessOverrides, cloneRowInsert, NOW } from '@/lib/orderSync';
 import { compareOperations, compareMaterials, countDiscrepancies, dibaMaterialQty, isPlaceholderMaterial } from '@/lib/orderCompare';
@@ -573,7 +573,7 @@ export async function syncOrderFromDibaAction(params: {
         for (const op of opsToAdd) {
             const ov = buildNetProOverrides(op, netOrdine, orderFatherQuant, NOW);
             const bv = buildBusinessOverrides(op, orderFatherQuant);
-            const exists = async (t: string, w: string, p: any, db: any) =>
+            const exists = async (t: string, w: string, p: Record<string, unknown>, db: MSSQL_DB) =>
                 (await queryMSSQL(`SELECT TOP 1 1 AS x FROM ${t} WITH (NOLOCK) WHERE ${w}`, p, db)).recordset.length > 0;
 
             // NetPro: OPERAZIONI + TASKS + JOBSET (cloned from existing rows of this order)
@@ -705,7 +705,7 @@ export async function syncOrderFromDibaAction(params: {
               AND mo_rigaor = @rigaPadre
             ORDER BY mo_riga ASC
         `, { numord, anno, rigaPadre }, 'BUSINESS');
-        const busMat = busMatRes.recordset.filter((m: any) => !isPlaceholderMaterial(m.codart));
+        const busMat = busMatRes.recordset.filter((m: { codart: string }) => !isPlaceholderMaterial(m.codart));
 
         // Link like the official process: Business Y row ↔ DiBa row via mo_disbasriga = md_riga,
         // NetPro row ↔ Business row via MATERIALI_ORDINI.SEQUENZA = mo_riga (a DiBa can list the same code twice)
@@ -774,7 +774,7 @@ export async function syncOrderFromDibaAction(params: {
                 await cloneRowInsert('BUSINESS', 'movord', busTpl, tplParams, {
                     mo_riga: newRiga, mo_codart: dm.codfigli, mo_unmis: dm.unmis || 'Nr', mo_ump: dm.unmis || 'Nr',
                     mo_descr: dm.description, mo_colli: expectedQuant, mo_quant: expectedQuant, mo_coleva: 0, mo_quaeva: 0,
-                    mo_prezzo: 0, mo_valore: 0, mo_valoremm: 0, mo_desint: (dm as any).desint || null, mo_stasino: 'N',
+                    mo_prezzo: 0, mo_valore: 0, mo_valoremm: 0, mo_desint: dm.desint || null, mo_stasino: 'N',
                     mo_disbasriga: dm.riga, mo_ultagg: NOW,
                 });
                 // Business keyord (ko_conto etc. copied from the order's existing rows)

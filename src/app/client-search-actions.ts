@@ -6,7 +6,7 @@ export async function searchMSSQLClientsAction(searchTerm: string) {
     if (!searchTerm || searchTerm.length < 2) return [];
 
     try {
-        const result = await queryMSSQL(
+        const result = await queryMSSQL<{ id: string; name: string }>(
             `SELECT TOP 20 
                 RTRIM(an_conto) as id,
                 RTRIM(an_descr1) + ' ' + RTRIM(ISNULL(an_descr2, '')) as name,
@@ -24,7 +24,7 @@ export async function searchMSSQLClientsAction(searchTerm: string) {
                 startTerm: `${searchTerm}%`
             }
         );
-        return result.recordset.map((r: any) => ({
+        return result.recordset.map((r) => ({
             id: r.id.trim(),
             name: r.name.trim()
         }));

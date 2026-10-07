@@ -1,9 +1,10 @@
+import type { ClientSummaryRow } from '@/app/analytics/queries/business-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { formatCurrencyRounded } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 
 /** HTML of the Sommario Clienti PDF: every client on one A4 page */
-export function clientSummaryReportHtml(data: any[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, _format: 'A4' | 'A3' = 'A4'): string {
+export function clientSummaryReportHtml(data: ClientSummaryRow[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, _format: 'A4' | 'A3' = 'A4'): string {
     const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
     const totalCost = data.reduce((sum, r) => sum + r.material_cost, 0);
     const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);

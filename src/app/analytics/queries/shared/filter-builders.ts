@@ -5,6 +5,8 @@
  * for analytics queries. Handles comma-separated filters with
  * fuzzy search for single values and exact match for multiple.
  */
+import type { SqlParams } from '@/lib/mssql';
+
 
 /**
  * Build commessa filter for NETPRO database
@@ -13,7 +15,7 @@
 export function buildCommessaFilterNETPRO(
     commessaInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>
+    params: SqlParams
 ) {
     if (!commessaInput) return;
 
@@ -41,7 +43,7 @@ export function buildCommessaFilterNETPRO(
 export function buildCommessaFilterBUSINESS(
     commessaInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>,
+    params: SqlParams,
     skipSingleTermFilter: boolean = false
 ) {
     if (!commessaInput) return;
@@ -68,7 +70,7 @@ export function buildCommessaFilterBUSINESS(
 export function buildMachineFilter(
     machineInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>
+    params: SqlParams
 ) {
     if (!machineInput) return;
 
@@ -94,7 +96,7 @@ export function buildMachineFilter(
 export function buildOperatorFilter(
     operatorInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>
+    params: SqlParams
 ) {
     if (!operatorInput) return;
 
@@ -120,7 +122,7 @@ export function buildOperatorFilter(
 export function buildClientFilter(
     clientInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>
+    params: SqlParams
 ) {
     if (!clientInput) return;
 
@@ -146,7 +148,7 @@ export function buildClientFilter(
 export function buildClientFilterForOrderRevenue(
     clientInput: string | undefined,
     conditions: string[],
-    params: Record<string, any>
+    params: SqlParams
 ) {
     if (!clientInput) return;
 
