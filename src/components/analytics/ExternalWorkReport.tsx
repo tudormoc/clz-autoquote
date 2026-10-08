@@ -22,6 +22,8 @@ interface Filters {
 
 interface Stats {
     total_value: number;
+    /** total_value in hours of internal work at the partial labour rate */
+    equivalent_hours: number;
     suppliers: { supplier_name: string; total_value: number }[];
 }
 
@@ -36,9 +38,6 @@ const toQuery = (f: Filters) => ({
     dateFrom: f.dateFrom || undefined,
     dateTo: f.dateTo || undefined,
 });
-
-/** External cost expressed as equivalent internal work hours */
-const equivalentHours = (stats: Stats) => Math.round(stats.total_value / APP_CONFIG.ANALYTICS.PARTIAL_LABOR_RATE);
 
 const columns: DataTableColumn<ExternalWorkRow>[] = [
     {
@@ -103,7 +102,7 @@ export function ExternalWorkReport() {
                     },
                     {
                         label: copy.stats.workHours,
-                        value: `${equivalentHours(stats)} ${APP_COPY.common.hoursUnit}`,
+                        value: `${stats.equivalent_hours} ${APP_COPY.common.hoursUnit}`,
                         subItems: [],
                     },
                 ],
@@ -113,7 +112,7 @@ export function ExternalWorkReport() {
                         '',
                         ...stats.suppliers.map((s) => `${s.supplier_name}\t${formatCurrencyRounded(s.total_value)}`),
                         '',
-                        `${copy.stats.workHours}: ${equivalentHours(stats)} ${APP_COPY.common.hoursUnit}`,
+                        `${copy.stats.workHours}: ${stats.equivalent_hours} ${APP_COPY.common.hoursUnit}`,
                     ].join('\n'),
             }}
         />

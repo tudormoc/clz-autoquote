@@ -11,6 +11,7 @@
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
+import { readLabourRates } from './shared/labour-rates';
 import { buildPaginationResult, businessOrderCore, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
@@ -132,19 +133,24 @@ export async function getExternalWorkDataAction(
 export async function getExternalWorkStatsAction(year: number, filters?: SupplierFilters) {
     try {
         const { where, params } = externalWorkFilter(year, filters);
-        const result = await queryMSSQL<{ supplier_name: string; total_value: number }>(`
-            SELECT
-                an.an_descr1 as supplier_name,
-                SUM(dw.dw_acqvalore) as total_value
-            ${SUPPLIER_ROWS}
-            WHERE ${where}
-            GROUP BY an.an_descr1
-            ORDER BY total_value DESC
-        `, params, 'BUSINESS');
+        const [result, rates] = await Promise.all([
+            queryMSSQL<{ supplier_name: string; total_value: number }>(`
+                SELECT
+                    an.an_descr1 as supplier_name,
+                    SUM(dw.dw_acqvalore) as total_value
+                ${SUPPLIER_ROWS}
+                WHERE ${where}
+                GROUP BY an.an_descr1
+                ORDER BY total_value DESC
+            `, params, 'BUSINESS'),
+            readLabourRates(),
+        ]);
 
         const totalValue = result.recordset.reduce((sum, row) => sum + row.total_value, 0);
-        return { success: true, data: { total_value: totalValue, suppliers: result.recordset } };
+        // The external cost as hours of internal work at the partial rate
+        const equivalentHours = Math.round(totalValue / rates.partial);
+        return { success: true, data: { total_value: totalValue, equivalent_hours: equivalentHours, suppliers: result.recordset } };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: { total_value: 0, suppliers: [] } };
+        return { success: false, error: errorMessage(err), data: { total_value: 0, equivalent_hours: 0, suppliers: [] } };
     }
 }

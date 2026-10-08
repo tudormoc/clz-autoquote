@@ -4,6 +4,7 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
+import { saveSettingValue } from '@/lib/settingsStore';
 import type { PresenceSettingRow } from '@/types';
 import {
     PRESENCE_SETTINGS,
@@ -86,36 +87,7 @@ export async function updatePresenceSettingAction(
     descrizione?: string
 ) {
     try {
-        const numericVal = parseFloat(valore);
-        const fvalue = isNaN(numericVal) ? null : numericVal;
-
-        const upsertQuery = `
-            IF EXISTS (SELECT 1 FROM VALORI_TABELLE WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro)
-            BEGIN
-                UPDATE VALORI_TABELLE
-                SET VALORE = @valore,
-                    DESCRIZIONE = ISNULL(@descrizione, DESCRIZIONE),
-                    FVALUE01 = @fvalue
-                WHERE TABELLA = 'PRESENZE' AND PARAMETRO = @parametro;
-            END
-            ELSE
-            BEGIN
-                INSERT INTO VALORI_TABELLE (TABELLA, PARAMETRO, ATTRIBUTO, DESCRIZIONE, VALORE, FVALUE01)
-                VALUES ('PRESENZE', @parametro, NULL, @descrizione, @valore, @fvalue);
-            END
-        `;
-
-        await queryMSSQL(
-            upsertQuery,
-            {
-                parametro,
-                valore,
-                descrizione: descrizione || null,
-                fvalue,
-            },
-            'NETPRO'
-        );
-
+        await saveSettingValue('PRESENZE', parametro, valore, descrizione);
         return {
             success: true,
         };

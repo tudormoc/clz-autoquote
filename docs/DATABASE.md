@@ -12,7 +12,7 @@ Every read names its row type, next to its SQL: `queryMSSQL<{ total: number }>(�
 datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report screens import the row type from their query file.
 
 **The databases are live.** Analytics and lists only read (`WITH (NOLOCK)` on every SELECT). Writes exist in a few places
-(presence edits, "Riallinea Ordine da DiBa", admin tables) and change production data immediately.
+(presence edits, "Riallinea Ordine da DiBa", settings tables, presence rules and labour rates) and change production data immediately.
 A table or column name that comes from the browser never goes into the SQL as sent: settings tables are checked against
 `src/config/editableTables.ts`, the Database page against the database's own list of tables and columns, presence edits
 against their own column lists, sort keys and directions through `ownEntry` / `sqlDirection` (`query-utils.ts`).
@@ -45,7 +45,7 @@ up. Row lists group by the full number and only *display* the core.
 | `CENTRI` / `AREE` | machine/centre → `REPARTO` (area) → area name |
 | `OPERATORI` | `OPERATORE`, `NOME`, `STATO_LOGICO` |
 | `EVENTI` | presence and work events (ENT/EXT/SUS …) |
-| `VALORI_TABELLE` | settings; `TABELLA = 'PRESENZE'` holds the presence rules |
+| `VALORI_TABELLE` | settings the app saves (`src/lib/settingsStore.ts`): `TABELLA = 'PRESENZE'` the presence rules, `'ANALISI'` the labour rates |
 
 `TASKS.TASK = OPERAZIONI.ID_OPER = JOBSET.TASK`. How orders reach NetPro: [ORDER_PROCESS.md](ORDER_PROCESS.md).
 

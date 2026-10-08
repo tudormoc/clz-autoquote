@@ -289,11 +289,14 @@ export const APP_COPY = {
       database: { label: "Esplora Database", description: "Ispeziona e interroga i database" },
     },
     labourCost: {
-      hourlyRate: "Costo orario del lavoro",
-      hourlyRateHint: "Usato per calcolare il costo del lavoro nei report di analisi",
+      rates: {
+        hourly: { label: "Costo orario del lavoro", hint: "Costo del lavoro e margine in Sommario Clienti, Ricavo Ordini e nel loro PDF" },
+        partial: { label: "Costo orario parziale", hint: "Converte il costo dei fornitori in ore equivalenti in Lavorazioni Esterne" },
+      },
       perHour: "all'ora",
-      example: "Esempio di calcolo:",
-      exampleLine: "{hours} ore × {rate} = {total}",
+      exampleLine: "Esempio: {hours} ore × {rate} = {total}",
+      saved: "Costo orario salvato: i report lo usano da subito",
+      invalid: "Inserisci un importo maggiore di zero",
     },
     records: {
       invalidValue: "Valore non valido",

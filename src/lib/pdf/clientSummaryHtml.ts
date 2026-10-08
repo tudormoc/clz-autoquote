@@ -37,7 +37,7 @@ const marginColor = (value: number) => toneColor(value, GOOD, FAIR);
 const marginPercent = (margin: number, revenue: number) => (revenue > 0 ? (margin / revenue) * 100 : 0);
 
 /** HTML of the Sommario Clienti PDF: totals, then every client on one A4 page */
-export function clientSummaryReportHtml(rows: ClientSummaryRow[], periods: string[], clientFilter?: string, includeAllRevenueForSplit = false): string {
+export function clientSummaryReportHtml(rows: ClientSummaryRow[], hourlyRate: number, periods: string[], clientFilter?: string, includeAllRevenueForSplit = false): string {
     const sum = (pick: (row: ClientSummaryRow) => number) => rows.reduce((total, row) => total + pick(row), 0);
     const revenue = sum((r) => r.total_revenue);
     const margin = sum((r) => r.margin);
@@ -68,7 +68,7 @@ export function clientSummaryReportHtml(rows: ClientSummaryRow[], periods: strin
         { label: copy.labour, value: formatCurrencyRounded(sum((r) => r.work_cost)) },
         { label: copy.margin, value: formatCurrencyRounded(margin) },
         { label: copy.marginPercent, value: percent(overall), color: marginColor(overall) },
-        { label: copy.hourlyRate, value: fmt(copy.perHour, { rate: APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE }) },
+        { label: copy.hourlyRate, value: fmt(copy.perHour, { rate: hourlyRate }) },
     ];
 
     const generated = generatedAt(pdf.generated);

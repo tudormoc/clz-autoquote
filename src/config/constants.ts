@@ -75,8 +75,10 @@ export const APP_CONFIG = {
 
   // Analytics Configuration
   ANALYTICS: {
-    HOURLY_LABOR_RATE: 40,  // €/hour - Default hourly rate for labor cost calculations. 40=23+17, 37=20+17.
-    PARTIAL_LABOR_RATE: 23,  // €/hour - Partial labor rate for supplier cost equivalence calculations.
+    // Labour rates (€/hour): defaults until changed in Impostazioni → Costo del Lavoro (stored in VALORI_TABELLE, ANALISI)
+    HOURLY_LABOR_RATE: 40,  // labour cost of NetPro work hours. 40=23+17, 37=20+17.
+    PARTIAL_LABOR_RATE: 23,  // turns external supplier costs into equivalent hours
+    MAX_LABOUR_RATE: 1000,  // highest rate a save accepts (guards against typing errors)
 
     // Longest wait for one revenue/cost report query (Sommario Clienti, Ricavo Ordini), table or Excel export
     REPORT_QUERY_TIMEOUT_MS: 90000,

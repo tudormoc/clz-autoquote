@@ -13,6 +13,7 @@ import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
 import { formatDate, monthName } from '@/lib/format';
 import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';
 import { clientSummaryReportHtml } from '@/lib/pdf/clientSummaryHtml';
+import { readLabourRates } from './queries/shared/labour-rates';
 import { orderAreaSummaryReportHtml } from '@/lib/pdf/orderAreaSummaryHtml';
 import { fileSlug, monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
 import { APP_COPY } from '@/locales';
@@ -148,12 +149,15 @@ export async function generateClientSummaryPDFAction(
         const { dateFrom } = monthRange(year, sortedMonths[0]);
         const { dateTo } = monthRange(year, sortedMonths[sortedMonths.length - 1]);
 
-        const result = await getClientSummaryDataAction(year, 1, ALL_ROWS, {
-            dateFrom,
-            dateTo,
-            client: clientFilter || undefined,
-            includeAllRevenueForSplit,
-        });
+        const [result, rates] = await Promise.all([
+            getClientSummaryDataAction(year, 1, ALL_ROWS, {
+                dateFrom,
+                dateTo,
+                client: clientFilter || undefined,
+                includeAllRevenueForSplit,
+            }),
+            readLabourRates(),
+        ]);
 
         // Internal clients and test accounts are left out of the PDF (codes come from the DB as numbers)
         const excluded = new Set(APP_CONFIG.ANALYTICS.EXCLUDED_CLIENTS_PDF);
@@ -162,7 +166,7 @@ export async function generateClientSummaryPDFAction(
             .sort((a, b) => b.total_revenue - a.total_revenue);
 
         const periodLabels = sortedMonths.map((m) => `${monthName(m)} ${year}`);
-        const pdf = await renderPdfBase64(clientSummaryReportHtml(rows, periodLabels, clientFilter, includeAllRevenueForSplit), {
+        const pdf = await renderPdfBase64(clientSummaryReportHtml(rows, rates.hourly, periodLabels, clientFilter, includeAllRevenueForSplit), {
             format: 'A4',
             landscape: false,
             footerTitle: APP_COPY.analytics.clientSummary.pdfTitle,

@@ -7,7 +7,8 @@
 
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
-import { DELIVERY_NOTE, HOURLY_RATE, ORDER_CORE, TIMEOUT } from './shared/business-report';
+import { DELIVERY_NOTE, ORDER_CORE, TIMEOUT } from './shared/business-report';
+import { readLabourRates } from './shared/labour-rates';
 import { buildClientFilter } from './shared/filter-builders';
 import {
     businessOrderCodesSql,
@@ -192,12 +193,15 @@ export async function getClientSummaryDataAction(
     try {
         const { revenueSql, detailSql, params, startDate, endDate } = buildClientSummaryBatch(year, filters);
 
-        const result = await queryMSSQL<ClientSummarySqlRow>(
-            `${revenueSql} ${detailSql} SELECT * FROM #Rows; ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}`,
-            params,
-            'BUSINESS',
-            TIMEOUT
-        );
+        const [result, rates] = await Promise.all([
+            queryMSSQL<ClientSummarySqlRow>(
+                `${revenueSql} ${detailSql} SELECT * FROM #Rows; ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}`,
+                params,
+                'BUSINESS',
+                TIMEOUT
+            ),
+            readLabourRates(),
+        ]);
         const clients = result.recordset;
 
         const workCosts = await fetchWorkCostsForClients(
@@ -205,7 +209,7 @@ export async function getClientSummaryDataAction(
             year,
             startDate,
             endDate,
-            HOURLY_RATE
+            rates.hourly
         );
 
         const rows: ClientSummaryRow[] = clients.map((row) => {

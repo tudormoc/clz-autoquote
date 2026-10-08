@@ -7,7 +7,8 @@
 
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
-import { DELIVERY_NOTE, HOURLY_RATE, ORDER_CORE, TIMEOUT } from './shared/business-report';
+import { DELIVERY_NOTE, ORDER_CORE, TIMEOUT } from './shared/business-report';
+import { readLabourRates } from './shared/labour-rates';
 import { buildCommessaFilterBUSINESS, buildClientFilterForOrderRevenue } from './shared/filter-builders';
 import {
     buildCommessaDescriptionFilter,
@@ -174,13 +175,15 @@ export async function getOrderRevenueDataAction(
         `, params, 'BUSINESS', TIMEOUT);
 
         const orders = result.recordset;
-        const workTimes = orders.length > 0
-            ? await fetchWorkTimesForCommessas(orders.map((row) => row.commessa_display))
-            : {};
+        const [workTimes, rates] = await Promise.all([
+            // No orders: no NetPro query (the fetcher returns {} at once)
+            fetchWorkTimesForCommessas(orders.map((row) => row.commessa_display)),
+            readLabourRates(),
+        ]);
 
         const rows: OrderRevenueRow[] = orders.map((row) => {
             const work_time = workTimes[row.commessa_display] || 0;
-            const work_cost = work_time * HOURLY_RATE;
+            const work_cost = work_time * rates.hourly;
             const full_cost = row.material_cost + work_cost;
             return { ...row, work_time, work_cost, full_cost, margin: row.delivered_revenue - full_cost };
         });
