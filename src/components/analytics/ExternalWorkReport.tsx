@@ -90,8 +90,8 @@ export function ExternalWorkReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'External Work',
-                fileName: (f) => `external_work_${f.dateFrom}_${f.dateTo}.xlsx`,
+                name: APP_COPY.analytics.reports.externalWork,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
             summary={{
                 items: (stats) => [

@@ -1,4 +1,19 @@
-/** Browser download helpers */
+/** Download helpers and file names */
+
+/** Text → safe file-name part: "Area Taglio/2" → "area-taglio-2", accents dropped ("Attività" → "attivita") */
+export function fileSlug(text: string): string {
+    return text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+/** File name of a report export: its name as in the app, then the period ("sommario-clienti_2025-01-01_2025-12-31.xlsx") */
+export function reportFileName(reportName: string, parts: (string | undefined)[], extension: string): string {
+    return [fileSlug(reportName), ...parts.filter(Boolean)].join('_') + `.${extension}`;
+}
 
 /** Save a base64 payload (e.g. a PDF from a server action) as a file */
 export function downloadBase64File(base64: string, fileName: string, mimeType = 'application/pdf') {

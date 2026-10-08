@@ -77,8 +77,8 @@ export function ClientDeliveriesReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Client Deliveries',
-                fileName: (f) => `client_deliveries_${f.dateFrom}_${f.dateTo}.xlsx`,
+                name: APP_COPY.analytics.reports.clientDeliveries,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
             summary={{
                 items: (stats) => [{ label: copy.summary, value: formatCurrencyRounded(stats.total_value), subItems: [] }],

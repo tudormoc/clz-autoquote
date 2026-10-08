@@ -33,8 +33,6 @@ interface UseReportTableOptions<F, R, S> {
     fetchPage: (query: PageQuery<F>) => Promise<PageResult<R>>;
     /** Optional summary panel data, loaded on demand for the applied filters */
     fetchSummary?: (filters: F) => Promise<{ success: boolean; data?: S | null }>;
-    /** Load straight away with the initial filters (default) instead of waiting for "Applica" */
-    autoApply?: boolean;
     pageSize?: number;
 }
 
@@ -45,19 +43,17 @@ const DEFAULT_PAGE_SIZE = 100;
 /**
  * State and loading logic shared by every paginated report:
  * filters (edited vs applied, kept in the address bar), paging, server-side sorting, stale-response protection,
- * export of all rows and the optional summary panel. The report loads as soon as it opens: with the filters of
- * the address (a shared link, a refresh) or else the initial ones.
+ * export of all rows and the optional summary panel. Nothing loads until "Applica": the address bar (a refresh,
+ * a shared link) only fills the filters in.
  */
 export function useReportTable<F, R, S = never>({
     initialFilters,
     defaultSort,
     fetchPage,
     fetchSummary,
-    autoApply = true,
     pageSize = DEFAULT_PAGE_SIZE,
 }: UseReportTableOptions<F, R, S>) {
     const [filters, setFilters] = useState<F>(initialFilters);
-    // Set once the page is in the browser, where the address bar can be read
     const [applied, setApplied] = useState<F | null>(null);
     const [sort, setSort] = useState<SortState | null>(defaultSort);
     const [page, setPage] = useState(1);
@@ -65,7 +61,7 @@ export function useReportTable<F, R, S = never>({
     const [rows, setRows] = useState<R[]>([]);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const [loading, setLoading] = useState(autoApply);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [summaryData, setSummaryData] = useState<S | null>(null);
@@ -79,25 +75,17 @@ export function useReportTable<F, R, S = never>({
     const fetchPageRef = useRef(fetchPage);
     const fetchSummaryRef = useRef(fetchSummary);
     const initialFiltersRef = useRef(initialFilters);
-    const autoApplyRef = useRef(autoApply);
     useEffect(() => {
         fetchPageRef.current = fetchPage;
         fetchSummaryRef.current = fetchSummary;
         initialFiltersRef.current = initialFilters;
     });
 
-    // First load: the filters in the address bar, or the initial ones when the report loads by itself
+    // Filters in the address bar (a refresh, a shared link) are filled in, ready for "Applica"
     useEffect(() => {
         const defaults = initialFiltersRef.current();
         const fromUrl = readUrlFilters(defaults, window.location.search);
-        if (fromUrl) {
-            const start = { ...defaults, ...fromUrl };
-            setFilters(start);
-            setApplied(start);
-            setLoading(true);
-        } else if (autoApplyRef.current) {
-            setApplied(defaults);
-        }
+        if (fromUrl) setFilters({ ...defaults, ...fromUrl });
     }, []);
 
     useEffect(() => {
@@ -146,12 +134,12 @@ export function useReportTable<F, R, S = never>({
         requestId.current++;
         writeUrlFilters(null);
         setFilters(fresh);
-        setApplied(autoApply ? fresh : null);
+        setApplied(null);
         setRows([]);
         setTotal(0);
         setTotalPages(1);
         setError(null);
-        setLoading(autoApply);
+        setLoading(false);
         setSort(defaultSort);
         setPage(1);
         resetSummary();

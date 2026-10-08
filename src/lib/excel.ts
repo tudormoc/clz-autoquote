@@ -22,6 +22,9 @@ interface ExcelSheet<R> {
     sheetName: string;
 }
 
+/** A sheet name Excel accepts: at most 31 characters, none of : \ / ? * [ ] */
+const sheetTitle = (name: string) => name.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31);
+
 const CELL_FORMATS = {
     integer: '0',
     date: 'dd/mm/yyyy',
@@ -47,7 +50,7 @@ export function buildWorkbook<R>(XLSX: Xlsx, { rows, columns, sheetName }: Excel
     });
 
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, sheetName);
+    XLSX.utils.book_append_sheet(book, sheet, sheetTitle(sheetName));
     return book;
 }
 

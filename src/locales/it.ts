@@ -382,7 +382,6 @@ export const APP_COPY = {
     reports: {
       productionMetrics: "Report Produzione",
       orderSummary: "Sommario Ordini",
-      orderOperations: "Operazioni Ordine",
       areaSummary: "Sommario Area",
       orderAreaSummary: "Sommario Ordini per Area",
       clientSummary: "Sommario Clienti",

@@ -218,8 +218,8 @@ export function OrderAreaSummaryReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Order Area Summary',
-                fileName: (f) => `order_area_summary_${f.dateFrom}_${f.dateTo}.xlsx`,
+                name: APP_COPY.analytics.reports.orderAreaSummary,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
             summary={{
                 items: (groups) =>

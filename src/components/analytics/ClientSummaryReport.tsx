@@ -153,8 +153,8 @@ export function ClientSummaryReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Client Summary',
-                fileName: (f) => `client_summary_${f.dateFrom}_${f.dateTo}.xlsx`,
+                name: APP_COPY.analytics.reports.clientSummary,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
             summary={{
                 items: (stats) => [{ label: common.totalRevenue, value: formatCurrencyRounded(stats.total_value), subItems: [] }],

@@ -14,7 +14,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart, getTodayDate } from '@/lib/dateUtils';
+import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
@@ -143,8 +143,8 @@ export function AreaSummaryReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Area Summary',
-                fileName: () => `area-summary-${getTodayDate()}.xlsx`,
+                name: APP_COPY.analytics.reports.areaSummary,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
         >
             <MonthSelectorModal

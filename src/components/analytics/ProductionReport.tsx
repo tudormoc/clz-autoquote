@@ -108,8 +108,8 @@ export function ProductionReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Produzione',
-                fileName: (f) => `produzione_${f.dateFrom || 'start'}_${f.dateTo || 'end'}.xlsx`,
+                name: APP_COPY.analytics.reports.productionMetrics,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
         />
     );

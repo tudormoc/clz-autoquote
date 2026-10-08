@@ -7,6 +7,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { ExportExcelButton } from '@/components/ui/ExportExcelButton';
 import { SummaryCards, type SummaryItem } from '@/components/analytics/SummaryCards';
 import { copyToClipboard } from '@/lib/clipboard';
+import { reportFileName } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import type { ReportTable } from '@/hooks/useReportTable';
 import { APP_COPY } from '@/locales';
@@ -25,8 +26,10 @@ interface ReportViewProps<F, R, S> {
     actions?: React.ReactNode;
     excel?: {
         columns: ExcelColumn<R>[];
-        sheetName: string;
-        fileName: (filters: F) => string;
+        /** The report's name as in the menu (APP_COPY.analytics.reports): sheet name and start of the file name */
+        name: string;
+        /** Rest of the file name, e.g. the period: (f) => [f.dateFrom, f.dateTo] */
+        fileParts: (filters: F) => (string | undefined)[];
     };
     summary?: {
         items: (data: S) => SummaryItem[];
@@ -90,8 +93,8 @@ export function ReportView<F, R, S>({
                                 <ExportExcelButton
                                     getRows={report.fetchAll}
                                     columns={excel.columns}
-                                    sheetName={excel.sheetName}
-                                    fileName={applied ? excel.fileName(applied) : ''}
+                                    sheetName={excel.name}
+                                    fileName={applied ? reportFileName(excel.name, excel.fileParts(applied), 'xlsx') : ''}
                                     disabled={!applied}
                                 />
                             )}

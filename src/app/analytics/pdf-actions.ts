@@ -15,7 +15,8 @@ import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';
 import { clientSummaryReportHtml } from '@/lib/pdf/clientSummaryHtml';
 import { readLabourRates } from './queries/shared/labour-rates';
 import { orderAreaSummaryReportHtml } from '@/lib/pdf/orderAreaSummaryHtml';
-import { fileSlug, monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
+import { fileSlug } from '@/lib/download';
+import { monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
 import { APP_COPY } from '@/locales';
 
 const ALL_ROWS = APP_CONFIG.ANALYTICS.ALL_ROWS_LIMIT;

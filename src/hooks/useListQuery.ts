@@ -19,31 +19,28 @@ interface UseListQueryOptions<F, Res> {
     /** Fresh filter values (called again by "Pulisci", so dates are recomputed) */
     initialFilters: () => F;
     load: (filters: F) => Promise<Res>;
-    /** Load straight away with the initial filters (default) instead of waiting for "Applica" */
-    autoApply?: boolean;
 }
 
 /**
  * State and loading logic of a list that loads all its rows for the applied filters and sorts / filters them
  * on screen (operators, presence events, monthly hours): filters edited vs applied, loading, errors,
- * stale-response protection and reload after an edit. Loads as soon as it opens, with the filters of the address bar
- * (a shared link, a refresh) or else the initial ones. Paginated reports use useReportTable instead.
+ * stale-response protection and reload after an edit. Nothing loads until "Applica": the address bar (a refresh,
+ * a shared link) only fills the filters in. Paginated reports use useReportTable instead.
  */
-export function useListQuery<F, Res extends ListResult<unknown>>({ initialFilters, load, autoApply = true }: UseListQueryOptions<F, Res>) {
+export function useListQuery<F, Res extends ListResult<unknown>>({ initialFilters, load }: UseListQueryOptions<F, Res>) {
     type R = RowOf<Res>;
     const [filters, setFilters] = useState<F>(initialFilters);
     const [applied, setApplied] = useState<F | null>(null);
     const [rows, setRows] = useState<R[]>([]);
     /** The whole last successful answer, for extra fields next to the rows */
     const [result, setResult] = useState<Res | null>(null);
-    const [loading, setLoading] = useState(autoApply);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Only the latest request may update the list (a slow old response must not win)
     const requestId = useRef(0);
     const loadRef = useRef(load);
     const initialFiltersRef = useRef(initialFilters);
-    const autoApplyRef = useRef(autoApply);
     useEffect(() => {
         loadRef.current = load;
         initialFiltersRef.current = initialFilters;
@@ -69,16 +66,12 @@ export function useListQuery<F, Res extends ListResult<unknown>>({ initialFilter
         }
     }, []);
 
-    // First load: the filters in the address bar, or the initial ones when the list loads by itself
+    // Filters in the address bar (a refresh, a shared link) are filled in, ready for "Applica"
     useEffect(() => {
         const defaults = initialFiltersRef.current();
         const fromUrl = readUrlFilters(defaults, window.location.search);
-        const start = fromUrl ? { ...defaults, ...fromUrl } : autoApplyRef.current ? defaults : null;
-        if (!start) return;
-        setFilters(start);
-        setApplied(start);
-        run(start);
-    }, [run]);
+        if (fromUrl) setFilters({ ...defaults, ...fromUrl });
+    }, []);
 
     const updateFilters = useCallback((patch: Partial<F>) => {
         setFilters((prev) => ({ ...prev, ...patch }));
@@ -101,16 +94,11 @@ export function useListQuery<F, Res extends ListResult<unknown>>({ initialFilter
         requestId.current++;
         writeUrlFilters(null);
         setFilters(fresh);
+        setApplied(null);
         setRows([]);
         setResult(null);
         setError(null);
-        if (autoApply) {
-            setApplied(fresh);
-            run(fresh);
-        } else {
-            setApplied(null);
-            setLoading(false);
-        }
+        setLoading(false);
     };
 
     // Filters applied apart from the defaults, for the folded filter bar on phones

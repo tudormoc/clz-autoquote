@@ -123,8 +123,8 @@ export function OrderRevenueReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Order Revenue',
-                fileName: (f) => `order_revenue_${f.dateFrom}_${f.dateTo}.xlsx`,
+                name: APP_COPY.analytics.reports.orderRevenue,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
         />
     );

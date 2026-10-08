@@ -76,11 +76,6 @@ export async function renderPdfBase64(html: string, options: PdfOptions): Promis
     }
 }
 
-/** Text → safe file-name part: "Area Taglio/2" → "area-taglio-2" */
-export function fileSlug(text: string): string {
-    return text.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim();
-}
-
 /** First and last day of a month as "YYYY-MM-DD" */
 export function monthRange(year: number, month: number): { dateFrom: string; dateTo: string } {
     const mm = String(month).padStart(2, '0');

@@ -34,10 +34,10 @@ interface FilterPanelProps {
 
 /**
  * Filter box of a report or list: fields, then Apply / Clear and the page actions. Enter applies.
- * On phones and tablets it folds into one "Filtri" bar, so the results come first; applying folds it again.
+ * On phones and tablets it starts open and folds into one "Filtri" bar once applied, so the results come first.
  */
 export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, actions, below, activeCount = 0 }: FilterPanelProps) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(true);
     const copy = APP_COPY.common;
 
     return (

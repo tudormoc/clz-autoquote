@@ -83,8 +83,8 @@ export function OrderSummaryReport() {
             }
             excel={{
                 columns: excelColumns,
-                sheetName: 'Order Summary',
-                fileName: (f) => `order_summary_${f.dateFrom || 'start'}_${f.dateTo || 'end'}.xlsx`,
+                name: APP_COPY.analytics.reports.orderSummary,
+                fileParts: (f) => [f.dateFrom, f.dateTo],
             }}
         />
     );
