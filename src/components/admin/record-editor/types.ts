@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { MSSQL_DB } from '@/lib/mssql';
+import type { EditableTableName } from '@/config/editableTables';
 
 /**
  * How a value is typed and shown:
@@ -23,13 +23,12 @@ export interface RecordColumn<T> {
     /** How the value looks in the table; default is the value itself */
     show?: (row: T) => ReactNode;
     /** Where the value is stored when it is not the table of the editor (e.g. an operation's name lives in `operations`) */
-    storedIn?: { table: string; idKey: string };
+    storedIn?: { table: EditableTableName; idKey: string };
 }
 
 export interface RecordTableConfig<T> {
-    db: MSSQL_DB;
-    /** Database table; its rows are identified by their `id` */
-    table: string;
+    /** Settings table (src/config/editableTables.ts: which columns the server lets it change); rows are identified by their `id` */
+    table: EditableTableName;
     load: () => Promise<T[]>;
     columns: RecordColumn<T>[];
     /** Rows are shown in one section per value of this column (price rules per category) */

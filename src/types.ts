@@ -166,17 +166,21 @@ export interface PresenceEventRow {
     ORA_EVENTO: Date;
 }
 
-export type HoursDistributionField =
-    | 'ore_ordinarie'
-    | 'ore_straordinarie'
-    | 'ore_ferie'
-    | 'causale_ferie'
-    | 'ore_permesso'
-    | 'causale_permesso'
-    | 'ore_malattia'
-    | 'banca_ore'
-    | 'banca_ore_mese_n1'
-    | 'banca_ore_mese_n';
+/** Columns of presence_hours_distribution the monthly table may change (the server refuses any other) */
+export const HOURS_DISTRIBUTION_FIELDS = [
+    'ore_ordinarie',
+    'ore_straordinarie',
+    'ore_ferie',
+    'causale_ferie',
+    'ore_permesso',
+    'causale_permesso',
+    'ore_malattia',
+    'banca_ore',
+    'banca_ore_mese_n1',
+    'banca_ore_mese_n',
+] as const;
+
+export type HoursDistributionField = (typeof HOURS_DISTRIBUTION_FIELDS)[number];
 
 export interface PresenceSettingRow {
     TABELLA: string;

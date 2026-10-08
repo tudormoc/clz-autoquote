@@ -46,6 +46,14 @@ export function buildPaginationResult(
     };
 }
 
+/** SQL keyword of a sort direction sent by the browser: 'asc' → ASC, anything else → DESC */
+export const sqlDirection = (direction: string | undefined) => (direction === 'asc' ? 'ASC' : 'DESC');
+
+/** The entry of `map` for a key sent by the browser (only the map's own keys count) */
+export function ownEntry<V>(map: Record<string, V>, key: string | undefined): V | undefined {
+    return key !== undefined && Object.hasOwn(map, key) ? map[key] : undefined;
+}
+
 /**
  * ORDER BY of a report sorted in SQL: `columns` maps the UI sort keys to SQL expressions. No sort → `defaultSort`;
  * an unknown key → the default column in the requested direction. `tieBreaker` (the GROUP BY columns) keeps pages
@@ -57,8 +65,8 @@ export function buildSqlOrderBy(
     defaultSort: SortConfig,
     tieBreaker: string
 ): string {
-    const column = (sort && columns[sort.column]) || columns[defaultSort.column];
-    const direction = (sort?.direction ?? defaultSort.direction).toUpperCase();
+    const column = ownEntry(columns, sort?.column) || columns[defaultSort.column];
+    const direction = sqlDirection(sort?.direction ?? defaultSort.direction);
     // SQL Server rejects a column listed twice
     const ties = tieBreaker.split(',').map((t) => t.trim()).filter((t) => t !== column);
     return [`${column} ${direction}`, ...ties].join(', ');
@@ -78,7 +86,7 @@ export function sortAndPage<T>(
     page: number,
     limit: number
 ): { data: T[]; pagination: PaginationResult } {
-    const value = (sort && columns[sort.column]) || columns[defaultSort.column];
+    const value = ownEntry(columns, sort?.column) || columns[defaultSort.column];
     const direction = sort?.direction ?? defaultSort.direction;
     const sorted = sortRows(rows, value, direction, tieBreaker && ((a, b) => tieBreaker(a).localeCompare(tieBreaker(b))));
     const offset = calculateOffset(page, limit);

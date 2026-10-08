@@ -4,6 +4,7 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
+import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
@@ -69,13 +70,17 @@ export async function getDailyEventsAction(
     }
 }
 
+/** Columns of an event the list may change (the server refuses any other) */
+const EVENT_COLUMNS = ['EVENTO', 'ORA_EVENTO'] as const;
+
 export async function updateEventAction(
     oggetto: string,
     /** The event's current time, as read from the database */
     oraEvento: Date,
-    columnName: 'EVENTO' | 'ORA_EVENTO',
+    columnName: (typeof EVENT_COLUMNS)[number],
     newValue: string
 ) {
+    if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         // For datetime updates, ensure we're storing the exact value without timezone conversion
         let queryValue = newValue;

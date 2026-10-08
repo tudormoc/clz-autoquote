@@ -15,7 +15,7 @@ export async function searchMSSQLClientsAction(searchTerm: string) {
                     WHEN an_descr1 LIKE @term THEN 2 
                     ELSE 3 
                 END as priority
-             FROM anagra 
+             FROM anagra WITH (NOLOCK)
              WHERE an_tipo = 'C' 
                AND (an_descr1 LIKE @term OR an_descr2 LIKE @term)
              ORDER BY priority, an_descr1`,

@@ -13,6 +13,9 @@ datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report sc
 
 **The databases are live.** Analytics and lists only read (`WITH (NOLOCK)` on every SELECT). Writes exist in a few places
 (presence edits, "Riallinea Ordine da DiBa", admin tables) and change production data immediately.
+A table or column name that comes from the browser never goes into the SQL as sent: settings tables are checked against
+`src/config/editableTables.ts`, the Database page against the database's own list of tables and columns, presence edits
+against their own column lists, sort keys and directions through `ownEntry` / `sqlDirection` (`query-utils.ts`).
 
 Business tables give every column a 2–3 letter prefix (`an_*` anagra, `mo_*` movord, `dw_*` dwarehe, `co_*` commess).
 Company filter everywhere in Business: `codditt = 'COOPZANARDI'` — write it as `BUSINESS_COMPANY` (`src/config/constants.ts`),

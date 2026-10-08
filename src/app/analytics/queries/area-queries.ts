@@ -11,7 +11,7 @@ import { queryMSSQL } from '@/lib/mssql';
 import type { RowSortColumns } from '@/lib/sort';
 import { buildCommessaFilterNETPRO } from './shared/filter-builders';
 import { AREA_OF_MACHINE, MACHINE_AREAS, MIN_ORDER_CORE, ORDER_CORE, WORK_ROWS, workFilter } from './shared/netpro-work';
-import { failedPage, sortAndPage, type SortConfig } from './shared/query-utils';
+import { failedPage, ownEntry, sortAndPage, sqlDirection, type SortConfig } from './shared/query-utils';
 import { fetchOrderBusinessData } from './shared/work-time-fetcher';
 
 const ANALYTICS = APP_CONFIG.ANALYTICS;
@@ -162,9 +162,11 @@ function sheetsOf(composition: string | null, qtyRequested: number | null): numb
     return groups.length > 0 ? groups.reduce((sum, n) => sum + n, 0) * qtyRequested : null;
 }
 
+/** Order number, then the area in production order: the default sort, and the tie-breaker of every other column */
+const orderAreaKey = (row: OrderAreaRow) => `${row.commessa_display}|${String(row.area_index).padStart(3, '0')}`;
+
 const ORDER_AREA_SORT: RowSortColumns<OrderAreaRow> = {
-    // Default order: by order number, then areas in production order
-    display_order: (row) => `${row.commessa_display}|${String(row.area_index).padStart(3, '0')}`,
+    display_order: orderAreaKey,
     commessa: (row) => row.commessa_display,
     area: (row) => row.area_name,
     time: (row) => row.work_time,
@@ -203,8 +205,8 @@ export async function getOrderAreaSummaryDataAction(
         conditions.push('ORD.COMMESSA IS NOT NULL', `${ORDER_CORE} NOT IN (${ANALYTICS.EXCLUDED_ORDER_NUMBERS.map((n) => `'${n}'`).join(', ')})`);
         buildCommessaFilterNETPRO(filters?.commessa, conditions, params);
 
-        const sqlSort = sort && ORDER_AREA_SQL_SORT[sort.column];
-        const sqlOrderBy = sqlSort ? `${sqlSort} ${sort.direction.toUpperCase()}` : 'MIN(SIT.DATA) DESC, SIT.MACCHINA ASC';
+        const sqlSort = ownEntry(ORDER_AREA_SQL_SORT, sort?.column);
+        const sqlOrderBy = sqlSort ? `${sqlSort} ${sqlDirection(sort?.direction)}` : 'MIN(SIT.DATA) DESC, SIT.MACCHINA ASC';
 
         const rawResult = await queryMSSQL<OrderAreaSqlRow>(`
             SELECT
@@ -275,7 +277,7 @@ export async function getOrderAreaSummaryDataAction(
             rows = rows.filter((row) => row.area_name.toLowerCase().includes(term));
         }
 
-        return { success: true, ...sortAndPage(rows, sort, ORDER_AREA_SORT, { column: 'display_order', direction: 'asc' }, undefined, page, limit) };
+        return { success: true, ...sortAndPage(rows, sort, ORDER_AREA_SORT, { column: 'display_order', direction: 'asc' }, orderAreaKey, page, limit) };
     } catch (err) {
         return failedPage(err, page, limit);
     }

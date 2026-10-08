@@ -30,7 +30,7 @@ const pools: Record<string, Promise<mssql.ConnectionPool> | undefined> = {};
  * Get or create a connection pool for a specific database
  */
 export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
-    const dbName = databaseNames[db];
+    const dbName = Object.hasOwn(databaseNames, db) ? databaseNames[db] : undefined;
 
     if (!dbName) {
         throw new Error(`Database name for ${db} is not configured in environment variables`);
@@ -116,7 +116,7 @@ async function getCustomTimeoutPool(db: MSSQL_DB, timeout: number): Promise<mssq
     const key = `${db}:${timeout}`;
     if (customTimeoutPools[key]) return customTimeoutPools[key]!;
 
-    const dbName = databaseNames[db];
+    const dbName = Object.hasOwn(databaseNames, db) ? databaseNames[db] : undefined;
     if (!dbName) {
         throw new Error(`Database name for ${db} is not configured in environment variables`);
     }

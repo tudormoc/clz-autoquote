@@ -9,7 +9,7 @@ import { errorMessage } from '@/lib/utils';
 import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
-import { buildPaginationResult, calculateOffset, failedPage, type SortConfig } from './shared/query-utils';
+import { buildPaginationResult, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
 
 export interface ClientDeliveryRow {
     client_code: number;
@@ -103,8 +103,8 @@ export async function getClientDeliveriesDataAction(
         `);
         const total = countResult.recordset[0].total;
 
-        const sortColumn = SORT_COLUMNS[sortConfig.column] || SORT_COLUMNS.delivered_value;
-        const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
+        const sortColumn = ownEntry(SORT_COLUMNS, sortConfig.column) || SORT_COLUMNS.delivered_value;
+        const sortDirection = sqlDirection(sortConfig.direction);
         request.input('offset', sql.Int, calculateOffset(page, limit));
         request.input('limit', sql.Int, limit);
 

@@ -4,6 +4,7 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
+import { APP_COPY } from '@/locales';
 
 export interface OperatorRow {
     OPERATORE: string;
@@ -73,11 +74,15 @@ export async function getOperatorsAction(search?: string) {
     }
 }
 
+/** Columns of an operator the list may change (the server refuses any other) */
+const OPERATOR_COLUMNS = ['BADGE', 'NOME', 'STATO_FISICO'] as const;
+
 export async function updateOperatorAction(
     operatore: string,
-    columnName: 'BADGE' | 'NOME' | 'STATO_FISICO',
+    columnName: (typeof OPERATOR_COLUMNS)[number],
     newValue: string | null
 ) {
+    if (!OPERATOR_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         const query = `
             UPDATE OPERATORI

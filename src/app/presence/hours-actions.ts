@@ -6,7 +6,7 @@ import { errorMessage } from '@/lib/utils';
 import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
-import type { OperatorHoursRow, HoursDistributionField } from '@/types';
+import { HOURS_DISTRIBUTION_FIELDS, type OperatorHoursRow, type HoursDistributionField } from '@/types';
 import {
     rulesForOperator,
     computeCountedDay,
@@ -190,21 +190,8 @@ export async function updateHoursDistributionAction(
     value: number | string | null
 ) {
     try {
-        const allowedFields: HoursDistributionField[] = [
-            'ore_ordinarie',
-            'ore_straordinarie',
-            'ore_ferie',
-            'causale_ferie',
-            'ore_permesso',
-            'causale_permesso',
-            'ore_malattia',
-            'banca_ore',
-            'banca_ore_mese_n1',
-            'banca_ore_mese_n',
-        ];
-
-        if (!allowedFields.includes(field)) {
-            return { success: false, error: APP_COPY.analytics.monthlySummary.invalidField };
+        if (!HOURS_DISTRIBUTION_FIELDS.includes(field)) {
+            return { success: false, error: APP_COPY.common.notAllowed };
         }
 
         const isTextField = field === 'causale_ferie' || field === 'causale_permesso';

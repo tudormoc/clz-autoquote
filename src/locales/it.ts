@@ -35,6 +35,7 @@ export const APP_COPY = {
     confirm: "Conferma",
     delete: "Elimina",
     actionError: "Errore: {error}",
+    notAllowed: "Modifica non consentita",
   },
   header: {
     title: "CLZ TM",
@@ -251,6 +252,7 @@ export const APP_COPY = {
   },
   database: {
     names: { BUSINESS: "Business (ERP)", NETPRO: "NetPro (Produzione)", QUOTES: "Preventivi" },
+    unknownName: "Database, tabella o colonna non trovata",
     connected: "Connesso",
     tables: "Tabelle ({count})",
     pickTable: "Scegli una tabella dall'elenco",
@@ -355,6 +357,7 @@ export const APP_COPY = {
       lockedTitle: "Serve al calcolo dei preventivi: non si può eliminare",
       required: "«{name}» serve al calcolo dei preventivi e non si può eliminare",
       notFound: "Regola di prezzo non trovata (forse già eliminata)",
+      slugTaken: "Il codice «{slug}» è già usato da un'altra operazione",
     },
     discountTiers: {
       minQty: "Quantità minima",
@@ -816,7 +819,6 @@ export const APP_COPY = {
         noPastWorkdays: "Nessun giorno lavorativo passato nell’intervallo (oggi e date future escluse)",
         ruleBroken: "Regola {h}h violata per {operator} il {date}: copertura {covered}h. Controllare le impostazioni presenze.",
       },
-      invalidField: "Campo non valido",
       verification: {
         compliant: "Tutte le giornate lavorative conformi ({h}h)",
         mismatchesFound: "giornate con totale ≠ {h}h",

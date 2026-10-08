@@ -2,7 +2,8 @@
 
 import { calculateDetailedQuote } from '@/lib/pricing/engine';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
-import { deletePricingRule, getPricingRules, getDiscountTiers, getSignatureTypes, getFormatSurcharges } from '@/lib/pricing/data';
+import { getPricingRules, getDiscountTiers, getSignatureTypes, getFormatSurcharges } from '@/lib/pricing/data';
+import { createPricingRule, deletePricingRule } from '@/lib/pricing/ruleWrites';
 import { dataService } from '@/services/dataService';
 import { z } from 'zod';
 
@@ -96,6 +97,13 @@ export async function getPricingRulesAction() {
  */
 export async function deletePricingRuleAction(id: string) {
     return await deletePricingRule(id);
+}
+
+/**
+ * Server Action to create a price rule (operation + prices in one transaction)
+ */
+export async function createPricingRuleAction(values: Record<string, unknown>) {
+    return await createPricingRule(values);
 }
 
 /**

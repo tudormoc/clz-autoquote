@@ -2,6 +2,12 @@ import type { SqlParams } from '@/lib/mssql';
 import { queryMSSQL } from '../lib/mssql';
 import type { Quote, QuoteInsert, QuoteUpdate } from '@/types';
 
+/** Columns of a quote that a save may change (anything else in the update is ignored) */
+const UPDATABLE_COLUMNS = [
+  'book_name', 'quantity', 'width', 'height', 'pages', 'total_price', 'unit_price', 'customer_email',
+  'customer_id', 'customer_name', 'status', 'internal_notes', 'applied_discount', 'specifications',
+] as const satisfies readonly (keyof QuoteUpdate)[];
+
 /** A row of the quotes table: the form values are stored as JSON text */
 type QuoteRow = Omit<Quote, 'specifications'> & { specifications: string | null };
 
@@ -18,7 +24,7 @@ export const dataService = {
   getQuotes: async (): Promise<Quote[]> => {
     try {
       const result = await queryMSSQL<QuoteRow>(
-        'SELECT * FROM quotes ORDER BY created_at DESC',
+        'SELECT * FROM quotes WITH (NOLOCK) ORDER BY created_at DESC',
         {},
         'QUOTES'
       );
@@ -85,8 +91,9 @@ export const dataService = {
       const sets: string[] = [];
       const params: SqlParams = { id };
 
-      Object.entries(updates).forEach(([key, value]) => {
-        if (key !== 'id' && key !== 'created_at') {
+      UPDATABLE_COLUMNS.forEach((key) => {
+        if (key in updates) {
+          const value = updates[key];
           sets.push(`${key} = @${key}`);
           params[key] = key === 'specifications' ? JSON.stringify(value) : value;
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { deleteRecordAction, insertRecordAction, updateRecordAction } from '@/app/admin-actions';
+import { deleteSettingAction, insertSettingAction, updateSettingAction } from '@/app/admin-actions';
 import type { RecordColumn, RecordTableConfig } from '@/components/admin/record-editor/types';
 import { confirmDelete } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
@@ -54,16 +54,16 @@ export function useRecordTable<T extends object>(config: RecordTableConfig<T>) {
         update: (row: T, column: RecordColumn<T>, value: unknown) => {
             const { table, idKey } = column.storedIn ?? { table: config.table, idKey: 'id' };
             const id = (row as Record<string, unknown>)[idKey] as string | number;
-            return finish(updateRecordAction(config.db, table, id, 'id', { [column.key]: value }));
+            return finish(updateSettingAction(table, id, column.key, value));
         },
         remove: async (row: T) => {
             if (!(await confirmDelete(config.deleteConfirm))) return false;
             const id = (row as Record<string, unknown>).id as string | number;
-            return finish(config.remove ? config.remove(row) : deleteRecordAction(config.db, config.table, id, 'id'));
+            return finish(config.remove ? config.remove(row) : deleteSettingAction(config.table, id));
         },
         add: (values: Record<string, unknown>) => {
             const record = { ...values, ...config.add.extras?.() };
-            return finish(config.add.create ? config.add.create(record) : insertRecordAction(config.db, config.table, record));
+            return finish(config.add.create ? config.add.create(record) : insertSettingAction(config.table, record));
         },
     };
 }

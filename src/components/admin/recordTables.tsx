@@ -5,8 +5,14 @@
  * starts with. One config per table and one exported editor component for it (used by MANAGER_COMPONENTS).
  * Client code, because the configs hold functions.
  */
-import { deletePricingRuleAction, getDiscountTiersAction, getFormatSurchargesAction, getPricingRulesAction, getSignatureTypesAction } from '@/app/actions';
-import { insertRecordAction } from '@/app/admin-actions';
+import {
+    createPricingRuleAction,
+    deletePricingRuleAction,
+    getDiscountTiersAction,
+    getFormatSurchargesAction,
+    getPricingRulesAction,
+    getSignatureTypesAction,
+} from '@/app/actions';
 import { RecordTableEditor } from '@/components/admin/record-editor/RecordTableEditor';
 import type { RecordColumn, RecordTableConfig } from '@/components/admin/record-editor/types';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -21,12 +27,11 @@ const admin = APP_COPY.admin;
 /** 0.1 → "10%" */
 const percentText = (fraction: number | null | undefined) => `${formatNumber((fraction ?? 1) * 100, 0)}%`;
 
-const OPERATIONS = { table: 'operations', idKey: 'operation_id' };
+const OPERATIONS = { table: 'operations', idKey: 'operation_id' } as const;
 
 const DISCOUNT_TIERS: RecordTableConfig<DiscountTier> = (() => {
     const t = admin.discountTiers;
     return {
-        db: 'QUOTES',
         table: 'discount_tiers',
         load: getDiscountTiersAction,
         columns: [
@@ -54,7 +59,6 @@ const DISCOUNT_TIERS: RecordTableConfig<DiscountTier> = (() => {
 const FORMAT_SURCHARGES: RecordTableConfig<FormatSurcharge> = (() => {
     const t = admin.formatSurcharges;
     return {
-        db: 'QUOTES',
         table: 'format_surcharges',
         load: getFormatSurchargesAction,
         columns: [
@@ -86,7 +90,6 @@ const SIGNATURE_TYPES: RecordTableConfig<SignatureType> = (() => {
     const t = admin.signatureTypes;
     const { PAGES, SORT_ORDER } = APP_CONFIG.NEW_SIGNATURE;
     return {
-        db: 'QUOTES',
         table: 'signature_types',
         load: getSignatureTypesAction,
         columns: [
@@ -152,7 +155,6 @@ const PRICING_RULES: RecordTableConfig<PricingRule> = (() => {
     const productionVariable = cost('production_variable_factor', t.productionVariable, '0.0001', (v) => formatNumber(v, 4));
 
     return {
-        db: 'QUOTES',
         table: 'pricing_configs',
         load: getPricingRulesAction,
         columns: [
@@ -188,31 +190,8 @@ const PRICING_RULES: RecordTableConfig<PricingRule> = (() => {
                 production_base_cost: '0',
                 production_variable_factor: '0',
             },
-            // Operation first, then its prices; a new operation takes the whole discount and surcharge
-            create: async (values) => {
-                const operationId = crypto.randomUUID();
-                const operation = await insertRecordAction('QUOTES', 'operations', {
-                    id: operationId,
-                    slug: values.slug,
-                    name: values.name,
-                    description: '',
-                    category: values.category,
-                    discount_multiplier_setup: 1.0,
-                    discount_multiplier_production: 1.0,
-                    surcharge_multiplier_setup: 1.0,
-                    surcharge_multiplier_production: 1.0,
-                });
-                if (!operation.success) return operation;
-
-                return insertRecordAction('QUOTES', 'pricing_configs', {
-                    operation_id: operationId,
-                    setup_base_cost: values.setup_base_cost,
-                    setup_variable_factor: values.setup_variable_factor,
-                    production_base_cost: values.production_base_cost,
-                    production_variable_factor: values.production_variable_factor,
-                    active: 1,
-                });
-            },
+            // Operation and prices together, on the server (one transaction)
+            create: createPricingRuleAction,
         },
         deleteConfirm: t.deleteConfirm,
         remove: (row) => deletePricingRuleAction(row.id),

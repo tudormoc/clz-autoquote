@@ -1,11 +1,16 @@
 'use server'
 
+/**
+ * Database page (read only). The browser chooses a database, table and column; each name is checked against the
+ * database's own list of tables and columns before it goes into the SQL, so nothing else can reach the query.
+ */
+
 import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL, MSSQL_DB } from '@/lib/mssql';
 import { errorMessage } from '@/lib/utils';
+import { APP_COPY } from '@/locales';
 
 const { ROW_LIMIT, VALUES_LIMIT, SEARCH_COLUMNS } = APP_CONFIG.DB_EXPLORER;
-const IDENTIFIER = /^[a-zA-Z0-9_]+$/;
 
 export interface DbColumn {
     COLUMN_NAME: string;
@@ -30,6 +35,26 @@ export interface TableFilter {
 
 type Answer<T> = ({ success: true } & T) | { success: false; error: string };
 
+const isDatabase = (db: string): db is MSSQL_DB => (APP_CONFIG.DATABASES as readonly string[]).includes(db);
+
+/** Columns of a table of the database, in table order; null when `db` is not one of ours or the table does not exist */
+async function tableColumns(db: string, table: string): Promise<DbColumn[] | null> {
+    if (!isDatabase(db)) return null;
+    const result = await queryMSSQL<DbColumn>(`
+            SELECT c.COLUMN_NAME, c.DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS c WITH (NOLOCK)
+            JOIN INFORMATION_SCHEMA.TABLES t WITH (NOLOCK)
+              ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME AND t.TABLE_TYPE = 'BASE TABLE'
+            WHERE c.TABLE_NAME = @table
+            ORDER BY c.ORDINAL_POSITION
+        `, { table }, db);
+    return result.recordset.length > 0 ? result.recordset : null;
+}
+
+const unknownName = { success: false as const, error: APP_COPY.database.unknownName };
+/** A checked table or column name as SQL: in brackets, with any `]` doubled */
+const sqlName = (name: string) => `[${name.replace(/]/g, ']]')}]`;
+
 /** Whether each database answers a trivial query */
 export async function testConnectionsAction(): Promise<Record<MSSQL_DB, DbConnectionStatus>> {
     const check = async (db: MSSQL_DB): Promise<DbConnectionStatus> => {
@@ -46,9 +71,10 @@ export async function testConnectionsAction(): Promise<Record<MSSQL_DB, DbConnec
 
 export async function getTablesAction(db: MSSQL_DB): Promise<Answer<{ tables: string[] }>> {
     try {
+        if (!isDatabase(db)) return unknownName;
         const result = await queryMSSQL<{ TABLE_NAME: string }>(`
       SELECT TABLE_NAME
-      FROM INFORMATION_SCHEMA.TABLES
+      FROM INFORMATION_SCHEMA.TABLES WITH (NOLOCK)
       WHERE TABLE_TYPE = 'BASE TABLE'
       ORDER BY TABLE_NAME
     `, {}, db);
@@ -64,21 +90,16 @@ export async function getTableDataAction(
     filter: TableFilter
 ): Promise<Answer<{ columns: DbColumn[]; rows: DbRow[] }>> {
     try {
-        if (!IDENTIFIER.test(tableName)) throw new Error('Invalid table name');
-
-        const columnsRes = await queryMSSQL<DbColumn>(`
-            SELECT COLUMN_NAME, DATA_TYPE
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = @tableName
-        `, { tableName }, db);
-
-        const columns = columnsRes.recordset;
+        const columns = await tableColumns(db, tableName);
+        if (!columns) return unknownName;
+        const isColumn = (name: string) => columns.some((c) => c.COLUMN_NAME === name);
         const params: Record<string, string> = {};
         const whereClauses: string[] = [];
 
         // 1. Specific column filter (e.g. an_tipo = 'C')
         if (filter.column) {
-            whereClauses.push(`${filter.column} = @filterValue`);
+            if (!isColumn(filter.column)) return unknownName;
+            whereClauses.push(`${sqlName(filter.column)} = @filterValue`);
             params.filterValue = filter.value;
         }
 
@@ -87,7 +108,7 @@ export async function getTableDataAction(
             const stringCols = columns
                 .filter((c) => c.DATA_TYPE.includes('char') || c.DATA_TYPE.includes('text'))
                 .slice(0, SEARCH_COLUMNS)
-                .map((c) => `${c.COLUMN_NAME} LIKE @search`)
+                .map((c) => `${sqlName(c.COLUMN_NAME)} LIKE @search`)
                 .join(' OR ');
 
             if (stringCols) {
@@ -97,7 +118,7 @@ export async function getTableDataAction(
         }
 
         const where = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : '';
-        const data = await queryMSSQL<DbRow>(`SELECT TOP ${ROW_LIMIT} * FROM ${tableName}${where}`, params, db);
+        const data = await queryMSSQL<DbRow>(`SELECT TOP ${ROW_LIMIT} * FROM ${sqlName(tableName)} WITH (NOLOCK)${where}`, params, db);
 
         return { success: true, columns, rows: data.recordset };
     } catch (err) {
@@ -107,14 +128,13 @@ export async function getTableDataAction(
 
 export async function getColumnDistinctValuesAction(db: MSSQL_DB, tableName: string, columnName: string): Promise<Answer<{ values: DbValueCount[] }>> {
     try {
-        if (!IDENTIFIER.test(tableName) || !IDENTIFIER.test(columnName)) {
-            throw new Error('Invalid table or column name');
-        }
+        const columns = await tableColumns(db, tableName);
+        if (!columns?.some((c) => c.COLUMN_NAME === columnName)) return unknownName;
 
         const result = await queryMSSQL<DbValueCount>(`
-            SELECT TOP ${VALUES_LIMIT} ${columnName} as value, COUNT(*) as count
-            FROM ${tableName}
-            GROUP BY ${columnName}
+            SELECT TOP ${VALUES_LIMIT} ${sqlName(columnName)} as value, COUNT(*) as count
+            FROM ${sqlName(tableName)} WITH (NOLOCK)
+            GROUP BY ${sqlName(columnName)}
             ORDER BY count DESC
         `, {}, db);
 

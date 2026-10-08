@@ -11,7 +11,7 @@
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
-import { buildPaginationResult, businessOrderCore, calculateOffset, failedPage, type SortConfig } from './shared/query-utils';
+import { buildPaginationResult, businessOrderCore, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
     commessa?: string;
@@ -89,9 +89,8 @@ export async function getExternalWorkDataAction(
 ) {
     try {
         const { where, params } = externalWorkFilter(year, filters);
-        const orderBy = sortConfig && ORDER_BY[sortConfig.column]
-            ? ORDER_BY[sortConfig.column](sortConfig.direction.toUpperCase())
-            : DEFAULT_ORDER_BY;
+        const orderColumns = ownEntry(ORDER_BY, sortConfig?.column);
+        const orderBy = orderColumns ? orderColumns(sqlDirection(sortConfig?.direction)) : DEFAULT_ORDER_BY;
 
         const countResult = await queryMSSQL<{ total: number }>(`
             SELECT COUNT(*) as total
