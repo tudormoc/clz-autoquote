@@ -8,7 +8,7 @@
 import { errorMessage } from '@/lib/utils';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
-import type { AreaSummaryRow, OrderAreaRow } from './queries/netpro-queries';
+import type { AreaSummaryRow, OrderAreaRow } from './queries/area-queries';
 import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
 import { formatDate, monthName } from '@/lib/format';
 import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';

@@ -49,8 +49,11 @@ operation: complexity, base cost, surcharge, discount, add to totals → quote.
 1. Copy `formulas/TEMPLATE.ts` to `formulas/<operation>.ts`.
 2. Put its numbers in `PRICING_FORMULAS` (`src/config/constants.ts`).
 3. Implement it with the header block and a JSDoc `@example` with real numbers on every export.
-4. Export it from `formulas/index.ts` and call it from `engine.ts` like the existing operations.
-5. Add its price rule on the Settings page.
+4. Export it from `formulas/index.ts` and call it from `engine.ts` like the existing operations, looking its rule up by
+   a code in `PRICING_OPERATIONS` (`src/config/constants.ts`); add the code to `REQUIRED_OPERATION_SLUGS` too.
+5. Add its price rule on the Settings page with that code. A rule whose code the engine does not look up is not used
+   by quotes. Rules in `REQUIRED_OPERATION_SLUGS` show a lock and cannot be deleted; deleting any other rule removes
+   its prices and its operation together (the code is free again).
 6. `npm run check`, then try it on `/quotes` (live breakdown, edge cases, several discount tiers).
 
 ## Rules

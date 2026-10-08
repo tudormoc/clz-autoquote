@@ -1,4 +1,4 @@
-import type { ClientSummaryRow } from '@/app/analytics/queries/business-queries';
+import type { ClientSummaryRow } from '@/app/analytics/queries/client-summary-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { formatCurrencyRounded } from '@/lib/format';
 import { escapeHtml, generatedAt, pdfDocument, percent, reportHeader } from '@/lib/pdf/html';

@@ -1,5 +1,6 @@
 import { PricingRule, QuoteInput, QuoteBreakdown, CostItem, DiscountTier, SignatureType } from './types';
 import { FormatSurcharge } from '@/types';
+import { PRICING_OPERATIONS } from '@/config/constants';
 import { APP_COPY, fmt } from '@/locales';
 import {
     calculateCoverProductionType,
@@ -53,7 +54,7 @@ export function calculateDetailedQuote(
     };
 
     // --- 2. Internal Block (CFGS: Cutting, Folding, Gathering, Sewing) ---
-    const cfgsRule = getRule('cfgs');
+    const cfgsRule = getRule(PRICING_OPERATIONS.CFGS);
     if (cfgsRule) {
         const complexity = calculateCFGSComplexity(input);
         const { rate: unitProductionRate, details } = calculateCFGSProductionRate(
@@ -70,7 +71,7 @@ export function calculateDetailedQuote(
 
     // --- 3. Cover Production Mode ---
     const prodType = calculateCoverProductionType(input);
-    const prodRule = getRule(`cover_${prodType}`);
+    const prodRule = getRule(PRICING_OPERATIONS.COVER[prodType]);
     if (prodRule) {
         const cost = calculateOperationCost(prodRule, input.quantity, 1);
         cost.item.name = fmt(APP_COPY.breakdown.coverProduction, { type: APP_COPY.breakdown.coverTypes[prodType] });

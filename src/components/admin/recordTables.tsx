@@ -5,12 +5,12 @@
  * starts with. One config per table and one exported editor component for it (used by MANAGER_COMPONENTS).
  * Client code, because the configs hold functions.
  */
-import { getDiscountTiersAction, getFormatSurchargesAction, getPricingRulesAction, getSignatureTypesAction } from '@/app/actions';
+import { deletePricingRuleAction, getDiscountTiersAction, getFormatSurchargesAction, getPricingRulesAction, getSignatureTypesAction } from '@/app/actions';
 import { insertRecordAction } from '@/app/admin-actions';
 import { RecordTableEditor } from '@/components/admin/record-editor/RecordTableEditor';
 import type { RecordColumn, RecordTableConfig } from '@/components/admin/record-editor/types';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { APP_CONFIG, OPERATION_CATEGORIES } from '@/config/constants';
+import { APP_CONFIG, OPERATION_CATEGORIES, REQUIRED_OPERATION_SLUGS } from '@/config/constants';
 import { formatCurrency, formatNumber } from '@/lib/format';
 import type { DiscountTier, PricingRule, SignatureType } from '@/lib/pricing/types';
 import type { FormatSurcharge } from '@/types';
@@ -215,6 +215,8 @@ const PRICING_RULES: RecordTableConfig<PricingRule> = (() => {
             },
         },
         deleteConfirm: t.deleteConfirm,
+        remove: (row) => deletePricingRuleAction(row.id),
+        locked: { rows: (row) => REQUIRED_OPERATION_SLUGS.includes(row.slug), title: t.lockedTitle },
     };
 })();
 

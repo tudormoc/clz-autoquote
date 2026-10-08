@@ -9,7 +9,7 @@ import { errorMessage } from '@/lib/utils';
 import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
-import { buildPaginationResult, calculateOffset, type SortConfig } from './shared/query-utils';
+import { buildPaginationResult, calculateOffset, failedPage, type SortConfig } from './shared/query-utils';
 
 export interface ClientDeliveryRow {
     client_code: number;
@@ -125,12 +125,7 @@ export async function getClientDeliveriesDataAction(
         return { success: true, data: dataResult.recordset, pagination: buildPaginationResult(page, limit, total) };
     } catch (error) {
         console.error('Client deliveries query error:', error);
-        return {
-            success: false,
-            data: [] as ClientDeliveryRow[],
-            pagination: buildPaginationResult(page, limit, 0),
-            error: errorMessage(error)
-        };
+        return failedPage<ClientDeliveryRow>(error, page, limit);
     }
 }
 

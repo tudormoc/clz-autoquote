@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { prefillAbsencesAction, type PrefillResult } from '@/app/presence/hours-actions';
+import { prefillAbsencesAction, type PrefillResult } from '@/app/presence/prefill-actions';
 import { notify } from '@/lib/notify';
 import type { PresenceRulesConfig } from '@/lib/presence';
 import { APP_COPY, fmt } from '@/locales';

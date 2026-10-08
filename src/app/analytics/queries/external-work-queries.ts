@@ -11,7 +11,7 @@
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
-import { buildPaginationResult, businessOrderCore, calculateOffset, type SortConfig } from './shared/query-utils';
+import { buildPaginationResult, businessOrderCore, calculateOffset, failedPage, type SortConfig } from './shared/query-utils';
 
 interface SupplierFilters {
     commessa?: string;
@@ -125,7 +125,7 @@ export async function getExternalWorkDataAction(
 
         return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, total) };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: [] as ExternalWorkRow[], pagination: buildPaginationResult(page, limit, 0) };
+        return failedPage<ExternalWorkRow>(err, page, limit);
     }
 }
 

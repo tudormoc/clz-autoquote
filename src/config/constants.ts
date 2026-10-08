@@ -422,4 +422,22 @@ export const PRESENCE_RULES = {
 // Display order = order of this list; the names shown are in it.ts → admin.operationCategories
 export const OPERATION_CATEGORIES = ['internal', 'cover', 'gluing', 'casing_in', 'finishing', 'packaging', 'other'] as const;
 
+// Codes (slug) of the operations the quote calculation looks up (src/lib/pricing/engine.ts).
+// Their price rules cannot be deleted in Impostazioni → Regole di prezzo.
+export const PRICING_OPERATIONS = {
+    CFGS: 'cfgs',
+    COVER: { standard: 'cover_standard', fast: 'cover_fast', manual: 'cover_manual' },
+    GLUING_SQUARE_SPINE: 'gluing_square_spine',
+    GLUING_ROUND_SPINE: 'gluing_round_spine',
+    GLUING_MANUAL_LOADING: 'gluing_manual_loading',
+} as const;
+
+export const REQUIRED_OPERATION_SLUGS: readonly string[] = [
+    PRICING_OPERATIONS.CFGS,
+    ...Object.values(PRICING_OPERATIONS.COVER),
+    PRICING_OPERATIONS.GLUING_SQUARE_SPINE,
+    PRICING_OPERATIONS.GLUING_ROUND_SPINE,
+    PRICING_OPERATIONS.GLUING_MANUAL_LOADING,
+];
+
 // ============================================================================

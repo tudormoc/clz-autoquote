@@ -59,7 +59,7 @@ export function useRecordTable<T extends object>(config: RecordTableConfig<T>) {
         remove: async (row: T) => {
             if (!(await confirmDelete(config.deleteConfirm))) return false;
             const id = (row as Record<string, unknown>).id as string | number;
-            return finish(deleteRecordAction(config.db, config.table, id, 'id'));
+            return finish(config.remove ? config.remove(row) : deleteRecordAction(config.db, config.table, id, 'id'));
         },
         add: (values: Record<string, unknown>) => {
             const record = { ...values, ...config.add.extras?.() };

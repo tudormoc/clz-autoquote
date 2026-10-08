@@ -84,7 +84,7 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 6. **Speed**: `dwarehe` has ~15M rows. Never join or filter it on the computed core (`RIGHT(CAST(…))`) outside a date
    range: that reads the whole table (30–60 s). Read the period's orders into a `#temp` table first, collect their full
    codes with `businessOrderCodesSql` (→ `#OrderCodes`), then join `dwarehe` on `dw_commeca` (indexed). One batch,
-   `SET NOCOUNT ON`, `dropTempTablesSql` at the start and the end. Example: `business-queries.ts` (about 2 s per report).
+   `SET NOCOUNT ON`, `dropTempTablesSql` at the start and the end. Example: `order-revenue-queries.ts` (about 2 s per report).
 7. Paging: 100 rows per page. In SQL: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY` with a unique tie-breaker in
    the ORDER BY, or rows with equal values move between pages and the export repeats some and loses others. When a
    sortable column is added after the query (labour from NetPro), fetch all rows, complete them, then `sortAndPage`

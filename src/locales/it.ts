@@ -351,7 +351,10 @@ export const APP_COPY = {
       surchargeProductionHint: "Quota del sovrapprezzo formato applicata alla produzione (100% = sovrapprezzo intero)",
       add: "Aggiungi operazione",
       dialogTitle: "Nuova operazione",
-      deleteConfirm: "Eliminare questa regola di prezzo? I preventivi non conteggeranno più questa operazione.",
+      deleteConfirm: "Eliminare questa regola di prezzo e la sua operazione? Il codice torna libero.",
+      lockedTitle: "Serve al calcolo dei preventivi: non si può eliminare",
+      required: "«{name}» serve al calcolo dei preventivi e non si può eliminare",
+      notFound: "Regola di prezzo non trovata (forse già eliminata)",
     },
     discountTiers: {
       minQty: "Quantità minima",
@@ -810,7 +813,10 @@ export const APP_COPY = {
         confirmButton: "Conferma e Distribuisci",
         noCandidates: "Nessuna riga passata da precompilare trovata",
         successMessage: "righe distribuite con successo (regola {h}h)",
+        noPastWorkdays: "Nessun giorno lavorativo passato nell’intervallo (oggi e date future escluse)",
+        ruleBroken: "Regola {h}h violata per {operator} il {date}: copertura {covered}h. Controllare le impostazioni presenze.",
       },
+      invalidField: "Campo non valido",
       verification: {
         compliant: "Tutte le giornate lavorative conformi ({h}h)",
         mismatchesFound: "giornate con totale ≠ {h}h",

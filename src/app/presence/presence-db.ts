@@ -10,9 +10,37 @@ import {
     DEFAULT_PRESENCE_RULES,
     PRESENCE_SETTING_KEYS,
     parsePresenceRules,
+    type ClockDay,
     type PresenceRulesConfig,
     type HourField,
 } from '@/lib/presence';
+
+/**
+ * Clock-in aggregates of one operator-day from SITUAZIONI (TIPO 'CLCK'), for a query grouped by operator and
+ * CAST(SIT.DATA AS DATE): the day, first entry, last exit, number of sessions and their minutes.
+ */
+export const CLOCK_COLUMNS = `CONVERT(VARCHAR(10), CAST(SIT.DATA AS DATE), 120) AS data,
+                CONVERT(VARCHAR(8), MIN(SIT.ORA_INIZIO), 108) AS ora_inizio,
+                CONVERT(VARCHAR(8), MAX(SIT.ORA_FINE), 108) AS ora_fine,
+                COUNT(*) AS sessioni_count,
+                SUM(DATEDIFF(MINUTE, SIT.ORA_INIZIO, SIT.ORA_FINE)) AS minuti_sessioni`;
+
+/** One operator-day of CLOCK_COLUMNS */
+export interface ClockRow {
+    data: string;
+    ora_inizio: string | null;
+    ora_fine: string | null;
+    sessioni_count: number;
+    minuti_sessioni: number | null;
+}
+
+/** The clock data the presence rules count from */
+export const clockOf = (row: ClockRow): ClockDay => ({
+    firstEntry: row.ora_inizio,
+    lastExit: row.ora_fine,
+    sessions: row.sessioni_count,
+    sessionMinutes: row.minuti_sessioni,
+});
 
 /**
  * Helper: Checks if the operator currently has an active production event (EVENTO = 'EXE').

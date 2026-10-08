@@ -151,3 +151,8 @@ export function queryErrorMessage(err: unknown): string {
     const message = err instanceof Error ? err.message : String(err);
     return /timeout/i.test(message) ? APP_COPY.analytics.common.queryTimeout : message;
 }
+
+/** A report page that failed: no rows, an empty page and the error text */
+export function failedPage<T = never>(err: unknown, page: number, limit: number) {
+    return { success: false, error: queryErrorMessage(err), data: [] as T[], pagination: buildPaginationResult(page, limit, 0) };
+}

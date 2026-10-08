@@ -103,8 +103,9 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 `src/config/navigation.ts` (`MAIN_NAV` for a main area, `SECTION_NAVS` for a sidebar entry).
 
 **New analytics report**:
-1. Query in `src/app/analytics/queries/` (`netpro-queries.ts` for production data, `business-queries.ts` when revenue or
-   costs are involved), using the shared helpers; re-export it from `analytics-actions.ts`.
+1. Query in its own file `src/app/analytics/queries/<report>-queries.ts`, using the shared parts in `queries/shared/`
+   (`netpro-work.ts` for NetPro work time, `business-report.ts` when revenue or costs are involved, `query-utils.ts` for
+   paging, sorting and `failedPage`); re-export it from `analytics-actions.ts`.
 2. Entry in `src/config/analyticsSections.ts`, label and description in `it.ts`.
 3. Component built with `useReportTable` + `ReportView`: copy `src/components/analytics/ClientDeliveriesReport.tsx` and
    change the row type, filters, columns and Excel columns. Register it in `reportComponents.ts`.

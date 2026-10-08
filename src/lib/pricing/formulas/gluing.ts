@@ -1,5 +1,5 @@
 import { QuoteInput } from '../types';
-import { PRICING_FORMULAS } from '@/config/constants';
+import { PRICING_FORMULAS, PRICING_OPERATIONS } from '@/config/constants';
 import { calculateBlockThickness } from './block';
 import { calculateCoverProductionType } from './cover';
 
@@ -47,15 +47,15 @@ export function calculateGluingSlugs(input: QuoteInput): string[] {
     
     // --- STEP 1: Base gluing (always one of these) ---
     if (input.cover_details.spine_type === 'square') {
-        slugs.push('gluing_square_spine');
+        slugs.push(PRICING_OPERATIONS.GLUING_SQUARE_SPINE);
     } else if (input.cover_details.spine_type === 'round') {
-        slugs.push('gluing_round_spine');
+        slugs.push(PRICING_OPERATIONS.GLUING_ROUND_SPINE);
     }
     
     // --- STEP 2: Additional manual loading (if cover is manual) ---
     const coverType = calculateCoverProductionType(input);
     if (coverType === 'manual') {
-        slugs.push('gluing_manual_loading');
+        slugs.push(PRICING_OPERATIONS.GLUING_MANUAL_LOADING);
     }
     
     return slugs;
@@ -210,13 +210,13 @@ export function calculateGluingProductionRate(slug: string, input: QuoteInput): 
     const { width, height } = input.format;
     
     switch (slug) {
-        case 'gluing_square_spine':
+        case PRICING_OPERATIONS.GLUING_SQUARE_SPINE:
             return calculateGluingSquareSpineRate(blockThickness);
         
-        case 'gluing_round_spine':
+        case PRICING_OPERATIONS.GLUING_ROUND_SPINE:
             return calculateGluingRoundSpineRate(blockThickness);
         
-        case 'gluing_manual_loading':
+        case PRICING_OPERATIONS.GLUING_MANUAL_LOADING:
             return calculateGluingManualLoadingRate(width, height);
         
         default:

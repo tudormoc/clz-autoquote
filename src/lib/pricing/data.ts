@@ -1,3 +1,6 @@
+import { REQUIRED_OPERATION_SLUGS } from '@/config/constants';
+import { APP_COPY, fmt } from '@/locales';
+import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '../mssql';
 import { PricingRule, DiscountTier, SignatureType } from './types';
 import { FormatSurcharge } from '@/types';
@@ -26,6 +29,40 @@ interface PricingRuleRow {
 interface DiscountTierRow { id: string | number; min_quantity: Num; max_quantity: Num | null; discount_percentage: Num }
 interface SignatureTypeRow { id: string; name: string; pages: Num; unit_price: Num | null; sort_order: Num; is_active: boolean | number }
 interface FormatSurchargeRow { id: string | number; width_min: Num; width_max: Num; height_min: Num; height_max: Num; surcharge_percentage: Num }
+
+const ruleCopy = APP_COPY.admin.pricingRules;
+
+/**
+ * Deletes a price rule: its prices (pricing_configs) and its operation together, so its code is free again.
+ * Rules the quote calculation looks up (REQUIRED_OPERATION_SLUGS) are refused.
+ */
+export async function deletePricingRule(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const found = await queryMSSQL<{ operation_id: string; slug: string; name: string }>(`
+            SELECT pc.operation_id, o.slug, o.name
+            FROM pricing_configs pc WITH (NOLOCK)
+            JOIN operations o WITH (NOLOCK) ON o.id = pc.operation_id
+            WHERE pc.id = @id
+        `, { id }, 'QUOTES');
+        const rule = found.recordset[0];
+        if (!rule) return { success: false, error: ruleCopy.notFound };
+        if (REQUIRED_OPERATION_SLUGS.includes(rule.slug)) return { success: false, error: fmt(ruleCopy.required, { name: rule.name }) };
+
+        await queryMSSQL(`
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+            DELETE FROM pricing_configs WHERE id = @id;
+            DELETE FROM operations
+            WHERE id = @operationId
+              AND NOT EXISTS (SELECT 1 FROM pricing_configs WHERE operation_id = @operationId);
+            COMMIT TRANSACTION;
+        `, { id, operationId: rule.operation_id }, 'QUOTES');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting pricing rule:', error);
+        return { success: false, error: errorMessage(error) };
+    }
+}
 
 /**
  * Fetches all active pricing rules (Operation + Config) from MSSQL.

@@ -47,4 +47,8 @@ export interface RecordTableConfig<T> {
         create?: (values: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
     };
     deleteConfirm: string;
+    /** Replaces the plain delete, for a row made of several tables */
+    remove?: (row: T) => Promise<{ success: boolean; error?: string }>;
+    /** Rows that cannot be deleted: a lock with this tooltip instead of the trash icon */
+    locked?: { rows: (row: T) => boolean; title: string };
 }

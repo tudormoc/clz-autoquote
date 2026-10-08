@@ -1,4 +1,4 @@
-import type { AreaSummaryRow } from '@/app/analytics/queries/netpro-queries';
+import type { AreaSummaryRow } from '@/app/analytics/queries/area-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { formatHours, formatNumber } from '@/lib/format';
 import { escapeHtml, generatedAt, join, pdfDocument, percent, reportHeader, signedPercent } from '@/lib/pdf/html';

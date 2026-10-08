@@ -1,37 +1,8 @@
 /**
- * ============================================================================
- * ANALYTICS SERVER ACTIONS
- * ============================================================================
- * 
- * This file serves as the main export point for all analytics queries.
- * 
- * ARCHITECTURE:
- * - Each report has its own action function
- * - All queries use NOLOCK hints for read-only operations
- * - Pagination is handled consistently (100 rows per page)
- * - Date filters are applied to limit data scope
- * 
- * DATABASES USED:
- * - BUSINESS: Revenue, costs, client data (dwarehe, anagra, commess tables)
- * - NETPRO: Production tracking data (SITUAZIONI, ORDINI, JOBSET tables)
- * 
- * PERFORMANCE NOTES:
- * - Work time queries are separate due to cross-database limitations
- * - Revenue/cost reports run as one #temp-table batch on the period's orders (see business-queries.ts)
- * - All numeric columns use proper aggregation (SUM, MIN, MAX)
- * 
- * COST CALCULATION LOGIC:
- * - Material costs: From supplier rows (an_tipo='F') using dw_acqvalore
- * - Labor costs: Work hours from NETPRO × hourly rate from config
- * - Costs include ALL historical data for each commessa (not date-filtered)
- * - Revenue is date-filtered to show only invoices in selected period
- * 
- * FILE ORGANIZATION:
- * - queries/netpro-queries.ts: Production and Order Summary reports (NETPRO only)
- * - queries/business-queries.ts: Client Summary and Order Revenue (BUSINESS + NETPRO)
- * - queries/shared/: Reusable filter builders, query utils, and work time fetcher
- * 
- * ============================================================================
+ * Analytics server actions: the one place the report screens import their queries from.
+ * One file per report in queries/ (<report>-queries.ts); shared parts in queries/shared/:
+ * netpro-work.ts (NetPro work time), business-report.ts (revenue and costs), query-utils.ts (paging, sorting),
+ * filter-builders.ts, work-time-fetcher.ts (NetPro hours for the Business reports). Rules: docs/DATABASE.md.
  */
 
 'use server'
@@ -39,20 +10,22 @@
 // Import all query functions
 import {
     getProductionDataAction as getProductionData,
-    getOrderSummaryDataAction as getOrderSummaryData,
+    getOrderSummaryDataAction as getOrderSummaryData
+} from './queries/production-queries';
+import {
     getAreaSummaryDataAction as getAreaSummaryData,
     getOrderAreaSummaryDataAction as getOrderAreaSummaryData
-} from './queries/netpro-queries';
-
-export type { AreaSummaryRow, OrderAreaRow, OrderSummaryRow, ProductionRow } from './queries/netpro-queries';
-
+} from './queries/area-queries';
 import {
     getClientSummaryDataAction as getClientSummaryData,
-    getClientSummaryStatsAction as getClientSummaryStats,
-    getOrderRevenueDataAction as getOrderRevenueData
-} from './queries/business-queries';
+    getClientSummaryStatsAction as getClientSummaryStats
+} from './queries/client-summary-queries';
+import { getOrderRevenueDataAction as getOrderRevenueData } from './queries/order-revenue-queries';
 
-export type { ClientSummaryRow, OrderRevenueRow } from './queries/business-queries';
+export type { OrderSummaryRow, ProductionRow } from './queries/production-queries';
+export type { AreaSummaryRow, OrderAreaRow } from './queries/area-queries';
+export type { ClientSummaryRow } from './queries/client-summary-queries';
+export type { OrderRevenueRow } from './queries/order-revenue-queries';
 
 // Re-export with proper async wrappers for 'use server'
 export const getProductionDataAction = getProductionData;

@@ -1,4 +1,4 @@
-import type { OrderAreaRow } from '@/app/analytics/queries/netpro-queries';
+import type { OrderAreaRow } from '@/app/analytics/queries/area-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { calcExpectedHours } from '@/lib/expectedHours';
 import { EMPTY_VALUE, formatHours } from '@/lib/format';

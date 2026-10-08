@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Lock, Plus, Trash2 } from 'lucide-react';
 import { AddRecordDialog } from '@/components/admin/record-editor/AddRecordDialog';
 import { RecordCell } from '@/components/admin/record-editor/RecordCell';
 import type { RecordTableConfig } from '@/components/admin/record-editor/types';
@@ -12,8 +12,8 @@ import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
 /**
- * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete,
- * button to add a row. With `groupBy` the rows sit in collapsible sections (all closed at first).
+ * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete
+ * (a lock on rows that cannot be deleted), button to add a row. With `groupBy` the rows sit in collapsible sections (all closed at first).
  */
 export function RecordTableEditor<T extends object>({ config }: { config: RecordTableConfig<T> }) {
     const { rows, loading, error, update, remove, add } = useRecordTable(config);
@@ -31,11 +31,16 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
             key: 'delete',
             header: '',
             align: 'right' as const,
-            cell: (row: T) => (
-                <Button variant="ghost" size="sm" title={APP_COPY.common.delete} onClick={() => remove(row)}>
-                    <Trash2 size={16} className="text-danger" />
-                </Button>
-            ),
+            cell: (row: T) =>
+                config.locked?.rows(row) ? (
+                    <span className="inline-flex p-2 text-fg-faint" title={config.locked.title}>
+                        <Lock size={16} />
+                    </span>
+                ) : (
+                    <Button variant="ghost" size="sm" title={APP_COPY.common.delete} onClick={() => remove(row)}>
+                        <Trash2 size={16} className="text-danger" />
+                    </Button>
+                ),
         },
     ];
     const table = (tableRows: T[]) => (
