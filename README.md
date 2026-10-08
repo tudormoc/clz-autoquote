@@ -60,7 +60,7 @@ npm run excel:examples      # Excel export
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings, auto-exit; shared queries in `presence-db.ts`) |
-| PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/` (page HTML, `renderPdfBase64`) |
+| PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
 | Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
 | Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orders/` |

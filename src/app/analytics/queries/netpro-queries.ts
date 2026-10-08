@@ -204,7 +204,7 @@ export async function getOrderSummaryDataAction(
  * Machine time (TIPO_OGGETTO 'MAC') per machine, summed per area. Quantity per area: the requested quantity of
  * each order once (the folding area: the sum of completed pieces), plus AREA_QUANTITY_EXCESS for the speed.
  */
-interface AreaSummaryRow {
+export interface AreaSummaryRow {
     area_name: string;
     work_time: number;
     requested_quantity: number;
@@ -311,7 +311,7 @@ export async function getAreaSummaryDataAction(
  * Operator time per machine and order from SQL, summed per area in code. Areas with no expected speed and rows
  * under MIN_WORK_TIME_MINUTES are left out. Pages and composition come from Business (movord).
  */
-interface OrderAreaRow {
+export interface OrderAreaRow {
     commessa_full: string;
     commessa_display: string;
     order_description: string;

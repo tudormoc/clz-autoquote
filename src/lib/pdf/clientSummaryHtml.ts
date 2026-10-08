@@ -1,226 +1,111 @@
 import type { ClientSummaryRow } from '@/app/analytics/queries/business-queries';
 import { APP_CONFIG } from '@/config/constants';
 import { formatCurrencyRounded } from '@/lib/format';
-import { APP_COPY } from '@/locales';
+import { escapeHtml, generatedAt, pdfDocument, percent, reportHeader } from '@/lib/pdf/html';
+import { PDF_COLORS as C, toneColor } from '@/lib/pdf/theme';
+import { APP_COPY, fmt } from '@/locales';
 
-/** HTML of the Sommario Clienti PDF: every client on one A4 page */
-export function clientSummaryReportHtml(data: ClientSummaryRow[], periods: string[], clientFilter?: string, includeAllRevenueForSplit: boolean = false, _format: 'A4' | 'A3' = 'A4'): string {
-    const totalRevenue = data.reduce((sum, r) => sum + r.total_revenue, 0);
-    const totalCost = data.reduce((sum, r) => sum + r.material_cost, 0);
-    const totalWorkCost = data.reduce((sum, r) => sum + r.work_cost, 0);
-    const totalMargin = data.reduce((sum, r) => sum + r.margin, 0);
-    const overallMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
+const pdf = APP_COPY.analytics.pdf;
+const copy = pdf.client;
+const headers = APP_COPY.analytics.clientSummary.headers;
+const { GOOD, FAIR } = APP_CONFIG.ANALYTICS.MARGIN_THRESHOLDS;
 
-    // Always A4 portrait — dynamically shrink to fit all rows on one page.
-    // A4 portrait usable height ≈ 247mm (297 - 35mm margins - 15mm footer).
-    // Approximate row height budgets to determine tier:
-    //   > 80 rows → ultra-compact   (~2.5mm/row)
-    //   > 60 rows → very compact    (~3mm/row)
-    //   > 40 rows → compact         (~4mm/row)
-    //   > 25 rows → slightly tight  (~5mm/row)
-    //   ≤ 25 rows → normal          (~6mm/row)
-    const rowCount = data.length;
-    let fontSize = '8pt';
-    let headerFontSize = '8pt';
-    let cellPadding = '5px 4px';
-    let headerPadding = '6px 4px';
-    let summaryPadding = '10px';
-    let summaryFontSize = '10pt';
-    let marginBottom = '12px';
+/**
+ * Text sizes by number of clients, so the whole list fits on one A4 portrait page (≈247 mm usable): the first tier
+ * whose `minRows` the list exceeds is used. Anything still too tall is shrunk when printing (fitHeightPx).
+ */
+const DENSITY = [
+    { minRows: 80, font: '5.5pt', head: '6pt', cell: '1.5px 3px', headCell: '2px 3px', box: '5px', boxFont: '7.5pt', gap: '6px' },
+    { minRows: 60, font: '6pt', head: '6.5pt', cell: '2px 3px', headCell: '3px 3px', box: '6px', boxFont: '8pt', gap: '8px' },
+    { minRows: 40, font: '7pt', head: '7pt', cell: '3px 4px', headCell: '4px 4px', box: '7px', boxFont: '9pt', gap: '10px' },
+    { minRows: 25, font: '7.5pt', head: '7.5pt', cell: '4px 4px', headCell: '5px 4px', box: '8px', boxFont: '9.5pt', gap: '11px' },
+    { minRows: 0, font: '8pt', head: '8pt', cell: '5px 4px', headCell: '6px 4px', box: '10px', boxFont: '10pt', gap: '12px' },
+] as const;
 
-    if (rowCount > 80) {
-        fontSize = '5.5pt';
-        headerFontSize = '6pt';
-        cellPadding = '1.5px 3px';
-        headerPadding = '2px 3px';
-        summaryPadding = '5px';
-        summaryFontSize = '7.5pt';
-        marginBottom = '6px';
-    } else if (rowCount > 60) {
-        fontSize = '6pt';
-        headerFontSize = '6.5pt';
-        cellPadding = '2px 3px';
-        headerPadding = '3px 3px';
-        summaryPadding = '6px';
-        summaryFontSize = '8pt';
-        marginBottom = '8px';
-    } else if (rowCount > 40) {
-        fontSize = '7pt';
-        headerFontSize = '7pt';
-        cellPadding = '3px 4px';
-        headerPadding = '4px 4px';
-        summaryPadding = '7px';
-        summaryFontSize = '9pt';
-        marginBottom = '10px';
-    } else if (rowCount > 25) {
-        fontSize = '7.5pt';
-        headerFontSize = '7.5pt';
-        cellPadding = '4px 4px';
-        headerPadding = '5px 4px';
-        summaryPadding = '8px';
-        summaryFontSize = '9.5pt';
-        marginBottom = '11px';
-    }
+/** Column widths (A4 portrait), in table order */
+const COLUMNS = [
+    { label: APP_COPY.analytics.common.client, width: '30%', right: false },
+    { label: headers.revenue, width: '14%', right: true },
+    { label: headers.materialCost, width: '11%', right: true },
+    { label: headers.laborCost, width: '11%', right: true },
+    { label: copy.totalCost, width: '12%', right: true },
+    { label: headers.margin, width: '14%', right: true },
+    { label: '%', width: '8%', right: true },
+];
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        @page { 
-            size: A4 portrait;
-            margin: 14mm 13mm 18mm 13mm;
-        }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
-            font-size: ${fontSize}; 
-            line-height: 1.2; 
-            color: #1f2937; 
-        }
-        .header { 
-            text-align: center; 
-            margin-bottom: ${marginBottom}; 
-            padding-bottom: ${rowCount > 60 ? '5px' : '8px'}; 
-            border-bottom: 2px solid #3b82f6; 
-        }
-        .header h1 { 
-            font-size: ${rowCount > 60 ? '12pt' : '15pt'}; 
-            color: #1e40af; 
-            margin-bottom: 3px; 
-        }
-        .period { 
-            font-size: ${rowCount > 60 ? '7.5pt' : '9.5pt'}; 
-            color: #6b7280; 
-        }
-        .generated { 
-            font-size: ${rowCount > 60 ? '6pt' : '7.5pt'}; 
-            color: #9ca3af; 
-            margin-top: 2px; 
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            table-layout: fixed; 
-        }
-        th { 
-            background: #f9fafb; 
-            padding: ${headerPadding}; 
-            text-align: left; 
-            font-size: ${headerFontSize}; 
-            font-weight: 600; 
-            color: #6b7280; 
-            border-bottom: 1px solid #e5e7eb; 
-        }
-        td { 
-            padding: ${cellPadding}; 
-            border-bottom: 1px solid #f3f4f6; 
-            font-size: ${fontSize}; 
-            vertical-align: middle; 
-        }
-        th.right, td.right { text-align: right; }
-        .mono { font-family: 'Courier New', monospace; }
-        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+const marginColor = (value: number) => toneColor(value, GOOD, FAIR);
+const marginPercent = (margin: number, revenue: number) => (revenue > 0 ? (margin / revenue) * 100 : 0);
 
-        /* A4 portrait column widths */
-            .col-client { width: 30%; }
-            .col-rev { width: 14%; }
-            .col-cost { width: 11%; }
-            .col-work { width: 11%; }
-            .col-total { width: 12%; }
-            .col-margin { width: 14%; }
-            .col-percent { width: 8%; }
-        
-        .summary-box { 
-            margin-bottom: ${marginBottom}; 
-            padding: ${summaryPadding}; 
-            background: #f9fafb; 
-            border-left: 3px solid #3b82f6; 
-            border-radius: 4px; 
-            display: flex; 
-            justify-content: space-between; 
-        }
-        .summary-item { flex: 1; text-align: center; }
-        .summary-label { 
-            color: #6b7280; 
-            font-size: ${rowCount > 60 ? '6pt' : '7.5pt'}; 
-            margin-bottom: 2px; 
-        }
-        .summary-value { 
-            font-size: ${summaryFontSize}; 
-            font-weight: 600; 
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>${APP_COPY.analytics.clientSummary.pdfTitle}${clientFilter ? ` (${clientFilter})` : ''}</h1>
-        <div class="period">${APP_COPY.analytics.pdf.period}: ${periods.join(', ')}</div>
-        <div class="generated">${includeAllRevenueForSplit ? '(Incluso fatturato per ordini parziali) - ' : ''}${APP_COPY.analytics.pdf.generated}: ${new Date().toLocaleString('it-IT')}</div>
-    </div>
+/** HTML of the Sommario Clienti PDF: totals, then every client on one A4 page */
+export function clientSummaryReportHtml(rows: ClientSummaryRow[], periods: string[], clientFilter?: string, includeAllRevenueForSplit = false): string {
+    const sum = (pick: (row: ClientSummaryRow) => number) => rows.reduce((total, row) => total + pick(row), 0);
+    const revenue = sum((r) => r.total_revenue);
+    const margin = sum((r) => r.margin);
+    const overall = marginPercent(margin, revenue);
 
-    <div class="summary-box">
-        <div class="summary-item">
-            <div class="summary-label">Totale Fatturato</div>
-            <div class="summary-value">${formatCurrencyRounded(totalRevenue)}</div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Materiali</div>
-            <div class="summary-value">${formatCurrencyRounded(totalCost)}</div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Manodopera</div>
-            <div class="summary-value">${formatCurrencyRounded(totalWorkCost)}</div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Margine</div>
-            <div class="summary-value">${formatCurrencyRounded(totalMargin)}</div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">% Margine</div>
-            <div class="summary-value" style="color: ${overallMarginPercent >= 20 ? '#10b981' : overallMarginPercent >= 10 ? '#f59e0b' : '#ef4444'}">${overallMarginPercent.toFixed(1)}%</div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Costo Orario Manodopera</div>
-            <div class="summary-value">${APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE} €/h</div>
-        </div>
-    </div>
+    const d = DENSITY.find((tier) => rows.length > tier.minRows) ?? DENSITY[DENSITY.length - 1];
+    const dense = rows.length > 60;
 
-    <table>
-        <thead>
-            <tr>
-                <th class="col-client">${APP_COPY.analytics.common.client}</th>
-                <th class="col-rev right">${APP_COPY.analytics.clientSummary.headers.revenue}</th>
-                <th class="col-cost right">${APP_COPY.analytics.clientSummary.headers.materialCost}</th>
-                <th class="col-work right">${APP_COPY.analytics.clientSummary.headers.laborCost}</th>
-                <th class="col-total right">Costo Totale</th>
-                <th class="col-margin right">${APP_COPY.analytics.clientSummary.headers.margin}</th>
-                <th class="col-percent right">%</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${data.map(row => {
-                const marginPct = row.total_revenue > 0 ? (row.margin / row.total_revenue) * 100 : 0;
-                
-                return `
-                <tr>
-                    <td class="col-client">
-                        <div class="truncate">${row.client_name}</div>
-                    </td>
-                    <td class="col-rev right mono" style="font-weight: 600;">${formatCurrencyRounded(row.total_revenue)}</td>
-                    <td class="col-cost right mono">${formatCurrencyRounded(row.material_cost)}</td>
-                    <td class="col-work right mono">${formatCurrencyRounded(row.work_cost)}</td>
-                    <td class="col-total right mono" style="font-weight: 600;">${formatCurrencyRounded(row.full_cost)}</td>
-                    <td class="col-margin right mono" style="font-weight: 600;">${formatCurrencyRounded(row.margin)}</td>
-                    <td class="col-percent right mono" style="font-weight: 600; color: ${marginPct >= 20 ? '#10b981' : marginPct >= 10 ? '#f59e0b' : '#ef4444'}">${marginPct.toFixed(1)}%</td>
-                </tr>
-                `;
-            }).join('')}
-        </tbody>
-    </table>
-</body>
-</html>
+    const styles = `
+        @page { size: A4 portrait; margin: 14mm 13mm 18mm 13mm; }
+        body { font-size: ${d.font}; line-height: 1.2; }
+        .header { margin-bottom: ${d.gap}; padding-bottom: ${dense ? '5px' : '8px'}; }
+        .header h1 { font-size: ${dense ? '12pt' : '15pt'}; }
+        .header .line { font-size: ${dense ? '7.5pt' : '9.5pt'}; }
+        .header .line.small { font-size: ${dense ? '6pt' : '7.5pt'}; margin-top: 2px; }
+        table { table-layout: fixed; }
+        th { background: ${C.surface}; padding: ${d.headCell}; font-size: ${d.head}; border-bottom: 1px solid ${C.border}; }
+        td { padding: ${d.cell}; border-bottom: 1px solid ${C.rowLine}; font-size: ${d.font}; vertical-align: middle; }
+        .totals { margin-bottom: ${d.gap}; padding: ${d.box}; background: ${C.surface}; border-left: 3px solid ${C.accent}; border-radius: 4px; display: flex; justify-content: space-between; }
+        .totals .item { flex: 1; text-align: center; }
+        .totals .label { color: ${C.muted}; font-size: ${dense ? '6pt' : '7.5pt'}; margin-bottom: 2px; }
+        .totals .value { font-size: ${d.boxFont}; font-weight: 600; }
     `;
+
+    const totals = [
+        { label: copy.totalRevenue, value: formatCurrencyRounded(revenue) },
+        { label: copy.materials, value: formatCurrencyRounded(sum((r) => r.material_cost)) },
+        { label: copy.labour, value: formatCurrencyRounded(sum((r) => r.work_cost)) },
+        { label: copy.margin, value: formatCurrencyRounded(margin) },
+        { label: copy.marginPercent, value: percent(overall), color: marginColor(overall) },
+        { label: copy.hourlyRate, value: fmt(copy.perHour, { rate: APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE }) },
+    ];
+
+    const generated = generatedAt(pdf.generated);
+    const body = `
+        ${reportHeader(clientFilter ? `${APP_COPY.analytics.clientSummary.pdfTitle} (${clientFilter})` : APP_COPY.analytics.clientSummary.pdfTitle, [
+            { text: `${pdf.period}: ${periods.join(', ')}` },
+            { text: includeAllRevenueForSplit ? `(${copy.includesSplit}) - ${generated}` : generated, small: true },
+        ])}
+        <div class="totals">
+            ${totals
+                .map((t) => `
+            <div class="item">
+                <div class="label">${t.label}</div>
+                <div class="value"${t.color ? ` style="color: ${t.color};"` : ''}>${t.value}</div>
+            </div>`)
+                .join('')}
+        </div>
+        <table>
+            <thead><tr>${COLUMNS.map((c) => `<th${c.right ? ' class="right"' : ''} style="width: ${c.width};">${c.label}</th>`).join('')}</tr></thead>
+            <tbody>
+                ${rows
+                    .map((row) => {
+                        const pct = marginPercent(row.margin, row.total_revenue);
+                        return `
+                <tr>
+                    <td><div class="truncate">${escapeHtml(row.client_name)}</div></td>
+                    <td class="right mono strong">${formatCurrencyRounded(row.total_revenue)}</td>
+                    <td class="right mono">${formatCurrencyRounded(row.material_cost)}</td>
+                    <td class="right mono">${formatCurrencyRounded(row.work_cost)}</td>
+                    <td class="right mono strong">${formatCurrencyRounded(row.full_cost)}</td>
+                    <td class="right mono strong">${formatCurrencyRounded(row.margin)}</td>
+                    <td class="right mono strong" style="color: ${marginColor(pct)};">${percent(pct)}</td>
+                </tr>`;
+                    })
+                    .join('')}
+            </tbody>
+        </table>`;
+
+    return pdfDocument(styles, body);
 }

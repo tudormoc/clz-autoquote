@@ -1,486 +1,206 @@
+import type { AreaSummaryRow } from '@/app/analytics/queries/netpro-queries';
 import { APP_CONFIG } from '@/config/constants';
-import { formatHours } from '@/lib/format';
+import { formatHours, formatNumber } from '@/lib/format';
+import { escapeHtml, generatedAt, join, pdfDocument, percent, reportHeader, signedPercent } from '@/lib/pdf/html';
 import type { PeriodData } from '@/lib/pdf/renderPdf';
-import { APP_COPY } from '@/locales';
+import { PDF_COLORS as C, tint, toneColor } from '@/lib/pdf/theme';
+import { APP_COPY, fmt } from '@/locales';
 
-/** HTML of the Sommario Area PDF: one table per area, one row per period (month or ISO week) */
-export function areaSummaryReportHtml(monthsData: PeriodData[], areaFilter?: string, mode: 'months' | 'weeks' = 'months'): string {
-    const thresholds = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
-    const copy = APP_COPY.analytics.pdf;
+const copy = APP_COPY.analytics.pdf;
+const { EXCELLENT, ACCEPTABLE } = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
+const { TREND_CHANGE_PERCENT, TOP_AREAS } = APP_CONFIG.ANALYTICS.PDF;
+const AREA_ORDER = Object.keys(APP_CONFIG.ANALYTICS.MACHINE_AREAS);
 
-    // Calculate overall totals
-    const allData = monthsData.flatMap(m => m.data);
-    const totalQuantity = allData.reduce((sum, row) => sum + row.requested_quantity, 0);
-    const totalHours = allData.reduce((sum, row) => sum + row.work_time, 0);
-    const overallVelocity = totalHours > 0 ? totalQuantity / totalHours : 0;
-    
-    // Calculate weighted efficiency
-    const totalWeightedEfficiency = allData.reduce((sum, row) => 
-        sum + (row.efficiency * row.work_time), 0
-    );
-    const overallEfficiency = totalHours > 0 ? totalWeightedEfficiency / totalHours : 0;
+/** One period of one area */
+interface AreaPeriod {
+    period: string;
+    quantity: number;
+    hours: number;
+    velocity: number;
+    target: number;
+    efficiency: number;
+}
 
-    // Reorganize data by area (instead of by month)
-    const areaMap = new Map<string, Array<{
-        month: string;
-        quantity: number;
-        hours: number;
-        velocity: number;
-        target: number;
-        efficiency: number;
-    }>>();
+const efficiencyColor = (value: number) => toneColor(value, EXCELLENT, ACCEPTABLE);
+const trendColor = (change: number) => (change > TREND_CHANGE_PERCENT ? C.good : change < -TREND_CHANGE_PERCENT ? C.bad : C.muted);
+const trendIcon = (change: number) => (change > TREND_CHANGE_PERCENT ? '↑' : change < -TREND_CHANGE_PERCENT ? '↓' : '→');
+const coloredPercent = (value: number) => `<span class="strong" style="color: ${efficiencyColor(value)};">${percent(value)}</span>`;
 
-    monthsData.forEach(md => {
-        md.data.forEach(row => {
-            if (!areaMap.has(row.area_name)) {
-                areaMap.set(row.area_name, []);
-            }
-            areaMap.get(row.area_name)!.push({
-                month: md.month,
+/** Totals over all periods and, per area (in production-flow order), its periods with the efficiency trend */
+function summarize(periods: PeriodData<AreaSummaryRow>[]) {
+    const rows = periods.flatMap((p) => p.data);
+    const totalQuantity = rows.reduce((sum, row) => sum + row.requested_quantity, 0);
+    const totalHours = rows.reduce((sum, row) => sum + row.work_time, 0);
+    // Efficiency weighted by hours
+    const weighted = rows.reduce((sum, row) => sum + row.efficiency * row.work_time, 0);
+
+    const byArea = new Map<string, AreaPeriod[]>();
+    for (const period of periods) {
+        for (const row of period.data) {
+            if (!byArea.has(row.area_name)) byArea.set(row.area_name, []);
+            byArea.get(row.area_name)!.push({
+                period: period.month,
                 quantity: row.requested_quantity,
                 hours: row.work_time,
                 velocity: row.velocity,
                 target: row.target_velocity,
-                efficiency: row.efficiency
+                efficiency: row.efficiency,
             });
-        });
-    });
+        }
+    }
 
-    // Calculate trends for each area
-    const areaStats = Array.from(areaMap.entries()).map(([areaName, months]) => {
-        const avgEfficiency = months.reduce((sum, m) => sum + m.efficiency, 0) / months.length;
-        const firstMonth = months[0];
-        const lastMonth = months[months.length - 1];
-        
-        const efficiencyChange = months.length > 1 
-            ? ((lastMonth.efficiency - firstMonth.efficiency) / firstMonth.efficiency) * 100 
-            : 0;
-        const quantityChange = months.length > 1
-            ? ((lastMonth.quantity - firstMonth.quantity) / firstMonth.quantity) * 100
-            : 0;
-        const velocityChange = months.length > 1
-            ? ((lastMonth.velocity - firstMonth.velocity) / firstMonth.velocity) * 100
-            : 0;
+    const areas = Array.from(byArea.entries())
+        .map(([name, list]) => {
+            const first = list[0];
+            const last = list[list.length - 1];
+            return {
+                name,
+                periods: list,
+                averageEfficiency: list.reduce((sum, p) => sum + p.efficiency, 0) / list.length,
+                // % change of efficiency from the first to the last period
+                efficiencyChange: list.length > 1 ? ((last.efficiency - first.efficiency) / first.efficiency) * 100 : 0,
+            };
+        })
+        .sort((a, b) => AREA_ORDER.indexOf(a.name) - AREA_ORDER.indexOf(b.name));
 
-        return {
-            areaName,
-            months,
-            avgEfficiency,
-            efficiencyChange,
-            quantityChange,
-            velocityChange,
-            trend: efficiencyChange > 5 ? 'improving' : efficiencyChange < -5 ? 'declining' : 'stable'
-        };
-    });
-
-    // Sort by custom order from MACHINE_AREAS (same as dashboard)
-    const MACHINE_AREAS = APP_CONFIG.ANALYTICS.MACHINE_AREAS;
-    const areaOrder = Object.keys(MACHINE_AREAS);
-    areaStats.sort((a, b) => {
-        const indexA = areaOrder.indexOf(a.areaName);
-        const indexB = areaOrder.indexOf(b.areaName);
-        return indexA - indexB;
-    });
-
-    const getEfficiencyColor = (eff: number) => {
-        if (eff >= thresholds.EXCELLENT) return '#10b981';
-        if (eff >= thresholds.ACCEPTABLE) return '#f59e0b';
-        return '#ef4444';
+    return {
+        areas,
+        totalHours,
+        velocity: totalHours > 0 ? totalQuantity / totalHours : 0,
+        efficiency: totalHours > 0 ? weighted / totalHours : 0,
     };
+}
 
-    const getTrendIcon = (change: number) => {
-        if (change > 5) return '↑';
-        if (change < -5) return '↓';
-        return '→';
-    };
+/** "Luglio 2026, Agosto 2026" or, for weeks, "Settimane S36–S40, 2026" */
+function periodText(periods: PeriodData<AreaSummaryRow>[], mode: 'months' | 'weeks'): string {
+    if (mode === 'months') return periods.map((p) => `${p.month} ${p.year}`).join(', ');
+    const labels = periods.map((p) => p.month);
+    const year = periods[0]?.year ?? '';
+    return labels.length > 4
+        ? fmt(copy.weeksRange, { from: labels[0], to: labels[labels.length - 1], year })
+        : fmt(copy.weeksList, { weeks: labels.join(', '), year });
+}
 
-    const getTrendColor = (change: number) => {
-        if (change > 5) return '#10b981';
-        if (change < -5) return '#ef4444';
-        return '#6b7280';
-    };
+const STYLES = `
+    body { font-size: 10pt; line-height: 1.4; }
+    .header { margin-bottom: 15px; padding-bottom: 10px; border-bottom-width: 3px; }
+    .header h1 { font-size: 18pt; margin-bottom: 4px; }
+    .header .line { font-size: 10pt; }
+    .header .line.small { font-size: 8pt; }
+    .section { margin-bottom: 20px; page-break-inside: avoid; }
+    .section-title { font-size: 13pt; font-weight: 600; color: ${C.brand}; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid ${C.border}; }
+    .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+    .summary-card { background: ${C.surface}; padding: 8px 10px; border-radius: 6px; border-left: 4px solid ${C.accent}; }
+    .summary-card .label { font-size: 9pt; color: ${C.muted}; margin-bottom: 4px; }
+    .summary-card .value { font-size: 16pt; font-weight: 600; }
+    .area-card { background: ${C.white}; border: 1px solid ${C.border}; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+    .area-card.keep { page-break-inside: avoid; }
+    .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid ${C.border}; }
+    .area-name { font-size: 14pt; font-weight: 600; }
+    td.area-name { font-size: 9pt; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 9pt; font-weight: 600; margin-left: 8px; }
+    .badge.large { font-size: 11pt; padding: 4px 10px; }
+    table { margin-bottom: 10px; }
+    th { background: ${C.surface}; padding: 6px 8px; font-size: 8pt; border-bottom: 1px solid ${C.border}; }
+    td { padding: 5px 8px; border-bottom: 1px solid ${C.rowLine}; font-size: 9pt; }
+    .summary-sections { page-break-inside: avoid; margin-bottom: 30px; }
+`;
 
-    // Period display string for report header
-    const periodDisplay = (() => {
-        if (mode === 'weeks') {
-            const labels = monthsData.map(m => m.month); // ["S1", "S2", ...]
-            const yr = monthsData[0]?.year ?? '';
-            return labels.length > 4
-                ? `Settimane ${labels[0]}\u2013${labels[labels.length - 1]}, ${yr}`
-                : `Settimane ${labels.join(', ')} \u2014 ${yr}`;
-        }
-        return monthsData.map(m => `${m.month} ${m.year}`).join(', ');
-    })();
+/** Header row of the period tables; the first column is the area or the period */
+const tableHead = (first: string) => `
+    <thead><tr>
+        <th>${first}</th>
+        ${[copy.columns.quantity, copy.columns.hours, copy.columns.velocity, copy.columns.target, copy.columns.efficiency].map((label) => `<th class="right">${label}</th>`).join('')}
+    </tr></thead>`;
 
-    // Column header for period column: "Mese" or "Settimana"
-    const periodColumnHeader = mode === 'weeks' ? copy.columns.week : copy.columns.month;
+/** Quantity, hours, speed, target and efficiency of one period */
+const periodCells = (p: AreaPeriod) => `
+    <td class="right mono">${formatNumber(p.quantity)}</td>
+    <td class="right mono">${formatHours(p.hours)}</td>
+    <td class="right mono">${formatNumber(p.velocity, 1)}</td>
+    <td class="right mono">${p.target}</td>
+    <td class="right">${coloredPercent(p.efficiency)}</td>`;
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        @page {
-            margin: 20mm 15mm 25mm 15mm;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.4;
-            color: #1f2937;
-        }
-        
-        .page-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 20mm;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 15mm;
-            border-top: 1px solid #e5e7eb;
-            font-size: 8pt;
-            color: #6b7280;
-            background: white;
-        }
-        
-        .page-footer .left {
-            font-weight: 600;
-            color: #1e40af;
-        }
-        
-        .page-footer .center {
-            text-align: center;
-        }
-        
-        .page-footer .right {
-            text-align: right;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #3b82f6;
-        }
-        .header h1 {
-            font-size: 18pt;
-            color: #1e40af;
-            margin-bottom: 4px;
-        }
-        .header .period {
-            font-size: 10pt;
-            color: #6b7280;
-            margin-bottom: 2px;
-        }
-        .header .generated {
-            font-size: 8pt;
-            color: #9ca3af;
-        }
-        .section {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-        }
-        .section.summary-overview {
-            margin-bottom: 20px;
-        }
-        .section-title {
-            font-size: 13pt;
-            font-weight: 600;
-            color: #1e40af;
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .summary-card {
-            background: #f9fafb;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border-left: 4px solid #3b82f6;
-        }
-        .summary-card .label {
-            font-size: 9pt;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-        .summary-card .value {
-            font-size: 16pt;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .area-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            ${areaFilter ? '' : 'page-break-inside: avoid;'}
-        }
-        .area-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .area-name {
-            font-size: 14pt;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .area-avg {
-            font-size: 11pt;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 4px;
-        }
-        .trend-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 9pt;
-            font-weight: 600;
-            margin-left: 8px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        th {
-            background: #f9fafb;
-            padding: 6px 8px;
-            text-align: left;
-            font-size: 8pt;
-            font-weight: 600;
-            color: #6b7280;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        th.right, td.right { text-align: right; }
-        td {
-            padding: 5px 8px;
-            border-bottom: 1px solid #f3f4f6;
-            font-size: 9pt;
-        }
-        .mono { font-family: 'Courier New', monospace; }
-        .change {
-            font-size: 8pt;
-            font-weight: 600;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-        .page-break { page-break-before: always; }
-        .summary-sections {
-            page-break-inside: avoid;
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>${copy.title}${areaFilter ? ` - ${areaFilter}` : ''}</h1>
-        <div class="period">${copy.period}: ${periodDisplay}</div>
-        <div class="generated">${copy.generated}: ${new Date().toLocaleString('it-IT')}</div>
-    </div>
-
-    <!-- Summary Totals -->
-    <div class="section summary-overview">
-        <div class="section-title">${copy.overallSummary}</div>
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="label">${copy.totalAreas}</div>
-                <div class="value">${areaStats.length}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">${copy.totalHours}</div>
-                <div class="value">${formatHours(totalHours)}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">${copy.overallVelocity}</div>
-                <div class="value">${overallVelocity.toFixed(1)} ${copy.units.pcsPerHour}</div>
-            </div>
-            <div class="summary-card" style="border-left-color: ${getEfficiencyColor(overallEfficiency)};">
-                <div class="label">${copy.overallEfficiency}</div>
-                <div class="value" style="color: ${getEfficiencyColor(overallEfficiency)};">${overallEfficiency.toFixed(1)}%</div>
-            </div>
-        </div>
-    </div>
-
-    ${(() => {
-        // Only show best/worst performers section when no area filter is applied
-        if (areaFilter) {
-            return '';
-        }
-
-        // Top performers (by efficiency)
-        const topPerformers = [...areaStats]
-            .sort((a, b) => b.avgEfficiency - a.avgEfficiency)
-            .slice(0, 2);
-        
-        // Areas needing attention (efficiency < ACCEPTABLE threshold)
-        const needsAttention = areaStats
-            .filter(area => area.avgEfficiency < thresholds.ACCEPTABLE)
-            .sort((a, b) => a.avgEfficiency - b.avgEfficiency);
-
-        return `
-        <div class="summary-sections">
-        ${topPerformers.length > 0 ? `
-        <!-- Top Performers -->
-        <div class="section">
-            <div class="section-title">${copy.topPerformers}</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>${copy.columns.area}</th>
-                        <th class="right">${copy.columns.efficiency}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${topPerformers.map(area => `
-                    <tr>
-                        <td class="area-name">${area.areaName}</td>
-                        <td class="right">
-                            <span style="font-weight: 600; color: ${getEfficiencyColor(area.avgEfficiency)};">
-                                ${area.avgEfficiency.toFixed(1)}%
-                            </span>
-                        </td>
-                    </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-        ` : ''}
-
-        ${needsAttention.length > 0 ? `
-        <!-- Areas Needing Attention -->
-        <div class="section">
-            <div class="section-title">${copy.areasNeedingAttention} (${copy.efficiencyBelow.replace('{threshold}', thresholds.ACCEPTABLE.toString())})</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>${copy.columns.area}</th>
-                        <th class="right">${copy.columns.efficiency}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${needsAttention.map(area => `
-                    <tr>
-                        <td class="area-name">${area.areaName}</td>
-                        <td class="right">
-                            <span style="font-weight: 600; color: ${getEfficiencyColor(area.avgEfficiency)};">
-                                ${area.avgEfficiency.toFixed(1)}%
-                            </span>
-                        </td>
-                    </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-        ` : ''}
-        </div>
-        `;
-    })()}
-
-    <!-- Area-by-Area Analysis -->
+/** Small table of areas with their average efficiency */
+const areaList = (title: string, list: { name: string; averageEfficiency: number }[]) => `
     <div class="section">
-        <div class="section-title">${monthsData.length > 1 ? copy.areaPerformanceTrends : copy.areaPerformance}</div>
-        ${monthsData.length === 1 ? `
-        <!-- Single month: consolidated table -->
+        <div class="section-title">${title}</div>
         <table>
-            <thead>
-                <tr>
-                    <th>${copy.columns.area}</th>
-                    <th class="right">${copy.columns.quantity}</th>
-                    <th class="right">${copy.columns.hours}</th>
-                    <th class="right">${copy.columns.velocity}</th>
-                    <th class="right">${copy.columns.target}</th>
-                    <th class="right">${copy.columns.efficiency}</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${areaStats.map(area => {
-                    const month = area.months[0];
-                    return `
-                    <tr>
-                        <td class="area-name">${area.areaName}</td>
-                        <td class="right mono">${month.quantity.toLocaleString('it-IT')}</td>
-                        <td class="right mono">${formatHours(month.hours)}</td>
-                        <td class="right mono">${month.velocity.toFixed(1)}</td>
-                        <td class="right mono">${month.target}</td>
-                        <td class="right">
-                            <span style="font-weight: 600; color: ${getEfficiencyColor(month.efficiency)};">${month.efficiency.toFixed(1)}%</span>
-                        </td>
-                    </tr>
-                    `;
-                }).join('')}
-            </tbody>
+            <thead><tr><th>${copy.columns.area}</th><th class="right">${copy.columns.efficiency}</th></tr></thead>
+            <tbody>${list.map((area) => `<tr><td class="area-name">${escapeHtml(area.name)}</td><td class="right">${coloredPercent(area.averageEfficiency)}</td></tr>`).join('')}</tbody>
         </table>
-        ` : `
-        <!-- Multiple months: area cards with trends -->
-        ${areaStats.map((area) => {
-            return `
-            <div class="area-card">
+    </div>`;
+
+/** HTML of the Sommario Area PDF: totals, best and weakest areas, then one table per area with a row per period */
+export function areaSummaryReportHtml(periods: PeriodData<AreaSummaryRow>[], areaFilter?: string, mode: 'months' | 'weeks' = 'months'): string {
+    const { areas, totalHours, velocity, efficiency } = summarize(periods);
+    const singlePeriod = periods.length === 1;
+
+    const cards = [
+        { label: copy.totalAreas, value: String(areas.length) },
+        { label: copy.totalHours, value: formatHours(totalHours) },
+        { label: copy.overallVelocity, value: `${formatNumber(velocity, 1)} ${copy.units.pcsPerHour}` },
+        { label: copy.overallEfficiency, value: percent(efficiency), color: efficiencyColor(efficiency) },
+    ];
+
+    // Best and weakest areas only for the whole factory
+    const best = [...areas].sort((a, b) => b.averageEfficiency - a.averageEfficiency).slice(0, TOP_AREAS);
+    const weak = areas.filter((area) => area.averageEfficiency < ACCEPTABLE).sort((a, b) => a.averageEfficiency - b.averageEfficiency);
+
+    const body = join([
+        reportHeader(areaFilter ? `${copy.title} - ${areaFilter}` : copy.title, [
+            { text: `${copy.period}: ${periodText(periods, mode)}` },
+            { text: generatedAt(copy.generated), small: true },
+        ]),
+        `<div class="section">
+            <div class="section-title">${copy.overallSummary}</div>
+            <div class="summary-grid">
+                ${cards
+                    .map((card) => `
+                <div class="summary-card"${card.color ? ` style="border-left-color: ${card.color};"` : ''}>
+                    <div class="label">${card.label}</div>
+                    <div class="value"${card.color ? ` style="color: ${card.color};"` : ''}>${card.value}</div>
+                </div>`)
+                    .join('')}
+            </div>
+        </div>`,
+        !areaFilter &&
+            `<div class="summary-sections">
+                ${join([
+                    best.length > 0 && areaList(copy.topPerformers, best),
+                    weak.length > 0 && areaList(`${copy.areasNeedingAttention} (${fmt(copy.efficiencyBelow, { threshold: ACCEPTABLE })})`, weak),
+                ])}
+            </div>`,
+        `<div class="section">
+            <div class="section-title">${singlePeriod ? copy.areaPerformance : copy.areaPerformanceTrends}</div>
+            ${singlePeriod
+                ? `<table>
+                    ${tableHead(copy.columns.area)}
+                    <tbody>${areas.map((area) => `<tr><td class="area-name">${escapeHtml(area.name)}</td>${periodCells(area.periods[0])}</tr>`).join('')}</tbody>
+                </table>`
+                : areas
+                      .map((area) => {
+                          const hasTrend = area.periods.length > 1;
+                          const trend = trendColor(area.efficiencyChange);
+                          const average = efficiencyColor(area.averageEfficiency);
+                          return `
+            <div class="area-card${areaFilter ? '' : ' keep'}">
                 <div class="area-header">
                     <div>
-                        <span class="area-name">${area.areaName}</span>
-                        ${area.months.length > 1 ? `
-                        <span class="trend-badge" style="background: ${getTrendColor(area.efficiencyChange)}20; color: ${getTrendColor(area.efficiencyChange)};">
-                            ${getTrendIcon(area.efficiencyChange)} ${area.efficiencyChange > 0 ? '+' : ''}${area.efficiencyChange.toFixed(1)}%
-                        </span>
-                        ` : ''}
+                        <span class="area-name">${escapeHtml(area.name)}</span>
+                        ${hasTrend ? `<span class="badge" style="background: ${tint(trend)}; color: ${trend};">${trendIcon(area.efficiencyChange)} ${signedPercent(area.efficiencyChange)}</span>` : ''}
                     </div>
-                    ${area.months.length > 1 ? `
-                    <div class="area-avg" style="background: ${getEfficiencyColor(area.avgEfficiency)}20; color: ${getEfficiencyColor(area.avgEfficiency)};">
-                        ${copy.average}: ${area.avgEfficiency.toFixed(1)}%
-                    </div>
-                    ` : ''}
+                    ${hasTrend ? `<div class="badge large" style="background: ${tint(average)}; color: ${average};">${copy.average}: ${percent(area.averageEfficiency)}</div>` : ''}
                 </div>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>${periodColumnHeader}</th>
-                            <th class="right">${copy.columns.quantity}</th>
-                            <th class="right">${copy.columns.hours}</th>
-                            <th class="right">${copy.columns.velocity}</th>
-                            <th class="right">${copy.columns.target}</th>
-                            <th class="right">${copy.columns.efficiency}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${area.months.map((month) => {
-                            return `
-                            <tr>
-                                <td><strong>${month.month}</strong></td>
-                                <td class="right mono">${month.quantity.toLocaleString('it-IT')}</td>
-                                <td class="right mono">${formatHours(month.hours)}</td>
-                                <td class="right mono">${month.velocity.toFixed(1)}</td>
-                                <td class="right mono">${month.target}</td>
-                                <td class="right">
-                                    <span style="font-weight: 600; color: ${getEfficiencyColor(month.efficiency)};">${month.efficiency.toFixed(1)}%</span>
-                                </td>
-                            </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
+                    ${tableHead(mode === 'weeks' ? copy.columns.week : copy.columns.month)}
+                    <tbody>${area.periods.map((p) => `<tr><td><strong>${escapeHtml(p.period)}</strong></td>${periodCells(p)}</tr>`).join('')}</tbody>
                 </table>
-            </div>
-            `;
-        }).join('')}
-        `}
-    </div>
-</body>
-</html>
-    `;
+            </div>`;
+                      })
+                      .join('')}
+        </div>`,
+    ]);
+
+    return pdfDocument(STYLES, body);
 }

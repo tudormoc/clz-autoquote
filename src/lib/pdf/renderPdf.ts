@@ -7,10 +7,10 @@ import { APP_CONFIG } from '@/config/constants';
 import { APP_COPY } from '@/locales';
 
 /** One period of a report (month name or week label such as "S3") with its rows */
-export interface PeriodData {
+export interface PeriodData<R> {
     month: string;
     year: number;
-    data: any[];
+    data: R[];
 }
 
 interface PdfOptions {

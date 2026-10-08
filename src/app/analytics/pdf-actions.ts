@@ -8,6 +8,7 @@
 import { errorMessage } from '@/lib/utils';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
+import type { AreaSummaryRow, OrderAreaRow } from './queries/netpro-queries';
 import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
 import { formatDate, monthName } from '@/lib/format';
 import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';
@@ -48,7 +49,7 @@ export async function generateAreaSummaryPDFAction(
     weeks: number[] = []       // ISO week numbers 1-53 (used when mode === 'weeks')
 ): Promise<PdfResult> {
     try {
-        const load = async (label: string, dateFrom: string, dateTo: string): Promise<PeriodData> => {
+        const load = async (label: string, dateFrom: string, dateTo: string): Promise<PeriodData<AreaSummaryRow>> => {
             const result = await getAreaSummaryDataAction(
                 year, 1, ALL_ROWS,
                 { dateFrom, dateTo, machine: areaFilter || undefined },
@@ -102,7 +103,7 @@ export async function generateOrderAreaSummaryPDFAction(
 ): Promise<PdfResult> {
     try {
         const periods = await Promise.all(
-            months.map(async (month): Promise<PeriodData> => {
+            months.map(async (month): Promise<PeriodData<OrderAreaRow>> => {
                 const result = await getOrderAreaSummaryDataAction(
                     year, 1, ALL_ROWS,
                     { ...monthRange(year, month), commessa: commessaFilter || undefined, area: areaFilter || undefined, complexOnly }
@@ -111,7 +112,7 @@ export async function generateOrderAreaSummaryPDFAction(
             })
         );
 
-        const pdf = await renderPdfBase64(orderAreaSummaryReportHtml(periods, commessaFilter, areaFilter, format), {
+        const pdf = await renderPdfBase64(orderAreaSummaryReportHtml(periods, format), {
             format,
             footerTitle: APP_COPY.analytics.orderAreaSummary.pdfTitle,
             margin: PAGE_MARGIN,
@@ -161,7 +162,7 @@ export async function generateClientSummaryPDFAction(
             .sort((a, b) => b.total_revenue - a.total_revenue);
 
         const periodLabels = sortedMonths.map((m) => `${monthName(m)} ${year}`);
-        const pdf = await renderPdfBase64(clientSummaryReportHtml(rows, periodLabels, clientFilter, includeAllRevenueForSplit, format), {
+        const pdf = await renderPdfBase64(clientSummaryReportHtml(rows, periodLabels, clientFilter, includeAllRevenueForSplit), {
             format: 'A4',
             landscape: false,
             footerTitle: APP_COPY.analytics.clientSummary.pdfTitle,

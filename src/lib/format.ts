@@ -61,6 +61,19 @@ export function formatNumber(value: number | null | undefined, decimals = 0): st
     return isMissing(value) ? EMPTY_VALUE : numberFormatter(decimals).format(value);
 }
 
+const percentFormatters = new Map<number, Intl.NumberFormat>();
+
+/** 53.24 → "53,2%", 50 → "50,0%" (always `decimals` decimals, so a column lines up) */
+export function formatPercent(value: number | null | undefined, decimals = 1): string {
+    if (isMissing(value)) return EMPTY_VALUE;
+    let f = percentFormatters.get(decimals);
+    if (!f) {
+        f = new Intl.NumberFormat(LANGUAGE, { minimumFractionDigits: decimals, maximumFractionDigits: decimals, ...GROUPING });
+        percentFormatters.set(decimals, f);
+    }
+    return `${f.format(value)}%`;
+}
+
 /** Decimal hours → "h:mm". 1.5 → "1:30", 1.999 → "2:00", -0.5 → "-0:30" */
 export function formatHours(hours: number | null | undefined): string {
     if (isMissing(hours)) return EMPTY_VALUE;
@@ -78,6 +91,13 @@ export function formatDate(value: Date | string | null | undefined): string {
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     return `${dd}/${mm}/${date.getFullYear()}`;
+}
+
+/** A moment in local time → "08/10/2026, 09:15" (e.g. when a report was made) */
+export function formatDateTime(value: Date): string {
+    const hh = String(value.getHours()).padStart(2, '0');
+    const mi = String(value.getMinutes()).padStart(2, '0');
+    return `${formatDate(value)}, ${hh}:${mi}`;
 }
 
 /** Database datetime (stored wall-clock time, read as UTC) → "06/10/2026, 17:35:00", without a timezone shift */

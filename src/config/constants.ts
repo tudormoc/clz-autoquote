@@ -159,6 +159,20 @@ export const APP_CONFIG = {
 
     // Efficiency thresholds for color coding
     // Area efficiency (%): >= EXCELLENT green, >= ACCEPTABLE amber, below red
+    // PDF reports: area trend (% change of efficiency between first and last period that counts as up / down),
+    // how many best areas are listed, and the Sommario Ordini per Area target and client ranking
+    PDF: {
+      TREND_CHANGE_PERCENT: 5,
+      TOP_AREAS: 2,
+      ORDER_TARGET_EFFICIENCY: 100,
+      // Bars stop at this efficiency so a very fast area does not push the others to nothing
+      BAR_MAX_PERCENT: 120,
+      // Clients with fewer expected hours are ranked only when there are not enough bigger ones
+      CLIENT_MIN_EXPECTED_HOURS: 2,
+      CLIENT_MIN_FOR_RANKING: 5,
+      CLIENT_RANK_SIZE: 5,
+    },
+
     EFFICIENCY_THRESHOLDS: {
       EXCELLENT: 60,
       ACCEPTABLE: 40,
