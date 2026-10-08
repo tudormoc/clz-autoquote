@@ -1,7 +1,7 @@
 import { AlignmentCell } from '@/components/analytics/order-operations/AlignmentCell';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_VALUE, formatNumber } from '@/lib/format';
-import type { MaterialComparisonRow } from '@/lib/orderCompare';
+import type { MaterialComparisonRow } from '@/lib/orders/compare';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 

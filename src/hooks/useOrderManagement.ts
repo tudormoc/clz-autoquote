@@ -38,7 +38,7 @@ export function useOrderManagement(
         setRefreshing(true);
         try {
             const res = await refreshOrderOperationsManagementAction(rootCommessaKey, articleFather, commessaFull);
-            if (res.success && res.operationsManagement) {
+            if (res.success) {
                 setData(res.operationsManagement);
                 return true;
             }
@@ -67,7 +67,7 @@ export function useOrderManagement(
                     notify.error(res.error || t.errorSaving);
                     return false;
                 }
-                notify.success(res.message || t.syncSuccess);
+                notify.success(t.syncSuccess);
                 await reload(data.article_father, data.commessa_full);
                 return true;
             } catch (err) {

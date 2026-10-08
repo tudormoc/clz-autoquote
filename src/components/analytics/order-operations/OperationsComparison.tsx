@@ -2,7 +2,7 @@ import { AlignmentCell } from '@/components/analytics/order-operations/Alignment
 import { NetproStatusBadge } from '@/components/analytics/order-operations/NetproStatusBadge';
 import { OperationCell } from '@/components/analytics/order-operations/OperationCell';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
-import type { OperationComparisonRow, OpField } from '@/lib/orderCompare';
+import type { OperationComparisonRow, OpField } from '@/lib/orders/compare';
 import { APP_COPY, fmt } from '@/locales';
 
 const t = APP_COPY.analytics.orderOperations;

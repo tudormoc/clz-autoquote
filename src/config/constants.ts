@@ -58,6 +58,14 @@ export const APP_CONFIG = {
   // Starting values when a signature type is added on the Settings page
   NEW_SIGNATURE: { PAGES: 16, SORT_ORDER: 100 },
 
+  // Orders (work progress page, DiBa realign)
+  ORDERS: {
+    // Copies assumed when an order has no quantity (DiBa material quantities are per 1000 copies)
+    DEFAULT_QUANTITY: 1000,
+    // First 7 characters of a commessa = the master order (year + number), e.g. 2609493 of 260949305
+    ROOT_KEY_LENGTH: 7,
+  },
+
   // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box
   DB_EXPLORER: {
     ROW_LIMIT: 100,

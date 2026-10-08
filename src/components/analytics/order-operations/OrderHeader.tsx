@@ -1,6 +1,6 @@
 import { ChevronLeft, Package, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import type { buildProductionFlow } from '@/lib/orderFlow';
+import type { buildProductionFlow } from '@/lib/orders/flow';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition } from '@/types';
 

@@ -1,36 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import {
-    getOrderOperationsAction,
-    getSingleOrderDetailsAction,
-    type MasterOrderMatch,
-    type Material,
-} from '@/app/analytics/queries/order-operations-queries';
-import type { FlowOperation } from '@/lib/orderFlow';
+import { getOrderOperationsAction, getSingleOrderDetailsAction } from '@/app/analytics/queries/order-operations-queries';
+import type { MasterOrderMatch, OrderDetailsData } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
-import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
 const t = APP_COPY.analytics.orderOperations;
 
-/** Everything shown for one order (all its editions) */
-export interface OrderDetails {
-    /** Changes with every load, so the screen starts again from its first tab */
+/** The open order; `loadId` changes with every load, so the screen starts again from its first tab */
+export interface OrderDetails extends OrderDetailsData {
     loadId: number;
-    operations: FlowOperation[];
-    editions: OrderEdition[];
-    materials: Material[];
-    management: OrderOperationsManagementData;
-}
-
-const EMPTY_MANAGEMENT: OrderOperationsManagementData = { article_father: '', ordine_netpro: '', diba_operations: [], order_operations: [] };
-
-/** Answer of the two order actions, as far as the screen needs it */
-interface OrderAnswer {
-    data: unknown[];
-    editions: unknown[];
-    materials?: Material[];
-    operationsManagement?: OrderOperationsManagementData;
 }
 
 /** Search by commessa number or description: one match opens the order, several are listed to choose from. */
@@ -43,14 +22,8 @@ export function useOrderSearch() {
     const [error, setError] = useState<string | null>(null);
     const loads = useRef(0);
 
-    const openOrder = (answer: OrderAnswer) =>
-        setOrder({
-            loadId: ++loads.current,
-            operations: answer.data as FlowOperation[],
-            editions: answer.editions as OrderEdition[],
-            materials: answer.materials ?? [],
-            management: answer.operationsManagement ?? EMPTY_MANAGEMENT,
-        });
+    const openOrder = ({ editions, operations, materials, management }: OrderDetailsData) =>
+        setOrder({ loadId: ++loads.current, editions, operations, materials, management });
 
     const search = async () => {
         setOrder(null);

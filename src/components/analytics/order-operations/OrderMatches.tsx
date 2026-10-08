@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import type { MasterOrderMatch } from '@/app/analytics/queries/order-operations-queries';
+import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
 
 const t = APP_COPY.analytics.orderOperations;

@@ -33,7 +33,7 @@ Two official apps + this webapp (autoquote). Test case used throughout: article 
 
 ## Sync from DiBa ("Riallinea Ordine da DiBa") — verified 2026-10-06 on test order 674
 
-Code: `syncOrderFromDibaAction` in `src/app/analytics/queries/order-operations-queries.ts`, helpers in `src/lib/orderSync.ts`.
+Code: `syncOrderFromDiba` in `src/lib/orders/sync.ts` (steps: find the order, phases, phase chain, materials), row cloning in `src/lib/orders/syncRows.ts`; called by `syncOrderFromDibaAction` (`src/app/analytics/queries/order-operations-queries.ts`).
 Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo Distinta / Solo Ordine. The button writes to BOTH live DBs (no transaction).
 
 **Per phase (fase)** — new rows are cloned from an existing row of the same order, only key/value columns overridden:
@@ -56,7 +56,7 @@ Timestamps use DB `GETDATE()` (a JS Date would be 2h off).
 - **NetPro note** (`OPERAZIONI.DESCRIZIONE01`) = first 100 chars of the DiBa note.
 - A commessa can have older/duplicate NetPro MAKE orders; use `mo_netpid`, not "latest order of the commessa".
 
-**Comparison tab** (`src/lib/orderCompare.ts`, shared by server count and UI): DiBa → Business order → NetPro order, per edition, field-level (lavorazione, centro, note; material qty).
+**Comparison tab** (`src/lib/orders/compare.ts`, shared by server count and UI): DiBa → Business order → NetPro order, per edition, field-level (lavorazione, centro, note; material qty).
 **Sync safety guard:** the button refuses commesse with more than one edition or more than one NetPro MAKE order (not edition-aware yet).
 
 **Tested live (fase 85/90, materials):** add/edit/delete phase, add/update/delete material — each diffed before/after; only the expected rows changed.

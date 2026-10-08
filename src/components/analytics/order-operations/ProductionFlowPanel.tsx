@@ -1,6 +1,6 @@
 import { OperationNode } from '@/components/analytics/order-operations/OperationNode';
-import type { FlowOperation } from '@/lib/orderFlow';
-import { buildProductionFlow } from '@/lib/orderFlow';
+import type { FlowOperation } from '@/lib/orders/flow';
+import { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 

@@ -1,5 +1,5 @@
 import { CheckCircle, FileText, Pause, Play } from 'lucide-react';
-import type { FlowOperation, FlowStatus } from '@/lib/orderFlow';
+import type { FlowOperation, FlowStatus } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 
 const STATUS_STYLES: Record<FlowStatus, { box: string; icon: string }> = {

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useOrderSearch } from '@/hooks/useOrderSearch';
-import { buildProductionFlow } from '@/lib/orderFlow';
+import { buildProductionFlow } from '@/lib/orders/flow';
 import { APP_COPY } from '@/locales';
 
 const t = APP_COPY.analytics.orderOperations;

@@ -1,4 +1,4 @@
-import type { Material } from '@/app/analytics/queries/order-operations-queries';
+import type { Material } from '@/lib/orders/types';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatNumber } from '@/lib/format';

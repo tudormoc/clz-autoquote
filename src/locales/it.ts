@@ -528,6 +528,8 @@ export const APP_COPY = {
       syncButton: "Riallinea Ordine da DiBa",
       syncing: "Allineamento in corso...",
       syncSuccess: "Ordine riallineato con successo alla DiBa!",
+      syncNoOrder: "Nessun ordine di produzione (Tipo H) trovato per questa commessa.",
+      syncMultiEdition: "Riallineamento non disponibile: la commessa ha più edizioni/ordini (Business H: {business}, NetPro: {netpro}). Supportati per ora solo ordini a edizione singola.",
       syncConfirmTitle: "Riallineamento Ordine da DiBa",
       syncConfirmDescription: "Verranno aggiornate in-place le lavorazioni e i materiali sia in Business che in NetPro mantenendo inalterati gli ID ordine esistenti.",
       syncConfirmButton: "Conferma e Riallinea",

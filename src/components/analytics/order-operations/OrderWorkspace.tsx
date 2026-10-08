@@ -7,7 +7,8 @@ import { OrderMaterialsPanel } from '@/components/analytics/order-operations/Ord
 import { ProductionFlowPanel } from '@/components/analytics/order-operations/ProductionFlowPanel';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
 import type { OrderDetails } from '@/hooks/useOrderSearch';
-import type { buildProductionFlow } from '@/lib/orderFlow';
+import type { buildProductionFlow } from '@/lib/orders/flow';
+import { APP_CONFIG } from '@/config/constants';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
@@ -28,7 +29,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
 
     const hasDiscrepancies = diba ? diba.hasDiscrepancies : !!order.management.has_discrepancies;
     const discrepancyCount = diba ? diba.count : order.management.discrepancy_count || 0;
-    const rootCommessaKey = order.editions[0]?.commessa_full?.slice(0, 7) ?? '';
+    const rootCommessaKey = order.editions[0]?.commessa_full?.slice(0, APP_CONFIG.ORDERS.ROOT_KEY_LENGTH) ?? '';
 
     const tabs: TabItem<WorkspaceTab>[] = [
         { id: 'flow', label: t.operationsTab, icon: <Workflow className="w-4 h-4 text-info-400" />, count: order.operations.length },

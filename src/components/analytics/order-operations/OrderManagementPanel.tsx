@@ -9,17 +9,15 @@ import { OperationsComparison } from '@/components/analytics/order-operations/Op
 import { ProductionOperationsTable } from '@/components/analytics/order-operations/ProductionOperationsTable';
 import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
+import { APP_CONFIG } from '@/config/constants';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
-import { compareMaterials, compareOperations } from '@/lib/orderCompare';
+import { compareMaterials, compareOperations } from '@/lib/orders/compare';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
 const t = APP_COPY.analytics.orderOperations;
 
 type ManagementTab = 'comparison' | 'materials' | 'diba' | 'order';
-
-/** Fallback when the order has no quantity: the DiBa quantities are per 1000 copies */
-const DEFAULT_ORDER_QUANTITY = 1000;
 
 interface OrderManagementPanelProps {
     /** What was loaded with the order; the panel reloads it by itself afterwards */
@@ -41,7 +39,7 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
 
     const dibaOperations = data.diba_operations;
     const orderOperations = data.order_operations;
-    const quantity = data.order_father_quant || DEFAULT_ORDER_QUANTITY;
+    const quantity = data.order_father_quant || APP_CONFIG.ORDERS.DEFAULT_QUANTITY;
 
     // Same comparison as the server uses for the discrepancy count
     const phases = useMemo(
