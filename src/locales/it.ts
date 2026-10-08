@@ -1,6 +1,9 @@
 export const APP_COPY = {
   common: {
     today: "Oggi",
+    pickDate: "Scegli dal calendario",
+    yes: "Sì",
+    no: "No",
     // Filters
     dateFrom: "Data Da",
     dateTo: "Data A",
@@ -18,6 +21,11 @@ export const APP_COPY = {
     page: "Pagina",
     previous: "Precedente",
     next: "Successivo",
+    rangeShort: "{from}–{to} di {total}",
+    sortBy: "Ordina per",
+    sortAscending: "Ordine crescente",
+    sortDescending: "Ordine decrescente",
+    filters: "Filtri",
     // Export, summary, clipboard
     exportExcel: "Esporta Excel",
     exporting: "Esportazione...",
@@ -231,6 +239,7 @@ export const APP_COPY = {
     volumeDiscount: "Sconto Volume:",
     included: "(incluso sopra)",
     unitPrice: "/ unità",
+    showDetail: "Dettaglio",
     // Name of the cover line (other line names come from the price rules)
     coverProduction: "Produzione Copertina ({type})",
     coverTypes: { standard: "standard", fast: "veloce", manual: "manuale" },
@@ -687,8 +696,7 @@ export const APP_COPY = {
         separateReportsDescription: "Scarica un file PDF distinto per ogni area selezionata",
     },
     presence: {
-      annualTitle: "Presenza Annuale {year}",
-      annualSubtitle: "Ore ordinarie per gruppo operatori - Anno completo per settimana",
+      year: "Anno {year}",
       week: "Settimana",
       total: "Totale",
       copy: "Copia",

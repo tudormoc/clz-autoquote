@@ -1,9 +1,10 @@
 'use client';
 
 import { errorMessage } from '@/lib/utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_CONFIG } from '@/config/constants';
 import { nextSort, type SortState } from '@/lib/sort';
+import { countChangedFilters, readUrlFilters, writeUrlFilters } from '@/lib/urlFilters';
 
 export type { SortState };
 
@@ -32,7 +33,7 @@ interface UseReportTableOptions<F, R, S> {
     fetchPage: (query: PageQuery<F>) => Promise<PageResult<R>>;
     /** Optional summary panel data, loaded on demand for the applied filters */
     fetchSummary?: (filters: F) => Promise<{ success: boolean; data?: S | null }>;
-    /** Load straight away with the initial filters instead of waiting for "Applica" */
+    /** Load straight away with the initial filters (default) instead of waiting for "Applica" */
     autoApply?: boolean;
     pageSize?: number;
 }
@@ -43,19 +44,21 @@ const DEFAULT_PAGE_SIZE = 100;
 
 /**
  * State and loading logic shared by every paginated report:
- * filters (edited vs applied), paging, server-side sorting, stale-response protection,
- * export of all rows and the optional summary panel.
+ * filters (edited vs applied, kept in the address bar), paging, server-side sorting, stale-response protection,
+ * export of all rows and the optional summary panel. The report loads as soon as it opens: with the filters of
+ * the address (a shared link, a refresh) or else the initial ones.
  */
 export function useReportTable<F, R, S = never>({
     initialFilters,
     defaultSort,
     fetchPage,
     fetchSummary,
-    autoApply = false,
+    autoApply = true,
     pageSize = DEFAULT_PAGE_SIZE,
 }: UseReportTableOptions<F, R, S>) {
     const [filters, setFilters] = useState<F>(initialFilters);
-    const [applied, setApplied] = useState<F | null>(() => (autoApply ? initialFilters() : null));
+    // Set once the page is in the browser, where the address bar can be read
+    const [applied, setApplied] = useState<F | null>(null);
     const [sort, setSort] = useState<SortState | null>(defaultSort);
     const [page, setPage] = useState(1);
 
@@ -75,10 +78,27 @@ export function useReportTable<F, R, S = never>({
     // The latest callbacks, so the loading effect does not re-run when a report passes inline functions
     const fetchPageRef = useRef(fetchPage);
     const fetchSummaryRef = useRef(fetchSummary);
+    const initialFiltersRef = useRef(initialFilters);
+    const autoApplyRef = useRef(autoApply);
     useEffect(() => {
         fetchPageRef.current = fetchPage;
         fetchSummaryRef.current = fetchSummary;
+        initialFiltersRef.current = initialFilters;
     });
+
+    // First load: the filters in the address bar, or the initial ones when the report loads by itself
+    useEffect(() => {
+        const defaults = initialFiltersRef.current();
+        const fromUrl = readUrlFilters(defaults, window.location.search);
+        if (fromUrl) {
+            const start = { ...defaults, ...fromUrl };
+            setFilters(start);
+            setApplied(start);
+            setLoading(true);
+        } else if (autoApplyRef.current) {
+            setApplied(defaults);
+        }
+    }, []);
 
     useEffect(() => {
         if (applied === null) return;
@@ -116,6 +136,7 @@ export function useReportTable<F, R, S = never>({
 
     const apply = () => {
         setApplied({ ...filters });
+        writeUrlFilters(filters);
         setPage(1);
         resetSummary();
     };
@@ -123,6 +144,7 @@ export function useReportTable<F, R, S = never>({
     const clear = () => {
         const fresh = initialFilters();
         requestId.current++;
+        writeUrlFilters(null);
         setFilters(fresh);
         setApplied(autoApply ? fresh : null);
         setRows([]);
@@ -163,10 +185,14 @@ export function useReportTable<F, R, S = never>({
         }
     }, [applied]);
 
+    // Filters applied apart from the defaults, for the folded filter bar on phones
+    const activeFilterCount = useMemo(() => countChangedFilters(applied, initialFiltersRef.current()), [applied]);
+
     return {
         filters,
         updateFilters,
         applied,
+        activeFilterCount,
         apply,
         clear,
         rows,

@@ -59,8 +59,9 @@ export function DailyEventsTable() {
     };
 
     const columns: DataTableColumn<PresenceEventRow>[] = [
-        { key: 'OGGETTO', header: copy.headers.oggetto, cellClassName: 'font-mono text-fg-secondary', cell: (row) => row.OGGETTO },
-        { key: 'operator_name', header: copy.headers.operatorName, cellClassName: 'text-fg-secondary', cell: (row) => row.operator_name || <MissingValue /> },
+        // Code and name make up the title of a phone card (cardTitle below)
+        { key: 'OGGETTO', header: copy.headers.oggetto, cellClassName: 'font-mono text-fg-secondary', mobileHidden: true, cell: (row) => row.OGGETTO },
+        { key: 'operator_name', header: copy.headers.operatorName, cellClassName: 'text-fg-secondary', mobileHidden: true, cell: (row) => row.operator_name || <MissingValue /> },
         { key: 'EVENTO', header: copy.headers.evento, cellClassName: 'text-fg-secondary', cell: (row) => row.EVENTO },
         {
             key: 'ORA_EVENTO',
@@ -96,18 +97,8 @@ export function DailyEventsTable() {
     ];
 
     return (
-        <div className="space-y-4">
-            <FilterPanel
-                columns={3}
-                onApply={list.apply}
-                onClear={list.clear}
-                actions={
-                    <Button type="button" variant="outline" onClick={() => setShowAddForm(!showAddForm)}>
-                        <Plus size={16} />
-                        {copy.add.button}
-                    </Button>
-                }
-            >
+        <div className="flex flex-col gap-4 lg:h-full">
+            <FilterPanel columns={3} onApply={list.apply} onClear={list.clear} activeCount={list.activeFilterCount}>
                 <DateRangeFields dateFrom={list.filters.dateFrom} dateTo={list.filters.dateTo} onChange={list.updateFilters} />
                 <SearchField
                     label={copy.operatorFilter}
@@ -127,20 +118,31 @@ export function DailyEventsTable() {
                 />
             )}
 
-            {sorted.length > 0 && (
-                <RecordCount count={sorted.length}>
-                    <span className="text-xs text-fg-subtle">{copy.editHint}</span>
-                </RecordCount>
-            )}
+            <RecordCount count={sorted.length}>
+                <div className="flex items-center gap-3">
+                    {sorted.length > 0 && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
+                    <Button type="button" variant="outline" onClick={() => setShowAddForm(!showAddForm)}>
+                        <Plus size={16} />
+                        {copy.add.button}
+                    </Button>
+                </div>
+            </RecordCount>
 
             <DataTable
                 columns={columns}
                 rows={sorted}
                 getRowKey={(row, index) => `${row.OGGETTO}-${String(row.ORA_EVENTO)}-${index}`}
+                mobileTitle={(row) => (
+                    <>
+                        <span className="font-medium text-fg-strong">{row.operator_name || row.OGGETTO}</span>{' '}
+                        <span className="font-mono text-xs text-fg-muted">{row.OGGETTO}</span>
+                    </>
+                )}
                 sort={sort}
                 onSort={toggleSort}
                 loading={list.loading}
                 error={list.error}
+                fill
                 emptyMessage={list.applied ? APP_COPY.analytics.common.noResults : APP_COPY.analytics.applyFiltersHint}
             />
 

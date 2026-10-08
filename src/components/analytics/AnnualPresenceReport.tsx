@@ -84,29 +84,23 @@ export function AnnualPresenceReport() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-semibold text-fg">
-                        {fmt(copy.annualTitle, { year })}
-                    </h2>
-                    <p className="text-sm text-fg-subtle mt-1">
-                        {APP_COPY.analytics.presence.annualSubtitle}
-                    </p>
-                </div>
+        <div className="space-y-4">
+            {/* Year and files read on the left, reload on the right (the page title is above) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-fg-muted">
+                <span>
+                    <span className="font-semibold text-fg-strong">{fmt(copy.year, { year })}</span>
+                    {filesProcessed > 0 && (
+                        <>
+                            {' · '}
+                            {copy.filesProcessed}: <span className="font-mono text-fg-strong">{filesProcessed}</span>
+                        </>
+                    )}
+                </span>
                 <Button onClick={loadData} disabled={loading}>
-                    <Clock className="w-4 h-4 mr-2" />
+                    <Clock size={16} />
                     {loading ? APP_COPY.analytics.common.loading : APP_COPY.analytics.common.refresh}
                 </Button>
             </div>
-
-            {/* Info */}
-            {filesProcessed > 0 && (
-                <div className="text-sm text-fg-subtle">
-                    {APP_COPY.analytics.presence.filesProcessed}: {filesProcessed}
-                </div>
-            )}
 
             {/* Error */}
             {error && (
@@ -124,7 +118,7 @@ export function AnnualPresenceReport() {
 
             {/* Data Tables - One per week */}
             {!loading && data && data.weekNumbers && (
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 items-start">
                     {data.weekNumbers.map(weekNum => {
                         const weekKey = `week${weekNum}`;
                         const weekData = data.groups
@@ -141,7 +135,7 @@ export function AnnualPresenceReport() {
                         return (
                             <div key={weekNum} className="border border-border rounded-lg overflow-hidden">
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-fg">
+                                    <h3 className="text-base font-semibold text-fg">
                                         {APP_COPY.analytics.presence.week} {weekNum}
                                         {getWeekDateRange(weekNum) && (
                                             <span className="text-sm font-normal text-fg-subtle ml-2">
@@ -154,7 +148,7 @@ export function AnnualPresenceReport() {
                                         variant="outline"
                                         size="sm"
                                     >
-                                        <Copy className="w-4 h-4 mr-2" />
+                                        <Copy size={14} />
                                         {APP_COPY.analytics.presence.copy}
                                     </Button>
                                 </div>
@@ -166,7 +160,7 @@ export function AnnualPresenceReport() {
                                                     <td className="px-4 py-3 text-sm font-medium text-fg">
                                                         {item.group}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-right text-fg">
+                                                    <td className="px-4 py-3 text-sm text-right font-mono text-fg">
                                                         {toWholeHours(item.hours)}
                                                     </td>
                                                 </tr>
@@ -175,7 +169,7 @@ export function AnnualPresenceReport() {
                                                 <td className="px-4 py-3 text-sm text-fg">
                                                     {APP_COPY.analytics.presence.total}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-right text-fg">
+                                                <td className="px-4 py-3 text-sm text-right font-mono text-fg">
                                                     {toWholeHours(weekTotal)}
                                                 </td>
                                             </tr>

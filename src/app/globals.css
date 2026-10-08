@@ -19,6 +19,15 @@
   .font-mono {
     font-family: theme('fontFamily.mono');
   }
+
+  /* Phones: text in form fields at 16px, so tapping a field does not zoom the page (iOS); beats text-xs / text-sm */
+  @media (max-width: theme('screens.sm')) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      font-size: 1rem !important;
+    }
+  }
 }
 
 /* Custom Scrollbar */

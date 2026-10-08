@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PageHeaderProps {
     title: string;
@@ -8,18 +9,21 @@ interface PageHeaderProps {
     actions?: React.ReactNode;
 }
 
-/** Title block at the top of every page. */
+/**
+ * Title row at the top of every page: icon, title and one line of description, controls on the right.
+ * On phones the top bar already names the page, so only the controls remain (the title stays for screen readers).
+ */
 export function PageHeader({ title, icon: Icon, subtitle, actions }: PageHeaderProps) {
     return (
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <div className="flex items-center gap-3 mb-2">
-                    {Icon && <Icon className="text-primary" size={24} />}
-                    <h1 className="text-2xl font-bold text-fg-strong">{title}</h1>
+        <div className={cn('mb-4 lg:mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3', !actions && 'max-lg:mb-0')}>
+            <div className="min-w-0 max-lg:sr-only">
+                <div className="flex items-center gap-2.5">
+                    {Icon && <Icon className="shrink-0 text-primary" size={20} />}
+                    <h1 className="text-xl font-bold text-fg-strong truncate">{title}</h1>
                 </div>
-                {subtitle && <div className="text-fg-muted">{subtitle}</div>}
+                {subtitle && <div className="mt-0.5 text-sm text-fg-muted">{subtitle}</div>}
             </div>
-            {actions && <div className="flex items-center gap-3">{actions}</div>}
+            {actions && <div className="flex flex-wrap items-center gap-2 sm:gap-3">{actions}</div>}
         </div>
     );
 }

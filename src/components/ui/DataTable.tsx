@@ -1,4 +1,8 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { DataCards } from '@/components/ui/DataCards';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
@@ -23,6 +27,10 @@ export interface DataTableColumn<R> {
     className?: string;
     /** Extra classes for the cells only */
     cellClassName?: string;
+    /** Left out of the phone cards (details that only matter on a big screen) */
+    mobileHidden?: boolean;
+    /** Name in the phone cards when the header is not plain text */
+    mobileLabel?: string;
     cell: (row: R, index: number) => React.ReactNode;
 }
 
@@ -37,10 +45,18 @@ interface DataTableProps<R> {
     error?: string | null;
     /** Shown when there are no rows (e.g. "apply the filters" before the first search) */
     emptyMessage?: React.ReactNode;
-    /** Totals row(s): <TableRow>s rendered in the table footer when there are rows */
+    /** Totals row(s): <TableRow>s rendered in the table footer when there are rows (table layout only) */
     footer?: React.ReactNode;
     /** Keep every header and cell on one line (wide tables that scroll sideways) */
     nowrap?: boolean;
+    /** Desktop: take the free height of a full-height page and scroll inside it, header always in view */
+    fill?: boolean;
+    /** Phones: one card per row (default), or the table scrolling sideways */
+    mobile?: 'cards' | 'table';
+    /** Phone cards: title of each card (default: the first column) */
+    mobileTitle?: (row: R) => React.ReactNode;
+    /** Phone cards: shown after the last card, e.g. the totals of `footer` */
+    mobileFooter?: React.ReactNode;
 }
 
 const TEXT_ALIGN: Record<Align, string> = { left: 'text-left', right: 'text-right', center: 'text-center' };
@@ -55,7 +71,10 @@ function SortIcon({ active, direction }: { active: boolean; direction?: 'asc' | 
     return direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
 }
 
-/** Column-driven table with sorting, loading, empty and error states and an optional totals footer. */
+/**
+ * Column-driven table with sorting, loading, empty and error states and an optional totals footer.
+ * On phones the same columns become one card per row (DataCards).
+ */
 export function DataTable<R>({
     columns,
     rows,
@@ -68,19 +87,51 @@ export function DataTable<R>({
     emptyMessage = APP_COPY.common.noData,
     footer,
     nowrap,
+    fill,
+    mobile = 'cards',
+    mobileTitle,
+    mobileFooter,
 }: DataTableProps<R>) {
+    const table = useRef<HTMLTableElement>(null);
     const alignOf = (column: DataTableColumn<R>): Align => column.align ?? (column.variant ? 'right' : 'left');
-    const statusRow = (content: React.ReactNode, tone = 'text-fg-muted') => (
-        <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={columns.length} className={cn('py-8 text-center', tone)}>
-                {content}
-            </TableCell>
-        </TableRow>
-    );
+    const cards = mobile === 'cards';
+
+    // New rows (another page, another order) start from the top of a table that scrolls inside
+    useEffect(() => {
+        table.current?.parentElement?.scrollTo({ top: 0 });
+    }, [rows]);
+
+    const message = error
+        ? <span className="text-danger">{`${APP_COPY.common.loadError}: ${error}`}</span>
+        : rows.length === 0
+            ? loading ? APP_COPY.common.loading : emptyMessage
+            : null;
 
     return (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <Table className={cn(nowrap && 'whitespace-nowrap')}>
+        <div
+            className={cn('bg-card border border-border rounded-lg overflow-hidden', fill && 'lg:flex-1 lg:min-h-80 lg:flex lg:flex-col')}
+        >
+            {cards && (
+                <div className="md:hidden">
+                    <DataCards
+                        columns={columns}
+                        rows={rows}
+                        getRowKey={getRowKey}
+                        getRowClassName={getRowClassName}
+                        sort={sort}
+                        onSort={onSort}
+                        message={message}
+                        dimmed={loading && rows.length > 0}
+                        title={mobileTitle}
+                        footer={mobileFooter}
+                    />
+                </div>
+            )}
+            <Table
+                ref={table}
+                className={cn(nowrap && 'whitespace-nowrap')}
+                containerClassName={cn(cards && 'hidden md:block', fill && 'lg:flex-1 lg:min-h-0 lg:overflow-y-auto')}
+            >
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
                         {columns.map((column) => {
@@ -108,29 +159,33 @@ export function DataTable<R>({
                     </TableRow>
                 </TableHeader>
                 <TableBody className={cn(loading && rows.length > 0 && 'opacity-50 transition-opacity')}>
-                    {error
-                        ? statusRow(`${APP_COPY.common.loadError}: ${error}`, 'text-danger')
-                        : rows.length === 0
-                            ? statusRow(loading ? APP_COPY.common.loading : emptyMessage)
-                            : rows.map((row, index) => (
-                                <TableRow key={getRowKey(row, index)} className={getRowClassName?.(row)}>
-                                    {columns.map((column) => (
-                                        <TableCell
-                                            key={column.key}
-                                            className={cn(
-                                                'text-sm',
-                                                TEXT_ALIGN[alignOf(column)],
-                                                column.variant && VARIANT[column.variant],
-                                                column.compact && 'px-2',
-                                                column.className,
-                                                column.cellClassName
-                                            )}
-                                        >
-                                            {column.cell(row, index)}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))}
+                    {message ? (
+                        <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={columns.length} className="py-8 text-center text-fg-muted">
+                                {message}
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        rows.map((row, index) => (
+                            <TableRow key={getRowKey(row, index)} className={getRowClassName?.(row)}>
+                                {columns.map((column) => (
+                                    <TableCell
+                                        key={column.key}
+                                        className={cn(
+                                            'text-sm',
+                                            TEXT_ALIGN[alignOf(column)],
+                                            column.variant && VARIANT[column.variant],
+                                            column.compact && 'px-2',
+                                            column.className,
+                                            column.cellClassName
+                                        )}
+                                    >
+                                        {column.cell(row, index)}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))
+                    )}
                 </TableBody>
                 {footer && !error && rows.length > 0 && <TableFooter>{footer}</TableFooter>}
             </Table>

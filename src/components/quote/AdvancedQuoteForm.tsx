@@ -6,6 +6,7 @@ import { GeneralSection } from './sections/GeneralSection';
 import { InternalSection } from './sections/InternalSection';
 import { CoverSection } from './sections/CoverSection';
 import { LiveBreakdown } from './LiveBreakdown';
+import { QuoteTotalBar } from './QuoteTotalBar';
 import { Button } from '@/components/ui/Button';
 import { QuoteHistoryList } from '@/components/QuoteHistoryList';
 import { APP_COPY } from '@/locales';
@@ -29,6 +30,7 @@ export function AdvancedQuoteForm() {
     } = useAdvancedQuote();
 
     const blueprintWindowRef = useRef<Window | null>(null);
+    const breakdownRef = useRef<HTMLDivElement>(null);
 
     const handleBlueprintPreview = () => {
         const values = form.getValues();
@@ -82,9 +84,11 @@ export function AdvancedQuoteForm() {
         }
     };
 
+    // Phones: form, price breakdown, history, with the total pinned at the bottom while filling the form.
+    // Desktop: form and history on the left, the breakdown pinned on the right.
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pb-12">
-            <div className="lg:col-span-7 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:pb-12">
+            <div className="lg:col-span-7">
                 <form onSubmit={handleSave} className="space-y-4">
                     <GeneralSection
                         control={form.control}
@@ -127,21 +131,25 @@ export function AdvancedQuoteForm() {
                             {isSaving ? APP_COPY.form.processing : (selectedQuoteId ? APP_COPY.form.updateQuote : APP_COPY.form.calculateQuote)}
                         </Button>
                     </div>
-                </form>
-
-                <div className="pt-8 border-t border-border">
-                    <QuoteHistoryList
-                        history={history}
-                        onSelectQuote={selectQuote}
-                        onDeleteQuote={handleDeleteQuote}
+                    <QuoteTotalBar
+                        breakdown={estimate}
+                        onShowDetail={() => breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                     />
+                </form>
+            </div>
+
+            <div ref={breakdownRef} className="lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:row-span-2 scroll-mt-16">
+                <div className="lg:sticky lg:top-0">
+                    <LiveBreakdown breakdown={estimate} />
                 </div>
             </div>
 
-            <div className="lg:col-span-5">
-                <div className="sticky top-20">
-                    <LiveBreakdown breakdown={estimate} />
-                </div>
+            <div className="lg:col-span-7 pt-8 border-t border-border">
+                <QuoteHistoryList
+                    history={history}
+                    onSelectQuote={selectQuote}
+                    onDeleteQuote={handleDeleteQuote}
+                />
             </div>
         </div>
     );

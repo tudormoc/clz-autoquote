@@ -109,145 +109,148 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
                 </Button>
             </div>
 
-            <table className="w-full text-left text-xs table-fixed">
-                <thead className="bg-card/90 text-fg-muted font-semibold border-b border-border text-3xs">
-                    <tr>
-                        <th className="px-2 py-2.5 w-[22%] truncate">{copy.categoryHeader}</th>
-                        {APP_COPY.months.short.map((month, index) => {
-                            const current = index + 1 === currentMonth;
-                            return (
-                                <th
-                                    key={month}
-                                    title={current ? copy.currentMonth : undefined}
-                                    className={cn('px-0.5 py-2.5 text-right font-mono', current && 'text-primary font-bold bg-primary/10')}
-                                >
-                                    {current && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1" />}
-                                    {month}
-                                </th>
-                            );
-                        })}
-                        <th className="px-1.5 py-2.5 text-right font-mono text-fg-soft bg-muted/40 w-[10%]">{copy.totalHeader}</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60 font-mono text-2xs">
-                    <MatrixRow
-                        tone="info"
-                        label={copy.opening}
-                        values={monthValues(monthly, (item) => (item.hasBankData ? item.openingBalance : null))}
-                        total={firstOpeningBalance(monthly)}
-                        loading={loading}
-                        expandable={expandable('opening')}
-                    />
-                    {expanded.has('opening') && bankGroups('opening')}
+            {/* Narrow screens: the table keeps its width and scrolls sideways, row names pinned on the left */}
+            <div className="overflow-x-auto">
+                <table className="w-full max-lg:min-w-matrix text-left text-xs table-fixed">
+                    <thead className="bg-card/90 text-fg-muted font-semibold border-b border-border text-3xs">
+                        <tr>
+                            <th className="px-2 py-2.5 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:bg-card">{copy.categoryHeader}</th>
+                            {APP_COPY.months.short.map((month, index) => {
+                                const current = index + 1 === currentMonth;
+                                return (
+                                    <th
+                                        key={month}
+                                        title={current ? copy.currentMonth : undefined}
+                                        className={cn('px-0.5 py-2.5 text-right font-mono', current && 'text-primary font-bold bg-primary/10')}
+                                    >
+                                        {current && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1" />}
+                                        {month}
+                                    </th>
+                                );
+                            })}
+                            <th className="px-1.5 py-2.5 text-right font-mono text-fg-soft bg-muted/40 w-[10%]">{copy.totalHeader}</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 font-mono text-2xs">
+                        <MatrixRow
+                            tone="info"
+                            label={copy.opening}
+                            values={monthValues(monthly, (item) => (item.hasBankData ? item.openingBalance : null))}
+                            total={firstOpeningBalance(monthly)}
+                            loading={loading}
+                            expandable={expandable('opening')}
+                        />
+                        {expanded.has('opening') && bankGroups('opening')}
 
-                    <MatrixRow
-                        tone="success"
-                        label={copy.incomes}
-                        icon={<ArrowUpRight size={12} className="shrink-0" />}
-                        values={monthValues(monthly, (item) => item.incomeAmount, 0)}
-                        total={totals.income}
-                        loading={loading}
-                        expandable={expandable('incomes')}
-                    />
-                    {expanded.has('incomes') && (
-                        <ExpandableMatrixCategory
-                            title={macro.clientIncomes}
+                        <MatrixRow
                             tone="success"
-                            items={clients.map((client) => ({ label: client.name, monthlyAmounts: client.monthlyAmounts, totalAmount: client.totalAmount }))}
+                            label={copy.incomes}
+                            icon={<ArrowUpRight size={12} className="shrink-0" />}
                             values={monthValues(monthly, (item) => item.incomeAmount, 0)}
                             total={totals.income}
-                            emptyText={copy.noClients}
-                            expanded={expanded.has('clients')}
-                            onToggle={expandable('clients').onToggle}
                             loading={loading}
+                            expandable={expandable('incomes')}
                         />
-                    )}
+                        {expanded.has('incomes') && (
+                            <ExpandableMatrixCategory
+                                title={macro.clientIncomes}
+                                tone="success"
+                                items={clients.map((client) => ({ label: client.name, monthlyAmounts: client.monthlyAmounts, totalAmount: client.totalAmount }))}
+                                values={monthValues(monthly, (item) => item.incomeAmount, 0)}
+                                total={totals.income}
+                                emptyText={copy.noClients}
+                                expanded={expanded.has('clients')}
+                                onToggle={expandable('clients').onToggle}
+                                loading={loading}
+                            />
+                        )}
 
-                    <MatrixRow
-                        tone="danger"
-                        label={copy.expenses}
-                        icon={<ArrowDownRight size={12} className="shrink-0" />}
-                        values={monthValues(monthly, expense, 0)}
-                        total={totals.suppliers + totals.payroll + totals.extra}
-                        loading={loading}
-                        expandable={expandable('expenses')}
-                    />
-                    {expanded.has('expenses') && (
-                        <>
-                            <ExpandableMatrixCategory
-                                title={macro.supplierExpenses}
-                                tone="danger"
-                                items={(data?.supplierCostGroupBreakdown ?? []).map((group) => ({ label: group.label, monthlyAmounts: group.monthlyAmounts, totalAmount: group.totalAmount }))}
-                                total={totals.suppliers}
-                                expanded={expanded.has('suppliers')}
-                                onToggle={expandable('suppliers').onToggle}
-                                loading={loading}
-                            />
-                            <ExpandableMatrixCategory
-                                title={macro.payrollExpenses}
-                                tone="danger"
-                                items={(data?.payrollMonthlyBreakdown ?? []).map((line) => ({ label: macro[line.localeKey] || line.localeKey, monthlyAmounts: line.monthlyAmounts, totalAmount: line.totalAmount }))}
-                                total={totals.payroll}
-                                expanded={expanded.has('payroll')}
-                                onToggle={expandable('payroll').onToggle}
-                                loading={loading}
-                            />
-                            {extraCategories.map((category) => (
+                        <MatrixRow
+                            tone="danger"
+                            label={copy.expenses}
+                            icon={<ArrowDownRight size={12} className="shrink-0" />}
+                            values={monthValues(monthly, expense, 0)}
+                            total={totals.suppliers + totals.payroll + totals.extra}
+                            loading={loading}
+                            expandable={expandable('expenses')}
+                        />
+                        {expanded.has('expenses') && (
+                            <>
                                 <ExpandableMatrixCategory
-                                    key={category.key}
-                                    title={category.label}
+                                    title={macro.supplierExpenses}
                                     tone="danger"
-                                    items={category.accounts.map((account) => ({ label: account.label, monthlyAmounts: account.monthlyAmounts, totalAmount: account.totalAmount }))}
-                                    total={category.totalAmount}
-                                    expanded={expanded.has(category.key)}
-                                    onToggle={expandable(category.key).onToggle}
+                                    items={(data?.supplierCostGroupBreakdown ?? []).map((group) => ({ label: group.label, monthlyAmounts: group.monthlyAmounts, totalAmount: group.totalAmount }))}
+                                    total={totals.suppliers}
+                                    expanded={expanded.has('suppliers')}
+                                    onToggle={expandable('suppliers').onToggle}
                                     loading={loading}
                                 />
-                            ))}
-                        </>
-                    )}
+                                <ExpandableMatrixCategory
+                                    title={macro.payrollExpenses}
+                                    tone="danger"
+                                    items={(data?.payrollMonthlyBreakdown ?? []).map((line) => ({ label: macro[line.localeKey] || line.localeKey, monthlyAmounts: line.monthlyAmounts, totalAmount: line.totalAmount }))}
+                                    total={totals.payroll}
+                                    expanded={expanded.has('payroll')}
+                                    onToggle={expandable('payroll').onToggle}
+                                    loading={loading}
+                                />
+                                {extraCategories.map((category) => (
+                                    <ExpandableMatrixCategory
+                                        key={category.key}
+                                        title={category.label}
+                                        tone="danger"
+                                        items={category.accounts.map((account) => ({ label: account.label, monthlyAmounts: account.monthlyAmounts, totalAmount: account.totalAmount }))}
+                                        total={category.totalAmount}
+                                        expanded={expanded.has(category.key)}
+                                        onToggle={expandable(category.key).onToggle}
+                                        loading={loading}
+                                    />
+                                ))}
+                            </>
+                        )}
 
-                    <MatrixRow
-                        tone="neutral"
-                        label={copy.cashFlow}
-                        title={copy.cashFlowHint}
-                        values={monthValues(monthly, (item) => item.cashFlow, 0)}
-                        total={totals.net}
-                        loading={loading}
-                        valueClass={sign}
-                        totalClass={sign(totals.net)}
-                    />
+                        <MatrixRow
+                            tone="neutral"
+                            label={copy.cashFlow}
+                            title={copy.cashFlowHint}
+                            values={monthValues(monthly, (item) => item.cashFlow, 0)}
+                            total={totals.net}
+                            loading={loading}
+                            valueClass={sign}
+                            totalClass={sign(totals.net)}
+                        />
 
-                    <MatrixRow
-                        tone="neutral"
-                        rowClass="text-3xs bg-background text-fg-muted"
-                        label={<span className="text-warning-400/90">{copy.gap}</span>}
-                        title={copy.gapHint}
-                        values={monthValues(monthly, gap, null)}
-                        total={null}
-                        empty="-"
-                        format={signed}
-                        loading={loading}
-                        valueClass={(value) => (Math.abs(value) < 1 ? 'text-fg-subtle' : value > 0 ? 'text-success-400/80' : 'text-danger-400/80')}
-                        cellTitle={(month, value) => {
-                            const item = monthly.find((candidate) => candidate.month === month);
-                            return value === null || value === undefined || !item
-                                ? undefined
-                                : fmt(copy.expectedVsActual, { expected: formatCurrencyRounded(item.cashFlow), actual: formatCurrencyRounded(item.closingBalance ?? 0) });
-                        }}
-                    />
+                        <MatrixRow
+                            tone="neutral"
+                            rowClass="text-3xs bg-background text-fg-muted"
+                            label={<span className="text-warning-400/90">{copy.gap}</span>}
+                            title={copy.gapHint}
+                            values={monthValues(monthly, gap, null)}
+                            total={null}
+                            empty="-"
+                            format={signed}
+                            loading={loading}
+                            valueClass={(value) => (Math.abs(value) < 1 ? 'text-fg-subtle' : value > 0 ? 'text-success-400/80' : 'text-danger-400/80')}
+                            cellTitle={(month, value) => {
+                                const item = monthly.find((candidate) => candidate.month === month);
+                                return value === null || value === undefined || !item
+                                    ? undefined
+                                    : fmt(copy.expectedVsActual, { expected: formatCurrencyRounded(item.cashFlow), actual: formatCurrencyRounded(item.closingBalance ?? 0) });
+                            }}
+                        />
 
-                    <MatrixRow
-                        tone="warning"
-                        label={copy.closing}
-                        values={monthValues(monthly, (item) => (item.hasBankData ? item.closingBalance : null))}
-                        total={lastClosingBalance(monthly)}
-                        loading={loading}
-                        expandable={expandable('closing')}
-                    />
-                    {expanded.has('closing') && bankGroups('closing')}
-                </tbody>
-            </table>
+                        <MatrixRow
+                            tone="warning"
+                            label={copy.closing}
+                            values={monthValues(monthly, (item) => (item.hasBankData ? item.closingBalance : null))}
+                            total={lastClosingBalance(monthly)}
+                            loading={loading}
+                            expandable={expandable('closing')}
+                        />
+                        {expanded.has('closing') && bankGroups('closing')}
+                    </tbody>
+                </table>
+            </div>
         </Card>
     );
 }

@@ -14,23 +14,21 @@ interface DatePickerProps {
     placeholder?: string;
 }
 
+/** YYYY-MM-DD → DD/MM/YYYY as shown in the field */
+function toDisplay(value: string): string {
+    if (!value) return '';
+    const parsed = parse(value, 'yyyy-MM-dd', new Date());
+    return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : value;
+}
+
 export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [inputValue, setInputValue] = useState('');
+    // Filled from the start, so the date shows before the page is interactive
+    const [inputValue, setInputValue] = useState(() => toDisplay(value));
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Convert YYYY-MM-DD to DD/MM/YYYY for display
-        if (value) {
-            const parsed = parse(value, 'yyyy-MM-dd', new Date());
-            if (isValid(parsed)) {
-                setInputValue(format(parsed, 'dd/MM/yyyy'));
-            } else {
-                setInputValue(value);
-            }
-        } else {
-            setInputValue('');
-        }
+        setInputValue(toDisplay(value));
     }, [value]);
 
     useEffect(() => {
@@ -97,6 +95,7 @@ export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
             <div className="relative">
                 <input
                     type="text"
+                    inputMode="numeric"
                     value={inputValue}
                     onChange={handleInputChange}
                     placeholder={placeholder || 'DD/MM/YYYY'}
@@ -106,7 +105,8 @@ export function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-fg-muted hover:text-primary transition-colors"
+                    aria-label={APP_COPY.common.pickDate}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-fg-muted hover:text-primary transition-colors"
                 >
                     <Calendar size={16} />
                 </button>

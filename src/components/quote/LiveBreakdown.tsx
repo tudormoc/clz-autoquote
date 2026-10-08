@@ -77,7 +77,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                             </TableRow>
                         ))}
                     </TableBody>
-                    <TableFooter>
+                    <TableFooter className="bg-muted/50">
                         <TableRow className="bg-card/30 hover:bg-card/30">
                             <TableCell colSpan={3} className="font-medium text-xs">{copy.setupTotal}</TableCell>
                             <TableCell className="text-right font-mono text-sm">{formatCurrency(setup_total)}</TableCell>

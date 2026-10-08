@@ -50,13 +50,14 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
         },
     ];
 
-    // Panels stay mounted (hidden) so what was opened in them survives a tab switch
-    const panel = (id: WorkspaceTab) => cn('absolute inset-0 overflow-auto p-3', tab !== id && 'hidden');
+    // Panels stay mounted (hidden) so what was opened in them survives a tab switch.
+    // Desktop: each fills the free height and scrolls inside; phones: the page scrolls, wide content sideways.
+    const panel = (id: WorkspaceTab) => cn('p-3 overflow-x-auto lg:absolute lg:inset-0 lg:overflow-auto', tab !== id && 'hidden');
 
     return (
         <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border/80 bg-card/40 overflow-hidden">
             <TabBar tabs={tabs} active={tab} onChange={setTab} className="flex-shrink-0 px-2 pt-2 border-b border-border/80" />
-            <div className="flex-1 min-h-0 relative">
+            <div className="lg:flex-1 lg:min-h-0 relative">
                 <div className={panel('flow')}>
                     <ProductionFlowPanel flow={flow} />
                 </div>

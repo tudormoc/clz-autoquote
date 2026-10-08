@@ -72,6 +72,7 @@ const columns: DataTableColumn<ClientSummaryRow>[] = [
         key: 'split',
         header: '⚠️',
         headerTitle: copy.headers.splitWarning,
+        mobileLabel: copy.headers.splitWarning,
         align: 'center',
         compact: true,
         sortable: false,

@@ -5,11 +5,13 @@ import { cn } from "@/lib/utils"
 // Table building blocks: the one place where table spacing, lines and header style are defined.
 // For data lists with sorting, paging and loading states use DataTable, which is built on these.
 
-const Table = React.forwardRef<
-    HTMLTableElement,
-    React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-x-auto">
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+    /** Classes of the scrolling box around the table (e.g. a height, so it scrolls inside with its header in view) */
+    containerClassName?: string;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(({ className, containerClassName, ...props }, ref) => (
+    <div className={cn("relative w-full overflow-x-auto", containerClassName)}>
         <table
             ref={ref}
             className={cn("w-full text-sm", className)}
@@ -23,7 +25,8 @@ const TableHeader = React.forwardRef<
     HTMLTableSectionElement,
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn("bg-card border-b border-border", className)} {...props} />
+    // Sticks to the top of a scrolling table box; the line under it is drawn by each cell (shadow-divider)
+    <thead ref={ref} className={cn("sticky top-0 z-10 bg-card", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -39,9 +42,10 @@ const TableFooter = React.forwardRef<
     HTMLTableSectionElement,
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
+    // Sticks to the bottom of a scrolling table box, so the totals stay in view
     <tfoot
         ref={ref}
-        className={cn("border-t border-border bg-muted/50 font-medium", className)}
+        className={cn("sticky bottom-0 z-10 bg-card font-medium [&_td]:shadow-divider-top", className)}
         {...props}
     />
 ))
@@ -65,7 +69,7 @@ const TableHead = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <th
         ref={ref}
-        className={cn("px-4 py-3 text-left align-middle text-xs font-semibold text-fg-muted", className)}
+        className={cn("px-4 py-3 text-left align-middle text-xs font-semibold text-fg-muted shadow-divider", className)}
         {...props}
     />
 ))

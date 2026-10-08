@@ -52,11 +52,11 @@ npm run excel:examples      # Excel export
 | Areas and their pages: sidebar, phone menu, home cards, area overview pages | `src/config/navigation.ts` (`NAV_AREAS`) |
 | Analytics report list / their components | `src/config/analyticsSections.ts` / `src/components/analytics/reportComponents.ts` |
 | Settings pages / their screens / what they may change | `src/config/settingsPages.ts` / `src/components/admin/settingsComponents.ts` (table editors in `recordTables.tsx`; pages `/settings/<id>`) / `src/config/editableTables.ts` |
-| Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
+| Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `FillPage`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
 | Shared UI parts | `src/components/ui/` |
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
-| Report state (filters, paging, sorting, export) | `src/hooks/useReportTable.ts` |
+| Report state (filters, paging, sorting, export; loads at once, filters in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings, auto-exit; shared queries in `presence-db.ts`) |
@@ -76,12 +76,16 @@ classes and `text-[Npx]`, so a component can only use tokens:
 - Lines: `border-border` · `border-border-strong`
 - Text: `text-fg-strong` · `text-fg` · `text-fg-soft` · `text-fg-secondary` · `text-fg-muted` · `text-fg-subtle` · `text-fg-faint` · `text-fg-inverse`
 - Status (scale 50–950, default 500): `primary`, `success`, `warning`, `danger`, `info`, `highlight` — e.g. `text-success-400`, `bg-danger/10`, `border-warning-500/30`
-- Small text: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px). Layout: `w-sidebar`, `w-sidebar-collapsed`; `collapsed:` styles the folded sidebar
+- Small text: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px). Layout: `w-sidebar`, `w-sidebar-collapsed`, `min-w-matrix`; `collapsed:` styles the folded sidebar
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
+- Phones: below `lg` the sidebar is a slide-in menu and the page scrolls as a whole; `DataTable` shows one card per row
+  below `md` (`DataCards`, column options `mobileHidden` / `mobileLabel`, table options `mobileTitle` / `mobileFooter`),
+  `FilterPanel` folds into a "Filtri" bar. Form fields are 16px on phones (globals.css), so tapping one does not zoom.
 
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
-`Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals),
+`Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
+`fill` inside a `FillPage` = takes the free height, header and totals stay in view), `CardField` (a line of a phone card),
 `EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar`, `Section` + `RowList`/`Row` (blocks of a settings page),
 `Spinner`, `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`

@@ -4,9 +4,11 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarCheck } from 'lucide-react';
 import { getMonthlyHoursAction, getPresenceRulesAction, updateHoursDistributionAction } from '@/app/presence/hours-actions';
-import { byOperatorName, monthlyHoursColumns, monthlyHoursSortColumns } from '@/components/presence/monthlyHoursColumns';
+import { byOperatorName, monthlyHoursCardTitle, monthlyHoursColumns, monthlyHoursSortColumns } from '@/components/presence/monthlyHoursColumns';
 import { PrefillConfirmDialog } from '@/components/presence/PrefillConfirmDialog';
 import { Button } from '@/components/ui/Button';
+import { CardField } from '@/components/ui/CardField';
+import { columnLabel } from '@/components/ui/DataCards';
 import { DataTable } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
 import { FilterPanel } from '@/components/ui/FilterPanel';
@@ -137,30 +139,55 @@ export function MonthlyHoursTable() {
 
     const columns = monthlyHoursColumns({ rules, todayStr, onSave: saveHours });
 
+    // One total per column after the label, shown as the table's last row and as the phone totals card
+    const totals = FOOTER_CELLS.map((cell, i) => ({
+        column: columns[LABEL_COLUMNS + i],
+        value: typeof cell === 'string'
+            ? cell
+            : normalizeHours(displayed.reduce((sum, row) => sum + toHours(cell.total(row, rules)), 0)).toFixed(cell.decimals ?? 1),
+    }));
+    const totalsLabel = (
+        <>
+            {copy.totals.label}
+            <span className="ml-2 font-normal text-fg-subtle">
+                ({displayed.length} {APP_COPY.common.records})
+            </span>
+        </>
+    );
+
     const footer = (
         <TableRow className="text-xs font-semibold hover:bg-transparent">
             <TableCell colSpan={LABEL_COLUMNS} className="py-2 text-fg-muted">
-                {copy.totals.label}
-                <span className="ml-2 font-normal text-fg-subtle">
-                    ({displayed.length} {APP_COPY.common.records})
-                </span>
+                {totalsLabel}
             </TableCell>
-            {FOOTER_CELLS.map((cell, i) => (
+            {totals.map(({ value }, i) => (
                 <TableCell key={i} className="py-2 text-right font-mono text-fg">
-                    {cell === 'missing' ? (
-                        <MissingValue />
-                    ) : cell === 'blank' ? null : (
-                        normalizeHours(displayed.reduce((sum, row) => sum + toHours(cell.total(row, rules)), 0)).toFixed(cell.decimals ?? 1)
-                    )}
+                    {value === 'missing' ? <MissingValue /> : value === 'blank' ? null : value}
                 </TableCell>
             ))}
         </TableRow>
     );
 
+    const mobileFooter = (
+        <div className="px-3 py-3 bg-muted/50 text-sm">
+            <p className="mb-1.5 font-semibold text-fg-muted">{totalsLabel}</p>
+            <dl className="space-y-1">
+                {totals
+                    .filter(({ value }) => value !== 'blank' && value !== 'missing')
+                    .map(({ column, value }) => (
+                        <CardField key={column.key} label={columnLabel(column)} variant="number">
+                            {value}
+                        </CardField>
+                    ))}
+            </dl>
+        </div>
+    );
+
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-4 lg:h-full">
             <FilterPanel
                 columns={3}
+                activeCount={list.activeFilterCount}
                 onApply={list.apply}
                 onClear={() => {
                     list.clear();
@@ -240,8 +267,11 @@ export function MonthlyHoursTable() {
                 onSort={toggleSort}
                 loading={list.loading}
                 error={list.error}
+                fill
                 emptyMessage={list.applied ? APP_COPY.analytics.common.noResults : APP_COPY.analytics.applyFiltersHint}
                 footer={footer}
+                mobileTitle={monthlyHoursCardTitle}
+                mobileFooter={mobileFooter}
             />
 
             {prefill.summary && list.applied && (

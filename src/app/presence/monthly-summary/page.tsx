@@ -1,4 +1,5 @@
 import { CalendarDays } from 'lucide-react';
+import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MonthlyHoursTable } from '@/components/presence/MonthlyHoursTable';
 import { APP_COPY } from '@/locales';
@@ -13,9 +14,8 @@ export default function MonthlySummaryPage() {
     const copy = APP_COPY.analytics.monthlySummary;
 
     return (
-        <>
-            <PageHeader icon={CalendarDays} title={copy.title} subtitle={copy.subtitle} />
+        <FillPage header={<PageHeader icon={CalendarDays} title={copy.title} subtitle={copy.subtitle} />}>
             <MonthlyHoursTable />
-        </>
+        </FillPage>
     );
 }

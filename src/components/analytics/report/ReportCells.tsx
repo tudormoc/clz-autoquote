@@ -1,4 +1,5 @@
 import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 
 /** Green / amber / red for a percentage measured against two thresholds */
@@ -20,7 +21,7 @@ export function MarginCell({ revenue, margin, format }: { revenue: number; margi
     );
 }
 
-/** Y / N marker (e.g. "has revenue outside the period"), highlighted when set */
+/** Sì / No marker (e.g. "has revenue outside the period"), highlighted when set */
 export function FlagCell({ on }: { on: boolean }) {
-    return <span className={cn('font-mono text-xs', on ? 'text-warning-300' : 'text-fg-subtle')}>{on ? 'Y' : 'N'}</span>;
+    return <span className={cn('text-xs', on ? 'text-warning-300 font-semibold' : 'text-fg-subtle')}>{on ? APP_COPY.common.yes : APP_COPY.common.no}</span>;
 }

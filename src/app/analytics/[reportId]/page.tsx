@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ANALYTICS_SECTIONS, getAnalyticsSection } from '@/config/analyticsSections';
 import { REPORT_COMPONENTS } from '@/components/analytics/reportComponents';
@@ -20,10 +21,9 @@ export default async function AnalyticsReportPage({ params }: AnalyticsReportPag
     }
 
     return (
-        <>
-            <PageHeader icon={section.icon} title={section.label} subtitle={section.description} />
+        <FillPage header={<PageHeader icon={section.icon} title={section.label} subtitle={section.description} />}>
             <ReportComponent />
-        </>
+        </FillPage>
     );
 }
 

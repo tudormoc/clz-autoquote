@@ -113,7 +113,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                             )}
                         />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <Controller
                             control={control}
                             name="internals.sheet_weight"
@@ -147,21 +147,23 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                 />
                             )}
                         />
-                        <Controller
-                            control={control}
-                            name="internals.sheet_type"
-                            render={({ field }) => (
-                                <Select
-                                    {...field}
-                                    label={APP_COPY.form.paperTypeLabel}
-                                    options={[
-                                        { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
-                                        { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
-                                    ]}
-                                    error={errors.internals?.sheet_type?.message}
-                                />
-                            )}
-                        />
+                        <div className="col-span-2 sm:col-span-1">
+                            <Controller
+                                control={control}
+                                name="internals.sheet_type"
+                                render={({ field }) => (
+                                    <Select
+                                        {...field}
+                                        label={APP_COPY.form.paperTypeLabel}
+                                        options={[
+                                            { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
+                                            { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
+                                        ]}
+                                        error={errors.internals?.sheet_type?.message}
+                                    />
+                                )}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -221,7 +223,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                     {endpapersEnabled && (
                         <div className="space-y-4 pl-6 border-l-2 ml-1">
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <Controller
                                     control={control}
                                     name="internals.endpapers_weight"
@@ -255,21 +257,23 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                         />
                                     )}
                                 />
-                                <Controller
-                                    control={control}
-                                    name="internals.endpapers_type"
-                                    render={({ field }) => (
-                                        <Select
-                                            {...field}
-                                            label={APP_COPY.form.endpaperType}
-                                            options={[
-                                                { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
-                                                { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
-                                            ]}
-                                            error={errors.internals?.endpapers_type?.message}
-                                        />
-                                    )}
-                                />
+                                <div className="col-span-2 sm:col-span-1">
+                                    <Controller
+                                        control={control}
+                                        name="internals.endpapers_type"
+                                        render={({ field }) => (
+                                            <Select
+                                                {...field}
+                                                label={APP_COPY.form.endpaperType}
+                                                options={[
+                                                    { label: APP_COPY.form.coatedMatte, value: 'coated_matte' },
+                                                    { label: APP_COPY.form.coatedGloss, value: 'coated_gloss' }
+                                                ]}
+                                                error={errors.internals?.endpapers_type?.message}
+                                            />
+                                        )}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

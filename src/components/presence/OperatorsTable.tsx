@@ -107,9 +107,10 @@ export function OperatorsTable() {
     ];
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4 lg:h-full">
             <FilterPanel
                 columns={3}
+                activeCount={list.activeFilterCount}
                 onApply={list.apply}
                 onClear={() => {
                     list.clear();
@@ -138,7 +139,7 @@ export function OperatorsTable() {
 
             {visibleRows.length > 0 && (
                 <RecordCount count={visibleRows.length}>
-                    <span className="text-xs text-fg-subtle">{copy.editHint}</span>
+                    <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>
                 </RecordCount>
             )}
 
@@ -150,6 +151,7 @@ export function OperatorsTable() {
                 onSort={toggleSort}
                 loading={list.loading}
                 error={list.error}
+                fill
                 emptyMessage={list.applied ? copy.noResults : APP_COPY.analytics.applyFiltersHint}
             />
         </div>

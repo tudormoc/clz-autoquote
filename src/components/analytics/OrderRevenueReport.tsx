@@ -71,6 +71,7 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
         key: 'split',
         header: '⚠️',
         headerTitle: copy.partialRevenueHint,
+        mobileLabel: copy.export.partialRevenue,
         align: 'center',
         compact: true,
         sortable: false,

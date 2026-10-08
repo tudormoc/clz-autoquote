@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { FilterPanel, type FilterColumns } from '@/components/ui/FilterPanel';
 import { Pagination } from '@/components/ui/Pagination';
@@ -36,7 +37,11 @@ interface ReportViewProps<F, R, S> {
     children?: React.ReactNode;
 }
 
-/** A complete paginated report: filters, optional summary, paging, sortable table and Excel export. */
+/**
+ * A complete paginated report: filters, optional summary, sortable table, paging and Excel export.
+ * Desktop: fills the page height, the table scrolls inside with its header in view and the paging stays under it.
+ * Phones: filters fold into one bar, rows are cards, paging above and below them.
+ */
 export function ReportView<F, R, S>({
     report,
     columns,
@@ -51,13 +56,32 @@ export function ReportView<F, R, S>({
 }: ReportViewProps<F, R, S>) {
     const { applied } = report;
     const summaryData = report.summary.data;
+    const listTop = useRef<HTMLDivElement>(null);
+
+    // On a phone the next page starts at the top of the list, not where the previous one ended
+    const changePage = (page: number) => {
+        report.setPage(page);
+        if (listTop.current && listTop.current.getBoundingClientRect().top < 0) listTop.current.scrollIntoView({ block: 'start' });
+    };
+
+    const pagination = (
+        <Pagination
+            page={report.page}
+            totalPages={report.totalPages}
+            total={report.total}
+            pageSize={report.pageSize}
+            onPageChange={changePage}
+            disabled={report.loading}
+        />
+    );
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4 lg:h-full">
             <FilterPanel
                 columns={filterColumns}
                 onApply={report.apply}
                 onClear={report.clear}
+                activeCount={report.activeFilterCount}
                 buttons={filterButtons}
                 actions={
                     (excel || actions) && (
@@ -93,14 +117,7 @@ export function ReportView<F, R, S>({
                 />
             )}
 
-            <Pagination
-                page={report.page}
-                totalPages={report.totalPages}
-                total={report.total}
-                pageSize={report.pageSize}
-                onPageChange={report.setPage}
-                disabled={report.loading}
-            />
+            <div ref={listTop} className="lg:hidden scroll-mt-16 empty:hidden">{pagination}</div>
 
             <DataTable
                 columns={columns}
@@ -111,7 +128,10 @@ export function ReportView<F, R, S>({
                 loading={report.loading}
                 error={report.error}
                 emptyMessage={applied ? APP_COPY.analytics.empty : APP_COPY.analytics.applyFiltersHint}
+                fill
             />
+
+            {pagination}
 
             {children}
         </div>

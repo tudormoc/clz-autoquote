@@ -77,6 +77,9 @@ const LAYOUT = {
         sidebar: '16rem',             // open sidebar, and the phone menu
         'sidebar-collapsed': '4rem',  // sidebar folded to icons
     },
+    minWidth: {
+        matrix: '64rem',              // a month-by-month table (12 months + label + total) below this scrolls sideways
+    },
 };
 
 const SHADOWS = {
@@ -85,6 +88,9 @@ const SHADOWS = {
     'shadow-md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
     'shadow-lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
     'shadow-xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+    // Not shadows: the line under a table header / over a totals row, drawn on the cells so it stays when they stick
+    'shadow-divider': 'inset 0 -1px 0 0 rgb(var(--border))',
+    'shadow-divider-top': 'inset 0 1px 0 0 rgb(var(--border-strong))',
 };
 
 // ─── Build: CSS variables + Tailwind colour map (no edits needed below) ────────

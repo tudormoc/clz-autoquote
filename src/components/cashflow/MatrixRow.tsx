@@ -79,7 +79,8 @@ export function MatrixRow({
             onClick={expandable?.onToggle}
             className={cn('transition-colors', l.row, level === 'main' ? t.row : level === 'group' ? t.group : '', rowClass, active && t.active, expandable && 'cursor-pointer')}
         >
-            <td className={cn(l.label, 'font-sans truncate')} title={title ?? (typeof label === 'string' ? label : undefined)}>
+            {/* Pinned while the table scrolls sideways on narrow screens */}
+            <td className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
                 <div className="flex items-center gap-1.5">
                     {expandable && <Chevron size={level === 'main' ? 14 : 13} className={cn('shrink-0', t.icon)} />}
                     {icon}
