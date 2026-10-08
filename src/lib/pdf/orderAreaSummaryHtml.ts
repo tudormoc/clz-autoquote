@@ -46,7 +46,7 @@ function summarize(periods: PeriodData<OrderAreaRow>[]) {
     for (const row of periods.flatMap((p) => p.data)) {
         let order = orders.get(row.commessa_display);
         if (!order) {
-            order = { display: row.commessa_display, description: row.order_description, client: row.client_name ?? '', worked: 0, expected: 0, areas: [] };
+            order = { display: row.commessa_display, description: row.order_description ?? '', client: row.client_name ?? '', worked: 0, expected: 0, areas: [] };
             orders.set(row.commessa_display, order);
         }
         let area = order.areas.find((a) => a.label === row.area_name);

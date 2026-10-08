@@ -12,6 +12,13 @@ export interface OperatorRow {
     STATO_FISICO: string | null;
 }
 
+/** An operator with its group (TURNO2 or none) */
+export interface OperatorGroupRow {
+    OPERATORE: string;
+    NOME: string | null;
+    GRUPPO: string | null;
+}
+
 export async function getOperatorsAction(search?: string) {
     try {
         const conditions: string[] = [];
@@ -43,7 +50,7 @@ export async function getOperatorsAction(search?: string) {
             ORDER BY OPERATORE ASC
         `;
 
-        const result = await queryMSSQL(query, params, 'NETPRO');
+        const result = await queryMSSQL<OperatorRow>(query, params, 'NETPRO');
 
         const statiResult = await queryMSSQL<{ STATO_FISICO: string }>(
             `SELECT DISTINCT STATO_FISICO FROM OPERATORI WITH (NOLOCK) WHERE STATO_FISICO IS NOT NULL AND STATO_FISICO <> '' ORDER BY STATO_FISICO ASC`,
@@ -53,7 +60,7 @@ export async function getOperatorsAction(search?: string) {
 
         return {
             success: true,
-            data: result.recordset as OperatorRow[],
+            data: result.recordset,
             allStati: statiResult.recordset.map((r) => r.STATO_FISICO)
         };
     } catch (err) {
@@ -100,7 +107,7 @@ export async function updateOperatorAction(
  */
 export async function getTurno2OperatorsAction() {
     try {
-        const result = await queryMSSQL(
+        const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT OPERATORE, NOME, GRUPPO
              FROM OPERATORI WITH (NOLOCK)
              WHERE UPPER(LTRIM(RTRIM(GRUPPO))) = 'TURNO2'
@@ -110,10 +117,10 @@ export async function getTurno2OperatorsAction() {
         );
         return {
             success: true,
-            data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string }[],
+            data: result.recordset,
         };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: [] as { OPERATORE: string; NOME: string; GRUPPO: string }[] };
+        return { success: false, error: errorMessage(err), data: [] as OperatorGroupRow[] };
     }
 }
 
@@ -122,7 +129,7 @@ export async function getTurno2OperatorsAction() {
  */
 export async function searchOperatorsAction(term: string) {
     try {
-        const result = await queryMSSQL(
+        const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT TOP 20 OPERATORE, NOME, ISNULL(NULLIF(LTRIM(RTRIM(GRUPPO)), ''), NULL) AS GRUPPO
              FROM OPERATORI WITH (NOLOCK)
              WHERE (OPERATORE LIKE @term OR NOME LIKE @term)
@@ -132,10 +139,10 @@ export async function searchOperatorsAction(term: string) {
         );
         return {
             success: true,
-            data: result.recordset as { OPERATORE: string; NOME: string; GRUPPO: string | null }[],
+            data: result.recordset,
         };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: [] as { OPERATORE: string; NOME: string; GRUPPO: string | null }[] };
+        return { success: false, error: errorMessage(err), data: [] as OperatorGroupRow[] };
     }
 }
 

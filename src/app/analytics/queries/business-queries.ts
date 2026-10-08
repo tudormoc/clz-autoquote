@@ -442,7 +442,7 @@ export async function getClientSummaryStatsAction(
             ? `${detailSql} SELECT ISNULL(SUM(total_revenue), 0) AS total_value FROM #Rows;`
             : 'SELECT ISNULL(SUM(total_revenue), 0) AS total_value FROM #ClientRevenue;';
 
-        const result = await queryMSSQL(
+        const result = await queryMSSQL<{ total_value: number }>(
             `${revenueSql} ${totalSql} ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}`,
             params,
             'BUSINESS',

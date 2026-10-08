@@ -8,6 +8,9 @@ Three SQL Server databases, all reached through `queryMSSQL(query, params, db)` 
 | `NETPRO` | NETPRO | Production: orders, operations, time tracking, presence |
 | `QUOTES` | CLZDWHQANDPROG | This app's own tables: quotes, pricing rules, discount tiers, signatures |
 
+Every read names its row type, next to its SQL: `queryMSSQL<{ total: number }>(…)` (numeric / money → `number`,
+datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report screens import the row type from their query file.
+
 **The databases are live.** Analytics and lists only read (`WITH (NOLOCK)` on every SELECT). Writes exist in a few places
 (presence edits, "Riallinea Ordine da DiBa", admin tables) and change production data immediately.
 

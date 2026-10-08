@@ -45,7 +45,7 @@ export async function fetchWorkTimesForCommessas(
         }).join(', ');
 
         try {
-            const timeResult = await queryMSSQL(`
+            const timeResult = await queryMSSQL<{ commessa_code: string; total_work_time: number | null }>(`
                 SELECT 
                     SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
                     SUM(SIT.LAVORO) as total_work_time
@@ -113,7 +113,7 @@ export async function fetchWorkCostsForClients(
     }).join(', ');
 
     // Get commessas for these clients (filtered by invoice date to find relevant orders)
-    const commessasResult = await queryMSSQL(`
+    const commessasResult = await queryMSSQL<{ client_code: number; commessa_display: string }>(`
         SELECT DISTINCT
             an.an_conto as client_code,
             RIGHT(CAST(dw.dw_commeca / 100 AS VARCHAR), 4) as commessa_display
@@ -174,7 +174,7 @@ export async function fetchOrderBusinessData(
         return `@code${i}`;
     }).join(', ');
 
-    const result = await queryMSSQL(`
+    const result = await queryMSSQL<{ commessa_code: string; order_pages: number; order_composition: string }>(`
         SELECT 
             SUBSTRING(CAST(mo_commeca AS VARCHAR), 4, 4) as commessa_code,
             MAX(mo_misura3) as order_pages,

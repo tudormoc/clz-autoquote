@@ -67,13 +67,14 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
 };
 
 /**
- * Execute a query on the specified MSSQL database
+ * Execute a query on the specified MSSQL database.
+ * A read names its row type (`queryMSSQL<{ total: number }>(…)`); without one a row is a record of unknown values.
  * @param query SQL query string
  * @param params Optional parameters for the query
  * @param db The database to query (defaults to 'BUSINESS')
  * @param timeout Optional request timeout in ms (overrides pool default of 15000ms)
  */
-export const queryMSSQL = async <T = any>(
+export const queryMSSQL = async <T = Record<string, unknown>>(
     query: string,
     params: SqlParams = {},
     db: MSSQL_DB = 'BUSINESS',

@@ -11,8 +11,8 @@ import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
 import { buildPaginationResult, calculateOffset, type SortConfig } from './shared/query-utils';
 
-interface ClientDeliveryRow {
-    client_code: string;
+export interface ClientDeliveryRow {
+    client_code: number;
     client_name: string;
     delivered_value: number;
 }
@@ -91,7 +91,7 @@ export async function getClientDeliveriesDataAction(
         const { request, where } = await deliveriesRequest(year, filters);
 
         // Clients whose total is not zero
-        const countResult = await request.query(`
+        const countResult = await request.query<{ total: number }>(`
             SELECT COUNT(*) as total
             FROM (
                 SELECT an.an_conto
@@ -101,7 +101,7 @@ export async function getClientDeliveriesDataAction(
                 HAVING SUM(dw.dw_valore) <> 0
             ) AS filtered_clients
         `);
-        const total: number = countResult.recordset[0].total;
+        const total = countResult.recordset[0].total;
 
         const sortColumn = SORT_COLUMNS[sortConfig.column] || SORT_COLUMNS.delivered_value;
         const sortDirection = sortConfig.direction === 'asc' ? 'ASC' : 'DESC';
@@ -138,12 +138,12 @@ export async function getClientDeliveriesDataAction(
 export async function getClientDeliveriesStatsAction(year: number, filters: Filters = {}) {
     try {
         const { request, where } = await deliveriesRequest(year, filters);
-        const result = await request.query(`
+        const result = await request.query<{ total_value: number | null }>(`
             SELECT SUM(dw.dw_valore) as total_value
             ${CLIENT_ROWS}
             WHERE ${where}
         `);
-        return { success: true, data: { total_value: (result.recordset[0]?.total_value as number) || 0 } };
+        return { success: true, data: { total_value: result.recordset[0]?.total_value || 0 } };
     } catch (error) {
         console.error('Client deliveries stats query error:', error);
         return {

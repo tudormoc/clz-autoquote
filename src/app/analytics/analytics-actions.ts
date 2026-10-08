@@ -44,6 +44,8 @@ import {
     getOrderAreaSummaryDataAction as getOrderAreaSummaryData
 } from './queries/netpro-queries';
 
+export type { AreaSummaryRow, OrderAreaRow, OrderSummaryRow, ProductionRow } from './queries/netpro-queries';
+
 import {
     getClientSummaryDataAction as getClientSummaryData,
     getClientSummaryStatsAction as getClientSummaryStats,
@@ -65,6 +67,8 @@ import {
     getClientDeliveriesDataAction as getClientDeliveriesData,
     getClientDeliveriesStatsAction as getClientDeliveriesStats
 } from './queries/client-deliveries-queries';
+
+export type { ClientDeliveryRow } from './queries/client-deliveries-queries';
 
 import { getPresenceDataAction as getPresenceData } from './queries/presence-queries';
 

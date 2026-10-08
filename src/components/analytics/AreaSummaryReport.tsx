@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { getAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { getAreaSummaryDataAction, type AreaSummaryRow } from '@/app/analytics/analytics-actions';
 import { generateAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
 import { scoreTone } from '@/components/analytics/report/ReportCells';
@@ -20,15 +20,6 @@ import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
-
-interface AreaSummaryRow {
-    area_name: string;
-    work_time: number;
-    requested_quantity: number;
-    velocity: number;
-    target_velocity: number;
-    efficiency: number;
-}
 
 interface Filters {
     area: string;

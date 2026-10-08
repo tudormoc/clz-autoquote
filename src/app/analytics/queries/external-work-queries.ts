@@ -20,6 +20,15 @@ interface SupplierFilters {
     dateTo?: string;
 }
 
+export interface ExternalWorkRow {
+    commessa_display: string;
+    commessa_full: number;
+    order_description: string | null;
+    supplier_code: number;
+    supplier_name: string;
+    total_value: number;
+}
+
 const ORDER_CORE = businessOrderCore('dw.dw_commeca');
 
 const SUPPLIER_ROWS = `
@@ -84,7 +93,7 @@ export async function getExternalWorkDataAction(
             ? ORDER_BY[sortConfig.column](sortConfig.direction.toUpperCase())
             : DEFAULT_ORDER_BY;
 
-        const countResult = await queryMSSQL(`
+        const countResult = await queryMSSQL<{ total: number }>(`
             SELECT COUNT(*) as total
             FROM (
                 SELECT dw.dw_commeca, dw.dw_conto
@@ -93,9 +102,9 @@ export async function getExternalWorkDataAction(
                 GROUP BY ${ORDER_CORE}, dw.dw_commeca, dw.dw_conto, an.an_descr1
             ) as subquery
         `, params, 'BUSINESS');
-        const total: number = countResult.recordset[0].total;
+        const total = countResult.recordset[0].total;
 
-        const result = await queryMSSQL(`
+        const result = await queryMSSQL<ExternalWorkRow>(`
             SELECT
                 ${ORDER_CORE} as commessa_display,
                 dw.dw_commeca as commessa_full,
@@ -116,7 +125,7 @@ export async function getExternalWorkDataAction(
 
         return { success: true, data: result.recordset, pagination: buildPaginationResult(page, limit, total) };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: [], pagination: buildPaginationResult(page, limit, 0) };
+        return { success: false, error: errorMessage(err), data: [] as ExternalWorkRow[], pagination: buildPaginationResult(page, limit, 0) };
     }
 }
 

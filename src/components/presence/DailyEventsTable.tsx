@@ -36,7 +36,7 @@ const SORT_COLUMNS: RowSortColumns<PresenceEventRow> = {
     OGGETTO: (row) => row.OGGETTO,
     operator_name: (row) => row.operator_name,
     EVENTO: (row) => row.EVENTO,
-    ORA_EVENTO: (row) => new Date(row.ORA_EVENTO).getTime(),
+    ORA_EVENTO: (row) => row.ORA_EVENTO.getTime(),
 };
 
 export function DailyEventsTable() {

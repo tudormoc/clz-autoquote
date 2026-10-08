@@ -28,7 +28,16 @@ const scadenRows = (side: ScadenSide) => `
 /** prinot rows of the company on these accounts */
 const prinotOn = (codes: number[]) => `p.codditt = '${BUSINESS_COMPANY}' AND p.pn_conto IN (${codes.join(',')})`;
 
+/** An amount of one month (month_num 1–12) */
+export interface MonthAmountRow {
+    month_num: number;
+    total_amount: number;
+}
+
 /** Due amounts and invoice count per month */
+export interface DueMonthRow extends MonthAmountRow {
+    invoice_count: number;
+}
 export const monthlyDueSql = (side: ScadenSide) => `
     SELECT
         MONTH(sc.sc_datsca) as month_num,
@@ -39,6 +48,10 @@ export const monthlyDueSql = (side: ScadenSide) => `
     ORDER BY month_num ASC`;
 
 /** Due amounts per client and month; @namePrefix names clients without a description */
+export interface ClientMonthRow extends MonthAmountRow {
+    account_code: number;
+    name: string;
+}
 export const clientMonthlySql = () => `
     SELECT
         sc.sc_conto as account_code,
@@ -50,6 +63,10 @@ export const clientMonthlySql = () => `
     ORDER BY sc.sc_conto, month_num`;
 
 /** Supplier due amounts per month, grouped by the supplier's default cost account; @otherSuppliers labels unmapped ones */
+export interface CostGroupMonthRow extends MonthAmountRow {
+    cost_account_code: number;
+    cost_account_name: string;
+}
 export const supplierCostGroupSql = () => `
     SELECT
         ISNULL(sup.an_controp, 0) AS cost_account_code,
@@ -69,6 +86,11 @@ export const supplierCostGroupSql = () => `
     ORDER BY cost_account_code, month_num`;
 
 /** Current balance of each bank account (all movements) */
+export interface BankBalanceRow {
+    account_code: number;
+    name: string;
+    balance: number;
+}
 export const bankBalancesSql = (codes: number[]) => `
     SELECT
         p.pn_conto AS account_code,
@@ -81,7 +103,10 @@ export const bankBalancesSql = (codes: number[]) => `
     GROUP BY p.pn_conto, a.an_descr1
     ORDER BY p.pn_conto`;
 
-/** Last month of the year with bank movements */
+/** Last month of the year with bank movements (null when there are none) */
+export interface LastBankMonthRow {
+    max_month: number | null;
+}
 export const lastBankMonthSql = (codes: number[]) => `
     SELECT MAX(MONTH(p.pn_datreg)) as max_month
     FROM prinot p WITH (NOLOCK)
@@ -89,6 +114,11 @@ export const lastBankMonthSql = (codes: number[]) => `
       AND YEAR(p.pn_datreg) = @year`;
 
 /** Bank movements per month: net change and number of rows */
+export interface BankMonthRow {
+    month_num: number;
+    net_change: number;
+    row_count: number;
+}
 export const monthlyBankSql = (codes: number[]) => `
     SELECT
         MONTH(p.pn_datreg) as month_num,
@@ -100,6 +130,11 @@ export const monthlyBankSql = (codes: number[]) => `
     GROUP BY MONTH(p.pn_datreg)
     ORDER BY month_num ASC`;
 
+/** A balance before the year */
+export interface OpeningRow {
+    start_balance: number;
+}
+
 /** Balance of all bank accounts together before the year */
 export const bankOpeningSql = (codes: number[]) => `
     SELECT ISNULL(SUM(p.pn_importo), 0) as start_balance
@@ -108,6 +143,10 @@ export const bankOpeningSql = (codes: number[]) => `
       AND YEAR(p.pn_datreg) < @year`;
 
 /** Balance of each bank account before the year */
+export interface BankOpeningRow extends OpeningRow {
+    account_code: number;
+    name: string;
+}
 export const perBankOpeningSql = (codes: number[]) => `
     SELECT
         p.pn_conto as account_code,
@@ -121,6 +160,11 @@ export const perBankOpeningSql = (codes: number[]) => `
     ORDER BY p.pn_conto`;
 
 /** Net change of each bank account per month */
+export interface BankMonthChangeRow {
+    account_code: number;
+    month_num: number;
+    net_change: number;
+}
 export const perBankMonthlySql = (codes: number[]) => `
     SELECT
         p.pn_conto as account_code,
@@ -132,6 +176,11 @@ export const perBankMonthlySql = (codes: number[]) => `
     GROUP BY p.pn_conto, MONTH(p.pn_datreg)`;
 
 /** Money paid out of these accounts (negative movements, as a positive amount) per account and month */
+export interface CashOutRow {
+    account_code: number;
+    month_num: number;
+    cash_out: number;
+}
 export const cashOutByAccountSql = (codes: number[]) => `
     SELECT
         p.pn_conto AS account_code,
@@ -144,6 +193,9 @@ export const cashOutByAccountSql = (codes: number[]) => `
     ORDER BY account_code, month_num`;
 
 /** Name of one account */
+export interface AccountNameRow {
+    an_descr1: string;
+}
 export const accountNameSql = () => `
     SELECT TOP 1 an_descr1
     FROM anagra WITH (NOLOCK)
@@ -158,6 +210,17 @@ export const accountOpeningSql = () => `
       AND YEAR(pn_datreg) < @year`;
 
 /** Every movement of one account in the year, in registration order */
+export interface MovementRow {
+    pn_datreg: Date;
+    pn_numreg: number;
+    pn_riga: number;
+    pn_numdoc: number;
+    pn_alfdoc: string;
+    pn_descr: string;
+    pn_dare: number;
+    pn_avere: number;
+    pn_importo: number;
+}
 export const accountMovementsSql = () => `
     SELECT
         p.pn_datreg,

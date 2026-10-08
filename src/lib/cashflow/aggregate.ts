@@ -9,10 +9,7 @@ import type {
     MonthlyBankBreakdownItem,
     MonthlyFinancialItem,
 } from '@/lib/cashflow/types';
-
-type Row = Record<string, unknown>;
-
-const num = (value: unknown) => Number(value || 0);
+import type { CashOutRow, DueMonthRow, MonthAmountRow } from '@/app/cashflow/cashflow-sql';
 
 export const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -27,33 +24,33 @@ export function addMonths(into: Map<number, number>, amounts: MonthlyAmounts) {
 }
 
 /** Due rows per month → { count, total } with the total as a positive amount */
-export function dueByMonth(rows: Row[]): Map<number, { count: number; total: number }> {
-    return new Map(rows.map((row) => [num(row.month_num), { count: num(row.invoice_count), total: Math.abs(num(row.total_amount)) }]));
+export function dueByMonth(rows: DueMonthRow[]): Map<number, { count: number; total: number }> {
+    return new Map(rows.map((row) => [row.month_num, { count: row.invoice_count, total: Math.abs(row.total_amount) }]));
 }
 
 /** Rows (account_code, month_num, cash_out) → account → month → amount */
-export function cashOutByAccount(rows: Row[]): Map<number, MonthlyAmounts> {
+export function cashOutByAccount(rows: CashOutRow[]): Map<number, MonthlyAmounts> {
     const byAccount = new Map<number, MonthlyAmounts>();
     for (const row of rows) {
-        const monthly = byAccount.get(num(row.account_code)) ?? {};
-        monthly[num(row.month_num)] = num(row.cash_out);
-        byAccount.set(num(row.account_code), monthly);
+        const monthly = byAccount.get(row.account_code) ?? {};
+        monthly[row.month_num] = row.cash_out;
+        byAccount.set(row.account_code, monthly);
     }
     return byAccount;
 }
 
 /** Rows (key, name, month_num, total_amount) → one entry per key with its monthly amounts and total */
-export function groupMonthly<K, E extends { monthlyAmounts: MonthlyAmounts; totalAmount: number }>(
-    rows: Row[],
-    keyOf: (row: Row) => K,
-    entry: (row: Row, key: K) => E
+export function groupMonthly<R extends MonthAmountRow, K, E extends { monthlyAmounts: MonthlyAmounts; totalAmount: number }>(
+    rows: R[],
+    keyOf: (row: R) => K,
+    entry: (row: R, key: K) => E
 ): E[] {
     const groups = new Map<K, E>();
     for (const row of rows) {
         const key = keyOf(row);
         const group = groups.get(key) ?? entry(row, key);
-        const month = num(row.month_num);
-        const amount = num(row.total_amount);
+        const month = row.month_num;
+        const amount = row.total_amount;
         group.monthlyAmounts[month] = (group.monthlyAmounts[month] || 0) + amount;
         group.totalAmount += amount;
         groups.set(key, group);

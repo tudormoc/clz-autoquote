@@ -1,6 +1,6 @@
 'use client';
 
-import { getOrderSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { getOrderSummaryDataAction, type OrderSummaryRow } from '@/app/analytics/analytics-actions';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
@@ -12,17 +12,6 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface OrderSummaryRow {
-    machine: string;
-    machine_name: string;
-    work_time: number;
-    qty_completed: number;
-    qty_requested: number;
-    commessa_full: string;
-    commessa_display: string;
-    order_description: string;
-}
 
 interface Filters {
     commessa: string;

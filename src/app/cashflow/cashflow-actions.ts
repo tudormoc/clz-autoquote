@@ -34,6 +34,18 @@ import { APP_COPY, fmt } from '@/locales';
 import {
     CLIENTS,
     SUPPLIERS,
+    type AccountNameRow,
+    type BankBalanceRow,
+    type BankMonthChangeRow,
+    type BankMonthRow,
+    type BankOpeningRow,
+    type CashOutRow,
+    type ClientMonthRow,
+    type CostGroupMonthRow,
+    type DueMonthRow,
+    type LastBankMonthRow,
+    type MovementRow,
+    type OpeningRow,
     accountMovementsSql,
     accountNameSql,
     accountOpeningSql,
@@ -50,7 +62,7 @@ import {
 } from './cashflow-sql';
 
 const labels = APP_COPY.cashflow.labels;
-const NO_ROWS = Promise.resolve({ recordset: [] as Record<string, unknown>[] });
+const NO_ROWS = Promise.resolve({ recordset: [] as CashOutRow[] });
 const round2 = (value: number) => Number(value.toFixed(2));
 
 /** Monthly cashflow of a year (all queries run in parallel) */
@@ -61,29 +73,29 @@ export async function getCashflowMonthlyDataAction(year: number = new Date().get
 
         const payrollCodes = CASHFLOW_CONFIG.getPayrollAccountCodes();
         const extraCodes = CASHFLOW_CONFIG.getEnabledExtraExpenseCodes();
-        const run = (sql: string, params: Record<string, unknown> = { year }) => queryMSSQL(sql, params, 'BUSINESS');
+        const run = <T>(sql: string, params: Record<string, unknown> = { year }) => queryMSSQL<T>(sql, params, 'BUSINESS');
 
         const [banks, incomes, expenses, lastBankMonth, monthlyBank, opening, perBankOpening, perBankMonthly, payroll, extra, clientMonthly, costGroups] =
             await Promise.all([
-                run(bankBalancesSql(bankCodes), {}),
-                run(monthlyDueSql(CLIENTS)),
-                run(monthlyDueSql(SUPPLIERS)),
-                run(lastBankMonthSql(bankCodes)),
-                run(monthlyBankSql(bankCodes)),
-                run(bankOpeningSql(bankCodes)),
-                run(perBankOpeningSql(bankCodes)),
-                run(perBankMonthlySql(bankCodes)),
-                run(cashOutByAccountSql(payrollCodes)),
-                extraCodes.length > 0 ? run(cashOutByAccountSql(extraCodes)) : NO_ROWS,
-                run(clientMonthlySql(), { year, namePrefix: labels.clientPrefix }),
-                run(supplierCostGroupSql(), { year, otherSuppliers: labels.otherSuppliers }),
+                run<BankBalanceRow>(bankBalancesSql(bankCodes), {}),
+                run<DueMonthRow>(monthlyDueSql(CLIENTS)),
+                run<DueMonthRow>(monthlyDueSql(SUPPLIERS)),
+                run<LastBankMonthRow>(lastBankMonthSql(bankCodes)),
+                run<BankMonthRow>(monthlyBankSql(bankCodes)),
+                run<OpeningRow>(bankOpeningSql(bankCodes)),
+                run<BankOpeningRow>(perBankOpeningSql(bankCodes)),
+                run<BankMonthChangeRow>(perBankMonthlySql(bankCodes)),
+                run<CashOutRow>(cashOutByAccountSql(payrollCodes)),
+                extraCodes.length > 0 ? run<CashOutRow>(cashOutByAccountSql(extraCodes)) : NO_ROWS,
+                run<ClientMonthRow>(clientMonthlySql(), { year, namePrefix: labels.clientPrefix }),
+                run<CostGroupMonthRow>(supplierCostGroupSql(), { year, otherSuppliers: labels.otherSuppliers }),
             ]);
 
         // Bank balances today
         const bankBalances = banks.recordset.map((row) => ({
-            accountCode: Number(row.account_code),
-            name: String(row.name).trim(),
-            balance: Number(row.balance || 0),
+            accountCode: row.account_code,
+            name: row.name.trim(),
+            balance: row.balance,
         }));
 
         // Payroll per account (labels from config order)
@@ -115,15 +127,15 @@ export async function getCashflowMonthlyDataAction(year: number = new Date().get
         // Incomes per client, largest first
         const clientMonthlySummary: ClientMonthlyBreakdownItem[] = groupMonthly(
             clientMonthly.recordset,
-            (row) => Number(row.account_code),
-            (row, accountCode) => ({ accountCode, name: String(row.name).trim(), monthlyAmounts: {}, totalAmount: 0 })
+            (row) => row.account_code,
+            (row, accountCode) => ({ accountCode, name: row.name.trim(), monthlyAmounts: {}, totalAmount: 0 })
         ).sort((a, b) => b.totalAmount - a.totalAmount);
 
         // Supplier costs per cost account: named groups by total, unmapped ("Altri Fornitori", code 0) last
         const supplierCostGroupBreakdown: SupplierCostGroupBreakdown[] = groupMonthly(
             costGroups.recordset,
-            (row) => Number(row.cost_account_code || 0),
-            (row, costAccountCode) => ({ costAccountCode, label: String(row.cost_account_name).trim(), monthlyAmounts: {}, totalAmount: 0 })
+            (row) => row.cost_account_code,
+            (row, costAccountCode) => ({ costAccountCode, label: row.cost_account_name.trim(), monthlyAmounts: {}, totalAmount: 0 })
         ).sort((a, b) => (a.costAccountCode === 0 ? 1 : b.costAccountCode === 0 ? -1 : b.totalAmount - a.totalAmount));
 
         const incomesByMonth = dueByMonth(incomes.recordset);
@@ -133,11 +145,11 @@ export async function getCashflowMonthlyDataAction(year: number = new Date().get
             expenses: expensesByMonth,
             payrollByMonth,
             extraExpenseByMonth,
-            bankByMonth: new Map(monthlyBank.recordset.map((row) => [Number(row.month_num), { netChange: Number(row.net_change || 0), count: Number(row.row_count || 0) }])),
-            lastBankMonth: Number(lastBankMonth.recordset[0]?.max_month || 0),
-            openingBalance: Number(opening.recordset[0]?.start_balance || 0),
-            perBankOpening: new Map(perBankOpening.recordset.map((row) => [Number(row.account_code), { name: String(row.name).trim(), balance: Number(row.start_balance || 0) }])),
-            perBankChange: new Map(perBankMonthly.recordset.map((row) => [`${row.account_code}_${row.month_num}`, Number(row.net_change || 0)])),
+            bankByMonth: new Map(monthlyBank.recordset.map((row) => [row.month_num, { netChange: row.net_change, count: row.row_count }])),
+            lastBankMonth: lastBankMonth.recordset[0]?.max_month ?? 0,
+            openingBalance: opening.recordset[0]?.start_balance ?? 0,
+            perBankOpening: new Map(perBankOpening.recordset.map((row) => [row.account_code, { name: row.name.trim(), balance: row.start_balance }])),
+            perBankChange: new Map(perBankMonthly.recordset.map((row) => [`${row.account_code}_${row.month_num}`, row.net_change])),
         });
 
         const sumMonths = (pick: (m: number) => number) => MONTHS.reduce((sum, m) => sum + pick(m), 0);
@@ -180,38 +192,34 @@ export async function getBankAccountTransactionsAction(
 ): Promise<BankAccountDetailsResult> {
     try {
         const [nameRes, openingRes, movementsRes] = await Promise.all([
-            queryMSSQL(accountNameSql(), { accountCode }, 'BUSINESS'),
-            queryMSSQL(accountOpeningSql(), { accountCode, year }, 'BUSINESS'),
-            queryMSSQL(accountMovementsSql(), { accountCode, year }, 'BUSINESS'),
+            queryMSSQL<AccountNameRow>(accountNameSql(), { accountCode }, 'BUSINESS'),
+            queryMSSQL<OpeningRow>(accountOpeningSql(), { accountCode, year }, 'BUSINESS'),
+            queryMSSQL<MovementRow>(accountMovementsSql(), { accountCode, year }, 'BUSINESS'),
         ]);
-        const accountName = nameRes.recordset[0]?.an_descr1
-            ? String(nameRes.recordset[0].an_descr1).trim()
-            : fmt(labels.account, { code: accountCode });
-        const openingBalanceYear = Number(openingRes.recordset[0]?.start_balance || 0);
+        const accountName = nameRes.recordset[0]?.an_descr1.trim() || fmt(labels.account, { code: accountCode });
+        const openingBalanceYear = openingRes.recordset[0]?.start_balance ?? 0;
 
         let running = openingBalanceYear;
         let totalDareYear = 0;
         let totalAvereYear = 0;
 
         const transactions: BankTransactionItem[] = movementsRes.recordset.map((row) => {
-            const dare = Number(row.pn_dare || 0);
-            const avere = Number(row.pn_avere || 0);
-            const importo = Number(row.pn_importo || 0);
+            const { pn_dare: dare, pn_avere: avere, pn_importo: importo } = row;
             running += importo;
             totalDareYear += dare;
             totalAvereYear += avere;
 
-            const regDate = new Date(row.pn_datreg);
+            const regDate = row.pn_datreg;
             return {
                 id: `${row.pn_datreg}_${row.pn_numreg}_${row.pn_riga}`,
                 date: regDate.toISOString().split('T')[0],
                 formattedDate: formatDate(regDate),
                 month: regDate.getMonth() + 1,
-                regNum: Number(row.pn_numreg || 0),
-                rowNum: Number(row.pn_riga || 0),
-                docNum: Number(row.pn_numdoc || 0),
-                docSeries: String(row.pn_alfdoc || '').trim(),
-                description: String(row.pn_descr || '').trim(),
+                regNum: row.pn_numreg,
+                rowNum: row.pn_riga,
+                docNum: row.pn_numdoc,
+                docSeries: row.pn_alfdoc.trim(),
+                description: row.pn_descr.trim(),
                 dare,
                 avere,
                 importo,

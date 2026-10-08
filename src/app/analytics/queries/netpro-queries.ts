@@ -54,19 +54,19 @@ function workFilter(year: number, tipoOggetto: 'OPE' | 'MAC', dates?: { dateFrom
 }
 
 /** A report grouped in SQL: the number of groups, then the requested page of them */
-async function groupedPage(
+async function groupedPage<T>(
     query: { select: string; from: string; where: string; groupBy: string; orderBy: string },
     params: Record<string, unknown>,
     page: number,
     limit: number
 ) {
     const having = `HAVING SUM(SIT.LAVORO) > ${ANALYTICS.MIN_ROW_WORK_HOURS}`;
-    const countResult = await queryMSSQL(`
+    const countResult = await queryMSSQL<{ total: number }>(`
         SELECT COUNT(*) as total
         FROM (SELECT 1 as dummy ${query.from} WHERE ${query.where} GROUP BY ${query.groupBy} ${having}) AS grouped_data
     `, params, 'NETPRO');
 
-    const result = await queryMSSQL(`
+    const result = await queryMSSQL<T>(`
         SELECT ${query.select}
         ${query.from}
         WHERE ${query.where}
@@ -82,7 +82,7 @@ async function groupedPage(
 const failure = (err: unknown, page: number, limit: number) => ({
     success: false,
     error: errorMessage(err),
-    data: [],
+    data: [] as never[],
     pagination: buildPaginationResult(page, limit, 0),
 });
 
@@ -91,6 +91,20 @@ const failure = (err: unknown, page: number, limit: number) => ({
  * PRODUCTION REPORT: operator work time per date, machine, operator and order
  * ============================================================================
  */
+export interface ProductionRow {
+    date: Date;
+    machine: string | null;
+    machine_name: string | null;
+    operator: string;
+    operator_name: string | null;
+    work_time: number;
+    qty_completed: number | null;
+    qty_requested: number | null;
+    commessa_full: string;
+    commessa_display: string;
+    order_description: string | null;
+}
+
 const PRODUCTION_SORT: Record<string, string> = {
     date: 'SIT.DATA',
     commessa: MIN_ORDER_CORE,
@@ -122,7 +136,7 @@ export async function getProductionDataAction(
         buildOperatorFilter(filters?.operator, conditions, params);
 
         const groupBy = `SIT.DATA, SIT.MACCHINA, SIT.OGGETTO, ${ORDER_CORE}`;
-        return await groupedPage({
+        return await groupedPage<ProductionRow>({
             select: `
                 SIT.DATA as date,
                 SIT.MACCHINA as machine,
@@ -150,6 +164,8 @@ export async function getProductionDataAction(
  * ORDER SUMMARY REPORT (Sommario Ordini): operator work time per machine and order, all dates
  * ============================================================================
  */
+export type OrderSummaryRow = Omit<ProductionRow, 'date' | 'operator' | 'operator_name'>;
+
 const ORDER_SUMMARY_SORT: Record<string, string> = {
     commessa: MIN_ORDER_CORE,
     machine: 'SIT.MACCHINA',
@@ -177,7 +193,7 @@ export async function getOrderSummaryDataAction(
         buildMachineFilter(filters?.machine, conditions, params);
 
         const groupBy = `SIT.MACCHINA, ${ORDER_CORE}`;
-        return await groupedPage({
+        return await groupedPage<OrderSummaryRow>({
             select: `
                 SIT.MACCHINA as machine,
                 MAX(MAC.DESCRIZIONE) as machine_name,
@@ -242,7 +258,7 @@ export async function getAreaSummaryDataAction(
         const where = conditions.join(' AND ');
 
         // Work time per machine, without joins (a join would repeat the rows)
-        const workTimeResult = await queryMSSQL<{ machine_code: string; work_time: number }>(`
+        const workTimeResult = await queryMSSQL<{ machine_code: string | null; work_time: number | null }>(`
             SELECT SIT.MACCHINA as machine_code, SUM(SIT.LAVORO) as work_time
             FROM SITUAZIONI SIT WITH (NOLOCK)
             WHERE ${where}
@@ -250,7 +266,7 @@ export async function getAreaSummaryDataAction(
         `, params, 'NETPRO');
 
         // Quantities per machine and order (they belong to the order, not to the time rows)
-        const quantityResult = await queryMSSQL<{ machine_code: string; ordine: number; requested_quantity: number; completed_quantity: number }>(`
+        const quantityResult = await queryMSSQL<{ machine_code: string | null; ordine: string; requested_quantity: number; completed_quantity: number }>(`
             SELECT
                 SIT.MACCHINA as machine_code,
                 JST.ORDINE as ordine,
@@ -267,9 +283,9 @@ export async function getAreaSummaryDataAction(
         const areaOfMachine = new Map(Object.entries(MACHINE_AREAS).flatMap(([area, codes]) => codes.map((code) => [code, area] as const)));
 
         // Quantity per area and order
-        const orderQty = new Map<string, Map<number, number>>(Object.keys(MACHINE_AREAS).map((area) => [area, new Map()]));
+        const orderQty = new Map<string, Map<string, number>>(Object.keys(MACHINE_AREAS).map((area) => [area, new Map()]));
         for (const row of quantityResult.recordset) {
-            const area = areaOfMachine.get(row.machine_code);
+            const area = areaOfMachine.get(row.machine_code ?? '');
             if (!area || !row.ordine) continue;
             const orders = orderQty.get(area)!;
             if (area === ANALYTICS.FOLDING_AREA) orders.set(row.ordine, (orders.get(row.ordine) || 0) + row.completed_quantity);
@@ -314,7 +330,7 @@ export async function getAreaSummaryDataAction(
 export interface OrderAreaRow {
     commessa_full: string;
     commessa_display: string;
-    order_description: string;
+    order_description: string | null;
     area_name: string;
     /** Position of the area in MACHINE_AREAS (production flow) */
     area_index: number;
@@ -324,6 +340,17 @@ export interface OrderAreaRow {
     pages: number | null;
     composition: string | null;
     fogli: number | null;
+}
+
+/** One machine of an order, before the machines are summed per area */
+interface OrderAreaSqlRow {
+    machine_code: string | null;
+    work_time: number;
+    qty_requested: number | null;
+    commessa_full: string;
+    commessa_display: string;
+    order_description: string | null;
+    client_name: string | null;
 }
 
 /** Sheets of an order: the sum of the "N/" groups of its composition × the requested quantity */
@@ -377,7 +404,7 @@ export async function getOrderAreaSummaryDataAction(
         const sqlSort = sort && ORDER_AREA_SQL_SORT[sort.column];
         const sqlOrderBy = sqlSort ? `${sqlSort} ${sort.direction.toUpperCase()}` : 'MIN(SIT.DATA) DESC, SIT.MACCHINA ASC';
 
-        const rawResult = await queryMSSQL(`
+        const rawResult = await queryMSSQL<OrderAreaSqlRow>(`
             SELECT
                 SIT.MACCHINA as machine_code,
                 SUM(SIT.LAVORO) as work_time,
@@ -401,7 +428,7 @@ export async function getOrderAreaSummaryDataAction(
         // Sum per order + area; the first row of an order gives its full number and description
         const byOrderArea = new Map<string, Omit<OrderAreaRow, 'pages' | 'composition' | 'fogli'>>();
         for (const row of rawResult.recordset) {
-            const area = areaOfMachine.get(row.machine_code);
+            const area = areaOfMachine.get(row.machine_code ?? '');
             if (!area) continue; // machine not in any area
             const key = `${row.commessa_display}__${area.name}`;
             const existing = byOrderArea.get(key);

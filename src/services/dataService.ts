@@ -2,25 +2,27 @@ import type { SqlParams } from '@/lib/mssql';
 import { queryMSSQL } from '../lib/mssql';
 import type { Quote, QuoteInsert, QuoteUpdate } from '@/types';
 
+/** A row of the quotes table: the form values are stored as JSON text */
+type QuoteRow = Omit<Quote, 'specifications'> & { specifications: string | null };
+
+/** A stored quote with its form values parsed back from JSON */
+const parseQuote = (row: QuoteRow): Quote => ({
+  ...row,
+  specifications: row.specifications ? JSON.parse(row.specifications) : row.specifications,
+});
+
 export const dataService = {
   /**
    * Fetches all quotes from Local MSSQL
    */
   getQuotes: async (): Promise<Quote[]> => {
     try {
-      const result = await queryMSSQL<Quote>(
+      const result = await queryMSSQL<QuoteRow>(
         'SELECT * FROM quotes ORDER BY created_at DESC',
         {},
         'QUOTES'
       );
-
-      // Parse specifications JSON if it's a string
-      return (result.recordset || []).map(quote => ({
-        ...quote,
-        specifications: typeof quote.specifications === 'string'
-          ? JSON.parse(quote.specifications)
-          : quote.specifications
-      })) as Quote[];
+      return result.recordset.map(parseQuote);
     } catch (e) {
       console.error("Error fetching quotes from MSSQL:", e);
       return [];
@@ -65,14 +67,9 @@ export const dataService = {
         specifications: JSON.stringify(quote.specifications)
       };
 
-      const result = await queryMSSQL(query, params, 'QUOTES');
+      const result = await queryMSSQL<QuoteRow>(query, params, 'QUOTES');
       const savedQuote = result.recordset[0];
-
-      if (savedQuote) {
-        savedQuote.specifications = JSON.parse(savedQuote.specifications);
-      }
-
-      return { data: savedQuote, error: null };
+      return { data: savedQuote ? parseQuote(savedQuote) : null, error: null };
     } catch (e) {
       console.error("Error saving quote to MSSQL:", e);
       return { data: null, error: e };
@@ -104,34 +101,12 @@ export const dataService = {
         WHERE id = @id
       `;
 
-      const result = await queryMSSQL(query, params, 'QUOTES');
+      const result = await queryMSSQL<QuoteRow>(query, params, 'QUOTES');
       const updatedQuote = result.recordset[0];
-
-      if (updatedQuote && updatedQuote.specifications) {
-        updatedQuote.specifications = JSON.parse(updatedQuote.specifications);
-      }
-
-      return { data: updatedQuote, error: null };
+      return { data: updatedQuote ? parseQuote(updatedQuote) : null, error: null };
     } catch (e) {
       console.error("Error updating quote in MSSQL:", e);
       return { data: null, error: e };
-    }
-  },
-
-  /**
-   * Fetches discount tiers from Local MSSQL
-   */
-  getDiscountTiers: async () => {
-    try {
-      const result = await queryMSSQL(
-        'SELECT * FROM discount_tiers ORDER BY min_quantity ASC',
-        {},
-        'QUOTES'
-      );
-      return result.recordset || [];
-    } catch (e) {
-      console.error("Error fetching discount tiers from MSSQL:", e);
-      return [];
     }
   },
 

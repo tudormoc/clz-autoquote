@@ -8,8 +8,8 @@ export type Json =
 
 export interface Quote {
     id: string
-    created_at: string
-    updated_at: string
+    created_at: Date | null
+    updated_at: Date | null
     book_name: string
     quantity: number
     width: number
@@ -162,8 +162,8 @@ export interface PresenceEventRow {
     OGGETTO: string;
     operator_name: string | null;
     EVENTO: string;
-    /** Stored wall-clock time; a Date object at runtime (server actions keep Dates) */
-    ORA_EVENTO: string;
+    /** Stored wall-clock time (server actions keep Dates) */
+    ORA_EVENTO: Date;
 }
 
 export type HoursDistributionField =

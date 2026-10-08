@@ -77,7 +77,7 @@ export async function cloneRowInsert(
          WHERE object_id = OBJECT_ID(@t)
            AND (is_identity = 1 OR is_computed = 1 OR TYPE_NAME(user_type_id) = 'timestamp')`,
         { t: table }, db,
-    )).recordset.map((r) => String(r.name).toLowerCase());
+    )).recordset.map((r) => r.name.toLowerCase());
 
     const clean = Object.fromEntries(Object.entries(overrides).filter(([, v]) => v !== undefined));
     const row: SqlParams = { ...tpl, ...clean };

@@ -1,6 +1,6 @@
 'use client';
 
-import { getClientDeliveriesDataAction, getClientDeliveriesStatsAction } from '@/app/analytics/analytics-actions';
+import { getClientDeliveriesDataAction, getClientDeliveriesStatsAction, type ClientDeliveryRow } from '@/app/analytics/analytics-actions';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
@@ -12,12 +12,6 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrencyRounded } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface ClientDeliveryRow {
-    client_code: string;
-    client_name: string;
-    delivered_value: number;
-}
 
 interface Filters {
     client: string;

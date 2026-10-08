@@ -30,6 +30,18 @@ interface SyncTarget {
     netOrdine: string;
 }
 
+/** The order row of the Business order (movord tipo H) */
+interface BusinessOrderRow {
+    mo_anno: number;
+    mo_serie: string;
+    mo_numord: number;
+    mo_riga: number;
+    mo_codart: string;
+    mo_quant: number;
+    mo_commeca: number;
+    mo_datcons: Date;
+}
+
 /** A material row of the Business order (movord tipo Y) */
 interface BusinessMaterialRow {
     mo_riga: number;
@@ -44,7 +56,7 @@ type SyncResult = { success: true } | { success: false; error: string };
 
 /** Finds the Business H row and the NetPro order of the commessa; refuses commesse with more editions */
 async function findTarget(rootCommessaKey: string, articleFatherHint?: string): Promise<SyncTarget | string> {
-    const busOrderRes = await queryMSSQL(`
+    const busOrderRes = await queryMSSQL<BusinessOrderRow>(`
             SELECT TOP 1
                 mo_anno, mo_serie, mo_numord, mo_riga, mo_codart, mo_quant, mo_commeca, mo_datcons
             FROM movord WITH (NOLOCK)
@@ -76,7 +88,7 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
     const numord = busOrder.mo_numord;
     const rigaPadre = busOrder.mo_riga;
 
-    const netOrderRes = await queryMSSQL(`
+    const netOrderRes = await queryMSSQL<{ ORDINE: string; PART_NUMBER: string | null }>(`
             SELECT TOP 1 ORDINE, PART_NUMBER
             FROM ORDINI WITH (NOLOCK)
             WHERE TIPO = 'MAKE' AND LEFT(COMMESSA, 7) = @rootCommessaKey

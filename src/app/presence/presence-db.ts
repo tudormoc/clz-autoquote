@@ -44,7 +44,7 @@ export async function suspendActiveExecutionIfAny(operatorCode: string, exitTime
             ORDER BY EVT.ORA_EVENTO DESC
         `;
 
-        const result = await queryMSSQL(latestQuery, { operatorCode }, 'NETPRO');
+        const result = await queryMSSQL<{ TASK: string; MACCHINA: string | null; OPERATORE: string | null }>(latestQuery, { operatorCode }, 'NETPRO');
         console.log('=== Query result ===', { 
             recordCount: result.recordset?.length, 
             records: result.recordset,
@@ -70,7 +70,7 @@ export async function suspendActiveExecutionIfAny(operatorCode: string, exitTime
             INNER JOIN ORDINI O WITH (NOLOCK) ON J.ORDINE = O.ORDINE
             WHERE J.TASK = @task
         `;
-        const partResult = await queryMSSQL(partQuery, { task }, 'NETPRO');
+        const partResult = await queryMSSQL<{ PART_NUMBER: string | null }>(partQuery, { task }, 'NETPRO');
         console.log('=== PART_NUMBER query result ===', { recordCount: partResult.recordset?.length, partNumber: partResult.recordset[0]?.PART_NUMBER });
         
         const partNumber = partResult.recordset.length > 0 ? partResult.recordset[0].PART_NUMBER : null;

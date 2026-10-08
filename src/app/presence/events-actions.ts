@@ -4,6 +4,7 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
+import type { PresenceEventRow } from '@/types';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
 export async function getDailyEventsAction(
@@ -53,7 +54,7 @@ export async function getDailyEventsAction(
             ORDER BY EVT.ORA_EVENTO ASC
         `;
 
-        const result = await queryMSSQL(query, params, 'NETPRO');
+        const result = await queryMSSQL<PresenceEventRow>(query, params, 'NETPRO');
 
         return {
             success: true,
@@ -63,14 +64,15 @@ export async function getDailyEventsAction(
         return {
             success: false,
             error: errorMessage(err),
-            data: []
+            data: [] as PresenceEventRow[]
         };
     }
 }
 
 export async function updateEventAction(
     oggetto: string,
-    oraEvento: string,
+    /** The event's current time, as read from the database */
+    oraEvento: Date,
     columnName: 'EVENTO' | 'ORA_EVENTO',
     newValue: string
 ) {

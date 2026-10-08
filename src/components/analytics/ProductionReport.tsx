@@ -1,6 +1,6 @@
 'use client';
 
-import { getProductionDataAction } from '@/app/analytics/analytics-actions';
+import { getProductionDataAction, type ProductionRow } from '@/app/analytics/analytics-actions';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
@@ -12,20 +12,6 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatDate, formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface ProductionRow {
-    date: string;
-    machine: string;
-    machine_name: string;
-    operator: string;
-    operator_name: string;
-    work_time: number;
-    qty_completed: number;
-    qty_requested: number;
-    commessa_full: string;
-    commessa_display: string;
-    order_description: string;
-}
 
 interface Filters {
     commessa: string;
@@ -55,7 +41,7 @@ const toQuery = (f: Filters) => ({
 });
 
 /** Calendar day of a row, without the time (Excel shows it as a date) */
-const dayOf = (value: string) => {
+const dayOf = (value: Date) => {
     const date = new Date(value);
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };

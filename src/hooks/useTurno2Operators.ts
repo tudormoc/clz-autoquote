@@ -1,26 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getTurno2OperatorsAction, searchOperatorsAction, setOperatorGruppoAction } from '@/app/presence/operators-actions';
+import { getTurno2OperatorsAction, searchOperatorsAction, setOperatorGruppoAction, type OperatorGroupRow } from '@/app/presence/operators-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { notify } from '@/lib/notify';
 
 const TURNO2 = APP_CONFIG.PRESENCE.TURNO2_GROUP;
 
-export interface OperatorRef {
-    OPERATORE: string;
-    NOME: string;
-    GRUPPO: string | null;
-}
-
-export const isTurno2 = (operator: OperatorRef) => (operator.GRUPPO ?? '').toUpperCase() === TURNO2;
+export const isTurno2 = (operator: OperatorGroupRow) => (operator.GRUPPO ?? '').toUpperCase() === TURNO2;
 
 /** Operators of the second shift (GRUPPO = TURNO2): the current list, a search to find others, add and remove. */
 export function useTurno2Operators() {
-    const [members, setMembers] = useState<OperatorRef[]>([]);
+    const [members, setMembers] = useState<OperatorGroupRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [term, setTerm] = useState('');
-    const [results, setResults] = useState<OperatorRef[]>([]);
+    const [results, setResults] = useState<OperatorGroupRow[]>([]);
     const [searching, setSearching] = useState(false);
     /** Operator code of the change in progress */
     const [busy, setBusy] = useState<string | null>(null);
@@ -56,7 +50,7 @@ export function useTurno2Operators() {
     };
 
     /** Changes the group of an operator; true when it was saved */
-    const changeGroup = async (operator: OperatorRef, group: string) => {
+    const changeGroup = async (operator: OperatorGroupRow, group: string) => {
         setBusy(operator.OPERATORE);
         try {
             const res = await setOperatorGruppoAction(operator.OPERATORE, group);
@@ -78,16 +72,16 @@ export function useTurno2Operators() {
         searching,
         busy,
         search,
-        add: async (operator: OperatorRef) => {
+        add: async (operator: OperatorGroupRow) => {
             if (isTurno2(operator) || !(await changeGroup(operator, TURNO2))) return;
             setMembers((current) =>
                 current.some((member) => member.OPERATORE === operator.OPERATORE)
                     ? current
-                    : [...current, { ...operator, GRUPPO: TURNO2 }].sort((a, b) => a.NOME.localeCompare(b.NOME))
+                    : [...current, { ...operator, GRUPPO: TURNO2 }].sort((a, b) => (a.NOME ?? '').localeCompare(b.NOME ?? ''))
             );
             setResults((current) => current.map((found) => (found.OPERATORE === operator.OPERATORE ? { ...found, GRUPPO: TURNO2 } : found)));
         },
-        remove: async (operator: OperatorRef) => {
+        remove: async (operator: OperatorGroupRow) => {
             if (await changeGroup(operator, '')) setMembers((current) => current.filter((member) => member.OPERATORE !== operator.OPERATORE));
         },
     };

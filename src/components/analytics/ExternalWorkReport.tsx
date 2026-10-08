@@ -1,6 +1,6 @@
 'use client';
 
-import { getExternalWorkDataAction, getExternalWorkStatsAction } from '@/app/analytics/queries/external-work-queries';
+import { getExternalWorkDataAction, getExternalWorkStatsAction, type ExternalWorkRow } from '@/app/analytics/queries/external-work-queries';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
@@ -12,15 +12,6 @@ import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatCurrencyRounded } from '@/lib/format';
 import { APP_COPY } from '@/locales';
-
-interface ExternalWorkRow {
-    commessa_display: string;
-    commessa_full: string;
-    order_description: string;
-    supplier_code: string;
-    supplier_name: string;
-    total_value: number;
-}
 
 interface Filters {
     commessa: string;

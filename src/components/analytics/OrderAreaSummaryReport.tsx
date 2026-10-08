@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { getOrderAreaSummaryDataAction } from '@/app/analytics/analytics-actions';
+import { getOrderAreaSummaryDataAction, type OrderAreaRow } from '@/app/analytics/analytics-actions';
 import { generateOrderAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
 import { ReportView } from '@/components/analytics/report/ReportView';
@@ -21,19 +21,6 @@ import { calcExpectedHours, hasExpectedVelocity } from '@/lib/expectedHours';
 import { EMPTY_VALUE, formatHours, formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
-
-interface OrderAreaSummaryRow {
-    commessa_full: string;
-    commessa_display: string;
-    order_description: string;
-    area_name: string;
-    work_time: number;
-    qty_requested: number | null;
-    pages: number | null;
-    composition: string | null;
-    fogli: number | null;
-    client_name: string | null;
-}
 
 interface Filters {
     commessa: string;
@@ -73,13 +60,13 @@ const toQuery = (f: Filters) => ({
     complexOnly: f.complexOnly,
 });
 
-const expectedHours = (row: OrderAreaSummaryRow) => calcExpectedHours(row.area_name, row.qty_requested, row.fogli);
+const expectedHours = (row: OrderAreaRow) => calcExpectedHours(row.area_name, row.qty_requested, row.fogli);
 
 /** "Ore Lavoro: 12:30 | Ore Attese: 10:00" */
 const hoursLine = (time: number, expected: number | null) =>
     `${copy.stats.timeWorked}: ${formatHours(time)} | ${copy.stats.timeExpected}: ${expected != null ? formatHours(expected) : EMPTY_VALUE}`;
 
-function summarizeByCommessa(rows: OrderAreaSummaryRow[]): CommessaSummary[] {
+function summarizeByCommessa(rows: OrderAreaRow[]): CommessaSummary[] {
     const groups = new Map<string, CommessaSummary>();
     for (const row of rows) {
         if (!hasExpectedVelocity(row.area_name)) continue;
@@ -87,7 +74,7 @@ function summarizeByCommessa(rows: OrderAreaSummaryRow[]): CommessaSummary[] {
         if (!group) {
             group = {
                 display: row.commessa_display,
-                description: row.order_description,
+                description: row.order_description ?? '',
                 client: row.client_name ?? '',
                 total_time: 0,
                 total_expected: 0,
@@ -103,7 +90,7 @@ function summarizeByCommessa(rows: OrderAreaSummaryRow[]): CommessaSummary[] {
     return Array.from(groups.values()).sort((a, b) => a.display.localeCompare(b.display));
 }
 
-const columns: DataTableColumn<OrderAreaSummaryRow>[] = [
+const columns: DataTableColumn<OrderAreaRow>[] = [
     {
         key: 'commessa',
         header: copy.headers.commessa,
@@ -137,7 +124,7 @@ const columns: DataTableColumn<OrderAreaSummaryRow>[] = [
     { key: 'qty_requested', header: copy.headers.qtyReq, variant: 'number', cell: (row) => formatNumber(row.qty_requested) },
 ];
 
-const excelColumns: ExcelColumn<OrderAreaSummaryRow>[] = [
+const excelColumns: ExcelColumn<OrderAreaRow>[] = [
     { header: copy.export.commessa, value: (row) => Number(row.commessa_display), width: 10, format: 'integer' },
     { header: copy.export.description, value: (row) => row.order_description, width: 30 },
     { header: common.client, value: (row) => row.client_name ?? '', width: 25 },
@@ -161,17 +148,17 @@ export function OrderAreaSummaryReport() {
     const [showPdfModal, setShowPdfModal] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
 
-    const report = useReportTable<Filters, OrderAreaSummaryRow, CommessaSummary[]>({
+    const report = useReportTable<Filters, OrderAreaRow, CommessaSummary[]>({
         initialFilters,
         // No order until the user picks a column: the query then uses its own default order
         defaultSort: null,
         fetchPage: ({ filters, page, limit, sort }) =>
             getOrderAreaSummaryDataAction(YEAR, page, limit, toQuery(filters), sort ?? undefined) as Promise<
-                PageResult<OrderAreaSummaryRow>
+                PageResult<OrderAreaRow>
             >,
         fetchSummary: async (filters) => {
             const result = await getOrderAreaSummaryDataAction(YEAR, 1, EXPORT_LIMIT, toQuery(filters));
-            return { success: result.success, data: result.success ? summarizeByCommessa(result.data as OrderAreaSummaryRow[]) : null };
+            return { success: result.success, data: result.success ? summarizeByCommessa(result.data as OrderAreaRow[]) : null };
         },
     });
     const { filters, updateFilters, applied } = report;
