@@ -165,7 +165,7 @@ export function ClientSummaryReport() {
                 onClose={() => setShowPdfModal(false)}
                 onGenerate={handleGeneratePDF}
                 loading={pdfLoading}
-                title={copy.pdfTitle}
+                title={APP_COPY.analytics.reports.clientSummary}
                 hideSeparateToggle
                 hideFormatSelector
             />

@@ -258,7 +258,7 @@ export function OrderAreaSummaryReport() {
                 onClose={() => setShowPdfModal(false)}
                 onGenerate={handleGeneratePDF}
                 loading={pdfLoading}
-                title={copy.pdfTitle}
+                title={APP_COPY.analytics.reports.orderAreaSummary}
             />
         </ReportView>
     );

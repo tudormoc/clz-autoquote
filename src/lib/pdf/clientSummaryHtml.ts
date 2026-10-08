@@ -8,6 +8,7 @@ import { APP_COPY, fmt } from '@/locales';
 const pdf = APP_COPY.analytics.pdf;
 const copy = pdf.client;
 const headers = APP_COPY.analytics.clientSummary.headers;
+const REPORT_NAME = APP_COPY.analytics.reports.clientSummary;
 const { GOOD, FAIR } = APP_CONFIG.ANALYTICS.MARGIN_THRESHOLDS;
 
 /**
@@ -73,7 +74,7 @@ export function clientSummaryReportHtml(rows: ClientSummaryRow[], hourlyRate: nu
 
     const generated = generatedAt(pdf.generated);
     const body = `
-        ${reportHeader(clientFilter ? `${APP_COPY.analytics.clientSummary.pdfTitle} (${clientFilter})` : APP_COPY.analytics.clientSummary.pdfTitle, [
+        ${reportHeader(clientFilter ? `${REPORT_NAME} (${clientFilter})` : REPORT_NAME, [
             { text: `${pdf.period}: ${periods.join(', ')}` },
             { text: includeAllRevenueForSplit ? `(${copy.includesSplit}) - ${generated}` : generated, small: true },
         ])}

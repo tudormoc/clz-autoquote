@@ -152,6 +152,7 @@ export function AreaSummaryReport() {
                 onClose={() => setShowPdfModal(false)}
                 onGenerate={handleGeneratePDF}
                 loading={pdfLoading}
+                title={APP_COPY.analytics.reports.areaSummary}
                 showWeekMode
             />
         </ReportView>

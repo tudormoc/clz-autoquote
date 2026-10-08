@@ -18,7 +18,8 @@ interface MonthSelectorModalProps {
     onClose: () => void;
     onGenerate: (year: number, months: number[], separateByArea: boolean, format: PageFormat, mode?: PeriodMode, weeks?: number[]) => void;
     loading?: boolean;
-    title?: string;
+    /** The report's name as in the menu */
+    title: string;
     hideSeparateToggle?: boolean;
     /** Opt-in: shows Mesi / Settimane toggle — only used by area-summary */
     showWeekMode?: boolean;
@@ -74,7 +75,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
 
     return (
         <Modal
-            title={title || areaCopy.pdfTitle}
+            title={title}
             icon={FileText}
             onClose={onClose}
             busy={loading}

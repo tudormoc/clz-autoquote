@@ -15,7 +15,7 @@ import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';
 import { clientSummaryReportHtml } from '@/lib/pdf/clientSummaryHtml';
 import { readLabourRates } from './queries/shared/labour-rates';
 import { orderAreaSummaryReportHtml } from '@/lib/pdf/orderAreaSummaryHtml';
-import { fileSlug } from '@/lib/download';
+import { fileSlug, reportFileName } from '@/lib/download';
 import { monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
 import { APP_COPY } from '@/locales';
 
@@ -31,6 +31,11 @@ const failure = (label: string, error: unknown): PdfResult => {
     console.error(`${label} PDF generation error:`, error);
     return { success: false, error: errorMessage(error) };
 };
+
+/** PDF title, footer and file name: the report's name as in the menu */
+const reports = APP_COPY.analytics.reports;
+/** File-name part when the area PDF covers every area */
+const AREA_ALL = 'tutte-le-aree';
 
 /** "1-2-3" for up to three periods, "first-to-last" (months) / "Sfirst-Slast" (weeks) for more */
 const periodSuffix = (values: number[], prefix: string, joiner: string) =>
@@ -76,15 +81,13 @@ export async function generateAreaSummaryPDFAction(
 
         const pdf = await renderPdfBase64(areaSummaryReportHtml(periods, areaFilter, mode), {
             format: 'A4',
-            footerTitle: APP_COPY.analytics.pdf.title,
+            footerTitle: reports.areaSummary,
             margin: PAGE_MARGIN,
         });
 
-        const areaSuffix = areaFilter ? `-${fileSlug(areaFilter)}` : '-tutte-le-aree';
-        const filePrefix = mode === 'weeks' ? `report-aree-settimane-${year}` : `report-aree-${year}`;
-        const suffix = mode === 'weeks' ? periodSuffix(weeks, 'S', '-') : periodSuffix(months, '', '-to-');
-
-        return { success: true as const, pdf, filename: `${filePrefix}-${suffix}${areaSuffix}.pdf` };
+        const period = mode === 'weeks' ? periodSuffix(weeks, 'S', '-') : periodSuffix(months, '', '-to-');
+        const area = areaFilter ? fileSlug(areaFilter) : AREA_ALL;
+        return { success: true as const, pdf, filename: reportFileName(reports.areaSummary, [String(year), period, area], 'pdf') };
     } catch (error) {
         return failure('Area summary', error);
     }
@@ -116,12 +119,12 @@ export async function generateOrderAreaSummaryPDFAction(
 
         const pdf = await renderPdfBase64(orderAreaSummaryReportHtml(periods, format), {
             format,
-            footerTitle: APP_COPY.analytics.orderAreaSummary.pdfTitle,
+            footerTitle: reports.orderAreaSummary,
             margin: PAGE_MARGIN,
         });
 
-        const suffix = (commessaFilter ? `-${fileSlug(commessaFilter)}` : '') + (areaFilter ? `-${fileSlug(areaFilter)}` : '');
-        return { success: true as const, pdf, filename: `report-commesse-${format.toLowerCase()}-${year}-${months.join('-')}${suffix}.pdf` };
+        const parts = [format.toLowerCase(), String(year), months.join('-'), commessaFilter && fileSlug(commessaFilter), areaFilter && fileSlug(areaFilter)];
+        return { success: true as const, pdf, filename: reportFileName(reports.orderAreaSummary, parts, 'pdf') };
     } catch (error) {
         return failure('Order area summary', error);
     }
@@ -170,14 +173,14 @@ export async function generateClientSummaryPDFAction(
         const pdf = await renderPdfBase64(clientSummaryReportHtml(rows, rates.hourly, periodLabels, clientFilter, includeAllRevenueForSplit), {
             format: 'A4',
             landscape: false,
-            footerTitle: APP_COPY.analytics.clientSummary.pdfTitle,
+            footerTitle: reports.clientSummary,
             footerRight: formatDate(new Date()),
             margin: { top: '15mm', right: '12mm', bottom: '20mm', left: '12mm' },
             fitHeightPx: A4_USABLE_HEIGHT_PX,
         });
 
-        const suffix = clientFilter ? `-${fileSlug(clientFilter)}` : '';
-        return { success: true as const, pdf, filename: `report-sommario-clienti-${format.toLowerCase()}-${year}-${months.join('-')}${suffix}.pdf` };
+        const parts = [format.toLowerCase(), String(year), months.join('-'), clientFilter && fileSlug(clientFilter)];
+        return { success: true as const, pdf, filename: reportFileName(reports.clientSummary, parts, 'pdf') };
     } catch (error) {
         return failure('Client Summary', error);
     }

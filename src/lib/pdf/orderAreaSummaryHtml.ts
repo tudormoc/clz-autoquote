@@ -10,6 +10,7 @@ import { APP_COPY, fmt } from '@/locales';
 const pdf = APP_COPY.analytics.pdf;
 const copy = pdf.orderArea;
 const titles = APP_COPY.analytics.orderAreaSummary;
+const REPORT_NAME = APP_COPY.analytics.reports.orderAreaSummary;
 const { ORDER_TARGET_EFFICIENCY: TARGET, BAR_MAX_PERCENT, CLIENT_MIN_EXPECTED_HOURS, CLIENT_MIN_FOR_RANKING, CLIENT_RANK_SIZE } = APP_CONFIG.ANALYTICS.PDF;
 
 /** Expected / worked hours as efficiency in % (0 when nothing was worked) */
@@ -238,7 +239,7 @@ export function orderAreaSummaryReportHtml(periods: PeriodData<OrderAreaRow>[], 
     const net = s.gained - s.lost;
 
     const body = join([
-        reportHeader(titles.pdfTitle, [
+        reportHeader(REPORT_NAME, [
             { text: `${pdf.period}: ${periods.map((p) => `${p.month} ${p.year}`).join(', ')}` },
             { text: generatedAt(pdf.generated), small: true },
         ]),

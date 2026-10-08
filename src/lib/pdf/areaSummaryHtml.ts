@@ -7,6 +7,7 @@ import { PDF_COLORS as C, tint, toneColor } from '@/lib/pdf/theme';
 import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.analytics.pdf;
+const REPORT_NAME = APP_COPY.analytics.reports.areaSummary;
 const { EXCELLENT, ACCEPTABLE } = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
 const { TREND_CHANGE_PERCENT, TOP_AREAS } = APP_CONFIG.ANALYTICS.PDF;
 const AREA_ORDER = Object.keys(APP_CONFIG.ANALYTICS.MACHINE_AREAS);
@@ -148,7 +149,7 @@ export function areaSummaryReportHtml(periods: PeriodData<AreaSummaryRow>[], are
     const weak = areas.filter((area) => area.averageEfficiency < ACCEPTABLE).sort((a, b) => a.averageEfficiency - b.averageEfficiency);
 
     const body = join([
-        reportHeader(areaFilter ? `${copy.title} - ${areaFilter}` : copy.title, [
+        reportHeader(areaFilter ? `${REPORT_NAME} - ${areaFilter}` : REPORT_NAME, [
             { text: `${copy.period}: ${periodText(periods, mode)}` },
             { text: generatedAt(copy.generated), small: true },
         ]),

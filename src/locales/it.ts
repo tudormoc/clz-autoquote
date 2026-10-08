@@ -545,7 +545,6 @@ export const APP_COPY = {
       expectedQty: "Q.tà DiBa Attesa",
     },
     pdf: {
-      title: "Rapporto Prestazioni Aree",
       period: "Periodo",
       generated: "Aggiornato",
       overallSummary: "Riepilogo Generale",
@@ -690,7 +689,6 @@ export const APP_COPY = {
         target: "Target (pz/h)",
         efficiency: "Efficienza (%)",
       },
-        pdfTitle: "Report Sommario Area",
         pdfButton: "Genera Report PDF",
         separateReports: "Report separati per area",
         separateReportsDescription: "Scarica un file PDF distinto per ogni area selezionata",
@@ -879,7 +877,6 @@ export const APP_COPY = {
       toggleSplit: "Parziale",
       toggleFullTitle: "Visualizzazione fatturato intero per clienti con ordini parziali",
       toggleSplitTitle: "Clicca per includere il fatturato intero per i clienti con ordini parziali",
-      pdfTitle: "Report Clienti",
       pdfButton: "Genera Report PDF",
     },
     clientDeliveries: {
@@ -940,7 +937,6 @@ export const APP_COPY = {
         summary: "Sommario Commesse",
       },
       complexOnly: "Solo Progetti Complessi (3+ aree)",
-      pdfTitle: "Report Commesse per Macro Area",
       pdfButton: "Genera Report PDF",
       topClientsTitle: "Clienti con Maggior Efficienza",
       worstClientsTitle: "Clienti con Minor Efficienza",
