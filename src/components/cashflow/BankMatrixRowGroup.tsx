@@ -41,7 +41,7 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
 
     return (
         <>
-            <tr className={cn('font-sans font-bold text-4xs', isAsset ? 'bg-success-950/20 text-success-400' : 'bg-danger-950/20 text-danger-400')}>
+            <tr className={cn('font-sans font-bold text-3xs', isAsset ? 'bg-success-950/20 text-success-400' : 'bg-danger-950/20 text-danger-400')}>
                 <td className="pl-6 py-0.5" colSpan={MATRIX_COLUMNS}>└ {isAsset ? copy.assets : copy.liabilities}</td>
             </tr>
 

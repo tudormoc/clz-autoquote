@@ -15,6 +15,13 @@
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
+  /* Keyboard focus: a visible ring on every link and control (not on mouse clicks). Controls that draw their own
+     (Button, Input, Select: focus-visible:outline-none + ring / border) keep theirs. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--primary-500) / 0.7);
+    outline-offset: 2px;
+  }
+
   /* Monospace font for numbers and code */
   .font-mono {
     font-family: theme('fontFamily.mono');

@@ -48,8 +48,9 @@ const NEUTRAL = {
     'fg-soft': n[200],          // emphasised values
     'fg-secondary': n[300],     // secondary text
     'fg-muted': n[400],         // labels, icons
-    'fg-subtle': n[500],        // hints, placeholders
-    'fg-faint': n[600],         // disabled, decorative
+    // Between zinc-400 and 500: small hint text stays readable on cards (5.2:1, above the 4.5:1 minimum)
+    'fg-subtle': '#8a8a93',     // hints, secondary lines of a cell
+    'fg-faint': n[500],         // placeholders, disabled, decorative
     'fg-inverse': n[950],       // text on bright fills (primary / warning buttons)
 
     'overlay': colors.black,    // modal backdrops, always with opacity: bg-overlay/60
@@ -64,11 +65,10 @@ const FONT_FAMILY = {
     mono: ['var(--font-mono)', 'Consolas', 'Monaco', 'monospace'],
 };
 
-// Sizes below Tailwind's text-xs (12px), for dense tables and badges: text-2xs, text-3xs, text-4xs
+// Sizes below Tailwind's text-xs (12px), for dense tables and badges: text-2xs, text-3xs (10px is the smallest text)
 const FONT_SIZE = {
     '2xs': '0.6875rem', // 11px
     '3xs': '0.625rem',  // 10px
-    '4xs': '0.5625rem', // 9px
 };
 
 // Page frame dimensions (AppShell, sidebar): w-sidebar, w-sidebar-collapsed. Pages use the full width beside it.

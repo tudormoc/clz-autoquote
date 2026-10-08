@@ -16,7 +16,7 @@ const RAW_PALETTE_MESSAGE =
   "Use design tokens from src/styles/theme.js (e.g. text-fg-muted, bg-card, border-border, text-success-400) instead of raw palette colours.";
 const ARBITRARY_FONT_SIZE = "/(^|[\\s:'\"`])text-\\[[0-9.]+(px|rem)\\]/";
 const ARBITRARY_FONT_SIZE_MESSAGE =
-  "Use a font-size token (text-xs, text-2xs, text-3xs, text-4xs …) from src/styles/theme.js instead of text-[Npx].";
+  "Use a font-size token (text-xs, text-2xs, text-3xs …) from src/styles/theme.js instead of text-[Npx].";
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals"),

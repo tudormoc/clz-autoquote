@@ -137,22 +137,26 @@ export function DataTable<R>({
                         {columns.map((column) => {
                             const align = alignOf(column);
                             const sortable = !!onSort && column.sortable !== false;
+                            const sorted = sort?.column === column.key;
                             return (
                                 <TableHead
                                     key={column.key}
                                     title={column.headerTitle}
-                                    className={cn(
-                                        TEXT_ALIGN[align],
-                                        column.compact && 'px-2',
-                                        sortable && 'cursor-pointer hover:text-primary transition-colors',
-                                        column.className
-                                    )}
-                                    onClick={sortable ? () => onSort(column.key) : undefined}
+                                    aria-sort={sorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+                                    className={cn(TEXT_ALIGN[align], column.compact && 'px-2', column.className)}
                                 >
-                                    <div className={cn('flex items-center gap-2', JUSTIFY[align])}>
-                                        {column.header}
-                                        {sortable && <SortIcon active={sort?.column === column.key} direction={sort?.direction} />}
-                                    </div>
+                                    {sortable ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => onSort(column.key)}
+                                            className={cn('w-full flex items-center gap-2 font-semibold hover:text-primary transition-colors', JUSTIFY[align])}
+                                        >
+                                            {column.header}
+                                            <SortIcon active={sorted} direction={sort?.direction} />
+                                        </button>
+                                    ) : (
+                                        <div className={cn('flex items-center gap-2', JUSTIFY[align])}>{column.header}</div>
+                                    )}
                                 </TableHead>
                             );
                         })}

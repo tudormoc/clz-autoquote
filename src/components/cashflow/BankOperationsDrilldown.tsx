@@ -226,7 +226,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     <span className="text-sm font-bold text-warning-300">
                         {formatCurrency(currentClosing)}
                     </span>
-                    <span className="text-4xs font-sans text-success-400 block mt-0.5">
+                    <span className="text-3xs font-sans text-success-400 block mt-0.5">
                         ✓ {t.officialBalanceMatch}
                     </span>
                 </div>

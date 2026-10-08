@@ -53,6 +53,7 @@ export const APP_COPY = {
   },
   // Sidebar, phone menu, home cards and area overview pages (src/config/navigation.ts)
   nav: {
+    menu: "Menu",
     openMenu: "Apri menu",
     closeMenu: "Chiudi menu",
     collapse: "Comprimi menu",

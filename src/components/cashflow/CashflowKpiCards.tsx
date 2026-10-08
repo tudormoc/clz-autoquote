@@ -140,7 +140,7 @@ export const CashflowKpiCards: React.FC<CashflowKpiCardsProps> = ({
 
                 <div className="flex items-center justify-between text-2xs text-fg-subtle mt-2 pt-2 border-t border-border/80">
                     <span>{kpi.netSubtitle}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-4xs font-bold ${
+                    <span className={`px-1.5 py-0.5 rounded text-3xs font-bold ${
                         isNetPositive ? 'bg-success-500/10 text-success-400' : 'bg-danger-500/10 text-danger-400'
                     }`}>
                         {isNetPositive ? 'Surplus' : 'Deficit'}

@@ -28,7 +28,7 @@ export function ColumnValues({ columns, onPickColumn, values, onPickValue, onClo
                             className="px-2 py-1 bg-card border border-border-strong rounded flex flex-col hover:bg-muted hover:border-primary transition-colors text-left"
                         >
                             <span className="text-3xs font-mono font-bold text-primary">{column.COLUMN_NAME}</span>
-                            <span className="text-4xs text-fg-subtle">{column.DATA_TYPE}</span>
+                            <span className="text-3xs text-fg-subtle">{column.DATA_TYPE}</span>
                         </button>
                     ))}
                 </div>

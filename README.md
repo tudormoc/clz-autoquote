@@ -76,7 +76,7 @@ classes and `text-[Npx]`, so a component can only use tokens:
 - Lines: `border-border` · `border-border-strong`
 - Text: `text-fg-strong` · `text-fg` · `text-fg-soft` · `text-fg-secondary` · `text-fg-muted` · `text-fg-subtle` · `text-fg-faint` · `text-fg-inverse`
 - Status (scale 50–950, default 500): `primary`, `success`, `warning`, `danger`, `info`, `highlight` — e.g. `text-success-400`, `bg-danger/10`, `border-warning-500/30`
-- Small text: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px). Layout: `w-sidebar`, `w-sidebar-collapsed`, `min-w-matrix`; `collapsed:` styles the folded sidebar
+- Small text: `text-2xs` (11px), `text-3xs` (10px, the smallest). Layout: `w-sidebar`, `w-sidebar-collapsed`, `min-w-matrix`; `collapsed:` styles the folded sidebar
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
 - Phones: below `lg` the sidebar is a slide-in menu and the page scrolls as a whole; `DataTable` shows one card per row
   below `md` (`DataCards`, column options `mobileHidden` / `mobileLabel`, table options `mobileTitle` / `mobileFooter`),

@@ -31,7 +31,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
             <aside
                 role="dialog"
                 aria-modal="true"
-                aria-label={APP_COPY.nav.openMenu}
+                aria-label={APP_COPY.nav.menu}
                 className={cn(
                     'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] bg-card border-r border-border shadow-xl transition-transform duration-200',
                     open ? 'translate-x-0' : '-translate-x-full'
