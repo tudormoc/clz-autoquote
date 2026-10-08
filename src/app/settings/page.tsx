@@ -1,7 +1,8 @@
-import { redirect } from 'next/navigation';
-import { ADMIN_TABLES } from '@/config/adminTables';
+import { AreaOverview } from '@/components/layout/AreaOverview';
+import { getNavArea } from '@/config/navigation';
 
-/** /settings opens the first table */
+export const metadata = { title: getNavArea('settings').label };
+
 export default function SettingsPage() {
-    redirect(`/settings/${ADMIN_TABLES[0].id}`);
+    return <AreaOverview areaId="settings" />;
 }

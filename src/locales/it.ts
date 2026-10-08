@@ -1,8 +1,6 @@
 export const APP_COPY = {
   common: {
     today: "Oggi",
-    expand: "Espandi",
-    collapse: "Comprimi",
     // Filters
     dateFrom: "Data Da",
     dateTo: "Data A",
@@ -44,35 +42,21 @@ export const APP_COPY = {
   home: {
     welcome: "Benvenuto in CLZ TM",
     subtitle: "Piattaforma integrata di gestione aziendale e analisi",
-    cards: {
-      quotes: {
-        title: "Generatore Preventivi",
-        description: "Crea preventivi dettagliati per rilegatura libri",
-      },
-      analytics: {
-        title: "Analisi",
-        description: "Business intelligence e report",
-      },
-      admin: {
-        title: "Centro di Controllo",
-        description: "Gestisci prezzi e configurazioni",
-      },
-      database: {
-        title: "Esplora Database",
-        description: "Ispeziona e interroga i database",
-      },
-      presence: {
-        title: "Presenze Operatori",
-        description: "Gestisci e monitora le presenze degli operatori",
-      },
-      workProgress: {
-        title: "Avanzamento Lavori",
-        description: "Monitora lo stato di produzione e stampa commesse",
-      },
-      cashflow: {
-        title: "Flusso Monetario",
-        description: "Analisi liquidità, scadenze attive e passive",
-      },
+  },
+  // Sidebar, phone menu, home cards and area overview pages (src/config/navigation.ts)
+  nav: {
+    openMenu: "Apri menu",
+    closeMenu: "Chiudi menu",
+    collapse: "Comprimi menu",
+    expand: "Espandi menu",
+    showPages: "Mostra o nascondi le pagine di {area}",
+    areas: {
+      quotes: { label: "Preventivi", description: "Crea preventivi dettagliati per rilegatura libri" },
+      workProgress: { label: "Avanzamento Lavori", description: "Stato di produzione delle commesse e confronto con la DiBa" },
+      analytics: { label: "Analisi", description: "Report di produzione, clienti e ricavi" },
+      presence: { label: "Presenze", description: "Presenze, eventi e ore mensili degli operatori" },
+      cashflow: { label: "Flusso Monetario", description: "Liquidità, scadenze attive e passive" },
+      settings: { label: "Impostazioni", description: "Prezzi dei preventivi, costo del lavoro, regole presenze e strumenti" },
     },
   },
   cashflow: {
@@ -162,7 +146,6 @@ export const APP_COPY = {
   quotes: {
     title: "Nuovo Preventivo",
     subtitle: "Inserisci le specifiche del libro qui sotto per generare un preventivo dettagliato in tempo reale.",
-    settings: "Impostazioni Preventivo",
   },
   form: {
     quantityLabel: "Quantità",
@@ -225,6 +208,8 @@ export const APP_COPY = {
     retry: "Riprova",
     goHome: "Torna alla home",
     generic: "Si è verificato un errore imprevisto. Contatta l'assistenza.",
+    notFound: "Pagina non trovata",
+    notFoundHint: "L'indirizzo non corrisponde a nessuna pagina: scegline una dal menu.",
   },
   history: {
     title: "Preventivi Recenti",
@@ -287,37 +272,28 @@ export const APP_COPY = {
     totalHeight: "Altezza totale: {mm}mm",
   },
   admin: {
-    title: "Impostazioni Preventivo",
-    subtitle: "Gestisci regole di prezzo e configurazioni preventivo",
-    sidebar: {
-      title: "Tabelle",
-    },
+    // Settings area: groups and pages (src/config/settingsPages.ts)
     categories: {
-      settings: "Generale",
-      pricing: "Prezzi",
-      operations: "Operazioni",
-      clients: "Clienti",
-      materials: "Materiali",
-      other: "Altro",
+      quotes: "Preventivi",
+      analytics: "Analisi",
+      presence: "Presenze",
+      tools: "Strumenti",
     },
-    tables: {
-      settings: { label: "Impostazioni", description: "Valori usati dai report di analisi" },
+    pages: {
       pricingConfigs: { label: "Regole di Prezzo", description: "Configurazioni di prezzo base per operazione" },
       signatureTypes: { label: "Tipi di Segnatura", description: "Segnature e relativi prezzi" },
       discountTiers: { label: "Sconti Volume", description: "Sconti in base alla quantità" },
       formatSurcharges: { label: "Sovrapprezzi Formato", description: "Sovrapprezzi in base al formato" },
+      labourCost: { label: "Costo del Lavoro", description: "Costo orario usato dai report di analisi" },
+      presence: { label: "Regole Presenze", description: "Parametri orari, testi rapidi, secondo turno e uscita automatica" },
+      database: { label: "Esplora Database", description: "Ispeziona e interroga i database" },
     },
-    analyticsSettings: {
-      title: "Impostazioni Analisi",
-      subtitle: "Calcolo del costo del lavoro",
+    labourCost: {
       hourlyRate: "Costo orario del lavoro",
       hourlyRateHint: "Usato per calcolare il costo del lavoro nei report di analisi",
       perHour: "all'ora",
       example: "Esempio di calcolo:",
       exampleLine: "{hours} ore × {rate} = {total}",
-      howToEdit: "Come modificarlo",
-      howToEditHint: "Per cambiare il costo orario, modifica il valore nel file delle costanti:",
-      lookFor: "Cerca:",
     },
     records: {
       invalidValue: "Valore non valido",
@@ -390,12 +366,6 @@ export const APP_COPY = {
     },
   },
   analytics: {
-    title: "Dashboard Analisi",
-    subtitle: "Business intelligence e reportistica su tutti i database",
-    sidebar: {
-      title: "Report",
-      allReports: "Tutti i Report",
-    },
     reports: {
       productionMetrics: "Report Produzione",
       orderSummary: "Sommario Ordini",
@@ -739,7 +709,7 @@ export const APP_COPY = {
       editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli",
     },
     dailyEvents: {
-      title: "Daily Events",
+      title: "Eventi Giornalieri",
       subtitle: "Visualizza e modifica gli eventi di presenza degli operatori per oggi",
       operatorFilter: "Operatore (codice o nome)",
       editHint: "Clicca sull'ora di un evento per modificarla",
@@ -843,13 +813,7 @@ export const APP_COPY = {
         ok: "Conformi",
       },
     },
-    presenceSidebar: {
-      heading: "Dashboards",
-      settings: "Impostazioni",
-    },
     presenceSettings: {
-      title: "Impostazioni Presenze",
-      subtitle: "Parametri di configurazione, orari di auto-uscita e regole sistema presenze",
       parametersSection: "Parametri Orari e Pausa",
       parametersDesc: "Valori orari standard e speciali per il calcolo presenze",
       noParameters: "Nessun parametro trovato.",

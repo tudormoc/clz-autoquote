@@ -1,34 +1,49 @@
-import { Header } from '@/components/layout/Header';
-import { cn } from '@/lib/utils';
+'use client';
 
-type AppShellLayout = 'page' | 'workspace' | 'bare';
+import { usePathname } from 'next/navigation';
+import { useCallback, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { MobileMenu } from '@/components/layout/MobileMenu';
+import { Sidebar } from '@/components/layout/sidebar/Sidebar';
+import { FRAMELESS_ROUTES, findNavLocation, isWithin } from '@/config/navigation';
+import { APP_COPY } from '@/locales';
 
-interface AppShellProps {
-    children: React.ReactNode;
-    /** Section sidebar shown left of the content (see SectionSidebar) */
-    sidebar?: React.ReactNode;
-    /**
-     * page      — scrolling content in a centred column (default)
-     * workspace — full-height area, the content manages its own scrolling
-     * bare      — children fill the area with no padding (they bring their own layout)
-     */
-    layout?: AppShellLayout;
-}
+/**
+ * Frame of every page, rendered once by the root layout so the sidebar stays put while moving around the app.
+ * Desktop (lg and up): sidebar on the left, the content scrolls on its own. Smaller screens: a top bar with the
+ * page name and a menu button that slides the sidebar in; the page scrolls as a whole.
+ * A page that fills the height (work progress) uses `h-full`.
+ */
+export function AppShell({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-/** Frame of every page: header on top, optional sidebar, then the content area. */
-export function AppShell({ children, sidebar, layout = 'page' }: AppShellProps) {
+    if (FRAMELESS_ROUTES.some((route) => isWithin(pathname, route))) return children;
+
+    const { area, page } = findNavLocation(pathname);
+
     return (
-        <div className="h-screen flex flex-col bg-background overflow-hidden">
-            <Header />
-            <div className="flex-1 flex overflow-hidden">
-                {sidebar}
-                <main className={cn('flex-1 bg-background', layout === 'workspace' ? 'min-h-0 flex flex-col' : 'overflow-y-auto')}>
-                    {layout === 'page' && <div className="max-w-page mx-auto px-6 py-6">{children}</div>}
-                    {layout === 'workspace' && (
-                        <div className="flex-1 min-h-0 w-full max-w-workspace mx-auto px-4 py-3 flex flex-col">{children}</div>
-                    )}
-                    {layout === 'bare' && children}
-                </main>
+        <div className="min-h-dvh lg:h-dvh lg:flex lg:overflow-hidden bg-background">
+            <aside className="hidden lg:block shrink-0 w-sidebar collapsed:w-sidebar-collapsed bg-card border-r border-border transition-[width] duration-200">
+                <Sidebar />
+            </aside>
+            <MobileMenu open={menuOpen} onClose={closeMenu} />
+
+            <div className="flex-1 min-w-0 flex flex-col lg:min-h-0">
+                <header className="lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-1 px-2 border-b border-border bg-card/95 backdrop-blur">
+                    <button
+                        type="button"
+                        onClick={() => setMenuOpen(true)}
+                        aria-label={APP_COPY.nav.openMenu}
+                        aria-expanded={menuOpen}
+                        className="p-2.5 rounded-md text-fg-muted hover:text-fg hover:bg-muted transition-colors"
+                    >
+                        <Menu size={22} />
+                    </button>
+                    <span className="truncate font-semibold text-fg-strong">{page?.label ?? area?.label ?? APP_COPY.header.title}</span>
+                </header>
+                <main className="flex-1 lg:min-h-0 lg:overflow-y-auto p-4 lg:p-6">{children}</main>
             </div>
         </div>
     );

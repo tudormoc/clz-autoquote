@@ -36,9 +36,7 @@ module.exports = {
             },
             fontFamily: theme.FONT_FAMILY,
             fontSize: theme.FONT_SIZE,
-            maxWidth: theme.LAYOUT.maxWidth,
             width: theme.LAYOUT.width,
-            height: theme.LAYOUT.height,
             boxShadow: {
                 sm: 'var(--shadow-sm)',
                 DEFAULT: 'var(--shadow)',
@@ -51,5 +49,10 @@ module.exports = {
     plugins: [
         // Publishes every token as a CSS variable on :root (e.g. --fg-muted, --success-400)
         plugin(({ addBase }) => addBase({ ':root': theme.cssVariables })),
+        // `collapsed:` — applies while the desktop sidebar is folded to icons (from lg up). The state is the
+        // data-sidebar attribute on <html>, set by src/lib/sidebar.ts before the first paint, so there is no flash.
+        plugin(({ addVariant, theme: t }) => {
+            addVariant('collapsed', `@media (min-width: ${t('screens.lg')}) { :root[data-sidebar="collapsed"] & }`);
+        }),
     ],
 }

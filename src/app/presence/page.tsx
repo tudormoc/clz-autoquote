@@ -1,18 +1,8 @@
-import { Users } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { APP_COPY } from '@/locales';
+import { AreaOverview } from '@/components/layout/AreaOverview';
+import { getNavArea } from '@/config/navigation';
+
+export const metadata = { title: getNavArea('presence').label };
 
 export default function PresencePage() {
-    const card = APP_COPY.home.cards.presence;
-
-    return (
-        <>
-            <PageHeader icon={Users} title={card.title} subtitle={card.description} />
-            <EmptyState
-                title={`${APP_COPY.analytics.presenceSidebar.heading}: ${card.title}`}
-                description={card.description}
-            />
-        </>
-    );
+    return <AreaOverview areaId="presence" />;
 }

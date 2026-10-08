@@ -44,15 +44,15 @@ npm run excel:examples      # Excel export
 
 | What | Where |
 |---|---|
-| Pages | `src/app/<area>/page.tsx`; sections with a sidebar have a `layout.tsx` (`analytics`, `presence`, `settings`) |
+| Pages | `src/app/<area>/page.tsx`; every page sits in the one frame drawn by the root layout (`src/app/layout.tsx`) |
 | Server actions (DB access) | `src/app/**/*-actions.ts`, analytics queries in `src/app/analytics/queries/` |
 | All UI text | `src/locales/it.ts` → `APP_COPY` |
 | Numbers and settings | `src/config/constants.ts` → `APP_CONFIG`, `PRICING_FORMULAS`, `PRESENCE_RULES` |
 | Look: colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` |
-| Areas, header icons, home cards, section sidebars | `src/config/navigation.ts` |
+| Areas and their pages: sidebar, phone menu, home cards, area overview pages | `src/config/navigation.ts` (`NAV_AREAS`) |
 | Analytics report list / their components | `src/config/analyticsSections.ts` / `src/components/analytics/reportComponents.ts` |
-| Settings (admin) tables / their editors / what they may change | `src/config/adminTables.ts` / `src/components/admin/recordTables.tsx` + `managerComponents.ts` (pages `/settings/<id>`) / `src/config/editableTables.ts` |
-| Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `SectionSidebar`, `Header`) |
+| Settings pages / their screens / what they may change | `src/config/settingsPages.ts` / `src/components/admin/settingsComponents.ts` (table editors in `recordTables.tsx`; pages `/settings/<id>`) / `src/config/editableTables.ts` |
+| Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
 | Shared UI parts | `src/components/ui/` |
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
@@ -64,7 +64,7 @@ npm run excel:examples      # Excel export
 | Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
 | Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orders/` |
-| Database page | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
+| Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
 
 ## Design system
 
@@ -76,7 +76,7 @@ classes and `text-[Npx]`, so a component can only use tokens:
 - Lines: `border-border` · `border-border-strong`
 - Text: `text-fg-strong` · `text-fg` · `text-fg-soft` · `text-fg-secondary` · `text-fg-muted` · `text-fg-subtle` · `text-fg-faint` · `text-fg-inverse`
 - Status (scale 50–950, default 500): `primary`, `success`, `warning`, `danger`, `info`, `highlight` — e.g. `text-success-400`, `bg-danger/10`, `border-warning-500/30`
-- Small text: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px). Layout: `max-w-page`, `max-w-workspace`, `w-sidebar`
+- Small text: `text-2xs` (11px), `text-3xs` (10px), `text-4xs` (9px). Layout: `w-sidebar`, `w-sidebar-collapsed`; `collapsed:` styles the folded sidebar
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
 
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
@@ -98,9 +98,10 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 
 ## Recipes
 
-**New page**: inside a section, its `layout.tsx` already gives header and sidebar — the page renders
-`<PageHeader icon title subtitle />` and its content. A standalone page wraps them in `<AppShell>`. Add the link to
-`src/config/navigation.ts` (`MAIN_NAV` for a main area, `SECTION_NAVS` for a sidebar entry).
+**New page**: the frame (sidebar, phone menu, padding) comes from the root layout — the page renders
+`<PageHeader icon title subtitle />` and its content, and exports `metadata = { title }` for the browser tab. A page that
+fills the height uses `h-full`. Add the link to `NAV_AREAS` in `src/config/navigation.ts` (a new area, or a page in an
+area's `groups`); the sidebar, the phone menu and the overview cards follow.
 
 **New analytics report**:
 1. Query in its own file `src/app/analytics/queries/<report>-queries.ts`, using the shared parts in `queries/shared/`
@@ -112,8 +113,8 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 
 **New settings table**: a config in `src/components/admin/recordTables.tsx` (columns, how each value is typed and shown, what a
 new row starts with; the editor, saving through `src/app/admin-actions.ts`, comes from `RecordTableEditor`), then one entry in
-`MANAGER_COMPONENTS` (`src/components/admin/managerComponents.ts`) and one in `ADMIN_TABLES` (`src/config/adminTables.ts`,
-texts in `it.ts` → `admin.tables`); the sidebar and the `/settings/<id>` page follow. The table and the columns it may
+`SETTINGS_COMPONENTS` (`src/components/admin/settingsComponents.ts`) and one in `SETTINGS_PAGES` (`src/config/settingsPages.ts`,
+in the group of the area it belongs to; texts in `it.ts` → `admin.pages`); the sidebar and the `/settings/<id>` page follow. The table and the columns it may
 change or create go in `src/config/editableTables.ts`: the server refuses every other table or column.
 
 **New pricing operation / presence rule**: see [docs/PRICING.md](docs/PRICING.md) and [docs/PRESENCE.md](docs/PRESENCE.md).

@@ -1,11 +1,13 @@
-import { AppShell } from '@/components/layout/AppShell';
 import { OrderOperationsReport } from '@/components/analytics/OrderOperationsReport';
+import { getNavArea } from '@/config/navigation';
+
+export const metadata = { title: getNavArea('work-progress').label };
 
 export default function WorkProgressPage() {
-    // Full-height workspace: only the active panel scrolls, never the page
+    // Fills the height: only the active panel scrolls, never the page
     return (
-        <AppShell layout="workspace">
+        <div className="h-full flex flex-col">
             <OrderOperationsReport />
-        </AppShell>
+        </div>
     );
 }

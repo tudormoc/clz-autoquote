@@ -27,6 +27,11 @@ export default async function AnalyticsReportPage({ params }: AnalyticsReportPag
     );
 }
 
+export async function generateMetadata({ params }: AnalyticsReportPageProps) {
+    const { reportId } = await params;
+    return { title: getAnalyticsSection(reportId)?.label };
+}
+
 // Pre-render every report route at build time
 export function generateStaticParams() {
     return ANALYTICS_SECTIONS.map((section) => ({

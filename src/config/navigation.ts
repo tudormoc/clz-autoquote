@@ -1,16 +1,16 @@
 /**
- * Navigation — single source of truth for the app's areas and section sidebars.
+ * Navigation — single source of truth for the app's areas and their pages.
+ * The sidebar, the phone menu, the home page cards and each area's overview page are built from NAV_AREAS.
  *
  * Adding a page:
- *   - a new top-level area → add it to MAIN_NAV (header icon + home card)
- *   - a page inside a section → add it to that section in SECTION_NAVS (sidebar link)
- * Analytics reports (src/config/analyticsSections.ts) and settings tables (src/config/adminTables.ts) appear here automatically.
+ *   - a new area → add it to NAV_AREAS (label and description in it.ts → nav.areas)
+ *   - a page inside an area → add it to that area's groups
+ * Analytics reports (src/config/analyticsSections.ts) and settings pages (src/config/settingsPages.ts) appear here automatically.
  */
 import {
     BarChart3,
     Calendar,
     CalendarDays,
-    Database,
     FileText,
     Settings,
     Users,
@@ -19,8 +19,8 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { APP_COPY } from '@/locales';
-import { ADMIN_CATEGORIES, ADMIN_TABLES } from '@/config/adminTables';
 import { ANALYTICS_CATEGORIES, ANALYTICS_SECTIONS } from '@/config/analyticsSections';
+import { SETTINGS_CATEGORIES, SETTINGS_PAGES } from '@/config/settingsPages';
 
 export interface NavItem {
     id: string;
@@ -35,78 +35,99 @@ export interface NavGroup {
     items: NavItem[];
 }
 
-export interface SectionNav {
-    title: string;
-    groups: NavGroup[];
-    /** Links pinned to the bottom of the sidebar (e.g. section settings) */
-    footer?: NavItem[];
+export type NavAreaId = 'quotes' | 'work-progress' | 'analytics' | 'presence' | 'cashflow' | 'settings';
+
+export interface NavArea extends NavItem {
+    id: NavAreaId;
+    /** Pages of the area: listed under it in the sidebar and as cards on its overview page (href) */
+    groups?: NavGroup[];
+    /** Placed at the bottom of the sidebar, apart from the work areas, and left off the home page */
+    pinnedBottom?: boolean;
 }
 
-const home = APP_COPY.home.cards;
+/** Pages opened in a window of their own, drawn without the sidebar */
+export const FRAMELESS_ROUTES = ['/blueprint'];
 
-/** Main areas, in display order: header icons and home page cards */
-export const MAIN_NAV: (NavItem & { showOnHome: boolean })[] = [
-    { id: 'quotes', href: '/quotes', label: home.quotes.title, description: home.quotes.description, icon: FileText, showOnHome: true },
-    { id: 'work-progress', href: '/work-progress', label: home.workProgress.title, description: home.workProgress.description, icon: Workflow, showOnHome: true },
-    { id: 'analytics', href: '/analytics', label: home.analytics.title, description: home.analytics.description, icon: BarChart3, showOnHome: true },
-    { id: 'presence', href: '/presence', label: home.presence.title, description: home.presence.description, icon: Users, showOnHome: true },
-    { id: 'cashflow', href: '/cashflow', label: home.cashflow.title, description: home.cashflow.description, icon: Wallet, showOnHome: true },
-    { id: 'settings', href: '/settings', label: APP_COPY.admin.title, description: APP_COPY.admin.subtitle, icon: Settings, showOnHome: false },
-    { id: 'database', href: '/db-test', label: home.database.title, description: home.database.description, icon: Database, showOnHome: true },
-];
+interface CategorisedPage<C extends string> {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    description?: string;
+    category: C;
+}
 
-const presence = APP_COPY.analytics;
+/** One group per category (in the given order, empty ones left out), each page linked under basePath */
+function groupByCategory<C extends string>(
+    categories: readonly C[],
+    labels: Record<C, string>,
+    pages: CategorisedPage<C>[],
+    basePath: string,
+): NavGroup[] {
+    return categories
+        .map((category) => ({
+            label: labels[category],
+            items: pages
+                .filter((page) => page.category === category)
+                .map(({ id, label, icon, description }) => ({ id, href: `${basePath}/${id}`, label, icon, description })),
+        }))
+        .filter((group) => group.items.length > 0);
+}
 
-export type SectionNavId = 'analytics' | 'presence' | 'settings';
+const areas = APP_COPY.nav.areas;
+// it.ts keeps the presence page texts under analytics too
+const analytics = APP_COPY.analytics;
 
-export const SECTION_NAVS: Record<SectionNavId, SectionNav> = {
-    analytics: {
-        title: APP_COPY.analytics.sidebar.title,
-        groups: ANALYTICS_CATEGORIES
-            .map((category) => ({
-                label: APP_COPY.analytics.categories[category],
-                items: ANALYTICS_SECTIONS
-                    .filter((section) => section.category === category)
-                    .map((section) => ({
-                        id: section.id,
-                        href: `/analytics/${section.id}`,
-                        label: section.label,
-                        icon: section.icon,
-                        description: section.description,
-                    })),
-            }))
-            .filter((group) => group.items.length > 0),
+/** The app's areas, in sidebar order */
+export const NAV_AREAS: NavArea[] = [
+    { id: 'quotes', href: '/quotes', ...areas.quotes, icon: FileText },
+    { id: 'work-progress', href: '/work-progress', ...areas.workProgress, icon: Workflow },
+    {
+        id: 'analytics',
+        href: '/analytics',
+        ...areas.analytics,
+        icon: BarChart3,
+        groups: groupByCategory(ANALYTICS_CATEGORIES, analytics.categories, ANALYTICS_SECTIONS, '/analytics'),
     },
-    presence: {
-        title: presence.presenceSidebar.heading,
+    {
+        id: 'presence',
+        href: '/presence',
+        ...areas.presence,
+        icon: Users,
         groups: [
             {
                 items: [
-                    { id: 'operators', href: '/presence/operators', label: presence.operators.title, icon: Users },
-                    { id: 'daily-events', href: '/presence/daily-events', label: presence.dailyEvents.title, icon: Calendar },
-                    { id: 'monthly-summary', href: '/presence/monthly-summary', label: presence.monthlySummary.title, icon: CalendarDays },
+                    { id: 'operators', href: '/presence/operators', label: analytics.operators.title, description: analytics.operators.subtitle, icon: Users },
+                    { id: 'daily-events', href: '/presence/daily-events', label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar },
+                    { id: 'monthly-summary', href: '/presence/monthly-summary', label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays },
                 ],
             },
         ],
-        footer: [
-            { id: 'settings', href: '/presence/settings', label: presence.presenceSidebar.settings, icon: Settings },
-        ],
     },
-    settings: {
-        title: APP_COPY.admin.sidebar.title,
-        groups: ADMIN_CATEGORIES
-            .map((category) => ({
-                label: APP_COPY.admin.categories[category],
-                items: ADMIN_TABLES
-                    .filter((table) => table.category === category)
-                    .map((table) => ({
-                        id: table.id,
-                        href: `/settings/${table.id}`,
-                        label: table.label,
-                        icon: table.icon,
-                        description: table.description,
-                    })),
-            }))
-            .filter((group) => group.items.length > 0),
+    { id: 'cashflow', href: '/cashflow', ...areas.cashflow, icon: Wallet },
+    {
+        id: 'settings',
+        href: '/settings',
+        ...areas.settings,
+        icon: Settings,
+        groups: groupByCategory(SETTINGS_CATEGORIES, APP_COPY.admin.categories, SETTINGS_PAGES, '/settings'),
+        pinnedBottom: true,
     },
-};
+];
+
+export function getNavArea(id: NavAreaId): NavArea {
+    const area = NAV_AREAS.find((candidate) => candidate.id === id);
+    if (!area) throw new Error(`Unknown navigation area: ${id}`);
+    return area;
+}
+
+/** The path is this link's page or one below it */
+export function isWithin(pathname: string, href: string): boolean {
+    return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Area and page the path belongs to (both undefined on the home page) */
+export function findNavLocation(pathname: string): { area?: NavArea; page?: NavItem } {
+    const area = NAV_AREAS.find((candidate) => isWithin(pathname, candidate.href));
+    const page = area?.groups?.flatMap((group) => group.items).find((item) => isWithin(pathname, item.href));
+    return { area, page };
+}

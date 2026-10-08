@@ -15,7 +15,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
     const copy = APP_COPY.errors;
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-background p-4">
+        <div className="flex justify-center py-12">
             <div className="w-full max-w-md bg-card border border-danger/40 rounded-lg p-6 space-y-4">
                 <div className="flex items-center gap-3 text-danger">
                     <AlertTriangle size={20} />

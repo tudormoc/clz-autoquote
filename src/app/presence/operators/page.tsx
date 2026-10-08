@@ -3,6 +3,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { OperatorsTable } from '@/components/presence/OperatorsTable';
 import { APP_COPY } from '@/locales';
 
+export const metadata = { title: APP_COPY.analytics.operators.title };
+
 export default function OperatorsPage() {
     const copy = APP_COPY.analytics.operators;
 

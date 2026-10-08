@@ -1,26 +1,16 @@
-import Link from 'next/link';
-import { FileText, Settings } from 'lucide-react';
-import { AppShell } from '@/components/layout/AppShell';
+import { FileText } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { AdvancedQuoteForm } from '@/components/quote/AdvancedQuoteForm';
-import { buttonClasses } from '@/components/ui/Button';
+import { getNavArea } from '@/config/navigation';
 import { APP_COPY } from '@/locales';
+
+export const metadata = { title: getNavArea('quotes').label };
 
 export default function QuotesPage() {
     return (
-        <AppShell>
-            <PageHeader
-                icon={FileText}
-                title={APP_COPY.quotes.title}
-                subtitle={APP_COPY.quotes.subtitle}
-                actions={
-                    <Link href="/settings" className={buttonClasses({ variant: 'outline' })}>
-                        <Settings size={18} />
-                        {APP_COPY.quotes.settings}
-                    </Link>
-                }
-            />
+        <>
+            <PageHeader icon={FileText} title={APP_COPY.quotes.title} subtitle={APP_COPY.quotes.subtitle} />
             <AdvancedQuoteForm />
-        </AppShell>
+        </>
     );
 }

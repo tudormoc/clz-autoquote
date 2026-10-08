@@ -71,18 +71,11 @@ const FONT_SIZE = {
     '4xs': '0.5625rem', // 9px
 };
 
-// Page frame dimensions (AppShell, SectionSidebar): max-w-page, w-sidebar, h-header …
+// Page frame dimensions (AppShell, sidebar): w-sidebar, w-sidebar-collapsed. Pages use the full width beside it.
 const LAYOUT = {
-    maxWidth: {
-        page: '1536px',      // centred content column
-        workspace: '1920px', // full-height work areas (work progress)
-    },
     width: {
-        sidebar: '16rem',
-        'sidebar-collapsed': '4rem',
-    },
-    height: {
-        header: '3.5rem',
+        sidebar: '16rem',             // open sidebar, and the phone menu
+        'sidebar-collapsed': '4rem',  // sidebar folded to icons
     },
 };
 
