@@ -11,12 +11,10 @@ interface NewNameFormProps {
     buttonLabel: string;
     /** Creates it; true when saved (the field then empties) */
     onSubmit: (name: string) => Promise<boolean>;
-    /** More choices under the name (a new user's groups) */
-    children?: React.ReactNode;
 }
 
 /** "Nuovo utente" / "Nuovo gruppo": a name and a button, Enter creates. */
-export function NewNameForm({ placeholder, buttonLabel, onSubmit, children }: NewNameFormProps) {
+export function NewNameForm({ placeholder, buttonLabel, onSubmit }: NewNameFormProps) {
     const [name, setName] = useState('');
     const [busy, setBusy] = useState(false);
 
@@ -30,7 +28,7 @@ export function NewNameForm({ placeholder, buttonLabel, onSubmit, children }: Ne
     };
 
     return (
-        <Card className="p-4 space-y-3">
+        <Card className="p-4">
             <form
                 className="flex flex-wrap gap-2"
                 onSubmit={(event) => {
@@ -46,7 +44,6 @@ export function NewNameForm({ placeholder, buttonLabel, onSubmit, children }: Ne
                     {buttonLabel}
                 </Button>
             </form>
-            {children}
         </Card>
     );
 }

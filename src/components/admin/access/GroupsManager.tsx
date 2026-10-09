@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { createGroupAction, deleteGroupAction, renameGroupAction, setGroupPagesAction } from '@/app/access-actions';
+import { createGroupAction, deleteGroupAction, renameGroupAction, setGroupPagesAction, setUserGroupsAction } from '@/app/access-actions';
 import { GroupEditor } from '@/components/admin/access/GroupEditor';
-import { GroupList } from '@/components/admin/access/GroupList';
 import { NewNameForm } from '@/components/admin/access/NewNameForm';
+import { PickList } from '@/components/admin/access/PickList';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
@@ -17,7 +17,7 @@ const copy = APP_COPY.admin.groups;
 
 /**
  * Impostazioni → Gruppi (superadmin): the groups on the left, the chosen one on the right with one tick per page,
- * per area or for all pages at once, and its users. New group, duplicate, rename, delete.
+ * per area or for all pages at once, and its users (add, take out). New group, duplicate, rename, delete.
  */
 export function GroupsManager() {
     const { users, groups, loading, error, run } = useAccounts();
@@ -32,9 +32,9 @@ export function GroupsManager() {
     }
     if (error) return <EmptyState title={APP_COPY.common.loadError} description={error} />;
 
-    const membersOf = (id: number) => users.filter((user) => user.groupIds.includes(id));
-    const members = new Map(groups.map((group) => [group.id, membersOf(group.id).length]));
+    const inGroup = (id: number) => users.filter((user) => user.groupIds.includes(id));
     const group = groups.find((candidate) => candidate.id === chosen) ?? groups[0];
+    const members = group ? inGroup(group.id) : [];
 
     /** Creates a group (empty or a copy) and opens it */
     const create = async (name: string, pages: PagePermissions = {}) => {
@@ -58,7 +58,11 @@ export function GroupsManager() {
             <aside className="w-full lg:w-64 shrink-0 space-y-3">
                 {groups.length > 0 && (
                     <Card className="p-2">
-                        <GroupList groups={groups} members={members} selected={group?.id ?? null} onSelect={setChosen} />
+                        <PickList
+                            items={groups.map(({ id, name }) => ({ id, label: name, count: inGroup(id).length }))}
+                            selected={group?.id ?? null}
+                            onSelect={setChosen}
+                        />
                     </Card>
                 )}
                 <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={(name) => create(name)} />
@@ -70,7 +74,10 @@ export function GroupsManager() {
                     <GroupEditor
                         key={group.id}
                         group={group}
-                        members={membersOf(group.id)}
+                        members={members}
+                        others={users.filter((user) => !members.includes(user))}
+                        onAddMember={(user) => run(setUserGroupsAction(user.id, [...user.groupIds, group.id]))}
+                        onRemoveMember={(user) => run(setUserGroupsAction(user.id, user.groupIds.filter((id) => id !== group.id)))}
                         onRename={(name) => run(renameGroupAction(group.id, name), () => APP_COPY.admin.users.saved)}
                         onPages={(pages) => run(setGroupPagesAction(group.id, pages))}
                         onDuplicate={(pages) => create(fmt(copy.copyName, { name: group.name }), pages)}

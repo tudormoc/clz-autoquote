@@ -21,7 +21,7 @@ const copy = APP_COPY.auth;
 /** Every page link of the menu, to catch a mistyped link in a check */
 const KNOWN_PAGES = new Set(menuPages(NAV_AREAS).map((page) => page.href));
 
-/** The person logged in, or null. A deleted user, or one whose PIN changed since, is not logged in any more. */
+/** The person logged in, or null. A deleted or suspended user, or one whose PIN changed since, is not logged in any more. */
 export const getAccess = cache(async (): Promise<UserAccess | null> => {
     const session = parseSession((await cookies()).get(SESSION_COOKIE)?.value);
     if (!session) return null;
@@ -32,7 +32,7 @@ export const getAccess = cache(async (): Promise<UserAccess | null> => {
     }
 
     const loaded = await loadAccountAccess(session.sub);
-    if (!loaded || pinFingerprint(loaded.account.pin) !== session.pv) return null;
+    if (!loaded || loaded.account.suspended || pinFingerprint(loaded.account.pin) !== session.pv) return null;
     return { id: loaded.account.id, name: loaded.account.name, superadmin: false, pages: loaded.pages };
 });
 

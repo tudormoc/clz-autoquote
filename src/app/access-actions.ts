@@ -19,6 +19,7 @@ import {
     updateAccountGroups,
     updateAccountName,
     updateAccountPin,
+    updateAccountSuspended,
     updateGroupName,
     updateGroupPages,
     type Group,
@@ -31,6 +32,7 @@ import { APP_COPY, fmt } from '@/locales';
 
 type Saved = { success: true } | { success: false; error: string };
 type WithPin = { success: true; pin: string } | { success: false; error: string };
+type Created = { success: true; id: number; pin: string } | { success: false; error: string };
 
 /** A user as the superadmin sees them, PIN readable */
 export interface UserView {
@@ -38,6 +40,8 @@ export interface UserView {
     name: string;
     pin: string;
     groupIds: number[];
+    lastLogin: Date | null;
+    suspended: boolean;
 }
 
 const copy = APP_COPY.admin.users;
@@ -45,6 +49,7 @@ const { GENERATED_PIN_LENGTH, MAX_NAME_LENGTH } = APP_CONFIG.AUTH;
 
 const IdSchema = z.number().int().positive();
 const IdsSchema = z.array(IdSchema);
+const FlagSchema = z.boolean();
 
 /** SQL Server: duplicate key on a UNIQUE column */
 const isDuplicate = (error: unknown) => {
@@ -77,30 +82,26 @@ const randomPin = () => String(randomInt(0, 10 ** GENERATED_PIN_LENGTH)).padStar
 export async function getAccountsAction(): Promise<{ users: UserView[]; groups: Group[] }> {
     await requireSuperadmin();
     const [accounts, groups] = await Promise.all([listAccounts(), listGroups()]);
-    const users = accounts.map(({ id, name, pin, groupIds }) => {
+    const users = accounts.map(({ pin, ...account }) => {
         let readable = '';
         try {
             readable = decryptPin(pin);
         } catch {
             // Scrambled with another AUTH_SECRET: give the user a new PIN
         }
-        return { id, name, pin: readable, groupIds };
+        return { ...account, pin: readable };
     });
     return { users, groups };
 }
 
 // ── Users ──
 
-export async function createUserAction(name: string, groupIds: number[]): Promise<WithPin> {
+/** New user without groups (ticked afterwards) and a random PIN; answers its id and PIN */
+export async function createUserAction(name: string): Promise<Created> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
-    const ids = IdsSchema.safeParse(groupIds);
-    if (!ids.success) return { success: false, error: APP_COPY.common.notAllowed };
     const pin = randomPin();
-    return run(async () => {
-        await insertAccount(checked.name, encryptPin(pin), ids.data);
-        return { pin };
-    });
+    return run(async () => ({ id: await insertAccount(checked.name, encryptPin(pin)), pin }));
 }
 
 export async function renameUserAction(id: number, name: string): Promise<Saved> {
@@ -129,6 +130,15 @@ export async function newUserPinAction(id: number): Promise<WithPin> {
     return run(async () => {
         await updateAccountPin(id, encryptPin(pin));
         return { pin };
+    });
+}
+
+/** Suspended: the user cannot log in and their open logins end; PIN and groups stay for when they are let back in */
+export async function setUserSuspendedAction(id: number, suspended: boolean): Promise<Saved> {
+    if (!IdSchema.safeParse(id).success || !FlagSchema.safeParse(suspended).success) return { success: false, error: APP_COPY.common.notAllowed };
+    return run(async () => {
+        await updateAccountSuspended(id, suspended);
+        return {};
     });
 }
 

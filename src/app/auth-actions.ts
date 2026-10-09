@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { APP_CONFIG } from '@/config/constants';
 import { LOGIN_PATH } from '@/config/navigation';
 import { getAccess } from '@/lib/auth/access';
-import { findAccountByName, updateAccountPin } from '@/lib/auth/accounts';
+import { findAccountByName, recordLogin, updateAccountPin } from '@/lib/auth/accounts';
 import { clearFailures, minutesLocked, recordFailure } from '@/lib/auth/lockout';
 import { decryptPin, encryptPin, pinFingerprint, sameText } from '@/lib/auth/secrets';
 import { SESSION_COOKIE, SESSION_COOKIE_OPTIONS, SUPERADMIN, newSessionToken, superadminAccount, superadminFingerprint } from '@/lib/auth/session';
@@ -22,7 +22,10 @@ const { MIN_PIN_LENGTH, MAX_PIN_LENGTH } = APP_CONFIG.AUTH;
 /** A link inside the app to go back to after the login (never another site) */
 const safeNext = (next: unknown) => (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : '/');
 
-/** Checks name and PIN; on success sets the login cookie and opens `next` (the page that asked for the login) */
+/**
+ * Checks name and PIN; on success notes the time, sets the login cookie and opens `next` (the page that asked for
+ * the login). A suspended user is told so only after the right PIN.
+ */
 export async function loginAction(name: string, pin: string, next?: string): Promise<Result> {
     const cleanName = String(name ?? '').trim();
     const cleanPin = String(pin ?? '').trim();
@@ -39,7 +42,11 @@ export async function loginAction(name: string, pin: string, next?: string): Pro
             if (fingerprint && sameText(cleanPin, admin.pin)) token = newSessionToken(SUPERADMIN, fingerprint);
         } else if (cleanName) {
             const account = await findAccountByName(cleanName);
-            if (account && sameText(cleanPin, decryptPin(account.pin))) token = newSessionToken(account.id, pinFingerprint(account.pin));
+            if (account && sameText(cleanPin, decryptPin(account.pin))) {
+                if (account.suspended) return { success: false, error: copy.suspended };
+                token = newSessionToken(account.id, pinFingerprint(account.pin));
+                await recordLogin(account.id).catch((error) => console.error('Last login not saved:', error));
+            }
         }
     } catch (error) {
         console.error('Login failed:', error);
