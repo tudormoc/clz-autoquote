@@ -65,7 +65,9 @@ export function GroupsManager() {
                         />
                     </Card>
                 )}
-                <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={(name) => create(name)} />
+                <Card className="p-4">
+                    <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={(name) => create(name)} />
+                </Card>
             </aside>
 
             {/* Not wider than this, so a page name and its ticks stay close */}

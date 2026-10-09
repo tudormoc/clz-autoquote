@@ -1,11 +1,9 @@
 import { LEVEL_COLUMN, LEVEL_COLUMNS, PermissionRow } from '@/components/admin/access/PermissionRow';
 import type { NavItem } from '@/config/navigation';
-import { ACCESS_AREAS, sharedLevel, withLevel, type AccessLevel, type PagePermissions } from '@/lib/auth/permissions';
+import { ACCESS_AREAS, GRANTABLE_PAGES, sharedLevel, withLevel, type AccessLevel, type PagePermissions } from '@/lib/auth/permissions';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.admin.groups;
-
-const ALL_PAGES = ACCESS_AREAS.flatMap((entry) => entry.pages);
 
 interface PermissionTableProps {
     pages: PagePermissions;
@@ -44,7 +42,7 @@ export function PermissionTable({ pages, onChange }: PermissionTableProps) {
                 ))}
             </div>
 
-            {row(copy.allPages, 'all', ALL_PAGES)}
+            {row(copy.allPages, 'all', GRANTABLE_PAGES)}
 
             {ACCESS_AREAS.map(({ area, pages: items }) =>
                 area.groups ? (

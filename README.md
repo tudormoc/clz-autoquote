@@ -106,7 +106,7 @@ classes and `text-[Npx]`, so a component can only use tokens:
   `FilterPanel` folds into a "Filtri" bar after "Applica". Form fields are 16px on phones (globals.css), so tapping one does not zoom.
 - Exports are named after the report's menu label (`APP_COPY.analytics.reports`): `reportFileName()` in `src/lib/download.ts`.
 
-Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`,
+Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`, `Switch`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
 `fill` inside a `FillPage` = takes the free height, header and totals stay in view), `CardField` (a line of a phone card),

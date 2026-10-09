@@ -27,10 +27,16 @@ export const ACCESS_AREAS: { area: NavArea; pages: NavItem[] }[] = NAV_AREAS.map
     pages: area.groups ? area.groups.flatMap((group) => group.items).filter((item) => !item.superadminOnly) : [area],
 })).filter((entry) => entry.pages.length > 0);
 
-const GRANTABLE = new Map(ACCESS_AREAS.flatMap((entry) => entry.pages).map((page) => [page.href, page]));
+/** Every page a group can be given, in menu order */
+export const GRANTABLE_PAGES = ACCESS_AREAS.flatMap((entry) => entry.pages);
+const GRANTABLE = new Map(GRANTABLE_PAGES.map((page) => [page.href, page]));
 
 /** A page groups can be given, by its link (undefined for anything else) */
-export const grantablePage = (href: string): NavItem | undefined => GRANTABLE.get(href);
+const grantablePage = (href: string): NavItem | undefined => GRANTABLE.get(href);
+
+/** Names of the pages given at this level, in menu order */
+export const pageLabels = (pages: PagePermissions, level: AccessLevel): string[] =>
+    GRANTABLE_PAGES.filter((page) => pages[page.href] === level).map((page) => page.label);
 
 /** Only known pages, and "edit" only where a page changes data (stored groups are read through this) */
 export function cleanPermissions(value: unknown): PagePermissions {
