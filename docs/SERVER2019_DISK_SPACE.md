@@ -25,6 +25,10 @@ Rule: work step by step, read-only first, never delete data without the owner's 
 3. Deleted NetPro logs older than 7 days, then older than 3 days (~33 GB total).
 A scheduled cleanup task was offered and **declined**: cleanup is manual.
 
+## 2026-10-09 – second cleanup
+Free space had fallen 43.3 -> 18.3 GB in 3 days (~8 GB/day, all NetPro logs: 44.9 GB in the two Log folders).
+Same 3-day-retention delete: 18.3 -> 39.4 GB. Check again about every 3 days.
+
 ## Manual NetPro log cleanup (repeat when space is low)
 NPBatchServer writes ~6 GB of logs per day (a 1 GB `.out` every few hours), so C: refills in about a week.
 Logs live in `C:\Qualitas\NPBatchServer\Log` and `C:\Qualitas\NPServer\Log`. Elevated PowerShell on SERVER2019:
