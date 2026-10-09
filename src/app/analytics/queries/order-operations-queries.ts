@@ -9,6 +9,7 @@ import { syncOrderFromDiba } from '@/lib/orders/sync';
 import type { MasterOrderMatch, OrderDetailsData } from '@/lib/orders/types';
 import { errorMessage } from '@/lib/utils';
 import type { OrderOperationsManagementData } from '@/types';
+import { authorize } from '@/lib/auth/access';
 
 type Failure = { success: false; error: string };
 
@@ -20,6 +21,7 @@ export type OrderSearchResult =
 
 /** Search: no match, several master orders to choose from, or the only one already opened */
 export async function getOrderOperationsAction(searchTerm: string): Promise<OrderSearchResult> {
+    await authorize('view', '/work-progress');
     try {
         if (!searchTerm.trim()) return { success: true, status: 'empty' };
         const matches = await findMasterOrders(searchTerm);
@@ -33,6 +35,7 @@ export async function getOrderOperationsAction(searchTerm: string): Promise<Orde
 
 /** One master order picked from the search results */
 export async function getSingleOrderDetailsAction(rootCommessaKey: string): Promise<({ success: true } & OrderDetailsData) | Failure> {
+    await authorize('view', '/work-progress');
     try {
         return { success: true, ...(await fetchOrderDetails(rootCommessaKey)) };
     } catch (err) {
@@ -46,6 +49,7 @@ export async function refreshOrderOperationsManagementAction(
     articleHint?: string,
     commessaFull?: string
 ): Promise<{ success: true; operationsManagement: OrderOperationsManagementData } | (Failure & { operationsManagement: OrderOperationsManagementData })> {
+    await authorize('view', '/work-progress');
     try {
         return { success: true, operationsManagement: await fetchOrderManagement(rootCommessaKey, articleHint, commessaFull) };
     } catch (err) {
@@ -55,6 +59,7 @@ export async function refreshOrderOperationsManagementAction(
 
 /** "Riallinea": rewrites the Business and NetPro order from the DiBa (WRITES to both databases) */
 export async function syncOrderFromDibaAction(params: { rootCommessaKey: string; articleFather?: string }): Promise<{ success: true } | Failure> {
+    await authorize('edit', '/work-progress');
     try {
         return await syncOrderFromDiba(params.rootCommessaKey, params.articleFather);
     } catch (err) {

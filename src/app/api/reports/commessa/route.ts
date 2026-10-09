@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { APP_CONFIG } from '@/config/constants';
 import { netproAuthenticatedGet } from '@/lib/netproSession';
+import { authorize } from '@/lib/auth/access';
 
 /**
  * Fetch a single commessa PDF from NetPro Crystal Reports service
@@ -80,6 +81,13 @@ async function fetchNetProPDF(netproId: string): Promise<ArrayBuffer> {
  * Supports single netproId or comma-separated netproIds (merges into a single multi-page PDF).
  */
 export async function GET(request: NextRequest) {
+    // The print buttons of the work progress page
+    try {
+        await authorize('view', '/work-progress');
+    } catch (error) {
+        return NextResponse.json({ error: errorMessage(error) }, { status: 403 });
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const netproId = searchParams.get('netproId');

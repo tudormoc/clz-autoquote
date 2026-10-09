@@ -13,6 +13,7 @@ import { buildCommessaFilterNETPRO } from './shared/filter-builders';
 import { AREA_OF_MACHINE, MACHINE_AREAS, MIN_ORDER_CORE, ORDER_CORE, WORK_ROWS, workFilter } from './shared/netpro-work';
 import { failedPage, ownEntry, sortAndPage, sqlDirection, type SortConfig } from './shared/query-utils';
 import { fetchOrderBusinessData } from './shared/work-time-fetcher';
+import { authorize } from '@/lib/auth/access';
 
 const ANALYTICS = APP_CONFIG.ANALYTICS;
 
@@ -55,6 +56,7 @@ export async function getAreaSummaryDataAction(
     },
     sort?: SortConfig
 ) {
+    await authorize('view', '/analytics/area-summary');
     try {
         const { conditions, params } = workFilter(year, 'MAC', filters);
         conditions.push('SIT.LAVORO > 0');
@@ -200,6 +202,7 @@ export async function getOrderAreaSummaryDataAction(
     },
     sort?: SortConfig
 ) {
+    await authorize('view', '/analytics/order-area-summary');
     try {
         const { conditions, params } = workFilter(year, 'OPE', filters);
         conditions.push('ORD.COMMESSA IS NOT NULL', `${ORDER_CORE} NOT IN (${ANALYTICS.EXCLUDED_ORDER_NUMBERS.map((n) => `'${n}'`).join(', ')})`);

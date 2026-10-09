@@ -1,8 +1,10 @@
 'use server'
 
 import { queryMSSQL } from '@/lib/mssql';
+import { authorize } from '@/lib/auth/access';
 
 export async function searchMSSQLClientsAction(searchTerm: string) {
+    await authorize('view', '/quotes');
     if (!searchTerm || searchTerm.length < 2) return [];
 
     try {

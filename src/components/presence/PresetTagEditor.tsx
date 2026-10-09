@@ -7,6 +7,7 @@ import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { APP_COPY, fmt } from '@/locales';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 const copy = APP_COPY.analytics.presenceSettings;
 
@@ -26,6 +27,7 @@ interface PresetTagEditorProps {
 
 /** The quick-pick texts of a presence column (Ferie, Permessi) as chips: click one to rename it, ✕ removes it, the field adds one. */
 export function PresetTagEditor({ title, description, value, onSave, onRename }: PresetTagEditorProps) {
+    const canEdit = useCanEdit();
     const [newTag, setNewTag] = useState('');
     const [saving, setSaving] = useState(false);
     const tags = parseTags(value);
@@ -80,40 +82,44 @@ export function PresetTagEditor({ title, description, value, onSave, onRename }:
                             )}
                             onSave={(draft) => rename(tag, draft)}
                         />
-                        <button
-                            type="button"
-                            onClick={() => remove(tag)}
-                            disabled={saving}
-                            title={fmt(copy.removePreset, { tag })}
-                            className="p-0.5 rounded text-warning-400/60 hover:text-danger-400 transition-colors disabled:opacity-50"
-                        >
-                            <X size={11} />
-                        </button>
+                        {canEdit && (
+                            <button
+                                type="button"
+                                onClick={() => remove(tag)}
+                                disabled={saving}
+                                title={fmt(copy.removePreset, { tag })}
+                                className="p-0.5 rounded text-warning-400/60 hover:text-danger-400 transition-colors disabled:opacity-50"
+                            >
+                                <X size={11} />
+                            </button>
+                        )}
                     </span>
                 ))}
             </div>
 
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    add();
-                }}
-                className="flex items-center gap-2 pt-1 border-t border-border/60"
-            >
-                <div className="w-48">
-                    <Input
-                        placeholder={copy.newPresetPlaceholder}
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        disabled={saving}
-                        className="h-7 text-xs font-mono"
-                    />
-                </div>
-                <Button type="submit" size="sm" variant="secondary" disabled={saving || !newTag.trim()}>
-                    {saving ? <Spinner size={12} /> : <Plus size={12} />}
-                    {copy.addPreset}
-                </Button>
-            </form>
+            {canEdit && (
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        add();
+                    }}
+                    className="flex items-center gap-2 pt-1 border-t border-border/60"
+                >
+                    <div className="w-48">
+                        <Input
+                            placeholder={copy.newPresetPlaceholder}
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            disabled={saving}
+                            className="h-7 text-xs font-mono"
+                        />
+                    </div>
+                    <Button type="submit" size="sm" variant="secondary" disabled={saving || !newTag.trim()}>
+                        {saving ? <Spinner size={12} /> : <Plus size={12} />}
+                        {copy.addPreset}
+                    </Button>
+                </form>
+            )}
         </div>
     );
 }

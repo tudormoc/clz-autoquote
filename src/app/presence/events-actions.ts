@@ -7,12 +7,14 @@ import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
 import { suspendActiveExecutionIfAny } from './presence-db';
+import { authorize } from '@/lib/auth/access';
 
 export async function getDailyEventsAction(
     dateFrom: string, 
     dateTo: string, 
     operatorFilter?: string
 ) {
+    await authorize('view', '/presence/daily-events');
     try {
         const conditions: string[] = [
             'EVT.TASK = @task',
@@ -80,6 +82,7 @@ export async function updateEventAction(
     columnName: (typeof EVENT_COLUMNS)[number],
     newValue: string
 ) {
+    await authorize('edit', '/presence/daily-events');
     if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         // For datetime updates, ensure we're storing the exact value without timezone conversion
@@ -121,6 +124,7 @@ export async function createEventAction(
     evento: string,
     oraEvento: string
 ) {
+    await authorize('edit', '/presence/daily-events');
     try {
         const upperEvt = evento.trim().toUpperCase();
         

@@ -17,6 +17,17 @@ export const APP_CONFIG = {
     ERROR_TOAST_DURATION: 8000,
   },
 
+  // Login (src/lib/auth): users, groups and their pages are kept in the QUOTES tables app_users / app_groups
+  AUTH: {
+    SESSION_HOURS: 24,          // a login lasts until the browser closes, at most this long
+    MAX_PIN_ATTEMPTS: 5,        // wrong PINs in a row before a name has to wait …
+    LOCKOUT_MINUTES: 5,         // … this long
+    GENERATED_PIN_LENGTH: 4,    // digits of the random PIN given to a new user
+    MIN_PIN_LENGTH: 4,          // shortest PIN a user may choose
+    MAX_PIN_LENGTH: 100,        // longest
+    MAX_NAME_LENGTH: 100,       // app_users.name / app_groups.name
+  },
+
   // Display locale for numbers, money and dates (used by src/lib/format.ts).
   // Colours, radius, fonts and shadows live in src/styles/theme.js.
   LOCALE: {

@@ -10,6 +10,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { useRecordTable } from '@/hooks/useRecordTable';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 /**
  * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete
@@ -18,8 +19,24 @@ import { APP_COPY } from '@/locales';
 export function RecordTableEditor<T extends object>({ config }: { config: RecordTableConfig<T> }) {
     const { rows, loading, error, update, remove, add } = useRecordTable(config);
     const [adding, setAdding] = useState(false);
+    const canEdit = useCanEdit();
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
+    const deleteColumn: DataTableColumn<T> = {
+        key: 'delete',
+        header: '',
+        align: 'right',
+        cell: (row: T) =>
+            config.locked?.rows(row) ? (
+                <span className="inline-flex p-2 text-fg-faint" title={config.locked.title}>
+                    <Lock size={16} />
+                </span>
+            ) : (
+                <Button variant="ghost" size="sm" title={APP_COPY.common.delete} onClick={() => remove(row)}>
+                    <Trash2 size={16} className="text-danger" />
+                </Button>
+            ),
+    };
     const columns: DataTableColumn<T>[] = [
         ...config.columns.map((column) => ({
             key: column.key,
@@ -27,21 +44,8 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
             headerTitle: column.title,
             cell: (row: T) => <RecordCell column={column} row={row} onSave={(value) => update(row, column, value)} />,
         })),
-        {
-            key: 'delete',
-            header: '',
-            align: 'right' as const,
-            cell: (row: T) =>
-                config.locked?.rows(row) ? (
-                    <span className="inline-flex p-2 text-fg-faint" title={config.locked.title}>
-                        <Lock size={16} />
-                    </span>
-                ) : (
-                    <Button variant="ghost" size="sm" title={APP_COPY.common.delete} onClick={() => remove(row)}>
-                        <Trash2 size={16} className="text-danger" />
-                    </Button>
-                ),
-        },
+        // Deleting only for someone who may change the page
+        ...(canEdit ? [deleteColumn] : []),
     ];
     const table = (tableRows: T[]) => (
         <DataTable columns={columns} rows={tableRows} getRowKey={(row) => String((row as { id?: unknown }).id)} loading={loading} error={error} />
@@ -56,11 +60,13 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
-                <Button size="sm" onClick={() => setAdding(true)}>
-                    <Plus size={14} /> {config.add.label}
-                </Button>
-            </div>
+            {canEdit && (
+                <div className="flex justify-end">
+                    <Button size="sm" onClick={() => setAdding(true)}>
+                        <Plus size={14} /> {config.add.label}
+                    </Button>
+                </div>
+            )}
 
             {!groupBy || sections.length === 0 ? (
                 table(rows)

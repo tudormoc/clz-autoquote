@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Save, X } from 'lucide-react';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 
@@ -16,10 +17,16 @@ interface EditableCellProps<T> {
     onSave: (draft: T) => Promise<boolean>;
 }
 
-/** Table cell that turns into an editor on click: save / cancel buttons, Enter saves, Escape cancels. */
+/**
+ * Table cell that turns into an editor on click: save / cancel buttons, Enter saves, Escape cancels.
+ * Someone who may only view the page sees the plain value.
+ */
 export function EditableCell<T>({ display, startValue, renderEditor, onSave }: EditableCellProps<T>) {
     const [draft, setDraft] = useState<{ value: T } | null>(null);
     const [saving, setSaving] = useState(false);
+    const canEdit = useCanEdit();
+
+    if (!canEdit) return <>{display}</>;
 
     if (draft === null) {
         return (

@@ -5,6 +5,7 @@
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
+import { authorize } from '@/lib/auth/access';
 
 export interface OperatorRow {
     OPERATORE: string;
@@ -21,6 +22,7 @@ export interface OperatorGroupRow {
 }
 
 export async function getOperatorsAction(search?: string) {
+    await authorize('view', '/presence/operators');
     try {
         const conditions: string[] = [];
         const params: Record<string, string> = {};
@@ -82,6 +84,7 @@ export async function updateOperatorAction(
     columnName: (typeof OPERATOR_COLUMNS)[number],
     newValue: string | null
 ) {
+    await authorize('edit', '/presence/operators');
     if (!OPERATOR_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         const query = `
@@ -111,6 +114,7 @@ export async function updateOperatorAction(
  * Get all operators currently assigned to TURNO2 (GRUPPO = 'TURNO2')
  */
 export async function getTurno2OperatorsAction() {
+    await authorize('view', '/settings/presence');
     try {
         const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT OPERATORE, NOME, GRUPPO
@@ -133,6 +137,7 @@ export async function getTurno2OperatorsAction() {
  * Search operators by name or code (for the add-to-TURNO2 picker)
  */
 export async function searchOperatorsAction(term: string) {
+    await authorize('view', '/settings/presence');
     try {
         const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT TOP 20 OPERATORE, NOME, ISNULL(NULLIF(LTRIM(RTRIM(GRUPPO)), ''), NULL) AS GRUPPO
@@ -156,6 +161,7 @@ export async function searchOperatorsAction(term: string) {
  * Pass gruppo = 'TURNO2' to assign, or gruppo = '' to reset to standard
  */
 export async function setOperatorGruppoAction(operatore: string, gruppo: string) {
+    await authorize('edit', '/settings/presence');
     try {
         await queryMSSQL(
             `UPDATE OPERATORI SET GRUPPO = @gruppo WHERE OPERATORE = @operatore`,

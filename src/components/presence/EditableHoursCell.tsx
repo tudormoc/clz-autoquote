@@ -71,8 +71,11 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
             <div className="flex justify-end">
                 <span
                     onClick={start}
-                    title={APP_COPY.common.clickToEdit}
-                    className="cursor-pointer inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 transition-colors"
+                    title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
+                    className={cn(
+                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30',
+                        !editor.readOnly && 'cursor-pointer hover:bg-warning-500/25 transition-colors'
+                    )}
                 >
                     {String(value)}
                 </span>
@@ -83,9 +86,10 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
     return (
         <span
             onClick={start}
-            title={APP_COPY.common.clickToEdit}
+            title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
             className={cn(
-                'px-2 py-1 rounded text-sm font-mono text-right block transition-colors cursor-pointer hover:bg-muted/80 hover:text-primary',
+                'px-2 py-1 rounded text-sm font-mono text-right block',
+                !editor.readOnly && 'transition-colors cursor-pointer hover:bg-muted/80 hover:text-primary',
                 hasValue && Number(value) > 0 ? 'text-fg-soft font-medium' : 'text-fg-subtle italic'
             )}
         >

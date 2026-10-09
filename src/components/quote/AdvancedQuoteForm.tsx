@@ -13,6 +13,7 @@ import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { calculateBlockThickness } from '@/lib/pricing/formulas/block';
 import { Layers } from 'lucide-react';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 export function AdvancedQuoteForm() {
     const {
@@ -31,6 +32,7 @@ export function AdvancedQuoteForm() {
 
     const blueprintWindowRef = useRef<Window | null>(null);
     const breakdownRef = useRef<HTMLDivElement>(null);
+    const canEdit = useCanEdit();
 
     const handleBlueprintPreview = () => {
         const values = form.getValues();
@@ -127,9 +129,11 @@ export function AdvancedQuoteForm() {
                         >
                             {APP_COPY.form.newQuote}
                         </Button>
-                        <Button type="submit" disabled={isSaving} className="sm:w-auto">
-                            {isSaving ? APP_COPY.form.processing : (selectedQuoteId ? APP_COPY.form.updateQuote : APP_COPY.form.calculateQuote)}
-                        </Button>
+                        {canEdit && (
+                            <Button type="submit" disabled={isSaving} className="sm:w-auto">
+                                {isSaving ? APP_COPY.form.processing : (selectedQuoteId ? APP_COPY.form.updateQuote : APP_COPY.form.calculateQuote)}
+                            </Button>
+                        )}
                     </div>
                     <QuoteTotalBar
                         breakdown={estimate}
@@ -148,7 +152,7 @@ export function AdvancedQuoteForm() {
                 <QuoteHistoryList
                     history={history}
                     onSelectQuote={selectQuote}
-                    onDeleteQuote={handleDeleteQuote}
+                    onDeleteQuote={canEdit ? handleDeleteQuote : undefined}
                 />
             </div>
         </div>

@@ -9,11 +9,11 @@
  * 3. One entry here (label and description in it.ts → admin.pages)
  */
 
-import { Clock, Database, Euro, Layers, Maximize2, Tags, Target, type LucideIcon } from 'lucide-react';
+import { Clock, Database, Euro, KeyRound, Layers, Maximize2, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 /** Groups of the Settings area, in display order: the area each setting belongs to */
-export const SETTINGS_CATEGORIES = ['quotes', 'analytics', 'presence', 'tools'] as const;
+export const SETTINGS_CATEGORIES = ['quotes', 'analytics', 'presence', 'access', 'tools'] as const;
 export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 
 export interface SettingsPageConfig {
@@ -22,19 +22,25 @@ export interface SettingsPageConfig {
     icon: LucideIcon;
     category: SettingsCategory;
     description?: string;
+    /** Changes data: a group can be given "modifica" on it */
+    editable?: boolean;
+    /** Only the superadmin sees it */
+    superadminOnly?: boolean;
 }
 
 const pages = APP_COPY.admin.pages;
 
 /** All settings pages; the order is the display order within each group */
 export const SETTINGS_PAGES: SettingsPageConfig[] = [
-    { id: 'pricing-configs', ...pages.pricingConfigs, icon: Target, category: 'quotes' },
-    { id: 'discount-tiers', ...pages.discountTiers, icon: Tags, category: 'quotes' },
-    { id: 'format-surcharges', ...pages.formatSurcharges, icon: Maximize2, category: 'quotes' },
-    { id: 'signature-types', ...pages.signatureTypes, icon: Layers, category: 'quotes' },
-    { id: 'labour-cost', ...pages.labourCost, icon: Euro, category: 'analytics' },
-    { id: 'presence', ...pages.presence, icon: Clock, category: 'presence' },
-    { id: 'database', ...pages.database, icon: Database, category: 'tools' },
+    { id: 'pricing-configs', ...pages.pricingConfigs, icon: Target, category: 'quotes', editable: true },
+    { id: 'discount-tiers', ...pages.discountTiers, icon: Tags, category: 'quotes', editable: true },
+    { id: 'format-surcharges', ...pages.formatSurcharges, icon: Maximize2, category: 'quotes', editable: true },
+    { id: 'signature-types', ...pages.signatureTypes, icon: Layers, category: 'quotes', editable: true },
+    { id: 'labour-cost', ...pages.labourCost, icon: Euro, category: 'analytics', editable: true },
+    { id: 'presence', ...pages.presence, icon: Clock, category: 'presence', editable: true },
+    { id: 'users', ...pages.users, icon: KeyRound, category: 'access', superadminOnly: true },
+    { id: 'groups', ...pages.groups, icon: UsersRound, category: 'access', superadminOnly: true },
+    { id: 'database', ...pages.database, icon: Database, category: 'tools', superadminOnly: true },
 ];
 
 export function getSettingsPage(id: string): SettingsPageConfig | undefined {

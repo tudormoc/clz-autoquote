@@ -18,6 +18,7 @@ import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 type EditableColumn = 'BADGE' | 'NOME' | 'STATO_FISICO';
 
@@ -46,6 +47,7 @@ export function OperatorsTable() {
         load: (filters: { search: string }) => getOperatorsAction(filters.search || undefined),
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'OPERATORE', direction: 'asc' });
+    const canEdit = useCanEdit();
 
     const allStati = list.result?.allStati ?? [];
     // null = default: every stato on. Operators without a stato get their own chip, off by default.
@@ -139,7 +141,7 @@ export function OperatorsTable() {
 
             {visibleRows.length > 0 && (
                 <RecordCount count={visibleRows.length}>
-                    <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>
+                    {canEdit && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
                 </RecordCount>
             )}
 

@@ -9,6 +9,7 @@ import type { PresenceSettingRow } from '@/types';
 import {
     PRESENCE_SETTINGS,
 } from '@/lib/presence';
+import { authorize } from '@/lib/auth/access';
 
 /**
  * Rename a preset in NETPRO.VALORI_TABELLE and cascade the update to any existing rows in CLZDWHQANDPROG
@@ -19,6 +20,7 @@ export async function renamePresencePresetAction(
     newTag: string,
     updatedPresetsValue: string
 ) {
+    await authorize('edit', '/settings/presence');
     try {
         const defaultDesc = PRESENCE_SETTINGS.find((s) => s.key === parametro)?.description;
 
@@ -47,6 +49,7 @@ export async function renamePresencePresetAction(
  * they can be edited (the first save creates the row). Ordered as PRESENCE_SETTINGS.
  */
 export async function getAllPresenceSettingsAction() {
+    await authorize('view', '/settings/presence');
     try {
         const query = `
             SELECT TABELLA, PARAMETRO, VALORE, DESCRIZIONE, FVALUE01
@@ -86,6 +89,7 @@ export async function updatePresenceSettingAction(
     valore: string,
     descrizione?: string
 ) {
+    await authorize('edit', '/settings/presence');
     try {
         await saveSettingValue('PRESENZE', parametro, valore, descrizione);
         return {

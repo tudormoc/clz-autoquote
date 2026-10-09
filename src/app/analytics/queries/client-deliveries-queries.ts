@@ -10,6 +10,7 @@ import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
 import { buildPaginationResult, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
+import { authorize } from '@/lib/auth/access';
 
 export interface ClientDeliveryRow {
     client_code: number;
@@ -87,6 +88,7 @@ export async function getClientDeliveriesDataAction(
     filters: Filters = {},
     sortConfig: SortConfig = { column: 'delivered_value', direction: 'desc' }
 ) {
+    await authorize('view', '/analytics/client-deliveries');
     try {
         const { request, where } = await deliveriesRequest(year, filters);
 
@@ -131,6 +133,7 @@ export async function getClientDeliveriesDataAction(
 
 /** Total delivered value for the filters (summary card) */
 export async function getClientDeliveriesStatsAction(year: number, filters: Filters = {}) {
+    await authorize('view', '/analytics/client-deliveries');
     try {
         const { request, where } = await deliveriesRequest(year, filters);
         const result = await request.query<{ total_value: number | null }>(`

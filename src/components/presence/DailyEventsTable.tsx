@@ -21,6 +21,7 @@ import type { RowSortColumns } from '@/lib/sort';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 interface Filters {
     dateFrom: string;
@@ -46,6 +47,7 @@ export function DailyEventsTable() {
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'ORA_EVENTO', direction: 'asc' });
     const [showAddForm, setShowAddForm] = useState(false);
+    const canEdit = useCanEdit();
 
     const saveTime = (row: PresenceEventRow) => async ({ date, time }: { date: string; time: string }) => {
         // Date and time go to the database as typed, no timezone conversion
@@ -120,11 +122,13 @@ export function DailyEventsTable() {
 
             <RecordCount count={sorted.length}>
                 <div className="flex items-center gap-3">
-                    {sorted.length > 0 && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
-                    <Button type="button" variant="outline" onClick={() => setShowAddForm(!showAddForm)}>
-                        <Plus size={16} />
-                        {copy.add.button}
-                    </Button>
+                    {canEdit && sorted.length > 0 && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
+                    {canEdit && (
+                        <Button type="button" variant="outline" onClick={() => setShowAddForm(!showAddForm)}>
+                            <Plus size={16} />
+                            {copy.add.button}
+                        </Button>
+                    )}
                 </div>
             </RecordCount>
 

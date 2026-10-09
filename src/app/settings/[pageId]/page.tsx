@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { SETTINGS_COMPONENTS } from '@/components/admin/settingsComponents';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SETTINGS_PAGES, getSettingsPage } from '@/config/settingsPages';
+import { getSettingsPage } from '@/config/settingsPages';
+import { requirePage } from '@/lib/auth/access';
 
 interface SettingsEntryPageProps {
     params: Promise<{ pageId: string }>;
@@ -9,6 +10,7 @@ interface SettingsEntryPageProps {
 
 export default async function SettingsEntryPage({ params }: SettingsEntryPageProps) {
     const { pageId } = await params;
+    await requirePage('settings', pageId);
     const page = getSettingsPage(pageId);
     const Settings = SETTINGS_COMPONENTS[pageId];
 
@@ -25,9 +27,4 @@ export default async function SettingsEntryPage({ params }: SettingsEntryPagePro
 export async function generateMetadata({ params }: SettingsEntryPageProps) {
     const { pageId } = await params;
     return { title: getSettingsPage(pageId)?.label };
-}
-
-// Pre-render every settings page at build time
-export function generateStaticParams() {
-    return SETTINGS_PAGES.map((page) => ({ pageId: page.id }));
 }

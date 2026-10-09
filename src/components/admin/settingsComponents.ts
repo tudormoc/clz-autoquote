@@ -2,6 +2,8 @@
  * Component of each settings page id (see src/config/settingsPages.ts).
  * Kept apart from the page list so the sidebar does not bundle every settings screen.
  */
+import { GroupsManager } from '@/components/admin/access/GroupsManager';
+import { UsersManager } from '@/components/admin/access/UsersManager';
 import { DiscountTiersEditor, FormatSurchargesEditor, PricingRulesEditor, SignatureTypesEditor } from '@/components/admin/recordTables';
 import { LabourCostSettings } from '@/components/admin/LabourCostSettings';
 import { DatabaseExplorer } from '@/components/database/DatabaseExplorer';
@@ -14,5 +16,7 @@ export const SETTINGS_COMPONENTS: Record<string, React.ComponentType> = {
     'signature-types': SignatureTypesEditor,
     'labour-cost': LabourCostSettings,
     'presence': PresenceSettingsManager,
+    'users': UsersManager,
+    'groups': GroupsManager,
     'database': DatabaseExplorer,
 };

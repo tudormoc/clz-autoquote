@@ -5,8 +5,11 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { BookOpen, X } from 'lucide-react';
 import { SidebarArea } from '@/components/layout/sidebar/SidebarArea';
+import { useAccess } from '@/components/auth/AccessProvider';
 import { SidebarFoldButton } from '@/components/layout/sidebar/SidebarFoldButton';
-import { NAV_AREAS, isWithin, type NavArea, type NavAreaId } from '@/config/navigation';
+import { SidebarUser } from '@/components/layout/sidebar/SidebarUser';
+import { isWithin, type NavArea, type NavAreaId } from '@/config/navigation';
+import { visibleAreas } from '@/lib/auth/permissions';
 import { APP_COPY } from '@/locales';
 
 interface SidebarProps {
@@ -14,9 +17,14 @@ interface SidebarProps {
     onClose?: () => void;
 }
 
-/** The app's menu, built from NAV_AREAS: brand, the work areas with their pages, settings at the bottom. */
+/**
+ * The app's menu, built from NAV_AREAS: brand, the work areas with their pages, settings at the bottom, the person
+ * logged in. Only the areas and pages this person may open are listed.
+ */
 export function Sidebar({ onClose }: SidebarProps) {
     const pathname = usePathname();
+    const access = useAccess();
+    const areas = access ? visibleAreas(access) : [];
     // Areas opened or closed with their arrow; the others list their pages while the current page is in them
     const [openedByHand, setOpenedByHand] = useState<Partial<Record<NavAreaId, boolean>>>({});
     const isOpen = (area: NavArea) => openedByHand[area.id] ?? isWithin(pathname, area.href);
@@ -55,18 +63,19 @@ export function Sidebar({ onClose }: SidebarProps) {
             </div>
 
             <nav className="flex-1 min-h-0 flex flex-col p-2 overflow-y-auto overscroll-contain collapsed:overflow-visible">
-                <div className="space-y-0.5">{NAV_AREAS.filter((area) => !area.pinnedBottom).map(renderArea)}</div>
-                <div className="mt-auto pt-2 space-y-0.5">
-                    <div className="border-t border-border mb-2" />
-                    {NAV_AREAS.filter((area) => area.pinnedBottom).map(renderArea)}
-                </div>
+                <div className="space-y-0.5">{areas.filter((area) => !area.pinnedBottom).map(renderArea)}</div>
+                {areas.some((area) => area.pinnedBottom) && (
+                    <div className="mt-auto pt-2 space-y-0.5">
+                        <div className="border-t border-border mb-2" />
+                        {areas.filter((area) => area.pinnedBottom).map(renderArea)}
+                    </div>
+                )}
             </nav>
 
-            {!onClose && (
-                <div className="shrink-0 p-2 border-t border-border">
-                    <SidebarFoldButton />
-                </div>
-            )}
+            <div className="shrink-0 p-2 border-t border-border space-y-0.5">
+                <SidebarUser />
+                {!onClose && <SidebarFoldButton />}
+            </div>
         </div>
     );
 }

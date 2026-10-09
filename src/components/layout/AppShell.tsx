@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { Menu } from 'lucide-react';
+import { useAccess } from '@/components/auth/AccessProvider';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import { FRAMELESS_ROUTES, findNavLocation, isWithin } from '@/config/navigation';
@@ -12,14 +13,16 @@ import { APP_COPY } from '@/locales';
  * Frame of every page, rendered once by the root layout so the sidebar stays put while moving around the app.
  * Desktop (lg and up): sidebar on the left, the content scrolls on its own. Smaller screens: a top bar with the
  * page name and a menu button that slides the sidebar in; the page scrolls as a whole.
- * A page that fills the height (work progress) uses `h-full`.
+ * A page that fills the height (work progress) uses `h-full`. Without a login (the login page) there is no frame.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
     const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-    if (FRAMELESS_ROUTES.some((route) => isWithin(pathname, route))) return children;
+    const access = useAccess();
+
+    if (!access || FRAMELESS_ROUTES.some((route) => isWithin(pathname, route))) return children;
 
     const { area, page } = findNavLocation(pathname);
 

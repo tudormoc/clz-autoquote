@@ -6,6 +6,7 @@ import { getPricingRules, getDiscountTiers, getSignatureTypes, getFormatSurcharg
 import { createPricingRule, deletePricingRule } from '@/lib/pricing/ruleWrites';
 import { dataService } from '@/services/dataService';
 import { z } from 'zod';
+import { authorize } from '@/lib/auth/access';
 
 /**
  * Server Action to calculate a quote and save it using the new Pricing Engine.
@@ -14,6 +15,7 @@ export async function processQuoteAction(
     formData: z.infer<typeof QuoteInputSchema>,
     quoteId?: string
 ) {
+    await authorize('edit', '/quotes');
     // 1. Validation
     const validation = QuoteInputSchema.safeParse(formData);
 
@@ -75,6 +77,7 @@ export async function processQuoteAction(
  * Server Action to fetch quote history
  */
 export async function getQuoteHistoryAction() {
+    await authorize('view', '/quotes');
     return await dataService.getQuotes();
 }
 
@@ -82,6 +85,7 @@ export async function getQuoteHistoryAction() {
  * Server Action to delete a quote
  */
 export async function deleteQuoteAction(id: string) {
+    await authorize('edit', '/quotes');
     return await dataService.deleteQuote(id);
 }
 
@@ -89,6 +93,7 @@ export async function deleteQuoteAction(id: string) {
  * Server Action to fetch latest pricing rules
  */
 export async function getPricingRulesAction() {
+    await authorize('view', '/quotes', '/settings/pricing-configs');
     return await getPricingRules();
 }
 
@@ -96,6 +101,7 @@ export async function getPricingRulesAction() {
  * Server Action to delete a price rule with its operation (rules the quote calculation needs are refused)
  */
 export async function deletePricingRuleAction(id: string) {
+    await authorize('edit', '/settings/pricing-configs');
     return await deletePricingRule(id);
 }
 
@@ -103,6 +109,7 @@ export async function deletePricingRuleAction(id: string) {
  * Server Action to create a price rule (operation + prices in one transaction)
  */
 export async function createPricingRuleAction(values: Record<string, unknown>) {
+    await authorize('edit', '/settings/pricing-configs');
     return await createPricingRule(values);
 }
 
@@ -110,6 +117,7 @@ export async function createPricingRuleAction(values: Record<string, unknown>) {
  * Server Action to fetch volume discount tiers
  */
 export async function getDiscountTiersAction() {
+    await authorize('view', '/quotes', '/settings/discount-tiers');
     return await getDiscountTiers();
 }
 
@@ -117,6 +125,7 @@ export async function getDiscountTiersAction() {
  * Server Action to fetch signature types
  */
 export async function getSignatureTypesAction() {
+    await authorize('view', '/quotes', '/settings/signature-types');
     return await getSignatureTypes();
 }
 
@@ -124,5 +133,6 @@ export async function getSignatureTypesAction() {
  * Server Action to fetch format surcharges
  */
 export async function getFormatSurchargesAction() {
+    await authorize('view', '/quotes', '/settings/format-surcharges');
     return await getFormatSurcharges();
 }

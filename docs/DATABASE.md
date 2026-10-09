@@ -6,7 +6,7 @@ Three SQL Server databases, all reached through `queryMSSQL(query, params, db)` 
 |---|---|---|
 | `BUSINESS` | COOPZANARDI | ERP: accounting, orders, clients, suppliers, the `dwarehe` analytics table |
 | `NETPRO` | NETPRO | Production: orders, operations, time tracking, presence |
-| `QUOTES` | CLZDWHQANDPROG | This app's own tables: quotes, pricing rules, discount tiers, signatures |
+| `QUOTES` | CLZDWHQANDPROG | This app's own tables: quotes, pricing rules, discount tiers, signatures, login users and groups |
 
 Every read names its row type, next to its SQL: `queryMSSQL<{ total: number }>(…)` (numeric / money → `number`,
 datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report screens import the row type from their query file.
@@ -109,3 +109,12 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 - A `'use server'` file may only export async functions. To re-export, import then assign:
   `import { x as xImpl } from './file'; export const x = xImpl;` (`export { x } from` fails in Next.js 16).
 - Wrap the body in `try/catch` and return `{ success, data, error? }`.
+
+## Login tables (QUOTES, created 2026-10-09 with the owner's yes)
+
+| Table | Columns |
+|---|---|
+| `app_users` | `id`, `name` (UNIQUE, compared without case), `pin` (AES-GCM text `v1:…`, key from `AUTH_SECRET`), `group_ids` (`"1,3"`) |
+| `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: menu link → `"view"` / `"edit"`) |
+
+Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not stored here (`.env.local`).

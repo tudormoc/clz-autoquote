@@ -6,11 +6,13 @@
  * - update: columns a click-to-edit cell may change
  * - insert: columns a new row may be created with ([] = new rows are made by their own action, e.g. price rules)
  * - deletable: whether the trash icon may delete a row (price rules are deleted by deletePricingRuleAction)
+ * - page: the settings page (menu link) whose "modifica" access the writes need
  */
 interface EditableTable {
     update: readonly string[];
     insert: readonly string[];
     deletable: boolean;
+    page: string;
 }
 
 const DISCOUNT_TIER_COLUMNS = ['min_quantity', 'max_quantity', 'discount_percentage'] as const;
@@ -18,20 +20,27 @@ const FORMAT_SURCHARGE_COLUMNS = ['width_min', 'width_max', 'height_min', 'heigh
 const SIGNATURE_TYPE_COLUMNS = ['name', 'pages', 'unit_price'] as const;
 
 export const EDITABLE_TABLES = {
-    discount_tiers: { update: DISCOUNT_TIER_COLUMNS, insert: DISCOUNT_TIER_COLUMNS, deletable: true },
-    format_surcharges: { update: FORMAT_SURCHARGE_COLUMNS, insert: FORMAT_SURCHARGE_COLUMNS, deletable: true },
-    signature_types: { update: SIGNATURE_TYPE_COLUMNS, insert: [...SIGNATURE_TYPE_COLUMNS, 'id', 'sort_order', 'is_active'], deletable: true },
+    discount_tiers: { update: DISCOUNT_TIER_COLUMNS, insert: DISCOUNT_TIER_COLUMNS, deletable: true, page: '/settings/discount-tiers' },
+    format_surcharges: { update: FORMAT_SURCHARGE_COLUMNS, insert: FORMAT_SURCHARGE_COLUMNS, deletable: true, page: '/settings/format-surcharges' },
+    signature_types: {
+        update: SIGNATURE_TYPE_COLUMNS,
+        insert: [...SIGNATURE_TYPE_COLUMNS, 'id', 'sort_order', 'is_active'],
+        deletable: true,
+        page: '/settings/signature-types',
+    },
     /** Prices of a price rule */
     pricing_configs: {
         update: ['setup_base_cost', 'setup_variable_factor', 'production_base_cost', 'production_variable_factor'],
         insert: [],
         deletable: false,
+        page: '/settings/pricing-configs',
     },
     /** Name, category and discount / surcharge shares of a price rule */
     operations: {
         update: ['name', 'category', 'discount_multiplier_setup', 'discount_multiplier_production', 'surcharge_multiplier_setup', 'surcharge_multiplier_production'],
         insert: [],
         deletable: false,
+        page: '/settings/pricing-configs',
     },
 } as const satisfies Record<string, EditableTable>;
 

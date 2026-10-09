@@ -18,6 +18,7 @@ import { orderAreaSummaryReportHtml } from '@/lib/pdf/orderAreaSummaryHtml';
 import { fileSlug, reportFileName } from '@/lib/download';
 import { monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
 import { APP_COPY } from '@/locales';
+import { authorize } from '@/lib/auth/access';
 
 const ALL_ROWS = APP_CONFIG.ANALYTICS.ALL_ROWS_LIMIT;
 const PAGE_MARGIN = { top: '20mm', right: '15mm', bottom: '25mm', left: '15mm' };
@@ -55,6 +56,7 @@ export async function generateAreaSummaryPDFAction(
     mode: 'months' | 'weeks' = 'months',
     weeks: number[] = []       // ISO week numbers 1-53 (used when mode === 'weeks')
 ): Promise<PdfResult> {
+    await authorize('view', '/analytics/area-summary');
     try {
         const load = async (label: string, dateFrom: string, dateTo: string): Promise<PeriodData<AreaSummaryRow>> => {
             const result = await getAreaSummaryDataAction(
@@ -106,6 +108,7 @@ export async function generateOrderAreaSummaryPDFAction(
     format: 'A4' | 'A3' = 'A4',
     complexOnly: boolean = false
 ): Promise<PdfResult> {
+    await authorize('view', '/analytics/order-area-summary');
     try {
         const periods = await Promise.all(
             months.map(async (month): Promise<PeriodData<OrderAreaRow>> => {
@@ -146,6 +149,7 @@ export async function generateClientSummaryPDFAction(
     includeAllRevenueForSplit: boolean = false,
     format: 'A4' | 'A3' = 'A4'
 ): Promise<PdfResult> {
+    await authorize('view', '/analytics/client-summary');
     try {
         // One query over the whole period (as on screen): per-month queries counted a split order's full
         // revenue once per month when "Intero" was on

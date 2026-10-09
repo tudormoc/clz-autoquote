@@ -21,6 +21,7 @@ import {
     type SortConfig
 } from './shared/query-utils';
 import { fetchWorkTimesForCommessas } from './shared/work-time-fetcher';
+import { authorize } from '@/lib/auth/access';
 
 /**
  * ============================================================================
@@ -79,6 +80,7 @@ export async function getOrderRevenueDataAction(
     },
     sort?: SortConfig
 ) {
+    await authorize('view', '/analytics/order-revenue');
     try {
         const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
 

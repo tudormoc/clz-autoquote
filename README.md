@@ -13,6 +13,8 @@ Puppeteer for PDFs, xlsx for Excel.
 2. **Read queries** use `WITH (NOLOCK)` and go through `queryMSSQL` in `src/lib/mssql.ts` (never a new connection).
    Query rules, commessa formats and tables: [docs/DATABASE.md](docs/DATABASE.md).
 3. **Deploy only when the owner asks.** Secrets stay in `.env.local` (never committed).
+4. **Every page and every server action checks access** (see Login below). A new page calls `requirePage(...)`,
+   a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`.
 
 ## Working with the owner
 
@@ -40,6 +42,24 @@ npm run excel:examples      # Excel export
   building; the running app serves them itself.
 - Presence Excel files: `\\SERVER2019\Office\…`, with `Z:\` as fallback on the VM.
 
+- `.env.local` on the VM needs the login keys too (`AUTH_SECRET`, `SUPERADMIN_NAME`, `SUPERADMIN_PIN`, see `.env.example`).
+  `AUTH_SECRET` must be **the same as on this PC**: both use the same database and it scrambles the users' PINs.
+
+## Login
+
+- Everyone logs in with a **name and PIN** (`/login`); the login ends when the browser closes, at the latest after
+  `APP_CONFIG.AUTH.SESSION_HOURS`. After 5 wrong PINs a name waits 5 minutes.
+- **Superadmin** (the owner): name + PIN from `.env.local`, not in the database; sees everything and manages
+  Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database.
+- **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin; new users get a random PIN, they can
+  change it with "Cambia PIN"), groups. **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*.
+- A person sees only their pages: menu, home and overview pages are filtered (`src/lib/auth/permissions.ts`), edit
+  buttons and click-to-edit cells hide without *modifica* (`useCanEdit()`). The protection itself is on the server:
+  `src/proxy.ts` (logged in?), `requirePage` in each page, `authorize` / `requireSuperadmin` in each server action
+  (`src/lib/auth/access.ts`). A page that changes data has `editable` in the menu config; Utenti / Gruppi / Database
+  have `superadminOnly`.
+- `/api/auto-exit` accepts only the scheduler (a key derived from `AUTH_SECRET`, `scripts/scheduler.js`) or the superadmin.
+
 ## Where things are
 
 | What | Where |
@@ -59,7 +79,8 @@ npm run excel:examples      # Excel export
 | Report state (filters, paging, sorting, export; loads only on "Applica", filters remembered in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
-| Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings, auto-exit; shared queries in `presence-db.ts`) |
+| Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
+| Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
 | Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
@@ -103,8 +124,10 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 
 ## Recipes
 
-**New page**: the frame (sidebar, phone menu, padding) comes from the root layout — the page renders
-`<PageHeader icon title subtitle />` and its content, and exports `metadata = { title }` for the browser tab. A page that
+**New page**: the frame (sidebar, phone menu, padding) comes from the root layout — the page starts with
+`await requirePage('<area>', '<page id>')`, renders `<PageHeader icon title subtitle />` and its content, and exports
+`metadata = { title }` for the browser tab. Its server actions start with `await authorize(...)`; a page that changes
+data gets `editable: true` in the menu config, so groups can be given *modifica* on it. A page that
 fills the height uses `h-full`. Add the link to `NAV_AREAS` in `src/config/navigation.ts` (a new area, or a page in an
 area's `groups`); the sidebar, the phone menu and the overview cards follow.
 

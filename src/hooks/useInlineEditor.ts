@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 /** Space (px) a popup under the input needs; with less room it opens above */
 const POPUP_SPACE_PX = 140;
@@ -26,8 +27,10 @@ interface Options<T> {
 /**
  * State of a table cell edited in place with a text input and a popup of quick choices (hours, causali):
  * editing / saving flags, the typed text, focus, Enter / Escape, and where the popup opens.
+ * `readOnly` when the person may only view the page: the cell shows its value and does not open.
  */
 export function useInlineEditor<T>({ onSave, disabled }: Options<T>) {
+    const readOnly = !useCanEdit() || !!disabled;
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const [saving, setSaving] = useState(false);
@@ -51,7 +54,7 @@ export function useInlineEditor<T>({ onSave, disabled }: Options<T>) {
 
     /** Opens the editor with `text` in the input */
     const start = (text: string, e?: MouseEvent<HTMLElement>) => {
-        if (disabled || saving) return;
+        if (readOnly || saving) return;
         place(e?.currentTarget);
         setEditValue(text);
         setIsEditing(true);
@@ -85,5 +88,5 @@ export function useInlineEditor<T>({ onSave, disabled }: Options<T>) {
         }
     };
 
-    return { isEditing, editValue, setEditValue, saving, openAbove, inputRef, start, cancel, close, save, keyDown };
+    return { isEditing, editValue, setEditValue, saving, openAbove, inputRef, readOnly, start, cancel, close, save, keyDown };
 }

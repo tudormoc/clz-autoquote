@@ -9,6 +9,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL, MSSQL_DB } from '@/lib/mssql';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { requireSuperadmin } from '@/lib/auth/access';
 
 const { ROW_LIMIT, VALUES_LIMIT, SEARCH_COLUMNS } = APP_CONFIG.DB_EXPLORER;
 
@@ -57,6 +58,7 @@ const sqlName = (name: string) => `[${name.replace(/]/g, ']]')}]`;
 
 /** Whether each database answers a trivial query */
 export async function testConnectionsAction(): Promise<Record<MSSQL_DB, DbConnectionStatus>> {
+    await requireSuperadmin();
     const check = async (db: MSSQL_DB): Promise<DbConnectionStatus> => {
         try {
             await queryMSSQL('SELECT 1 AS ok', {}, db);
@@ -70,6 +72,7 @@ export async function testConnectionsAction(): Promise<Record<MSSQL_DB, DbConnec
 }
 
 export async function getTablesAction(db: MSSQL_DB): Promise<Answer<{ tables: string[] }>> {
+    await requireSuperadmin();
     try {
         if (!isDatabase(db)) return unknownName;
         const result = await queryMSSQL<{ TABLE_NAME: string }>(`
@@ -89,6 +92,7 @@ export async function getTableDataAction(
     tableName: string,
     filter: TableFilter
 ): Promise<Answer<{ columns: DbColumn[]; rows: DbRow[] }>> {
+    await requireSuperadmin();
     try {
         const columns = await tableColumns(db, tableName);
         if (!columns) return unknownName;
@@ -127,6 +131,7 @@ export async function getTableDataAction(
 }
 
 export async function getColumnDistinctValuesAction(db: MSSQL_DB, tableName: string, columnName: string): Promise<Answer<{ values: DbValueCount[] }>> {
+    await requireSuperadmin();
     try {
         const columns = await tableColumns(db, tableName);
         if (!columns?.some((c) => c.COLUMN_NAME === columnName)) return unknownName;

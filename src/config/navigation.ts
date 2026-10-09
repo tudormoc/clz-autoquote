@@ -28,6 +28,10 @@ export interface NavItem {
     label: string;
     icon: LucideIcon;
     description?: string;
+    /** The page changes data: a group can be given "modifica" on it, not only "vede" (src/lib/auth/permissions.ts) */
+    editable?: boolean;
+    /** Only the superadmin sees the page (users, groups, database); groups cannot be given it */
+    superadminOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -45,14 +49,15 @@ export interface NavArea extends NavItem {
     pinnedBottom?: boolean;
 }
 
-/** Pages opened in a window of their own, drawn without the sidebar */
-export const FRAMELESS_ROUTES = ['/blueprint'];
+/** Pages drawn without the sidebar: a window of their own, the login */
+export const FRAMELESS_ROUTES = ['/blueprint', '/login'];
 
-interface CategorisedPage<C extends string> {
-    id: string;
-    label: string;
-    icon: LucideIcon;
-    description?: string;
+/** Login page (src/app/login) */
+export const LOGIN_PATH = '/login';
+/** Shown instead of a page the logged-in user may not open */
+export const NO_ACCESS_PATH = '/no-access';
+
+interface CategorisedPage<C extends string> extends Omit<NavItem, 'href'> {
     category: C;
 }
 
@@ -68,7 +73,7 @@ function groupByCategory<C extends string>(
             label: labels[category],
             items: pages
                 .filter((page) => page.category === category)
-                .map(({ id, label, icon, description }) => ({ id, href: `${basePath}/${id}`, label, icon, description })),
+                .map(({ category: _category, ...page }) => ({ ...page, href: `${basePath}/${page.id}` })),
         }))
         .filter((group) => group.items.length > 0);
 }
@@ -79,8 +84,8 @@ const analytics = APP_COPY.analytics;
 
 /** The app's areas, in sidebar order */
 export const NAV_AREAS: NavArea[] = [
-    { id: 'quotes', href: '/quotes', ...areas.quotes, icon: FileText },
-    { id: 'work-progress', href: '/work-progress', ...areas.workProgress, icon: Workflow },
+    { id: 'quotes', href: '/quotes', ...areas.quotes, icon: FileText, editable: true },
+    { id: 'work-progress', href: '/work-progress', ...areas.workProgress, icon: Workflow, editable: true },
     {
         id: 'analytics',
         href: '/analytics',
@@ -96,9 +101,9 @@ export const NAV_AREAS: NavArea[] = [
         groups: [
             {
                 items: [
-                    { id: 'operators', href: '/presence/operators', label: analytics.operators.title, description: analytics.operators.subtitle, icon: Users },
-                    { id: 'daily-events', href: '/presence/daily-events', label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar },
-                    { id: 'monthly-summary', href: '/presence/monthly-summary', label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays },
+                    { id: 'operators', href: '/presence/operators', label: analytics.operators.title, description: analytics.operators.subtitle, icon: Users, editable: true },
+                    { id: 'daily-events', href: '/presence/daily-events', label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar, editable: true },
+                    { id: 'monthly-summary', href: '/presence/monthly-summary', label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays, editable: true },
                 ],
             },
         ],

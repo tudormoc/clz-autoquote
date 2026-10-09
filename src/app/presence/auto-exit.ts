@@ -1,6 +1,7 @@
-'use server'
-
-/** Daily auto-exit (run by the scheduler through /api/auto-exit). */
+/**
+ * Daily auto-exit, run by the scheduler through /api/auto-exit. Deliberately not a server action file: the browser
+ * cannot call it, only that route can (after checking the scheduler's key or the superadmin).
+ */
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
@@ -14,7 +15,7 @@ import { suspendActiveExecutionIfAny } from './presence-db';
  *
  * @param testOperator - Optional: limit to a single operator code (for testing)
  */
-export async function runAutoExitAction(testOperator?: string) {
+export async function runAutoExit(testOperator?: string) {
     try {
         const now = new Date();
         const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat

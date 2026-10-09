@@ -17,6 +17,7 @@ import {
     eachDateInRange,
 } from '@/lib/presence';
 import { CLOCK_COLUMNS, clockOf, loadPresenceRules, buildOperatorSearch, loadDistributionMap, type ClockRow } from './presence-db';
+import { authorize } from '@/lib/auth/access';
 
 /** One operator-day from the clock-in query (rows are also made up for days without clock-ins) */
 interface AttendanceRow extends ClockRow {
@@ -32,6 +33,7 @@ type OperatorRow = Pick<AttendanceRow, 'operatore' | 'matricola' | 'nome' | 'gru
 
 /** Effective presence rules for client components (config-driven badges, side effects, presets). */
 export async function getPresenceRulesAction() {
+    await authorize('view', '/presence/monthly-summary', '/settings/presence');
     const rules = await loadPresenceRules();
     return { success: true as const, rules };
 }
@@ -41,6 +43,7 @@ export async function getMonthlyHoursAction(
     dateTo: string,
     operatorFilter?: string
 ) {
+    await authorize('view', '/presence/monthly-summary');
     try {
         const rules = await loadPresenceRules();
 
@@ -189,6 +192,7 @@ export async function updateHoursDistributionAction(
     field: HoursDistributionField,
     value: number | string | null
 ) {
+    await authorize('edit', '/presence/monthly-summary');
     try {
         if (!HOURS_DISTRIBUTION_FIELDS.includes(field)) {
             return { success: false, error: APP_COPY.common.notAllowed };

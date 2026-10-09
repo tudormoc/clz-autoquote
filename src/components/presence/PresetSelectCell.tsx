@@ -6,6 +6,7 @@ import { PresetPopup } from '@/components/presence/PresetPopup';
 import { useInlineEditor } from '@/hooks/useInlineEditor';
 import { EMPTY_VALUE } from '@/lib/format';
 import { APP_COPY } from '@/locales';
+import { cn } from '@/lib/utils';
 
 interface PresetSelectCellProps {
     value: string | null;
@@ -78,16 +79,22 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
             {value && value.trim() !== '' ? (
                 <span
                     onClick={start}
-                    title={APP_COPY.common.clickToEdit}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold transition-colors bg-warning-500/15 text-warning-400 border border-warning-500/30 hover:bg-warning-500/25 cursor-pointer"
+                    title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
+                    className={cn(
+                        'inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30',
+                        !editor.readOnly && 'transition-colors hover:bg-warning-500/25 cursor-pointer'
+                    )}
                 >
                     {value}
                 </span>
             ) : (
                 <span
                     onClick={start}
-                    title={APP_COPY.common.clickToEdit}
-                    className="px-2 py-0.5 rounded text-xs font-mono text-center block transition-colors cursor-pointer hover:bg-muted/80 hover:text-fg-secondary text-fg-faint italic"
+                    title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
+                    className={cn(
+                        'px-2 py-0.5 rounded text-xs font-mono text-center block text-fg-faint italic',
+                        !editor.readOnly && 'transition-colors cursor-pointer hover:bg-muted/80 hover:text-fg-secondary'
+                    )}
                 >
                     {EMPTY_VALUE}
                 </span>

@@ -42,6 +42,7 @@ import { notify } from '@/lib/notify';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { HoursDistributionField, OperatorHoursRow } from '@/types';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 interface Filters {
     dateFrom: string;
@@ -93,6 +94,7 @@ export function MonthlyHoursTable() {
         load: (f: Filters) => getMonthlyHoursAction(f.dateFrom, f.dateTo, f.operator || undefined),
     });
     const { rows, setRows } = list;
+    const canEdit = useCanEdit();
 
     const prefill = usePrefillAbsences({ period: list.applied, rules, onRules: setRules, onDone: list.reload });
 
@@ -195,7 +197,7 @@ export function MonthlyHoursTable() {
                     setActiveStatuses(new Set(ALL_STATUSES));
                 }}
                 buttons={
-                    <>
+                    canEdit && <>
                         <Button
                             type="button"
                             variant="outline"

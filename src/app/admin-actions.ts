@@ -3,10 +3,12 @@
 /**
  * Writes of the settings tables (Impostazioni). The browser names a table of EDITABLE_TABLES, a row id and values;
  * anything outside that list is refused, so table and column names in the SQL always come from the server.
+ * Each write needs "modifica" on the table's settings page.
  */
 
 import { z } from 'zod';
 import { editableTable, type EditableTableName } from '@/config/editableTables';
+import { authorize } from '@/lib/auth/access';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
@@ -36,6 +38,7 @@ export async function updateSettingAction(table: EditableTableName, id: string |
     const parsedId = IdSchema.safeParse(id);
     const parsedValue = ValueSchema.safeParse(value);
     if (!config || !config.update.includes(column) || !parsedId.success || !parsedValue.success) return refused;
+    await authorize('edit', config.page);
 
     return write('Update', table, `UPDATE [${table}] SET [${column}] = @value WHERE id = @id`, { id: parsedId.data, value: parsedValue.data });
 }
@@ -45,6 +48,7 @@ export async function deleteSettingAction(table: EditableTableName, id: string |
     const config = editableTable(table);
     const parsedId = IdSchema.safeParse(id);
     if (!config?.deletable || !parsedId.success) return refused;
+    await authorize('edit', config.page);
 
     return write('Delete', table, `DELETE FROM [${table}] WHERE id = @id`, { id: parsedId.data });
 }
@@ -56,6 +60,7 @@ export async function insertSettingAction(table: EditableTableName, values: Reco
     if (!config || !parsed.success) return refused;
     const columns = Object.keys(parsed.data);
     if (columns.length === 0 || columns.some((column) => !config.insert.includes(column))) return refused;
+    await authorize('edit', config.page);
 
     // Parameters are numbered (@p0, @p1 ...), so column names never become parameter names
     const params: SqlParams = Object.fromEntries(columns.map((column, i) => [`p${i}`, parsed.data[column]]));

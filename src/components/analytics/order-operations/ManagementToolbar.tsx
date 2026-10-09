@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { APP_COPY, fmt } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
+import { useCanEdit } from '@/components/auth/AccessProvider';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -20,6 +21,7 @@ interface ManagementToolbarProps {
 
 /** Edition picker, the ids of the orders, whether the order is aligned to the DiBa, and the realign and reload buttons. */
 export function ManagementToolbar({ data, editions, refreshing, syncing, onSelectEdition, onRefresh, onSync }: ManagementToolbarProps) {
+    const canEdit = useCanEdit();
     const multiEdition = editions.length > 1;
     const hasDiscrepancies = data.has_discrepancies ?? false;
 
@@ -69,7 +71,7 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, onSelec
                     </StatusBadge>
                 )}
 
-                {hasDiscrepancies && (
+                {hasDiscrepancies && canEdit && (
                     <Button variant="warning" size="sm" onClick={onSync} disabled={syncing || multiEdition} title={multiEdition ? t.syncNeedsSingleEdition : t.syncButton}>
                         <Sparkles className="w-3.5 h-3.5" />
                         {syncing ? t.syncing : t.syncButton}

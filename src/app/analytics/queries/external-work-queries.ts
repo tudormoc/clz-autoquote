@@ -13,6 +13,7 @@ import { queryMSSQL } from '@/lib/mssql';
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { readLabourRates } from './shared/labour-rates';
 import { buildPaginationResult, businessOrderCore, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
+import { authorize } from '@/lib/auth/access';
 
 interface SupplierFilters {
     commessa?: string;
@@ -88,6 +89,7 @@ export async function getExternalWorkDataAction(
     filters?: SupplierFilters,
     sortConfig?: SortConfig
 ) {
+    await authorize('view', '/analytics/external-work');
     try {
         const { where, params } = externalWorkFilter(year, filters);
         const orderColumns = ownEntry(ORDER_BY, sortConfig?.column);
@@ -131,6 +133,7 @@ export async function getExternalWorkDataAction(
 
 /** Summary: total value and the value per supplier, largest first */
 export async function getExternalWorkStatsAction(year: number, filters?: SupplierFilters) {
+    await authorize('view', '/analytics/external-work');
     try {
         const { where, params } = externalWorkFilter(year, filters);
         const [result, rates] = await Promise.all([
