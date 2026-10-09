@@ -85,6 +85,12 @@ export function sharedLevel(pages: PagePermissions, items: NavItem[]): AccessLev
     return fits('edit') ? 'edit' : 'mixed';
 }
 
+/** The level a click moves to: No → Vede → Modifica (where something can be changed) → No; mixed → Vede */
+export function nextLevel(current: AccessLevel | null | 'mixed', editable: boolean): AccessLevel | null {
+    if (current === null || current === 'mixed') return 'view';
+    return current === 'view' && editable ? 'edit' : null;
+}
+
 export function canOpen(access: UserAccess, href: string, level: AccessLevel = 'view'): boolean {
     if (access.superadmin) return true;
     const granted = access.pages[href];

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { createGroupAction, deleteGroupAction, renameGroupAction, setGroupPagesAction, setUserGroupsAction } from '@/app/access-actions';
-import { GroupEditor } from '@/components/admin/access/GroupEditor';
+import { Check } from 'lucide-react';
+import { createGroupAction, deleteGroupAction, renameGroupAction, setGroupPagesAction } from '@/app/access-actions';
+import { GroupsMatrix } from '@/components/admin/access/GroupsMatrix';
 import { NewNameForm } from '@/components/admin/access/NewNameForm';
-import { PickList } from '@/components/admin/access/PickList';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useGroupDrafts } from '@/hooks/useGroupDrafts';
+import type { Group } from '@/lib/auth/accounts';
 import type { PagePermissions } from '@/lib/auth/permissions';
 import { confirmDelete } from '@/lib/confirm';
 import { APP_COPY, fmt } from '@/locales';
@@ -16,12 +17,12 @@ import { APP_COPY, fmt } from '@/locales';
 const copy = APP_COPY.admin.groups;
 
 /**
- * Impostazioni → Gruppi (superadmin): the groups on the left, the chosen one on the right with one tick per page,
- * per area or for all pages at once, and its users (add, take out). New group, duplicate, rename, delete.
+ * Impostazioni → Gruppi (superadmin): all groups side by side, what each one opens page by page; clicks save
+ * themselves. New group, rename, duplicate, delete. Who is in which group is ticked on the Utenti page.
  */
 export function GroupsManager() {
     const { users, groups, loading, error, run } = useAccounts();
-    const [chosen, setChosen] = useState<number | null>(null);
+    const drafts = useGroupDrafts((id, pages) => run(setGroupPagesAction(id, pages)));
 
     if (loading) {
         return (
@@ -32,63 +33,52 @@ export function GroupsManager() {
     }
     if (error) return <EmptyState title={APP_COPY.common.loadError} description={error} />;
 
-    const inGroup = (id: number) => users.filter((user) => user.groupIds.includes(id));
-    const group = groups.find((candidate) => candidate.id === chosen) ?? groups[0];
-    const members = group ? inGroup(group.id) : [];
+    const members = new Map(groups.map((group) => [group.id, users.filter((user) => user.groupIds.includes(group.id)).map((user) => user.name)]));
 
-    /** Creates a group (empty or a copy) and opens it */
-    const create = async (name: string, pages: PagePermissions = {}) => {
-        let id: number | null = null;
-        const saved = await run(
-            createGroupAction(name, pages).then((res) => {
-                if (res.success) id = res.id;
-                return res;
-            })
-        );
-        if (id !== null) setChosen(id);
-        return saved;
-    };
+    const create = (name: string, pages: PagePermissions = {}) => run(createGroupAction(name, pages));
 
-    const remove = async (id: number, name: string) => {
+    const remove = async ({ id, name }: Group) => {
         if (await confirmDelete(fmt(copy.deleteConfirm, { name }))) await run(deleteGroupAction(id));
     };
 
     return (
-        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-            <aside className="w-full lg:w-64 shrink-0 space-y-3">
-                {groups.length > 0 && (
-                    <Card className="p-2">
-                        <PickList
-                            items={groups.map(({ id, name }) => ({ id, label: name, count: inGroup(id).length }))}
-                            selected={group?.id ?? null}
-                            onSelect={setChosen}
-                        />
-                    </Card>
-                )}
-                <Card className="p-4">
+        <div className="space-y-4">
+            <Card className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-fg-muted md:max-w-xl">{copy.hint}</p>
+                <div className="md:w-96 shrink-0">
                     <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={(name) => create(name)} />
-                </Card>
-            </aside>
+                </div>
+            </Card>
 
-            {/* Not wider than this, so a page name and its ticks stay close */}
-            <div className="flex-1 min-w-0 max-w-3xl">
-                {group ? (
-                    <GroupEditor
-                        key={group.id}
-                        group={group}
+            {groups.length === 0 ? (
+                <EmptyState title={copy.empty} />
+            ) : (
+                <div className="space-y-2">
+                    <div className="h-5 flex justify-end text-xs">
+                        {drafts.state === 'saving' && (
+                            <span className="flex items-center gap-1.5 text-fg-muted">
+                                <Spinner size={12} />
+                                {copy.saving}
+                            </span>
+                        )}
+                        {drafts.state === 'saved' && (
+                            <span className="flex items-center gap-1 text-success-400">
+                                <Check size={14} />
+                                {copy.saved}
+                            </span>
+                        )}
+                    </div>
+                    <GroupsMatrix
+                        groups={groups}
+                        pagesOf={drafts.pagesOf}
                         members={members}
-                        others={users.filter((user) => !members.includes(user))}
-                        onAddMember={(user) => run(setUserGroupsAction(user.id, [...user.groupIds, group.id]))}
-                        onRemoveMember={(user) => run(setUserGroupsAction(user.id, user.groupIds.filter((id) => id !== group.id)))}
-                        onRename={(name) => run(renameGroupAction(group.id, name), () => APP_COPY.admin.users.saved)}
-                        onPages={(pages) => run(setGroupPagesAction(group.id, pages))}
-                        onDuplicate={(pages) => create(fmt(copy.copyName, { name: group.name }), pages)}
-                        onDelete={() => remove(group.id, group.name)}
+                        onChange={(group, pages) => drafts.change(group.id, pages)}
+                        onRename={(group, name) => run(renameGroupAction(group.id, name), () => APP_COPY.admin.users.saved)}
+                        onDuplicate={(group) => create(fmt(copy.copyName, { name: group.name }), drafts.pagesOf(group))}
+                        onDelete={remove}
                     />
-                ) : (
-                    <EmptyState title={copy.empty} />
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

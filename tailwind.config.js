@@ -38,6 +38,7 @@ module.exports = {
             fontSize: theme.FONT_SIZE,
             width: theme.LAYOUT.width,
             minWidth: theme.LAYOUT.minWidth,
+            maxHeight: theme.LAYOUT.maxHeight,
             boxShadow: {
                 sm: 'var(--shadow-sm)',
                 DEFAULT: 'var(--shadow)',
