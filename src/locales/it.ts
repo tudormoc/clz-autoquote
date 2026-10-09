@@ -345,6 +345,13 @@ export const APP_COPY = {
       saved: "Salvato",
     },
     groups: {
+      list: "Gruppi",
+      allPages: "Tutte le pagine",
+      summary: "{view} pagine visibili, di cui {edit} modificabili",
+      duplicate: "Duplica",
+      copyName: "{name} (copia)",
+      saving: "Salvataggio…",
+      saved: "Salvato",
       add: "Nuovo gruppo",
       namePlaceholder: "Nome del gruppo (es. Officina)",
       empty: "Nessun gruppo: creane uno con \"Nuovo gruppo\".",

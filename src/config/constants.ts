@@ -15,6 +15,8 @@ export const APP_CONFIG = {
     // How long an on-screen notice stays (ms); errors stay longer so they can be read
     TOAST_DURATION: 4000,
     ERROR_TOAST_DURATION: 8000,
+    // Pause after the last click before a page of choices saves itself (Gruppi): several quick clicks, one save
+    AUTOSAVE_DELAY_MS: 400,
   },
 
   // Login (src/lib/auth): users, groups and their pages are kept in the QUOTES tables app_users / app_groups

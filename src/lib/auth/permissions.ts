@@ -54,6 +54,31 @@ export function mergePermissions(all: PagePermissions[]): PagePermissions {
     return merged;
 }
 
+/** A level for several pages at once: "edit" where a page changes data, "view" on the others; null takes them away */
+export function withLevel(pages: PagePermissions, items: NavItem[], level: AccessLevel | null): PagePermissions {
+    const next = { ...pages };
+    for (const item of items) {
+        if (level) next[item.href] = level === 'edit' && !item.editable ? 'view' : level;
+        else delete next[item.href];
+    }
+    return next;
+}
+
+/**
+ * The one level that gives these pages what they have now (as withLevel would), or "mixed".
+ * Pages that cannot be changed count as "edit" too when they are visible, so "Modifica" on an area stays lit.
+ */
+export function sharedLevel(pages: PagePermissions, items: NavItem[]): AccessLevel | null | 'mixed' {
+    const fits = (level: AccessLevel | null) =>
+        items.every((item) => {
+            const granted = pages[item.href] ?? null;
+            return level === 'edit' ? granted === 'edit' || (granted === 'view' && !item.editable) : granted === level;
+        });
+    if (fits(null)) return null;
+    if (fits('view')) return 'view';
+    return fits('edit') ? 'edit' : 'mixed';
+}
+
 export function canOpen(access: UserAccess, href: string, level: AccessLevel = 'view'): boolean {
     if (access.superadmin) return true;
     const granted = access.pages[href];

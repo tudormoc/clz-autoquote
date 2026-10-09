@@ -102,8 +102,14 @@ export async function deleteAccount(id: number): Promise<void> {
     await queryMSSQL(`DELETE FROM app_users WHERE id = @id`, { id }, DB);
 }
 
-export async function insertGroup(name: string): Promise<void> {
-    await queryMSSQL(`INSERT INTO app_groups (name, pages) VALUES (@name, '{}')`, { name }, DB);
+/** New group (optionally with pages already chosen); returns its id */
+export async function insertGroup(name: string, pages: PagePermissions = {}): Promise<number> {
+    const result = await queryMSSQL<{ id: number }>(
+        `INSERT INTO app_groups (name, pages) OUTPUT INSERTED.id VALUES (@name, @pages)`,
+        { name, pages: JSON.stringify(pages) },
+        DB
+    );
+    return result.recordset[0].id;
 }
 
 export async function updateGroupName(id: number, name: string): Promise<void> {

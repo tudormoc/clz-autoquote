@@ -142,13 +142,11 @@ export async function deleteUserAction(id: number): Promise<Saved> {
 
 // ── Groups ──
 
-export async function createGroupAction(name: string): Promise<Saved> {
+/** New group, empty or with the pages of the group it copies; answers its id */
+export async function createGroupAction(name: string, pages: Record<string, string> = {}): Promise<{ success: true; id: number } | { success: false; error: string }> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
-    return run(async () => {
-        await insertGroup(checked.name);
-        return {};
-    });
+    return run(async () => ({ id: await insertGroup(checked.name, cleanPermissions(pages)) }));
 }
 
 export async function renameGroupAction(id: number, name: string): Promise<Saved> {
