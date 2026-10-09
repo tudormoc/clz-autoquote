@@ -7,6 +7,8 @@
  */
 
 import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
+import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY, fmt } from '@/locales';
 
 const PIN_FORMAT = 'v1';
 
@@ -18,6 +20,13 @@ function secret(): string {
 
 /** A 32-byte key for one purpose, derived from AUTH_SECRET */
 const keyFor = (purpose: string) => Buffer.from(hkdfSync('sha256', secret(), '', `clz-${purpose}`, 32));
+
+/** A new PIN as typed, trimmed, or the error text when its length is not allowed (APP_CONFIG.AUTH) */
+export function checkPin(value: unknown): { pin: string } | { error: string } {
+    const pin = String(value ?? '').trim();
+    const { MIN_PIN_LENGTH: min, MAX_PIN_LENGTH: max } = APP_CONFIG.AUTH;
+    return pin.length >= min && pin.length <= max ? { pin } : { error: fmt(APP_COPY.auth.pinLength, { min, max }) };
+}
 
 export function encryptPin(pin: string): string {
     const iv = randomBytes(12);

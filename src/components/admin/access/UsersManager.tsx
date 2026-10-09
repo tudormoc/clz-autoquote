@@ -7,6 +7,7 @@ import {
     newUserPinAction,
     renameUserAction,
     setUserGroupsAction,
+    setUserPinAction,
     setUserSuspendedAction,
     type UserView,
 } from '@/app/access-actions';
@@ -25,7 +26,7 @@ const copy = APP_COPY.admin.users;
 
 /**
  * Impostazioni → Utenti (superadmin): search, "Nuovo utente" (the app picks a random PIN, shown here), and the table
- * of all users where each change is saved at once.
+ * of all users where each change is saved at once. A PIN can be typed or rolled; either way their open logins end.
  */
 export function UsersManager() {
     const { users, groups, loading, error, run } = useAccounts();
@@ -83,6 +84,7 @@ export function UsersManager() {
                 onSuspend={(user, suspended) => run(setUserSuspendedAction(user.id, suspended))}
                 onGroup={setGroup}
                 onNewPin={newPin}
+                onSetPin={(user, pin) => run(setUserPinAction(user.id, pin), (res) => fmt(copy.pinReset, { name: user.name, pin: res.pin }))}
                 onDelete={remove}
             />
         </div>

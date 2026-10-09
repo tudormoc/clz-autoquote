@@ -339,7 +339,7 @@ export const APP_COPY = {
       suspendUser: "Sospendi {name}: non può più entrare",
       resumeUser: "Riattiva {name}",
       pin: "PIN",
-      newPin: "Nuovo PIN",
+      newPin: "Nuovo PIN a caso",
       newPinConfirm: "Dare a {name} un nuovo PIN a caso? Il PIN di adesso smette di funzionare e {name} deve rientrare.",
       created: "Utente creato. PIN di {name}: {pin}",
       pinReset: "Nuovo PIN di {name}: {pin}",

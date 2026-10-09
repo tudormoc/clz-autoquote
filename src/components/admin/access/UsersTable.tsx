@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { KeyRound, Trash2 } from 'lucide-react';
+import { Dices, Trash2 } from 'lucide-react';
 import type { UserView } from '@/app/access-actions';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -41,14 +41,16 @@ interface UsersTableProps {
     /** Puts the user in the group (true) or takes them out */
     onGroup: (user: UserView, groupId: number, member: boolean) => void;
     onNewPin: (user: UserView) => void;
+    /** Saves a PIN typed by the superadmin; true when saved */
+    onSetPin: (user: UserView, pin: string) => Promise<boolean>;
     onDelete: (user: UserView) => void;
 }
 
 /**
  * All users in one table, every column sortable: name (click to change), active switch, a tick per group, how many
- * pages their groups open, last login, PIN with "Nuovo PIN", delete. On phones one card per user.
+ * pages their groups open, last login, PIN (click to type one, or a random one), delete. On phones one card per user.
  */
-export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onDelete }: UsersTableProps) {
+export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete }: UsersTableProps) {
     const pagesOf = useMemo(
         () => new Map(users.map((user) => [user.id, mergePermissions(groups.filter((group) => user.groupIds.includes(group.id)).map((group) => group.pages))])),
         [users, groups]
@@ -142,9 +144,21 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
             sortable: false,
             cell: (user) => (
                 <div className="inline-flex items-center gap-1">
-                    <span className="font-mono text-fg-strong">{user.pin || EMPTY_VALUE}</span>
+                    <span className="font-mono text-fg-strong">
+                        <EditableCell
+                            display={user.pin || EMPTY_VALUE}
+                            startValue={() => user.pin}
+                            renderEditor={(draft, setDraft) => (
+                                <div className="w-32">
+                                    <Input value={draft} onChange={(e) => setDraft(e.target.value)} aria-label={copy.pin} className="font-mono" autoFocus />
+                                </div>
+                            )}
+                            // The same PIN again would still end their open logins: nothing to save
+                            onSave={async (pin) => pin.trim() === user.pin || onSetPin(user, pin)}
+                        />
+                    </span>
                     <Button variant="ghost" size="sm" title={copy.newPin} aria-label={copy.newPin} onClick={() => onNewPin(user)}>
-                        <KeyRound size={14} />
+                        <Dices size={14} />
                     </Button>
                 </div>
             ),

@@ -4,12 +4,11 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { APP_CONFIG } from '@/config/constants';
 import { LOGIN_PATH } from '@/config/navigation';
 import { getAccess } from '@/lib/auth/access';
 import { findAccountByName, recordLogin, updateAccountPin } from '@/lib/auth/accounts';
 import { clearFailures, minutesLocked, recordFailure } from '@/lib/auth/lockout';
-import { decryptPin, encryptPin, pinFingerprint, sameText } from '@/lib/auth/secrets';
+import { decryptPin, encryptPin, pinFingerprint, sameText, checkPin } from '@/lib/auth/secrets';
 import { SESSION_COOKIE, SESSION_COOKIE_OPTIONS, SUPERADMIN, newSessionToken, superadminAccount, superadminFingerprint } from '@/lib/auth/session';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
@@ -17,7 +16,6 @@ import { APP_COPY, fmt } from '@/locales';
 type Result = { success: true } | { success: false; error: string };
 
 const copy = APP_COPY.auth;
-const { MIN_PIN_LENGTH, MAX_PIN_LENGTH } = APP_CONFIG.AUTH;
 
 /** A link inside the app to go back to after the login (never another site) */
 const safeNext = (next: unknown) => (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : '/');
@@ -74,12 +72,10 @@ export async function changeOwnPinAction(newPin: string): Promise<Result> {
     const access = await getAccess();
     if (!access || access.id === null) return { success: false, error: copy.notAllowed };
 
-    const pin = String(newPin ?? '').trim();
-    if (pin.length < MIN_PIN_LENGTH || pin.length > MAX_PIN_LENGTH) {
-        return { success: false, error: fmt(copy.pinLength, { min: MIN_PIN_LENGTH, max: MAX_PIN_LENGTH }) };
-    }
+    const checked = checkPin(newPin);
+    if ('error' in checked) return { success: false, error: checked.error };
     try {
-        const stored = encryptPin(pin);
+        const stored = encryptPin(checked.pin);
         await updateAccountPin(access.id, stored);
         (await cookies()).set(SESSION_COOKIE, newSessionToken(access.id, pinFingerprint(stored)), SESSION_COOKIE_OPTIONS);
         return { success: true };

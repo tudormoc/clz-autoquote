@@ -25,7 +25,7 @@ import {
     type Group,
 } from '@/lib/auth/accounts';
 import { cleanPermissions } from '@/lib/auth/permissions';
-import { decryptPin, encryptPin } from '@/lib/auth/secrets';
+import { checkPin, decryptPin, encryptPin } from '@/lib/auth/secrets';
 import { superadminAccount } from '@/lib/auth/session';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
@@ -130,6 +130,17 @@ export async function newUserPinAction(id: number): Promise<WithPin> {
     return run(async () => {
         await updateAccountPin(id, encryptPin(pin));
         return { pin };
+    });
+}
+
+/** A PIN chosen by the superadmin (same length rule as "Cambia PIN"); the user's open logins end */
+export async function setUserPinAction(id: number, pin: string): Promise<WithPin> {
+    if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
+    const checked = checkPin(pin);
+    if ('error' in checked) return { success: false, error: checked.error };
+    return run(async () => {
+        await updateAccountPin(id, encryptPin(checked.pin));
+        return { pin: checked.pin };
     });
 }
 
