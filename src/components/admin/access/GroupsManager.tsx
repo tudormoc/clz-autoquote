@@ -17,7 +17,7 @@ const copy = APP_COPY.admin.groups;
 
 /**
  * Impostazioni → Gruppi (superadmin): the groups on the left, the chosen one on the right with one tick per page,
- * per area or for all pages at once. New group, duplicate, rename, delete.
+ * per area or for all pages at once, and its users. New group, duplicate, rename, delete.
  */
 export function GroupsManager() {
     const { users, groups, loading, error, run } = useAccounts();
@@ -32,7 +32,8 @@ export function GroupsManager() {
     }
     if (error) return <EmptyState title={APP_COPY.common.loadError} description={error} />;
 
-    const members = new Map(groups.map((group) => [group.id, users.filter((user) => user.groupIds.includes(group.id)).length]));
+    const membersOf = (id: number) => users.filter((user) => user.groupIds.includes(id));
+    const members = new Map(groups.map((group) => [group.id, membersOf(group.id).length]));
     const group = groups.find((candidate) => candidate.id === chosen) ?? groups[0];
 
     /** Creates a group (empty or a copy) and opens it */
@@ -69,7 +70,7 @@ export function GroupsManager() {
                     <GroupEditor
                         key={group.id}
                         group={group}
-                        members={members.get(group.id) ?? 0}
+                        members={membersOf(group.id)}
                         onRename={(name) => run(renameGroupAction(group.id, name), () => APP_COPY.admin.users.saved)}
                         onPages={(pages) => run(setGroupPagesAction(group.id, pages))}
                         onDuplicate={(pages) => create(fmt(copy.copyName, { name: group.name }), pages)}

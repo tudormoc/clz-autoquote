@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Trash2 } from 'lucide-react';
+import type { UserView } from '@/app/access-actions';
 import { PermissionTable } from '@/components/admin/access/PermissionTable';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
+import { TagCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import type { Group } from '@/lib/auth/accounts';
 import type { PagePermissions } from '@/lib/auth/permissions';
@@ -17,7 +19,8 @@ const copy = APP_COPY.admin.groups;
 
 interface GroupEditorProps {
     group: Group;
-    members: number;
+    /** Users in the group */
+    members: UserView[];
     onRename: (name: string) => Promise<boolean>;
     /** Saves the group's pages; true when saved */
     onPages: (pages: PagePermissions) => Promise<boolean>;
@@ -26,7 +29,7 @@ interface GroupEditorProps {
 }
 
 /**
- * One group: name (click to change), users, what it opens, and its permission table. Clicks show at once and are
+ * One group: name (click to change), its users, what it opens, and its permission table. Clicks show at once and are
  * saved together a moment after the last one (APP_CONFIG.UI.AUTOSAVE_DELAY_MS).
  */
 export function GroupEditor({ group, members, onRename, onPages, onDuplicate, onDelete }: GroupEditorProps) {
@@ -69,7 +72,7 @@ export function GroupEditor({ group, members, onRename, onPages, onDuplicate, on
                         />
                     </div>
                     <p className="text-sm text-fg-muted">
-                        {fmt(copy.members, { count: members })} · {fmt(copy.summary, { view: visible, edit: editable })}
+                        {fmt(copy.summary, { view: visible, edit: editable })}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -93,6 +96,15 @@ export function GroupEditor({ group, members, onRename, onPages, onDuplicate, on
                         <Trash2 size={16} className="text-danger" />
                     </Button>
                 </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 text-sm">
+                <span className="mr-1 text-fg-muted">{fmt(copy.members, { count: members.length })}:</span>
+                {members.length === 0 ? (
+                    <span className="text-fg-muted">{copy.noMembers}</span>
+                ) : (
+                    members.map((user) => <TagCell key={user.id}>{user.name}</TagCell>)
+                )}
             </div>
 
             <PermissionTable pages={draft} onChange={change} />
