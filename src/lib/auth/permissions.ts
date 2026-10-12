@@ -19,6 +19,8 @@ export interface UserAccess {
     /** Sees and changes everything, manages users and groups */
     superadmin: boolean;
     pages: PagePermissions;
+    /** app_groups ids of the user (none for the superadmin): what a group shares with its members */
+    groupIds: number[];
 }
 
 /** Pages a group can be given, per area, in menu order (a single-page area is its own page) */

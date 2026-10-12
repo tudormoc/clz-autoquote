@@ -15,7 +15,7 @@ interface RecordCellProps<T> {
 /** One value of a row: click to edit, Enter saves. */
 export function RecordCell<T>({ column, row, onSave }: RecordCellProps<T>) {
     const value = (row as Record<string, unknown>)[column.key];
-    const wide = column.kind === 'text' || column.kind === 'choice';
+    const wide = column.kind === 'text' || column.kind === 'choice' || column.kind === 'date';
 
     return (
         <EditableCell

@@ -89,6 +89,16 @@ export async function listAccounts(): Promise<Account[]> {
     return result.recordset.map(toAccount);
 }
 
+/** Names only (no PIN), for showing who did what (Agenda) */
+export async function listAccountNames(): Promise<{ id: number; name: string; suspended: boolean }[]> {
+    const result = await queryMSSQL<{ id: number; name: string; suspended: boolean }>(
+        `SELECT id, name, suspended FROM app_users WITH (NOLOCK) ORDER BY name`,
+        {},
+        DB
+    );
+    return result.recordset.map((row) => ({ ...row, suspended: Boolean(row.suspended) }));
+}
+
 export async function listGroups(): Promise<Group[]> {
     const result = await queryMSSQL<GroupRow>(`SELECT id, name, pages FROM app_groups WITH (NOLOCK) ORDER BY name`, {}, DB);
     return result.recordset.map(toGroup);

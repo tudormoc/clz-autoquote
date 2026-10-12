@@ -4,8 +4,9 @@ import type { EditableTableName } from '@/config/editableTables';
 /**
  * How a value is typed and shown:
  * text · integer · decimal · optionalInteger (empty = none, stored as null) · percent (typed as 10, stored as 0.10) · choice (one of `options`)
+ * · date (YYYY-MM-DD, the browser's date field) · flag (Sì / No, stored as 1 / 0)
  */
-export type RecordKind = 'text' | 'integer' | 'decimal' | 'optionalInteger' | 'percent' | 'choice';
+export type RecordKind = 'text' | 'integer' | 'decimal' | 'optionalInteger' | 'percent' | 'choice' | 'date' | 'flag';
 
 export interface RecordColumn<T> {
     /** Property of the row, also the column name in the database */
@@ -48,6 +49,11 @@ export interface RecordTableConfig<T> {
     deleteConfirm: string;
     /** Replaces the plain delete, for a row made of several tables */
     remove?: (row: T) => Promise<{ success: boolean; error?: string }>;
+    /**
+     * Rows kept in the order of this integer column, changed with ↑ ↓ arrows (the column itself is not shown or typed);
+     * a new row goes to the end. Rows must come from `load` already in this order.
+     */
+    reorder?: { key: string };
     /** Rows that cannot be deleted: a lock with this tooltip instead of the trash icon */
     locked?: { rows: (row: T) => boolean; title: string };
 }

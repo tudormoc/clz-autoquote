@@ -9,11 +9,11 @@
  * 3. One entry here (label and description in it.ts → admin.pages)
  */
 
-import { Clock, Database, Euro, KeyRound, Layers, Maximize2, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
+import { CalendarOff, Clock, Database, Euro, FolderTree, KeyRound, Layers, Maximize2, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 /** Groups of the Settings area, in display order: the area each setting belongs to */
-export const SETTINGS_CATEGORIES = ['quotes', 'analytics', 'presence', 'access', 'tools'] as const;
+export const SETTINGS_CATEGORIES = ['quotes', 'analytics', 'presence', 'tasks', 'access', 'tools'] as const;
 export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number];
 
 export interface SettingsPageConfig {
@@ -38,6 +38,8 @@ export const SETTINGS_PAGES: SettingsPageConfig[] = [
     { id: 'signature-types', ...pages.signatureTypes, icon: Layers, category: 'quotes', editable: true },
     { id: 'labour-cost', ...pages.labourCost, icon: Euro, category: 'analytics', editable: true },
     { id: 'presence', ...pages.presence, icon: Clock, category: 'presence', editable: true },
+    { id: 'task-areas', ...pages.taskAreas, icon: FolderTree, category: 'tasks', editable: true },
+    { id: 'closed-days', ...pages.closedDays, icon: CalendarOff, category: 'tasks', editable: true },
     { id: 'users', ...pages.users, icon: KeyRound, category: 'access', superadminOnly: true },
     { id: 'groups', ...pages.groups, icon: UsersRound, category: 'access', superadminOnly: true },
     { id: 'database', ...pages.database, icon: Database, category: 'tools', superadminOnly: true },

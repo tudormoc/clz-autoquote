@@ -1,6 +1,6 @@
 # CLZ TM
 
-Internal web app of the cooperative: quotes, production progress, analytics, operator presence and cashflow.
+Internal web app of the cooperative: quotes, production progress, analytics, operator presence, cashflow and the owner's Agenda.
 Italian UI. **Live in production with real data.**
 
 Stack: Next.js 16 (App Router) + React 19 + TypeScript (strict), Tailwind CSS, three SQL Server databases through `mssql`,
@@ -31,6 +31,7 @@ npm run check      # typecheck + lint + example checks + production build — ru
 npm run presence:examples   # presence rules on made-up data
 npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
+npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do groups)
 ```
 
 ## Deployment
@@ -88,6 +89,7 @@ npm run excel:examples      # Excel export
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
 | Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orders/` |
 | Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
+| Agenda (tasks, deadlines, procedures, contacts) | `src/lib/tasks/` (rules, pure) + `src/lib/tasks/db/` (all its SQL), actions `src/app/tasks/*-actions.ts`, screens `src/components/tasks/`, tables `sql/tasks/` — [docs/TASKS.md](docs/TASKS.md) |
 
 ## Design system
 

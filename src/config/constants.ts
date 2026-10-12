@@ -30,6 +30,28 @@ export const APP_CONFIG = {
     MAX_NAME_LENGTH: 100,       // app_users.name / app_groups.name
   },
 
+  // Agenda (src/lib/tasks, docs/TASKS.md): tasks, deadlines and procedures in the QUOTES tables tsk_* (sql/tasks/)
+  TASKS: {
+    CLOSED_WEEKDAYS: [6, 7],        // Saturday and Sunday: a due date on them gets "meglio entro" the working day before
+    DEFAULT_SHOW_DAYS: 7,           // a new task moves to "In arrivo" this many days before it is due
+    MAX_SHOW_DAYS: 366,
+    MAX_TITLE_LENGTH: 200,          // tsk_tasks.title, tsk_guides.title
+    MAX_TAGS_LENGTH: 400,           // tsk_tasks.tags
+    MAX_NOTE_LENGTH: 400,           // tsk_occurrences.status_note (waiting for, skip reason)
+    MAX_LINK_LENGTH: 1000,          // tsk_links.value
+    MAX_NAME_LENGTH: 150,           // tsk_contacts.name / company / role
+    NEXT_DATES_PREVIEW: 5,          // dates shown under the repeat rule (form, task page)
+    DONE_TODAY_LIMIT: 20,           // "Fatte oggi" at the bottom of Da fare
+    HISTORY_LIMIT: 2000,            // most closed occurrences one Storico search shows
+    CALENDAR_MAX_PER_DAY: 4,        // entries drawn in a month-view day cell before "+N"
+    RANGE_MAX_DAYS: 62,             // longest stretch one calendar read may ask for (a month grid is 42 days)
+    LOAD_MAX_DAYS: 120,             // longest stretch of the "coming weeks" strip
+    HORIZON_WEEKS: 8,               // weeks in the strip above the week view (this one and the next)
+    TODAY_COLUMN_WEIGHT: 1.6,       // today's column in the week view is this many times as wide as the others
+    DAY_FULL: 5,                    // a day with this many things due draws a full bar (week board, coming weeks); busier days too
+    CLOSED_COLUMN_WEIGHT: 0.6,      // … and a closed day with nothing on it this many times (more room for working days)
+  },
+
   // Display locale for numbers, money and dates (used by src/lib/format.ts).
   // Colours, radius, fonts and shadows live in src/styles/theme.js.
   LOCALE: {

@@ -4,7 +4,7 @@
  */
 import { GroupsManager } from '@/components/admin/access/GroupsManager';
 import { UsersManager } from '@/components/admin/access/UsersManager';
-import { DiscountTiersEditor, FormatSurchargesEditor, PricingRulesEditor, SignatureTypesEditor } from '@/components/admin/recordTables';
+import { ClosedDaysEditor, DiscountTiersEditor, FormatSurchargesEditor, PricingRulesEditor, SignatureTypesEditor, TaskAreasEditor } from '@/components/admin/recordTables';
 import { LabourCostSettings } from '@/components/admin/LabourCostSettings';
 import { DatabaseExplorer } from '@/components/database/DatabaseExplorer';
 import { PresenceSettingsManager } from '@/components/presence/PresenceSettingsManager';
@@ -16,6 +16,8 @@ export const SETTINGS_COMPONENTS: Record<string, React.ComponentType> = {
     'signature-types': SignatureTypesEditor,
     'labour-cost': LabourCostSettings,
     'presence': PresenceSettingsManager,
+    'task-areas': TaskAreasEditor,
+    'closed-days': ClosedDaysEditor,
     'users': UsersManager,
     'groups': GroupsManager,
     'database': DatabaseExplorer,

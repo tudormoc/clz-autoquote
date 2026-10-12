@@ -10,8 +10,9 @@
     "presence:examples": "tsx --tsconfig tsconfig.json scripts/presence-examples.ts",
     "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts",
     "excel:examples": "tsx --tsconfig tsconfig.json scripts/excel-examples.ts",
+    "tasks:examples": "tsx --tsconfig tsconfig.json scripts/tasks-examples.ts",
     "typecheck": "tsc --noEmit --incremental false",
-    "check": "npm run typecheck && npm run lint && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run build"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -28,6 +29,8 @@
     "react-day-picker": "^9.13.2",
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.25.7"

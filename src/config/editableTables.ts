@@ -35,6 +35,10 @@ export const EDITABLE_TABLES = {
         deletable: false,
         page: '/settings/pricing-configs',
     },
+    /** Agenda: areas of tasks and procedures (a deleted area leaves them without one: ON DELETE SET NULL) */
+    tsk_areas: { update: ['name', 'sort_order'], insert: ['name', 'sort_order'], deletable: true, page: '/settings/task-areas' },
+    /** Agenda: company closed days */
+    tsk_closed_days: { update: ['closed_on', 'name', 'every_year'], insert: ['closed_on', 'name', 'every_year'], deletable: true, page: '/settings/closed-days' },
     /** Name, category and discount / surcharge shares of a price rule */
     operations: {
         update: ['name', 'category', 'discount_multiplier_setup', 'discount_multiplier_production', 'surcharge_multiplier_setup', 'surcharge_multiplier_production'],

@@ -6,7 +6,7 @@ Three SQL Server databases, all reached through `queryMSSQL(query, params, db)` 
 |---|---|---|
 | `BUSINESS` | COOPZANARDI | ERP: accounting, orders, clients, suppliers, the `dwarehe` analytics table |
 | `NETPRO` | NETPRO | Production: orders, operations, time tracking, presence |
-| `QUOTES` | CLZDWHQANDPROG | This app's own tables: quotes, pricing rules, discount tiers, signatures, login users and groups |
+| `QUOTES` | CLZDWHQANDPROG | This app's own tables: quotes, pricing rules, discount tiers, signatures, login users and groups, the Agenda (`tsk_*`) |
 
 Every read names its row type, next to its SQL: `queryMSSQL<{ total: number }>(…)` (numeric / money → `number`,
 datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report screens import the row type from their query file.
@@ -118,3 +118,20 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 | `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: menu link → `"view"` / `"edit"`) |
 
 Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not stored here (`.env.local`).
+
+## Agenda tables (QUOTES, created 2026-10-09 with the owner's yes)
+
+Created by `sql/tasks/001_create_tables.sql`; read and written only by `src/lib/tasks/db/` (how they work: [TASKS.md](TASKS.md)).
+People are `VARCHAR(20)`: an `app_users` id as text, `superadmin`, or `system`. Dates are `DATE`, moments `DATETIME2(0)` with
+`GETDATE()` (wall-clock time). Every main table has `row_version` (ROWVERSION) for the "changed meanwhile" check.
+
+| Table | Columns |
+|---|---|
+| `tsk_tasks` | `id`, `title`, `notes` (formatted text), `area_id` → `tsk_areas` (SET NULL), `tags` (comma-separated), `priority` (0 normale, 1 alta, 2 critica), `assignee`, `group_id` (`app_groups.id`, no FK), `visibility` (`private` / `group` / `all`), `due_date` (one-time: the date, NULL = none; repeating: the first date), `due_time`, `repeat_rule` (JSON, NULL = one-time), `repeat_from` (no occurrences before), `show_days`, `remind_days` (later), `checklist` (JSON `[{id, text}]`), `estimate_minutes`, `parent_id`, `link_kind` / `link_code` (later), `state` (`active` / `paused` / `archived`), `source`, `created_*`, `updated_*` |
+| `tsk_occurrences` | `id`, `task_id` (CASCADE), `original_date` (from the rule), `due_date` (after "Rimanda"), `due_time`, `status` (`open` `progress` `waiting` `done` `skipped` `cancelled` `replaced`), `status_note`, `outcome`, `checklist_done` (JSON ids), `done_at`, `done_by`, `created_at`, `updated_*`; UNIQUE (`task_id`, `original_date`) |
+| `tsk_guides` / `tsk_guide_versions` | procedure: `title`, `area_id`, `body`, `review_months`, `reviewed_at`, `state`; each earlier text: `guide_id`, `title`, `body`, `saved_at`, `saved_by` |
+| `tsk_task_guides` | `task_id`, `guide_id`, `sort_order` |
+| `tsk_links` | `owner_kind` (`task` / `occurrence` / `guide`), `owner_id`, `label`, `kind` (`web` `path` `page` `email` `phone` `other`), `value`, `sort_order` |
+| `tsk_contacts` / `tsk_contact_refs` | `name`, `company`, `role`, `phone`, `email`, `notes`, `state`; where used: `contact_id`, `owner_kind` (`task` / `guide`), `owner_id` |
+| `tsk_log` | `logged_at`, `person`, `entity_kind`, `entity_id`, `task_id`, `action`, `details` (JSON) |
+| `tsk_areas` / `tsk_closed_days` | settings tables (`editableTables.ts`): `name`, `sort_order` / `closed_on`, `name`, `every_year` |

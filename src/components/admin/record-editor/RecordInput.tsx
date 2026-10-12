@@ -1,4 +1,5 @@
 import type { RecordColumn } from '@/components/admin/record-editor/types';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { APP_COPY } from '@/locales';
@@ -10,12 +11,22 @@ interface RecordInputProps<T> {
     autoFocus?: boolean;
 }
 
-/** The input for one column, by kind: text, number, percent (with its "%") or a choice. */
+/** Options of a yes / no value */
+const FLAG_OPTIONS = [
+    { value: '1', label: APP_COPY.common.yes },
+    { value: '0', label: APP_COPY.common.no },
+];
+
+/** The input for one column, by kind: text, number, percent (with its "%"), a choice, a date or yes / no. */
 export function RecordInput<T>({ column, value, onChange, autoFocus }: RecordInputProps<T>) {
     const { kind } = column;
 
-    if (kind === 'choice') {
-        return <Select options={column.options ?? []} value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} />;
+    if (kind === 'choice' || kind === 'flag') {
+        const options = kind === 'flag' ? FLAG_OPTIONS : column.options ?? [];
+        return <Select options={options} value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} />;
+    }
+    if (kind === 'date') {
+        return <DatePicker value={value} onChange={onChange} autoFocus={autoFocus} />;
     }
 
     const isText = kind === 'text';

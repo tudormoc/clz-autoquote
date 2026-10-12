@@ -21,7 +21,7 @@ const copy = APP_COPY.analytics.monthlySummary;
 /** "Precompila e Distribuisci Ore": what will be filled in, by kind of day, before the user confirms. */
 export function PrefillConfirmDialog({ summary, rules, period, prefilling, onConfirm, onClose }: PrefillConfirmDialogProps) {
     const workdayLabel = `${rules.workdayHours.toFixed(1)}h`;
-    const weekdays = (days: number[]) => days.map((d) => copy.weekdays[d - 1]).join(', ');
+    const weekdays = (days: number[]) => days.map((d) => APP_COPY.weekdays.short[d - 1]).join(', ');
     const fixedCategories = PREFILL_CATEGORIES.filter((c) => c.profile === 'fixed');
     const standardCategoriesLabel = PREFILL_CATEGORIES.filter((c) => c.profile === 'standard').map((c) => c.label).join(', ');
 

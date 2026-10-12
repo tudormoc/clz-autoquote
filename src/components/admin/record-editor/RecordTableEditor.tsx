@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Lock, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Lock, Plus, Trash2 } from 'lucide-react';
 import { AddRecordDialog } from '@/components/admin/record-editor/AddRecordDialog';
 import { RecordCell } from '@/components/admin/record-editor/RecordCell';
 import type { RecordTableConfig } from '@/components/admin/record-editor/types';
@@ -17,7 +17,7 @@ import { useCanEdit } from '@/components/auth/AccessProvider';
  * (a lock on rows that cannot be deleted), button to add a row. With `groupBy` the rows sit in collapsible sections (all closed at first).
  */
 export function RecordTableEditor<T extends object>({ config }: { config: RecordTableConfig<T> }) {
-    const { rows, loading, error, update, remove, add } = useRecordTable(config);
+    const { rows, loading, error, update, remove, add, move } = useRecordTable(config);
     const [adding, setAdding] = useState(false);
     const canEdit = useCanEdit();
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -37,7 +37,36 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
                 </Button>
             ),
     };
+    // ↑ ↓ to change the order of a list kept in order
+    const orderColumn: DataTableColumn<T> = {
+        key: 'order',
+        header: '',
+        compact: true,
+        className: 'w-20',
+        cell: (row: T) => {
+            const index = rows.indexOf(row);
+            return (
+                <div className="flex items-center gap-0.5">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title={APP_COPY.admin.records.moveUp} aria-label={APP_COPY.admin.records.moveUp} disabled={index <= 0} onClick={() => move(row, -1)}>
+                        <ArrowUp size={14} />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title={APP_COPY.admin.records.moveDown}
+                        aria-label={APP_COPY.admin.records.moveDown}
+                        disabled={index === rows.length - 1}
+                        onClick={() => move(row, 1)}
+                    >
+                        <ArrowDown size={14} />
+                    </Button>
+                </div>
+            );
+        },
+    };
     const columns: DataTableColumn<T>[] = [
+        ...(canEdit && config.reorder ? [orderColumn] : []),
         ...config.columns.map((column) => ({
             key: column.key,
             header: column.label,

@@ -9,9 +9,16 @@
  */
 import {
     BarChart3,
+    BookOpen,
     Calendar,
+    CalendarCheck,
     CalendarDays,
+    CalendarRange,
+    Contact,
     FileText,
+    History,
+    ListChecks,
+    ListTodo,
     Settings,
     Users,
     Wallet,
@@ -39,7 +46,7 @@ export interface NavGroup {
     items: NavItem[];
 }
 
-export type NavAreaId = 'quotes' | 'work-progress' | 'analytics' | 'presence' | 'cashflow' | 'settings';
+export type NavAreaId = 'quotes' | 'work-progress' | 'analytics' | 'presence' | 'cashflow' | 'tasks' | 'settings';
 
 export interface NavArea extends NavItem {
     id: NavAreaId;
@@ -81,6 +88,17 @@ function groupByCategory<C extends string>(
 const areas = APP_COPY.nav.areas;
 // it.ts keeps the presence page texts under analytics too
 const analytics = APP_COPY.analytics;
+const tasks = APP_COPY.tasks.pages;
+
+/** The Agenda's pages (src/app/tasks); their links are also the access checks of its server actions */
+export const TASK_PAGES = {
+    todo: '/tasks/todo',
+    calendar: '/tasks/calendar',
+    list: '/tasks/list',
+    guides: '/tasks/guides',
+    contacts: '/tasks/contacts',
+    history: '/tasks/history',
+} as const;
 
 /** The app's areas, in sidebar order */
 export const NAV_AREAS: NavArea[] = [
@@ -109,6 +127,24 @@ export const NAV_AREAS: NavArea[] = [
         ],
     },
     { id: 'cashflow', href: '/cashflow', ...areas.cashflow, icon: Wallet },
+    {
+        id: 'tasks',
+        href: '/tasks',
+        ...areas.tasks,
+        icon: CalendarCheck,
+        groups: [
+            {
+                items: [
+                    { id: 'todo', href: TASK_PAGES.todo, ...tasks.todo, icon: ListTodo, editable: true },
+                    { id: 'calendar', href: TASK_PAGES.calendar, ...tasks.calendar, icon: CalendarRange, editable: true },
+                    { id: 'list', href: TASK_PAGES.list, ...tasks.list, icon: ListChecks, editable: true },
+                    { id: 'guides', href: TASK_PAGES.guides, ...tasks.guides, icon: BookOpen, editable: true },
+                    { id: 'contacts', href: TASK_PAGES.contacts, ...tasks.contacts, icon: Contact, editable: true },
+                    { id: 'history', href: TASK_PAGES.history, ...tasks.history, icon: History },
+                ],
+            },
+        ],
+    },
     {
         id: 'settings',
         href: '/settings',

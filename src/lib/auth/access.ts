@@ -28,12 +28,12 @@ export const getAccess = cache(async (): Promise<UserAccess | null> => {
 
     if (session.sub === SUPERADMIN) {
         const account = superadminAccount();
-        return account && session.pv === superadminFingerprint() ? { id: null, name: account.name, superadmin: true, pages: {} } : null;
+        return account && session.pv === superadminFingerprint() ? { id: null, name: account.name, superadmin: true, pages: {}, groupIds: [] } : null;
     }
 
     const loaded = await loadAccountAccess(session.sub);
     if (!loaded || loaded.account.suspended || pinFingerprint(loaded.account.pin) !== session.pv) return null;
-    return { id: loaded.account.id, name: loaded.account.name, superadmin: false, pages: loaded.pages };
+    return { id: loaded.account.id, name: loaded.account.name, superadmin: false, pages: loaded.pages, groupIds: loaded.account.groupIds };
 });
 
 /** Link of an area (overview or single page) or of one of its pages; unknown → not found */

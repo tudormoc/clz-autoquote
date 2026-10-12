@@ -13,12 +13,15 @@ import {
     getPricingRulesAction,
     getSignatureTypesAction,
 } from '@/app/actions';
+import { getClosedDaysAction, getTaskAreasAction } from '@/app/tasks/settings-actions';
 import { RecordTableEditor } from '@/components/admin/record-editor/RecordTableEditor';
 import type { RecordColumn, RecordTableConfig } from '@/components/admin/record-editor/types';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { APP_CONFIG, OPERATION_CATEGORIES, REQUIRED_OPERATION_SLUGS } from '@/config/constants';
 import { formatCurrency, formatNumber } from '@/lib/format';
 import type { DiscountTier, PricingRule, SignatureType } from '@/lib/pricing/types';
+import { formatIsoDate } from '@/lib/tasks/describe';
+import type { AreaRow, ClosedDayRow } from '@/lib/tasks/db/settings';
 import type { FormatSurcharge } from '@/types';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -199,7 +202,45 @@ const PRICING_RULES: RecordTableConfig<PricingRule> = (() => {
     };
 })();
 
+/** Agenda: areas that tasks and procedures belong to */
+const TASK_AREAS: RecordTableConfig<AreaRow> = (() => {
+    const t = APP_COPY.tasks.settings;
+    return {
+        table: 'tsk_areas',
+        load: getTaskAreasAction,
+        columns: [
+            { key: 'name', label: t.areaName, kind: 'text', placeholder: t.areaNamePlaceholder, show: (row) => <span className="font-semibold">{row.name}</span> },
+        ],
+        reorder: { key: 'sort_order' },
+        add: { label: t.addArea, dialogTitle: t.addArea, initial: { name: '' } },
+        deleteConfirm: t.areaDeleteConfirm,
+    };
+})();
+
+/** Agenda: company closed days (weekends and national holidays are known already) */
+const CLOSED_DAYS: RecordTableConfig<ClosedDayRow> = (() => {
+    const t = APP_COPY.tasks.settings;
+    return {
+        table: 'tsk_closed_days',
+        load: getClosedDaysAction,
+        columns: [
+            { key: 'closed_on', label: t.closedOn, kind: 'date', show: (row) => <span className="font-mono">{formatIsoDate(row.closed_on)}</span> },
+            { key: 'name', label: t.closedName, kind: 'text', placeholder: t.closedNamePlaceholder },
+            {
+                key: 'every_year',
+                label: t.everyYear,
+                kind: 'flag',
+                show: (row) => <StatusBadge tone={row.every_year ? 'info' : 'neutral'}>{row.every_year ? APP_COPY.common.yes : APP_COPY.common.no}</StatusBadge>,
+            },
+        ],
+        add: { label: t.addClosedDay, dialogTitle: t.addClosedDay, initial: { closed_on: '', name: '', every_year: '0' } },
+        deleteConfirm: t.closedDayDeleteConfirm,
+    };
+})();
+
 export const PricingRulesEditor = () => <RecordTableEditor config={PRICING_RULES} />;
 export const DiscountTiersEditor = () => <RecordTableEditor config={DISCOUNT_TIERS} />;
 export const FormatSurchargesEditor = () => <RecordTableEditor config={FORMAT_SURCHARGES} />;
 export const SignatureTypesEditor = () => <RecordTableEditor config={SIGNATURE_TYPES} />;
+export const TaskAreasEditor = () => <RecordTableEditor config={TASK_AREAS} />;
+export const ClosedDaysEditor = () => <RecordTableEditor config={CLOSED_DAYS} />;

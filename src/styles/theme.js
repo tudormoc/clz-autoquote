@@ -76,6 +76,7 @@ const LAYOUT = {
     width: {
         sidebar: '16rem',             // open sidebar, and the phone menu
         'sidebar-collapsed': '4rem',  // sidebar folded to icons
+        panel: '28rem',               // side panel sliding in from the right (Agenda calendar: a task's details)
     },
     minWidth: {
         matrix: '64rem',              // a month-by-month table (12 months + label + total) below this scrolls sideways

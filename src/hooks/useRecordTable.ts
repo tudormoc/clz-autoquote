@@ -61,8 +61,34 @@ export function useRecordTable<T extends object>(config: RecordTableConfig<T>) {
             const id = (row as Record<string, unknown>).id as string | number;
             return finish(config.remove ? config.remove(row) : deleteSettingAction(config.table, id));
         },
+        /** Moves a row one place up (-1) or down (+1); the order column is renumbered 10, 20, 30 … where it changes */
+        move: async (row: T, by: -1 | 1) => {
+            const key = config.reorder?.key;
+            const from = rows.indexOf(row);
+            const to = from + by;
+            if (!key || from < 0 || to < 0 || to >= rows.length) return false;
+            const ordered = [...rows];
+            ordered.splice(to, 0, ...ordered.splice(from, 1));
+            setRows(ordered);
+            const changes = ordered
+                .map((item, index) => ({ item, order: (index + 1) * 10 }))
+                .filter(({ item, order }) => (item as Record<string, unknown>)[key] !== order);
+            for (const { item, order } of changes) {
+                const id = (item as Record<string, unknown>).id as string | number;
+                const res = await updateSettingAction(config.table, id, key, order).catch((err: unknown) => ({ success: false, error: errorMessage(err) }));
+                if (!res.success) {
+                    notify.failure(res.error);
+                    break;
+                }
+            }
+            await reload();
+            return true;
+        },
         add: (values: Record<string, unknown>) => {
-            const record = { ...values, ...config.add.extras?.() };
+            // A new row goes to the end of a list kept in order
+            const key = config.reorder?.key;
+            const last = key ? Math.max(0, ...rows.map((row) => Number((row as Record<string, unknown>)[key]) || 0)) : 0;
+            const record = { ...values, ...(key ? { [key]: last + 10 } : {}), ...config.add.extras?.() };
             return finish(config.add.create ? config.add.create(record) : insertSettingAction(config.table, record));
         },
     };
