@@ -34,10 +34,10 @@ const SORT_COLUMNS: RowSortColumns<Contact> = {
 };
 
 /** "Contatti": people and companies to call or write, shared by tasks and procedures; new / change in a window */
-export function ContactsView() {
+export function ContactsView({ initialSearch = '' }: { initialSearch?: string }) {
     const { data, loading, error, reload } = useActionData(getContactsAction);
     const canEdit = useCanEdit();
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
     const [showArchived, setShowArchived] = useState(false);
     const [editing, setEditing] = useState<Contact | 'new' | null>(null);
 

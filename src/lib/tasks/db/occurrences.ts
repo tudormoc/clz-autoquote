@@ -1,7 +1,8 @@
 /**
- * What happens to one occurrence (scadenza): done, reopened, moved, in progress, waiting, skipped, cancelled, its
- * outcome, checklist ticks and comments. Server only. Every write checks the version (someone else may have changed
- * it), that the person may see the task, and adds its tsk_log line in the same transaction.
+ * What happens to one occurrence (scadenza): done, reopened, moved, given its first date, in progress, waiting,
+ * skipped, cancelled, its outcome, checklist ticks and comments; and the order of a day's cards. Server only. Every
+ * write checks that the person may see the task; all but the day order also check the version (someone else may have
+ * changed it) and add their tsk_log line in the same transaction.
  */
 
 import type { UserAccess } from '@/lib/auth/permissions';
@@ -101,14 +102,54 @@ export async function setOccurrenceStatus(access: UserAccess, id: number, versio
     if (status === 'skipped' || status === 'cancelled') await refreshSeries([taskId]);
 }
 
-/** Moves the due date (the original date stays, so the history shows it was moved) */
+/**
+ * Moves the due date (the original date stays, so the history shows it was moved). Its place in the old day goes:
+ * on the new day it comes after the cards placed by hand.
+ */
 export async function postponeOccurrence(access: UserAccess, id: number, version: string, to: string, reason: string | null): Promise<void> {
     const found = await rows<{ due: string | null }>(`SELECT CONVERT(char(10), due_date, 23) AS due FROM tsk_occurrences WITH (NOLOCK) WHERE id = @id`, { id });
-    await change(access, id, version, 'postponed', `due_date = @to`, { to }, `AND status IN (${OPEN_LIST})`, {
+    await change(access, id, version, 'postponed', `due_date = @to, day_order = NULL`, { to }, `AND status IN (${OPEN_LIST})`, {
         from: found[0]?.due ?? null,
         to,
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
     });
+}
+
+/**
+ * The order of the open cards due on `date`, first to last (calendar: drag up / down, "In cima", "In fondo").
+ * Only how a day is drawn: no version check and no tsk_log line, so it does not count as working on the occurrence.
+ * Ids of other days, closed occurrences or tasks the person cannot see are left alone.
+ */
+export async function orderDay(access: UserAccess, date: string, ids: number[]): Promise<void> {
+    const params: SqlParams = { date, ids: JSON.stringify(ids) };
+    await rows(
+        `UPDATE o SET day_order = CAST(placed.[key] AS INT) + 1
+         FROM tsk_occurrences o
+         JOIN OPENJSON(@ids) placed ON CAST(placed.value AS INT) = o.id
+         JOIN tsk_tasks t WITH (NOLOCK) ON t.id = o.task_id
+         WHERE o.due_date = @date AND o.status IN (${OPEN_LIST}) AND ${visibleTasksSql(access, params)}`,
+        params
+    );
+}
+
+/**
+ * Gives a date to an open occurrence that has none (a one-time task "senza data", dragged onto a day): the task gets
+ * the same date, as if it had been typed in its form. Not a "Rimanda": the date is its first one.
+ */
+export async function scheduleOccurrence(access: UserAccess, id: number, version: string, to: string): Promise<void> {
+    const task = await occurrenceTask(access, id);
+    if (!task) throw new NotFound();
+    await rows(
+        transaction(`
+            UPDATE tsk_occurrences SET original_date = @to, due_date = @to, day_order = NULL, updated_at = GETDATE(), updated_by = @me
+            WHERE id = @id AND ${VERSION_MATCH()} AND due_date IS NULL AND status IN (${OPEN_LIST});
+            ${THROW_IF_STALE}
+            UPDATE tsk_tasks SET due_date = @to, updated_at = GETDATE(), updated_by = @me
+            WHERE id = @taskId AND repeat_rule IS NULL AND due_date IS NULL;
+            ${logSql('occurrence', '@id', '@taskId', 'scheduled', 'details')}
+        `),
+        { id, version, to, me: personKey(access), taskId: task.taskId, details: JSON.stringify({ to }) }
+    );
 }
 
 /** What was done this time (kept also after it is closed) */

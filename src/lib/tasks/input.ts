@@ -15,8 +15,10 @@ const messages = APP_COPY.tasks.messages;
 
 const IdSchema = z.number().int().positive();
 const IsoDateSchema = z.string().refine(isIsoDate);
-const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const text = (max: number) => z.string().trim().max(max);
+
+export const PrioritySchema = z.union([z.literal(PRIORITIES[0]), z.literal(PRIORITIES[1]), z.literal(PRIORITIES[2])]);
 
 export const LinkSchema = z.object({
     label: text(200),
@@ -30,7 +32,7 @@ export const TaskInputSchema = z
         notes: z.string().max(200_000),
         areaId: IdSchema.nullable(),
         tags: z.array(text(50).min(1)).max(30),
-        priority: z.union([z.literal(PRIORITIES[0]), z.literal(PRIORITIES[1]), z.literal(PRIORITIES[2])]),
+        priority: PrioritySchema,
         assignee: z.string().max(20).nullable(),
         groupId: IdSchema.nullable(),
         visibility: z.enum(VISIBILITIES),

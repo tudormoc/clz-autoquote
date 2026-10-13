@@ -36,6 +36,9 @@ export const SYSTEM_PERSON = 'system';
 /** Who is acting, as stored in created_by / done_by / tsk_log.person */
 export const personKey = (access: UserAccess): PersonKey => (access.superadmin ? SUPERADMIN : String(access.id));
 
+/** May delete a task for good: the superadmin, or whoever created it (created_by) */
+export const mayDelete = (access: UserAccess, createdBy: string) => access.superadmin || createdBy === personKey(access);
+
 /** "Today" for the Agenda: the server's local date */
 export const today = () => getTodayDate();
 

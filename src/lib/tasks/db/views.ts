@@ -16,7 +16,7 @@ import type { AgendaItem, DayLoad, LogEntry, NamedItem, Occurrence, OccurrenceSt
 import { refreshSeries } from '@/lib/tasks/db/series';
 import { listAreas, listClosedDays } from '@/lib/tasks/db/settings';
 import { OPEN_LIST, getTask } from '@/lib/tasks/db/tasks';
-import { DATE_SQL, MOMENT_SQL, TIME_SQL, VERSION_SQL, nameResolver, parseJson, rows, today as todayDate, visibleTasksSql } from '@/lib/tasks/db/shared';
+import { DATE_SQL, MOMENT_SQL, TIME_SQL, VERSION_SQL, mayDelete, nameResolver, parseJson, rows, today as todayDate, visibleTasksSql } from '@/lib/tasks/db/shared';
 
 interface OccurrenceRow {
     id: number;
@@ -30,6 +30,7 @@ interface OccurrenceRow {
     checklist_done: string | null;
     done_at: string | null;
     done_by: string | null;
+    day_order: number | null;
     version: string;
 }
 
@@ -42,11 +43,13 @@ interface AgendaRow extends OccurrenceRow {
     show_days: number;
     checklist: string | null;
     estimate_minutes: number | null;
+    created_by: string;
+    postponed: number;
 }
 
 const OCCURRENCE_COLUMNS = `o.id, o.task_id, ${DATE_SQL('o.original_date')} AS original_date, ${DATE_SQL('o.due_date')} AS due_date,
     ${TIME_SQL('o.due_time')} AS due_time, o.status, o.status_note, o.outcome, o.checklist_done,
-    ${MOMENT_SQL('o.done_at')} AS done_at, o.done_by, ${VERSION_SQL('o.row_version')} AS version`;
+    ${MOMENT_SQL('o.done_at')} AS done_at, o.done_by, o.day_order, ${VERSION_SQL('o.row_version')} AS version`;
 
 function toOccurrence(row: OccurrenceRow, nameOf: (key: string | null) => string | null): Occurrence {
     return {
@@ -61,6 +64,7 @@ function toOccurrence(row: OccurrenceRow, nameOf: (key: string | null) => string
         checklistDone: parseJson<string[]>(row.checklist_done, []),
         doneAt: row.done_at,
         doneByName: nameOf(row.done_by),
+        dayOrder: row.day_order,
         version: row.version,
     };
 }
@@ -83,7 +87,8 @@ export interface AgendaData {
 }
 
 const AGENDA_SELECT = `SELECT ${OCCURRENCE_COLUMNS}, t.title, t.priority, a.name AS area_name, t.assignee,
-        CASE WHEN t.repeat_rule IS NULL THEN 0 ELSE 1 END AS repeats, t.show_days, t.checklist, t.estimate_minutes
+        CASE WHEN t.repeat_rule IS NULL THEN 0 ELSE 1 END AS repeats, t.show_days, t.checklist, t.estimate_minutes, t.created_by,
+        (SELECT COUNT(*) FROM tsk_log l WITH (NOLOCK) WHERE l.entity_kind = 'occurrence' AND l.entity_id = o.id AND l.action = 'postponed') AS postponed
     FROM tsk_occurrences o WITH (NOLOCK)
     JOIN tsk_tasks t WITH (NOLOCK) ON t.id = o.task_id
     LEFT JOIN tsk_areas a WITH (NOLOCK) ON a.id = t.area_id`;
@@ -115,6 +120,8 @@ async function loadItems(
         checklistCount: parseJson<unknown[]>(row.checklist, []).length,
         estimateMinutes: row.estimate_minutes,
         ...closedInfo(checker, row.status === 'done' ? null : row.due_date),
+        postponedCount: row.postponed,
+        deletable: mayDelete(access, row.created_by),
     }));
     return { items, assignees: new Set(list.map((row) => row.assignee).filter((key): key is string => key !== null)) };
 }
@@ -234,10 +241,15 @@ export interface RangeData {
     items: AgendaItem[];
     /** Open occurrences already late (any date before today), for the week view's dock */
     overdue: AgendaItem[];
+    /** Open occurrences without a date ("Senza data"), to drag onto a day */
+    undated: AgendaItem[];
     /** Dates repeating tasks will have between start and end, not stored yet */
     planned: PlannedEntry[];
     /** Closed days in the range: date → reason */
     closed: Record<string, string>;
+    /** The filters: all areas, and the people responsible for something shown */
+    areas: NamedItem[];
+    people: Person[];
 }
 
 interface SeriesRow {
@@ -245,6 +257,7 @@ interface SeriesRow {
     title: string;
     priority: Priority;
     area_name: string | null;
+    assignee: string | null;
     due_time: string | null;
     repeat_rule: string;
     anchor: string;
@@ -258,7 +271,7 @@ interface SeriesRow {
 async function plannedBetween(access: UserAccess, start: string, end: string): Promise<PlannedEntry[]> {
     const params: SqlParams = {};
     const series = await rows<SeriesRow>(
-        `SELECT t.id, t.title, t.priority, a.name AS area_name, ${TIME_SQL('t.due_time')} AS due_time, t.repeat_rule,
+        `SELECT t.id, t.title, t.priority, a.name AS area_name, t.assignee, ${TIME_SQL('t.due_time')} AS due_time, t.repeat_rule,
                 ${DATE_SQL('t.due_date')} AS anchor, ${DATE_SQL('COALESCE(t.repeat_from, CAST(t.created_at AS date))')} AS repeat_from,
                 (SELECT COUNT(*) FROM tsk_occurrences o WITH (NOLOCK) WHERE o.task_id = t.id) AS made,
                 (SELECT ${DATE_SQL('MAX(o.original_date)')} FROM tsk_occurrences o WITH (NOLOCK) WHERE o.task_id = t.id) AS latest,
@@ -274,7 +287,7 @@ async function plannedBetween(access: UserAccess, start: string, end: string): P
         if (!rule) continue;
         const stored = { anchor: task.anchor, repeatFrom: task.repeat_from, made: task.made, latestDate: task.latest, openDue: task.open_due };
         for (const date of plannedDates(rule, stored, start, end)) {
-            planned.push({ taskId: task.id, title: task.title, date, time: task.due_time, priority: task.priority, areaName: task.area_name });
+            planned.push({ taskId: task.id, title: task.title, date, time: task.due_time, priority: task.priority, areaName: task.area_name, assignee: task.assignee });
         }
     }
     return planned.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title));
@@ -284,10 +297,12 @@ async function plannedBetween(access: UserAccess, start: string, end: string): P
 export async function getRange(access: UserAccess, start: string, end: string, people: Person[]): Promise<RangeData> {
     await refreshSeries();
     const today = todayDate();
-    const checker = closedDayChecker(await listClosedDays());
-    const [inRange, late, planned] = await Promise.all([
+    const [closedDays, areas] = await Promise.all([listClosedDays(), listAreas()]);
+    const checker = closedDayChecker(closedDays);
+    const [inRange, late, undated, planned] = await Promise.all([
         loadItems(access, `t.state <> 'archived' AND o.status <> 'replaced' AND o.due_date BETWEEN @start AND @end`, { start, end }, people, checker),
         loadItems(access, `t.state = 'active' AND o.status IN (${OPEN_LIST}) AND o.due_date < @today`, { today }, people, checker),
+        loadItems(access, `t.state = 'active' AND o.status IN (${OPEN_LIST}) AND o.due_date IS NULL`, {}, people, checker),
         plannedBetween(access, start, end),
     ]);
     const closed: Record<string, string> = {};
@@ -295,7 +310,19 @@ export async function getRange(access: UserAccess, start: string, end: string, p
         const reason = checker.reason(day);
         if (reason) closed[day] = reason;
     }
-    return { today, start, end, items: inRange.items, overdue: late.items, planned, closed };
+    const assignees = new Set([...Array.from(inRange.assignees), ...Array.from(late.assignees), ...Array.from(undated.assignees), ...planned.map((entry) => entry.assignee)]);
+    return {
+        today,
+        start,
+        end,
+        items: inRange.items,
+        overdue: late.items,
+        undated: undated.items,
+        planned,
+        closed,
+        areas,
+        people: people.filter((person) => assignees.has(person.key)).map(({ key, name }) => ({ key, name })),
+    };
 }
 
 /** How full each day between start and end is: stored occurrences still counting, plus planned dates */

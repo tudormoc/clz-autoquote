@@ -103,6 +103,8 @@ export interface TaskDetail extends TaskSummary, Omit<TaskInput, 'title' | 'area
     updatedBy: string;
     /** Version stamp: a save with an older one is refused (changed by someone else meanwhile) */
     version: string;
+    /** The person may delete it for good: the superadmin, or whoever created it */
+    deletable: boolean;
 }
 
 /** One occurrence (scadenza) */
@@ -120,6 +122,8 @@ export interface Occurrence {
     /** "YYYY-MM-DD HH:MM:SS", server wall-clock time */
     doneAt: string | null;
     doneByName: string | null;
+    /** Its place among the open ones due the same day (1 = first) when put there by hand; null = by time and priority */
+    dayOrder: number | null;
     version: string;
 }
 
@@ -137,6 +141,10 @@ export interface AgendaItem extends Occurrence {
     suggestedDate: string | null;
     /** Why the due date is a closed day (holiday name, "weekend") */
     closedReason: string | null;
+    /** How many times this occurrence was postponed ("Rimanda", or dragged to another day) */
+    postponedCount: number;
+    /** The person may delete its task for good (see TaskDetail.deletable) */
+    deletable: boolean;
 }
 
 /** An entry of a task's history (tsk_log) */
@@ -213,6 +221,8 @@ export interface PlannedEntry {
     time: string | null;
     priority: Priority;
     areaName: string | null;
+    /** Who is responsible (the calendar's person filter) */
+    assignee: PersonKey | null;
 }
 
 /** How full a day is: things due (stored and planned) and how many of them are critical */

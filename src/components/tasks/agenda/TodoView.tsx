@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useActionData } from '@/hooks/useActionData';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';
 import { AGENDA_GROUPS, agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
+import { compareByDate } from '@/lib/tasks/dayOrder';
 import type { AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 
@@ -42,6 +43,8 @@ export function TodoView() {
         for (const item of agenda.items) {
             if (matchesFilters(item, filters, agenda.areas)) result[agendaGroup(item, agenda.today)].push(item);
         }
+        // By date, and inside a day in the order set on the calendar
+        for (const group of AGENDA_GROUPS) result[group].sort(compareByDate);
         return result;
     }, [agenda, filters]);
     const doneToday = useMemo(() => (agenda ? agenda.doneToday.filter((item) => matchesFilters(item, filters, agenda.areas)) : []), [agenda, filters]);

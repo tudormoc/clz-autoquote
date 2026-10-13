@@ -28,12 +28,14 @@ interface TaskFiltersProps {
     people: Person[];
     /** One line without labels (Da fare: next to the quick add) */
     compact?: boolean;
+    /** The text field (the calendar has only area and person) */
+    search?: boolean;
     /** More filters at the end of the row */
     children?: React.ReactNode;
 }
 
 /** Text, area and person filters of the Agenda lists; they filter at once, on screen */
-export function TaskFilters({ values, onChange, areas, people, compact = false, children }: TaskFiltersProps) {
+export function TaskFilters({ values, onChange, areas, people, compact = false, search = true, children }: TaskFiltersProps) {
     const set = (change: Partial<TaskFilterValues>) => onChange({ ...values, ...change });
     /** A control with its label above, or alone (label kept for screen readers) in the compact line */
     const labelled = (label: string, width: string, control: React.ReactNode) =>
@@ -47,11 +49,12 @@ export function TaskFilters({ values, onChange, areas, people, compact = false, 
 
     return (
         <div className={cn('flex flex-wrap gap-3', compact ? 'items-center gap-2' : 'items-end')}>
-            {labelled(
-                copy.search,
-                'sm:w-64',
-                <Input value={values.search} onChange={(e) => set({ search: e.target.value })} placeholder={copy.searchPlaceholder} aria-label={copy.search} />
-            )}
+            {search &&
+                labelled(
+                    copy.search,
+                    'sm:w-64',
+                    <Input value={values.search} onChange={(e) => set({ search: e.target.value })} placeholder={copy.searchPlaceholder} aria-label={copy.search} />
+                )}
             {areas.length > 0 &&
                 labelled(
                     copy.area,

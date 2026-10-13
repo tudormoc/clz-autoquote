@@ -1,11 +1,13 @@
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
+import { CardDock } from '@/components/tasks/calendar/CardDock';
 import { DayColumn } from '@/components/tasks/calendar/DayColumn';
-import { OverdueDock } from '@/components/tasks/calendar/OverdueDock';
 import { APP_CONFIG } from '@/config/constants';
 import type { AgendaCalendar } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
 import { weekDays } from '@/lib/tasks/week';
+import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 
 interface WeekBoardProps {
@@ -33,7 +35,16 @@ export function WeekBoard({ calendar, drag, canEdit }: WeekBoardProps) {
 
     return (
         <div className="flex flex-col gap-2 lg:flex-1 lg:min-h-0">
-            <OverdueDock items={data?.overdue ?? []} calendar={calendar} drag={drag} canEdit={canEdit} />
+            <CardDock
+                title={APP_COPY.tasks.calendar.overdue}
+                hint={APP_COPY.tasks.calendar.overdueHint}
+                icon={AlertTriangle}
+                tone="danger"
+                items={data?.overdue ?? []}
+                calendar={calendar}
+                drag={drag}
+                canEdit={canEdit}
+            />
             <div
                 className={cn(
                     'grid grid-cols-1 gap-2 md:[grid-template-columns:var(--week-columns)] lg:flex-1 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)]',

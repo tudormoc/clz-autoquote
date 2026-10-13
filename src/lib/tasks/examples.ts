@@ -10,6 +10,8 @@
 import { agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
 import { closedDayChecker, easterSunday, type ClosedDay } from '@/lib/tasks/closedDays';
 import { addMonths } from '@/lib/tasks/dates';
+import { compareByDate, compareInDay, placeAmong, placeAt } from '@/lib/tasks/dayOrder';
+import { parseQuickEntry } from '@/lib/tasks/quickParse';
 import { describeRepeat, weekTitle } from '@/lib/tasks/describe';
 import { addInterval, nextPatternDate, patternDates, type IntervalUnit, type RepeatPattern, type RepeatRule } from '@/lib/tasks/repeat';
 import { planSeries, type SeriesPlan, type SeriesState, type StoredOccurrence } from '@/lib/tasks/series';
@@ -243,6 +245,55 @@ const WEEK_EXAMPLES: { name: string; expect: unknown; actual: () => unknown }[] 
     { name: 'week title across years', expect: '28 dicembre 2026 – 3 gennaio 2027', actual: () => weekTitle('2026-12-28') },
 ];
 
+const card = (id: number, dayOrder: number | null, dueTime: string | null = null, priority = 0) => ({ id, dayOrder, dueTime, priority, title: `Card ${id}` });
+const sortedIds = (cards: ReturnType<typeof card>[]) => [...cards].sort(compareInDay).map((c) => c.id);
+
+const DAY_ORDER_EXAMPLES: { name: string; expect: number[]; actual: () => number[] }[] = [
+    { name: 'never placed: time first, then the most important', expect: [3, 2, 1], actual: () => sortedIds([card(1, null), card(2, null, null, 2), card(3, null, '09:00')]) },
+    { name: 'placed by hand beats time and priority', expect: [1, 3, 2], actual: () => sortedIds([card(1, 1), card(2, 2, '08:00', 2), card(3, 1)]) },
+    { name: 'a card not placed yet comes after the placed ones', expect: [2, 1, 3], actual: () => sortedIds([card(1, 2), card(2, 1), card(3, null, '07:00', 2)]) },
+    { name: 'drag the last one to the top', expect: [4, 1, 2, 3], actual: () => placeAt([1, 2, 3, 4], 4, 0) },
+    { name: 'drag the first one between 2 and 3', expect: [2, 1, 3, 4], actual: () => placeAt([1, 2, 3, 4], 1, 1) },
+    { name: '"In fondo" = past the end', expect: [2, 3, 1], actual: () => placeAt([1, 2, 3], 1, Number.MAX_SAFE_INTEGER) },
+    { name: 'a card from another day dropped in the middle', expect: [1, 9, 2], actual: () => placeAt([1, 2], 9, 1) },
+    { name: 'filtered: 1 2 3 4 5 shown 2 4, drag 4 above 2', expect: [1, 4, 2, 3, 5], actual: () => placeAmong([1, 2, 3, 4, 5], [2, 4], 4, 0) },
+    { name: 'filtered: drag 2 under 4 = just after 4, hidden 5 stays last', expect: [1, 3, 4, 2, 5], actual: () => placeAmong([1, 2, 3, 4, 5], [2, 4], 2, 1) },
+    { name: 'no filter: same as placeAt', expect: [2, 1, 3, 4], actual: () => placeAmong([1, 2, 3, 4], [1, 2, 3, 4], 1, 1) },
+    {
+        name: 'Da fare: by date, then the day order, no date last',
+        expect: [2, 1, 4, 3],
+        actual: () =>
+            [
+                { ...card(1, 2), dueDate: '2026-10-14' },
+                { ...card(2, 1), dueDate: '2026-10-14' },
+                { ...card(3, null), dueDate: null },
+                { ...card(4, null, '08:00'), dueDate: '2026-10-15' },
+            ]
+                .sort(compareByDate)
+                .map((c) => c.id),
+    },
+];
+
+/** Quick add lines read on Friday 9 October 2026: [line, title, date, time, repeat in words] */
+const QUICK_EXAMPLES: [string, string, string | null, string | null, string | null][] = [
+    ['Pagare F24 entro venerdì alle 10', 'Pagare F24', '2026-10-16', '10:00', null],
+    ['Riunione 15/10 alle 9:30', 'Riunione', '2026-10-15', '09:30', null],
+    ['Chiamare il 5', 'Chiamare', '2026-11-05', null, null],
+    ['Dentista il 3 novembre', 'Dentista', '2026-11-03', null, null],
+    ['Report tra 2 settimane', 'Report', '2026-10-23', null, null],
+    ['Spesa dopodomani', 'Spesa', '2026-10-11', null, null],
+    ['Lunedì riunione', 'Riunione', '2026-10-12', null, null],
+    ['Chiamare alle 15', 'Chiamare', '2026-10-09', '15:00', null],
+    ['Backup ogni lunedì', 'Backup', '2026-10-12', null, 'Ogni settimana, lun'],
+    ['Riunione ogni lunedì e giovedì', 'Riunione', '2026-10-12', null, 'Ogni settimana, lun e gio'],
+    ['Controllo tutti i giorni alle 8', 'Controllo', '2026-10-09', '08:00', 'Ogni giorno'],
+    ['Fatture ogni mese', 'Fatture', '2026-10-09', null, 'Ogni mese, il 9'],
+    ['Ordinare 10.000 fogli', 'Ordinare 10.000 fogli', null, null, null],
+    ['Riunione tra soci', 'Riunione tra soci', null, null, null],
+    ['Rinnovo 31/02', 'Rinnovo 31/02', null, null, null],
+    ['Ritiro alle 27', 'Ritiro alle 27', null, null, null],
+];
+
 const result = (group: string, name: string, expected: unknown, actual: unknown): ExampleResult => {
     const e = JSON.stringify(expected);
     const a = JSON.stringify(actual);
@@ -264,5 +315,10 @@ export function runTaskExamples(): ExampleResult[] {
         ...SERIES_EXAMPLES.map((ex) => result('series', ex.name, ex.expect, planSeries(ex.state, ex.today))),
         ...DESCRIBE_EXAMPLES.map((ex) => result('words', ex.expect, ex.expect, describeRepeat(ex.rule))),
         ...WEEK_EXAMPLES.map((ex) => result('week', ex.name, ex.expect, ex.actual())),
+        ...DAY_ORDER_EXAMPLES.map((ex) => result('day order', ex.name, ex.expect, ex.actual())),
+        ...QUICK_EXAMPLES.map(([line, title, date, time, repeat]) => {
+            const entry = parseQuickEntry(line, TODAY);
+            return result('quick add', line, [title, date, time, repeat], [entry.title, entry.dueDate, entry.dueTime, entry.repeat ? describeRepeat(entry.repeat) : null]);
+        }),
     ];
 }

@@ -24,13 +24,14 @@ rule never rewrites the past: closed occurrences stay; the future open ones nobo
 
 | Page | What |
 |---|---|
-| **Da fare** `/tasks/todo` | Opens filled (no "Applica": a to-do list, not a report). Groups **Scadute · Oggi · In arrivo · Più avanti** (folded) **· Senza data**, then **Fatte oggi** (to undo). Quick add on top (one line → "Senza data"). Tick = done; "⋯" = done with a note, postpone, in progress, waiting for…, skip (repeating) / cancel (one-time). |
-| **Calendario** `/tasks/calendar` | **Week board** (default): on top the coming weeks as small tiles, a tiny bar per day (how much is due, critical ones red; click = that week); what is late in a dock; seven day columns, today wider and with more detail, each with a bar of how full it is. Tick = done; **drag a card onto another day = postpone** (saved as "Rimanda", the original date kept); "+ Aggiungi" on a day = a task on that date; click a card = **side panel** with Fatto, checklist, outcome, comments, instructions, links, contacts. Planned dates of repeating tasks dashed, closed days dimmed. **Month grid**: the same cards in small, drag works too, a day number opens its week. ← → change period, T = today. Phones: the days one under the other. Editable page: *modifica* on it allows ticking, moving and adding. |
-| **Attività** `/tasks/list` | All tasks the person sees; filters on screen (text, area, person, state, kind), sortable, Excel. `/tasks/list/new` (also `?copy=ID` = Duplica), `/tasks/list/[id]` task page, `/tasks/list/[id]/edit`. |
+| **Da fare** `/tasks/todo` | Opens filled (no "Applica": a to-do list, not a report). Groups **Scadute · Oggi · In arrivo · Più avanti** (folded) **· Senza data**, then **Fatte oggi** (to undo); inside a group by date, and inside a day in the order set on the calendar. Quick add on top: one line → "Senza data", unless it holds **date words** (`src/lib/tasks/quickParse.ts`, words in `it.ts` → `tasks.quickWords`): "venerdì", "domani", "il 25", "15/10", "3 novembre", "tra 2 settimane", "la prossima settimana", "alle 15", "ogni lunedì (e giovedì)", "ogni 2 settimane", "tutti i giorni", "ogni mese / anno" — they are taken out of the title and give the date, time or repeat rule; a preview under the field shows what will be saved. Tick = done; "⋯" = done with a note, postpone, in progress, waiting for…, skip (repeating) / cancel (one-time). A date postponed 2 or more times shows **"Rimandata N volte"**. |
+| **Calendario** `/tasks/calendar` | **Week board** (default): on top the coming weeks as small tiles, a tiny bar per day (how much is due, critical ones red; click = that week); what is late in a dock; seven day columns, today wider and with more detail, each with a bar of how full it is. Tick = done; **drag a card onto another day = postpone** (saved as "Rimanda", the original date kept) and it lands where it is dropped; **drag it up or down in its day = its place** (a line shows where; today and later days); **right-click a card** (on a phone: **hold a finger** on it; cards are not draggable on touch screens) = the "⋯" actions of Da fare, **In cima / In fondo**, the other **priorities** (the task's, all its dates), **Apri attività**, **Duplica**, **Elimina attività…** (see below). **Keys on a focused card**: Space = done, ← → = a day earlier / later (a late card → today; never before today), ↑ ↓ = its place, Enter = side panel. **Filters** area / person in the toolbar (the strip of the coming weeks still counts everything). **Senza data** (toolbar button, shown while some task has no date) opens a strip of those tasks: drag one onto a day = its first date (the task gets it too, log "Data assegnata"). A day lists the cards placed by hand first (`day_order`), then the others by time and priority; a postponed card starts after the placed ones. "+ Aggiungi" on a day = a task on that date; click a card = **side panel** with Fatto, checklist, outcome, comments, instructions, links, contacts. Planned dates of repeating tasks dashed, closed days dimmed. **Month grid**: the same cards in small and in the same order, drag onto another day and right-click work too, a day number opens its week. ← → change period, T = today. Phones: the days one under the other. Editable page: *modifica* on it allows ticking, moving and adding. |
+| **Attività** `/tasks/list` | All tasks the person sees; filters on screen (text, area, person, state, kind), sortable, Excel. `/tasks/list/new` (also `?copy=ID` = Duplica), `/tasks/list/[id]` task page ("⋯": Duplica, pausa, Archivia, **Elimina attività…**), `/tasks/list/[id]/edit`. |
 | **Procedure** `/tasks/guides` | The library; page with steps, links, contacts, tasks using it, earlier versions (read, put back); "Segna come controllata". |
-| **Contatti** `/tasks/contacts` | People and companies; new / change in a window; archive. |
+| **Contatti** `/tasks/contacts` | People and companies; new / change in a window; archive. `?q=name` opens it filtered (a contact picked in the search bar). |
 | **Storico** `/tasks/history` | What was closed in a period (loads on "Applica"), outcome, who, late / on time; Excel. |
 | Home | A line "N scadute · N per oggi · N in arrivo" linking to Da fare (`src/components/tasks/AgendaSummary.tsx`). |
+| Search bar | In the header of Da fare, Calendario, Attività, Procedure, Contatti, Storico (`AgendaSearch`): from 2 letters, tasks (title, tags, notes), procedures (title, text) and contacts (name, company, role, phone, e-mail) in a list under the field; ↑ ↓ Enter or a click opens one. Each kind only if the person may open its page; no keyboard shortcut (owner's wish). |
 | Impostazioni → Agenda | **Aree Agenda** (`tsk_areas`) and **Giorni di chiusura** (`tsk_closed_days`), plain settings tables (`RecordTableEditor`). |
 
 **Fits the screen** (the owner's wish: as little scrolling as possible): on desktop no Agenda page scrolls as a whole.
@@ -75,22 +76,28 @@ Agenda). The superadmin sees everything. People are stored as the login names th
 `superadmin`; `system` = the Agenda itself (a missed date replaced). Procedures and contacts are shared by all.
 
 Every write checks the row's version (`row_version`): a save over something changed meanwhile is refused with
-"Qualcuno l'ha cambiata nel frattempo" instead of overwriting.
+"Qualcuno l'ha cambiata nel frattempo" instead of overwriting. Exceptions where the last choice simply wins: the
+order inside a day and the priority set by right-click.
+
+**Deleting** a task (owner's decision 2026-10-12): only the superadmin or whoever created it ("Elimina attività…" on
+the task page and in the calendar's right-click menu, after a red "Elimina" question). Everything goes: its dates,
+links, contacts and procedure links, comments and its whole log; one `tsk_log` line stays (`deleted`, who, the
+title). To only take it off the lists, "Archivia" keeps everything.
 
 ## Code
 
 | Part | Where |
 |---|---|
-| Pure logic (dates, rules, closed days, groups, planning, projection, weeks, text, form state, checks) | `src/lib/tasks/` (`dates`, `repeat`, `closedDays`, `agenda`, `series`, `projection`, `week`, `describe`, `taskDraft`, `input`, `links`, `types`) |
+| Pure logic (dates, rules, closed days, groups, planning, projection, weeks, order in a day, quick add words, text, form state, checks) | `src/lib/tasks/` (`dates`, `repeat`, `closedDays`, `agenda`, `series`, `projection`, `week`, `dayOrder`, `quickParse`, `describe`, `taskDraft`, `input`, `links`, `types`) |
 | Examples on made-up dates | `src/lib/tasks/examples.ts`, `npm run tasks:examples` (part of `npm run check`) |
-| All SQL of the module | `src/lib/tasks/db/` (`shared`, `tasks`, `occurrences`, `series`, `views`, `guides`, `contacts`, `settings`) |
+| All SQL of the module | `src/lib/tasks/db/` (`shared`, `tasks`, `occurrences`, `series`, `views`, `search`, `guides`, `contacts`, `settings`) |
 | Server actions (each starts with `authorize`) | `src/app/tasks/` (`agenda-actions`, `task-actions`, `guide-actions`, `settings-actions`; answers via `results.ts`) |
 | Pages | `src/app/tasks/**/page.tsx` |
 | Screens | `src/components/tasks/` (`agenda`, `task`, `form`, `list`, `calendar`, `history`, `guides`, `contacts`, `occurrence`, `shared`) |
-| Hooks | `useActionData` (load on open + reload), `useOccurrenceActions`, `useTaskForm`, `useGuideForm`, `useAgendaCalendar` (period, data, moves, panel), `useCalendarDrag` (drag onto a day) |
-| Shared UI added | `ActionMenu` ("⋯" menu), `Markdown` + `MarkdownField` (formatted text with preview, `react-markdown`, no raw HTML), `Textarea`; `StatusBadge` tone `danger`; settings editor kinds `date` and `flag`; theme width `w-panel` (side panel) |
+| Hooks | `useActionData` (load on open + reload), `useOccurrenceActions`, `useTaskForm`, `useGuideForm`, `useAgendaCalendar` (period, data, moves, panel), `useCalendarDrag` (drag onto a day or to a place in it; mouse only), `useContextMenu` (right-click, hold on phones), `useMediaQuery` |
+| Shared UI added | `ActionMenu` ("⋯" menu) on `FloatingMenu` (the list, also used by right-click menus), `Markdown` + `MarkdownField` (formatted text with preview, `react-markdown`, no raw HTML), `Textarea`; `StatusBadge` tone `danger`; settings editor kinds `date` and `flag`; theme width `w-panel` (side panel) |
 | Texts / numbers | `it.ts` → `APP_COPY.tasks`; `constants.ts` → `APP_CONFIG.TASKS` |
-| Tables | `sql/tasks/001_create_tables.sql` (run 2026-10-09 with the owner's yes); columns in [DATABASE.md](DATABASE.md) |
+| Tables | `sql/tasks/001_create_tables.sql` (run 2026-10-09 with the owner's yes), `002_day_order.sql` (run 2026-10-12, owner's yes); columns in [DATABASE.md](DATABASE.md) |
 
 A later database change = a new numbered script in `sql/tasks/`, read by the owner and run once by hand.
 

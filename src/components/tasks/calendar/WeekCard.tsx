@@ -2,7 +2,10 @@
 
 import { CalendarClock, Check, Hourglass, ListChecks, PlayCircle, Repeat } from 'lucide-react';
 import { useAccess } from '@/components/auth/AccessProvider';
+import { PostponedBadge } from '@/components/tasks/shared/TaskBadges';
+import { FloatingMenu, type MenuAction } from '@/components/ui/FloatingMenu';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
+import { useContextMenu } from '@/hooks/useContextMenu';
 import { formatShortDay, relativeDay } from '@/lib/tasks/describe';
 import { isOpenStatus, type AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
@@ -24,36 +27,57 @@ interface WeekCardProps {
     canEdit: boolean;
     busy: boolean;
     drag: CalendarDrag;
+    /** One of the open cards of a day column, in their order (a drop between them finds its place by these) */
+    ordered?: boolean;
+    /** Right-click menu (empty = the browser's own) */
+    menu: MenuAction[];
+    /** Keys while the card has the focus (Space, arrows): the running change, or null when the key is not one of them */
+    onKey?: (key: string) => Promise<unknown> | null;
     onOpen: () => void;
     onDone: () => void;
 }
 
 /**
  * One occurrence on the week board: a tick to mark it done, its title, then small signs (time, in progress, waiting,
- * checklist, repeats, closed day). Click opens the side panel; drag moves it to another day. Done ones are struck through.
+ * checklist, postponed many times, repeats, closed day). Click (or Enter) opens the side panel, right-click its actions; drag
+ * moves it to another day or to another place in its day, and so do the arrows when it has the focus (Space = done).
+ * Done ones are struck through.
  */
-export function WeekCard({ item, today, detailed, compact = false, selected, canEdit, busy, drag, onOpen, onDone }: WeekCardProps) {
+export function WeekCard({ item, today, detailed, compact = false, selected, canEdit, busy, drag, ordered = false, menu, onKey, onOpen, onDone }: WeekCardProps) {
     const open = isOpenStatus(item.status);
     const late = open && item.dueDate !== null && item.dueDate < today;
     const ticked = item.checklistDone.length;
     const dragging = drag.dragging?.id === item.id;
+    const contextMenu = useContextMenu();
     // Who is responsible matters only when it is someone else
     const me = useAccess()?.name;
     const owner = item.assigneeName && item.assigneeName !== me ? item.assigneeName : null;
 
     return (
         <div
-            {...(canEdit ? drag.cardProps(item) : {})}
+            {...(canEdit ? drag.cardProps(item, ordered) : {})}
             onClick={onOpen}
+            onContextMenu={menu.length > 0 ? contextMenu.open : undefined}
+            {...(menu.length > 0 ? contextMenu.touchProps : {})}
             onKeyDown={(event) => {
-                if (event.key === 'Enter') onOpen();
+                // Only the card itself: Enter on its tick or in its menu does that instead
+                if (event.target !== event.currentTarget) return;
+                if (event.key === 'Enter') return onOpen();
+                const change = onKey?.(event.key);
+                if (!change) return;
+                event.preventDefault();
+                // The card may have moved (another day, another place): give it the focus back
+                void change.then(() => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-card="${item.id}"]`)?.focus()));
             }}
+            data-card={item.id}
             role="button"
             data-calendar-card
             tabIndex={0}
             title={open && canEdit ? copy.calendar.dragHint : undefined}
             className={cn(
                 'group relative overflow-hidden rounded-md border bg-card pl-2.5 pr-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                // Touch screens: holding a finger opens the menu, not the phone's own text selection
+                '[@media(hover:none)]:select-none [@media(hover:none)]:[-webkit-touch-callout:none]',
                 compact ? 'py-1.5' : 'py-2',
                 open ? 'border-border hover:border-border-strong hover:bg-muted/40 cursor-grab active:cursor-grabbing' : 'border-transparent bg-transparent hover:bg-muted/30 cursor-pointer',
                 late && 'border-danger-500/40 bg-danger-500/5',
@@ -119,6 +143,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
                             </span>
                         </span>
                     )}
+                    <PostponedBadge count={item.postponedCount} short={!detailed} />
                     {item.repeats && <Repeat size={11} aria-label={copy.kinds.repeat} />}
                     {!late && item.suggestedDate && item.closedReason && (
                         <span className="inline-flex items-center gap-1 text-warning-300" title={fmt(copy.when.closedDay, { reason: item.closedReason, suggested: formatShortDay(item.suggestedDate) })}>
@@ -130,6 +155,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
                     {detailed && owner && <span className="truncate max-w-24">{owner}</span>}
                 </div>
             )}
+            {contextMenu.at && <FloatingMenu actions={menu} anchor={contextMenu.at} onClose={contextMenu.close} />}
         </div>
     );
 }

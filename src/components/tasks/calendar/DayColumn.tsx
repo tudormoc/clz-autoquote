@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { DayQuickAdd } from '@/components/tasks/calendar/DayQuickAdd';
 import { PlannedCard } from '@/components/tasks/calendar/PlannedCard';
+import { cardMenu } from '@/components/tasks/calendar/cardMenu';
 import { WeekCard } from '@/components/tasks/calendar/WeekCard';
 import type { AgendaCalendar, DayContent } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
@@ -26,9 +27,9 @@ interface DayColumnProps {
 }
 
 /**
- * One day of the week board: weekday and date, a bar of how full it is, its cards (open ones first, then the planned
- * ones), the done ones folded at the foot, "+ Aggiungi". Today stands out; closed days are dimmed; while a card is
- * dragged, the days that can take it light up.
+ * One day of the week board: weekday and date, a bar of how full it is, its cards (open ones first, in their order,
+ * then the planned ones), the done ones folded at the foot, "+ Aggiungi". Today stands out; closed days are dimmed;
+ * while a card is dragged, the days that can take it light up and a line shows where it would land.
  */
 export function DayColumn({ date, content, calendar, drag, canEdit, closed, busiest }: DayColumnProps) {
     const [showDone, setShowDone] = useState(false);
@@ -36,8 +37,13 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
     const isToday = date === today;
     const past = date < today;
     const count = content.open.length + content.done.length + content.planned.length;
-    const dropping = drag.over === date;
     const droppable = drag.dragging !== null && drag.canDrop(date);
+    const target = drag.target?.date === date ? drag.target : null;
+    // A card from another day about to land here (a card changing place in its own day shows only the line)
+    const dropping = target !== null && droppable;
+    // The cards the dragged one would land between, and its place among them
+    const others = content.open.filter((item) => item.id !== drag.dragging?.id);
+    const slot = target?.slot ?? null;
     const empty = count === 0;
 
     return (
@@ -80,22 +86,34 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                 </div>
             </header>
 
-            <div className="flex-1 flex flex-col gap-1.5 px-1.5 pb-1.5 lg:min-h-0 lg:overflow-y-auto">
-                {dropping && <p className="rounded-md border border-dashed border-primary px-2 py-2 text-center text-xs text-primary">{copy.dropHere}</p>}
-                {content.open.map((item) => (
-                    <WeekCard
-                        key={item.id}
-                        item={item}
-                        today={today}
-                        detailed={isToday}
-                        selected={selected?.kind === 'item' && selected.item.id === item.id}
-                        canEdit={canEdit}
-                        busy={actions.busy}
-                        drag={drag}
-                        onOpen={() => select({ kind: 'item', item })}
-                        onDone={() => actions.done(item)}
-                    />
-                ))}
+            <div className="flex-1 flex flex-col gap-1.5 px-1.5 pt-1 pb-1.5 lg:min-h-0 lg:overflow-y-auto">
+                {dropping && others.length === 0 && (
+                    <p className="rounded-md border border-dashed border-primary px-2 py-2 text-center text-xs text-primary">{copy.dropHere}</p>
+                )}
+                {content.open.map((item) => {
+                    const index = others.indexOf(item);
+                    const line = slot === null || index < 0 ? null : slot === index ? 'top' : slot === others.length && index === others.length - 1 ? 'bottom' : null;
+                    return (
+                        <div key={item.id} className="relative">
+                            {/* Where the dragged card would land: a line in the gap above or under this card */}
+                            {line && <span aria-hidden className={cn('pointer-events-none absolute inset-x-0 h-0.5 rounded-full bg-primary', line === 'top' ? '-top-1' : '-bottom-1')} />}
+                            <WeekCard
+                                item={item}
+                                today={today}
+                                detailed={isToday}
+                                selected={selected?.kind === 'item' && selected.item.id === item.id}
+                                canEdit={canEdit}
+                                busy={actions.busy}
+                                drag={drag}
+                                ordered
+                                menu={canEdit ? cardMenu(item, calendar) : []}
+                                onKey={canEdit ? (key) => calendar.cardKey(item, key) : undefined}
+                                onOpen={() => select({ kind: 'item', item })}
+                                onDone={() => actions.done(item)}
+                            />
+                        </div>
+                    );
+                })}
                 {content.planned.map((entry) => (
                     <PlannedCard
                         key={`${entry.taskId}:${entry.date}`}
@@ -128,6 +146,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                                     canEdit={canEdit}
                                     busy={actions.busy}
                                     drag={drag}
+                                    menu={canEdit ? cardMenu(item, calendar) : []}
                                     onOpen={() => select({ kind: 'item', item })}
                                     onDone={() => undefined}
                                 />

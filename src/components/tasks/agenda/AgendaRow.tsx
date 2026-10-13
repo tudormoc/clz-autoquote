@@ -5,7 +5,7 @@ import { CheckCircle2, Circle, ListChecks, Repeat, UserRound } from 'lucide-reac
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { occurrenceMenu } from '@/components/tasks/occurrence/occurrenceMenu';
 import { DueLabel } from '@/components/tasks/shared/DueLabel';
-import { OccurrenceStatusBadge, PriorityBadge } from '@/components/tasks/shared/TaskBadges';
+import { OccurrenceStatusBadge, PostponedBadge, PriorityBadge } from '@/components/tasks/shared/TaskBadges';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { OccurrenceActions } from '@/hooks/useOccurrenceActions';
 import { TASK_PAGES } from '@/config/navigation';
@@ -53,6 +53,7 @@ export function AgendaRow({ item, today, actions, showAssignee }: AgendaRowProps
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs text-fg-subtle">
                     <PriorityBadge priority={item.priority} />
                     {item.status !== 'open' && !done && <OccurrenceStatusBadge status={item.status} note={item.statusNote} />}
+                    {!done && <PostponedBadge count={item.postponedCount} />}
                     {item.repeats && <Repeat size={12} aria-hidden />}
                     {item.areaName && <span>{item.areaName}</span>}
                     {item.checklistCount > 0 && (

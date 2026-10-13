@@ -17,6 +17,10 @@ export const APP_CONFIG = {
     ERROR_TOAST_DURATION: 8000,
     // Pause after the last click before a page of choices saves itself (Gruppi): several quick clicks, one save
     AUTOSAVE_DELAY_MS: 400,
+    // Phones: holding a finger this long on a card opens its menu (like a right-click); moving it more than
+    // TOUCH_SLOP_PX first means scrolling
+    LONG_PRESS_MS: 500,
+    TOUCH_SLOP_PX: 10,
   },
 
   // Login (src/lib/auth): users, groups and their pages are kept in the QUOTES tables app_users / app_groups
@@ -50,6 +54,11 @@ export const APP_CONFIG = {
     TODAY_COLUMN_WEIGHT: 1.6,       // today's column in the week view is this many times as wide as the others
     DAY_FULL: 5,                    // a day with this many things due draws a full bar (week board, coming weeks); busier days too
     CLOSED_COLUMN_WEIGHT: 0.6,      // … and a closed day with nothing on it this many times (more room for working days)
+    MAX_DAY_ORDER: 500,             // most cards one "order of a day" save may list (calendar: drag up / down)
+    POSTPONED_BADGE_FROM: 2,        // a date postponed this many times gets the "Rimandata N volte" badge
+    SEARCH_MIN_CHARS: 2,            // the Agenda search bar looks things up from this many letters typed …
+    SEARCH_DELAY_MS: 250,           // … this long after the last key
+    SEARCH_LIMIT: 8,                // most tasks / procedures / contacts it shows each
   },
 
   // Display locale for numbers, money and dates (used by src/lib/format.ts).

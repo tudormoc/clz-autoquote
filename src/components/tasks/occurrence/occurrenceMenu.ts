@@ -1,5 +1,5 @@
 import { CalendarClock, CheckCircle2, CircleDot, Hourglass, PlayCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react';
-import type { MenuAction } from '@/components/ui/ActionMenu';
+import type { MenuAction } from '@/components/ui/FloatingMenu';
 import type { OccurrenceActions, TitledOccurrence } from '@/hooks/useOccurrenceActions';
 import { isOpenStatus } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';

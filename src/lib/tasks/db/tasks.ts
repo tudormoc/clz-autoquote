@@ -26,6 +26,7 @@ import {
     VERSION_MATCH,
     VERSION_SQL,
     logSql,
+    mayDelete,
     nameResolver,
     parseJson,
     personKey,
@@ -143,6 +144,7 @@ export async function getTask(access: UserAccess, id: number, people: Person[]):
         updatedAt: row.updated_at,
         updatedBy: nameOf(row.updated_by) ?? '',
         version: row.version,
+        deletable: mayDelete(access, row.created_by),
     };
 }
 
@@ -256,7 +258,8 @@ export async function updateTask(access: UserAccess, before: TaskDetail, input: 
                   AND (@repeat IS NULL OR o.original_date IS NULL OR o.original_date >= @today);
                 IF @repeat IS NULL
                 BEGIN
-                    UPDATE tsk_occurrences SET original_date = @dueDate, due_date = @dueDate, due_time = @dueTime, updated_at = GETDATE(), updated_by = @me
+                    UPDATE tsk_occurrences SET original_date = @dueDate, due_date = @dueDate, due_time = @dueTime,
+                           day_order = CASE WHEN due_date = @dueDate THEN day_order END, updated_at = GETDATE(), updated_by = @me
                     WHERE id = (SELECT TOP 1 id FROM tsk_occurrences WHERE task_id = @id AND status IN (${OPEN_LIST}) ORDER BY id DESC);
                     IF NOT EXISTS (SELECT 1 FROM tsk_occurrences WHERE task_id = @id AND status IN (${OPEN_LIST}))
                         INSERT INTO tsk_occurrences (task_id, original_date, due_date, due_time, updated_by)
@@ -285,6 +288,18 @@ export async function updateTaskNotes(access: UserAccess, id: number, version: s
     );
 }
 
+/** Saves only the priority (calendar right-click); one field, so no version check: the last choice wins */
+export async function updateTaskPriority(access: UserAccess, id: number, priority: Priority): Promise<void> {
+    await rows(
+        transaction(`
+            UPDATE tsk_tasks SET priority = @priority, updated_at = GETDATE(), updated_by = @me WHERE id = @id;
+            ${THROW_IF_STALE}
+            ${logSql('task', '@id', '@id', 'changed', 'details')}
+        `),
+        { id, priority, me: personKey(access), details: JSON.stringify({ fields: ['priority'] }) }
+    );
+}
+
 const STATE_ACTIONS: Record<TaskState, 'resumed' | 'paused' | 'archived'> = { active: 'resumed', paused: 'paused', archived: 'archived' };
 
 /**
@@ -308,8 +323,37 @@ export async function updateTaskState(access: UserAccess, id: number, version: s
     );
 }
 
-/** One quick line ("Da fare", or a day of the week view): a one-time task of the person's own, with or without a date */
-export async function insertQuickTask(access: UserAccess, title: string, showDays: number, dueDate: string | null): Promise<number> {
+/**
+ * Deletes a task for good, with everything it holds: occurrences and procedure links (cascade), links of the task and
+ * of its occurrences, contact links, its whole log. One tsk_log line remains: who deleted which title, and when.
+ * Only the superadmin or whoever created it (checked again here); the caller has checked that the person sees it.
+ */
+export async function deleteTask(access: UserAccess, id: number, title: string): Promise<void> {
+    await rows(
+        transaction(`
+            DELETE FROM tsk_links
+            WHERE (owner_kind = 'task' AND owner_id = @id)
+               OR (owner_kind = 'occurrence' AND owner_id IN (SELECT id FROM tsk_occurrences WHERE task_id = @id));
+            DELETE FROM tsk_contact_refs WHERE owner_kind = 'task' AND owner_id = @id;
+            DELETE FROM tsk_log WHERE task_id = @id;
+            UPDATE tsk_tasks SET parent_id = NULL WHERE parent_id = @id;
+            DELETE FROM tsk_tasks WHERE id = @id AND (@admin = 1 OR created_by = @me);
+            ${THROW_IF_STALE}
+            ${logSql('task', '@id', 'NULL', 'deleted', 'details')}
+        `),
+        { id, me: personKey(access), admin: access.superadmin, details: JSON.stringify({ title }) }
+    );
+}
+
+/**
+ * One quick line ("Da fare", or a day of the week view): a task of the person's own, with what the line said (a date,
+ * a time, a repeat rule) or nothing
+ */
+export async function insertQuickTask(
+    access: UserAccess,
+    { title, dueDate, dueTime, repeat }: Pick<TaskInput, 'title' | 'dueDate' | 'dueTime' | 'repeat'>,
+    showDays: number
+): Promise<number> {
     const me = personKey(access);
     return insertTask(access, {
         title,
@@ -321,8 +365,8 @@ export async function insertQuickTask(access: UserAccess, title: string, showDay
         groupId: null,
         visibility: 'private',
         dueDate,
-        dueTime: null,
-        repeat: null,
+        dueTime,
+        repeat,
         showDays,
         checklist: [],
         estimateMinutes: null,

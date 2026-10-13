@@ -2,7 +2,8 @@
 
 /**
  * Agenda → Da fare: the list, quick add, and what can be done to one occurrence (done, reopen, postpone, status,
- * outcome, checklist, comment). Reading needs any Agenda page; changing needs "modifica" on Da fare, Calendario or Attività.
+ * outcome, checklist, comment), and the order of a day's cards. Reading needs any Agenda page; changing needs
+ * "modifica" on Da fare, Calendario or Attività.
  */
 
 import { z } from 'zod';
@@ -10,13 +11,18 @@ import { APP_CONFIG } from '@/config/constants';
 import { TASK_PAGES } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
 import { isIsoDate } from '@/lib/tasks/dates';
+import { TimeSchema } from '@/lib/tasks/input';
+import { RepeatRuleSchema } from '@/lib/tasks/repeat';
+import { refreshSeries } from '@/lib/tasks/db/series';
 import {
     SETTABLE_STATUSES,
     addComment,
     completeOccurrence,
+    orderDay,
     postponeOccurrence,
     reopenOccurrence,
     saveOutcome,
+    scheduleOccurrence,
     setChecklistStep,
     setOccurrenceStatus,
 } from '@/lib/tasks/db/occurrences';
@@ -41,13 +47,24 @@ export async function getAgendaAction(): Promise<Result<{ data: AgendaData }>> {
     return attempt('agenda', async () => ({ data: await getAgenda(access, await loadPeople()) }));
 }
 
-/** One line typed in Da fare (no date) or on a day of the week view (that date): a one-time task of the person's own */
-export async function quickAddAction(title: string, dueDate: string | null = null): Promise<Result<{ id: number }>> {
+/**
+ * One line typed in Da fare or on a day of the week view: a task of the person's own, with the date, time and repeat
+ * rule its words gave (src/lib/tasks/quickParse.ts, read in the browser), or the day it was typed on
+ */
+export async function quickAddAction(title: string, dueDate: string | null = null, dueTime: string | null = null, repeat: unknown = null): Promise<Result<{ id: number }>> {
     const access = await authorize('edit', ...EDIT_PAGES);
     const clean = String(title ?? '').trim();
     if (clean.length === 0 || clean.length > APP_CONFIG.TASKS.MAX_TITLE_LENGTH) return refused(APP_COPY.tasks.messages.titleRequired);
-    if (dueDate !== null && !DateSchema.safeParse(dueDate).success) return refused();
-    return attempt('quick add', async () => ({ id: await insertQuickTask(access, clean, APP_CONFIG.TASKS.DEFAULT_SHOW_DAYS, dueDate) }));
+    const date = DateSchema.nullable().safeParse(dueDate);
+    const time = TimeSchema.nullable().safeParse(dueTime);
+    const rule = RepeatRuleSchema.nullable().safeParse(repeat);
+    if (!date.success || !time.success || !rule.success) return refused();
+    if (rule.data && !date.data) return refused(APP_COPY.tasks.messages.firstDateRequired);
+    return attempt('quick add', async () => {
+        const id = await insertQuickTask(access, { title: clean, dueDate: date.data, dueTime: time.data, repeat: rule.data }, APP_CONFIG.TASKS.DEFAULT_SHOW_DAYS);
+        if (rule.data) await refreshSeries([id]);
+        return { id };
+    });
 }
 
 /** Done on `doneOn` (today or earlier), with an optional outcome */
@@ -84,6 +101,27 @@ export async function postponeOccurrenceAction(id: number, version: string, to: 
     if (!validTarget(id, version) || !DateSchema.safeParse(to).success || !NoteSchema.safeParse(reason).success) return refused();
     return attempt('postpone', async () => {
         await postponeOccurrence(access, id, version, to, reason);
+        return {};
+    });
+}
+
+/** A first date for an open occurrence that has none ("Senza data" dragged onto a day) */
+export async function scheduleOccurrenceAction(id: number, version: string, to: string): Promise<Saved> {
+    const access = await authorize('edit', ...EDIT_PAGES);
+    if (!validTarget(id, version) || !DateSchema.safeParse(to).success) return refused();
+    return attempt('schedule', async () => {
+        await scheduleOccurrence(access, id, version, to);
+        return {};
+    });
+}
+
+/** The open cards due on `date`, first to last */
+export async function orderDayAction(date: string, ids: number[]): Promise<Saved> {
+    const access = await authorize('edit', ...EDIT_PAGES);
+    const parsed = z.array(IdSchema).min(1).max(APP_CONFIG.TASKS.MAX_DAY_ORDER).safeParse(ids);
+    if (!DateSchema.safeParse(date).success || !parsed.success || new Set(parsed.data).size !== parsed.data.length) return refused();
+    return attempt('day order', async () => {
+        await orderDay(access, date, parsed.data);
         return {};
     });
 }

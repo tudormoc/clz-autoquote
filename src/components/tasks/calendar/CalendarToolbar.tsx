@@ -1,7 +1,9 @@
 'use client';
 
-import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { AgendaSearch } from '@/components/tasks/shared/AgendaSearch';
 import { NewTaskButton } from '@/components/tasks/shared/NewTaskButton';
+import { TaskFilters } from '@/components/tasks/shared/TaskFilters';
 import { Button } from '@/components/ui/Button';
 import type { AgendaCalendar, CalendarMode } from '@/hooks/useAgendaCalendar';
 import { monthName } from '@/lib/format';
@@ -19,12 +21,13 @@ interface CalendarToolbarProps {
     progress: { done: number; total: number } | null;
 }
 
-/** The period's name and how much of it is done; back / today / forward; week or month; "Nuova attività" */
+/** The period's name and how much of it is done; search; area / person filters; "Senza data"; back / today / forward; week or month; "Nuova attività" */
 export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
     const { mode, setMode, anchor, range, shift, goTo, today } = calendar;
     const title = mode === 'week' ? weekTitle(range.start) : fmt(copy.month, { month: monthName(Number(anchor.slice(5, 7))), year: anchor.slice(0, 4) });
     const showsToday = today >= range.start && today <= range.end && (mode === 'week' || anchor.slice(0, 7) === today.slice(0, 7));
     const share = progress && progress.total > 0 ? progress.done / progress.total : 0;
+    const undated = calendar.data?.undated.length ?? 0;
 
     return (
         <div className="shrink-0 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
@@ -43,11 +46,28 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                             {progress.total > 0 ? fmt(copy.progress, progress) : copy.nothingThisWeek}
                         </span>
                     )}
-                    <span className="hidden lg:inline text-fg-faint">{copy.keyboardHint}</span>
+                    <span className="hidden lg:inline text-fg-faint cursor-help" title={copy.cardKeysHint}>
+                        {copy.keyboardHint}
+                    </span>
                 </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+                <AgendaSearch className="sm:w-48" />
+                <TaskFilters values={calendar.filters} onChange={calendar.setFilters} areas={calendar.filterOptions.areas} people={calendar.filterOptions.people} compact search={false} />
+                {(undated > 0 || calendar.showUndated) && (
+                    <Button
+                        variant={calendar.showUndated ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => calendar.setShowUndated(!calendar.showUndated)}
+                        aria-pressed={calendar.showUndated}
+                        title={copy.undatedToggle}
+                    >
+                        <Inbox size={14} />
+                        {copy.undated}
+                        <span className="font-mono">{undated}</span>
+                    </Button>
+                )}
                 <div className="flex items-center gap-1">
                     <Button variant="secondary" size="sm" className="w-8 px-0" onClick={() => shift(-1)} title={copy.previous[mode]} aria-label={copy.previous[mode]}>
                         <ChevronLeft size={16} />

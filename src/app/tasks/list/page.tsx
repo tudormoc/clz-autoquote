@@ -2,6 +2,7 @@ import { ListChecks } from 'lucide-react';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TaskListView } from '@/components/tasks/list/TaskListView';
+import { AgendaSearch } from '@/components/tasks/shared/AgendaSearch';
 import { NewTaskButton } from '@/components/tasks/shared/NewTaskButton';
 import { requirePage } from '@/lib/auth/access';
 import { APP_COPY } from '@/locales';
@@ -13,7 +14,12 @@ export const metadata = { title: page.label };
 export default async function TaskListPage() {
     await requirePage('tasks', 'list');
     return (
-        <FillPage header={<PageHeader icon={ListChecks} title={page.label} subtitle={page.description} actions={<NewTaskButton />} />}>
+        <FillPage header={<PageHeader icon={ListChecks} title={page.label} subtitle={page.description} actions={
+                        <>
+                            <AgendaSearch />
+                            <NewTaskButton />
+                        </>
+                    } />}>
             <TaskListView />
         </FillPage>
     );

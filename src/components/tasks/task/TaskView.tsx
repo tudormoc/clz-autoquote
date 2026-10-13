@@ -3,12 +3,13 @@
 import { useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Archive, BookOpen, CalendarCheck, Copy, Link2, ListChecks, Pause, Pencil, Play, RotateCcw } from 'lucide-react';
+import { Archive, BookOpen, CalendarCheck, Copy, Link2, ListChecks, Pause, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react';
 import { setTaskStateAction, getTaskPageAction } from '@/app/tasks/task-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { OccurrenceDialog } from '@/components/tasks/occurrence/OccurrenceDialog';
 import { ContactList } from '@/components/tasks/shared/ContactList';
+import { confirmAndDeleteTask } from '@/components/tasks/shared/deleteTask';
 import { FormCard } from '@/components/tasks/shared/FormCard';
 import { LinkList } from '@/components/tasks/shared/LinkList';
 import { LoadState } from '@/components/tasks/shared/LoadState';
@@ -16,7 +17,8 @@ import { QuickNotes } from '@/components/tasks/shared/QuickNotes';
 import { OccurrenceCard } from '@/components/tasks/task/OccurrenceCard';
 import { TaskInfo } from '@/components/tasks/task/TaskInfo';
 import { TaskTimeline } from '@/components/tasks/task/TaskTimeline';
-import { ActionMenu, type MenuAction } from '@/components/ui/ActionMenu';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import type { MenuAction } from '@/components/ui/FloatingMenu';
 import { buttonClasses } from '@/components/ui/Button';
 import { TASK_PAGES } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
@@ -67,6 +69,19 @@ export function TaskView({ id }: { id: number }) {
         task.state === 'archived'
             ? { label: copy.actions.restore, icon: RotateCcw, onSelect: () => changeState('active') }
             : { label: copy.actions.archive, icon: Archive, tone: 'danger' as const, onSelect: () => changeState('archived', fmt(copy.dialogs.archiveConfirm, { title: task.title })) },
+        ...(task.deletable
+            ? [
+                  {
+                      label: copy.actions.deleteTask,
+                      icon: Trash2,
+                      tone: 'danger' as const,
+                      divider: true,
+                      onSelect: async () => {
+                          if (await confirmAndDeleteTask(task)) router.push(TASK_PAGES.list);
+                      },
+                  },
+              ]
+            : []),
     ];
 
     return (

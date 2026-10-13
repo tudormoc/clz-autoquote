@@ -65,7 +65,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                                 closed && 'bg-background',
                                 !inMonth(day) && 'opacity-40',
                                 drag.dragging && drag.canDrop(day) && 'bg-primary/5',
-                                drag.over === day && 'bg-primary/15'
+                                drag.target?.date === day && 'bg-primary/15'
                             )}
                         >
                             <div className="flex items-center justify-between gap-1">

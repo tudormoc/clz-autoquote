@@ -2,22 +2,25 @@
 
 /**
  * Agenda → Attività (list, task page, form), Calendario and Storico. Reading needs any Agenda page; creating and
- * changing tasks needs "modifica" on Attività or Da fare. Every read also applies who may see which task.
+ * changing tasks needs "modifica" on Attività or Da fare (deleting: also Calendario, and only the superadmin or the
+ * task's creator). Every read also applies who may see which task.
  */
 
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
 import { TASK_PAGES } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
+import { canOpen } from '@/lib/auth/permissions';
 import type { ClosedDay } from '@/lib/tasks/closedDays';
 import { daysBetween, isIsoDate } from '@/lib/tasks/dates';
-import { TaskInputSchema, inputProblem } from '@/lib/tasks/input';
+import { PrioritySchema, TaskInputSchema, inputProblem } from '@/lib/tasks/input';
 import { listContacts } from '@/lib/tasks/db/contacts';
 import { listGuides } from '@/lib/tasks/db/guides';
+import { searchAgenda, type SearchHit } from '@/lib/tasks/db/search';
 import { refreshSeries } from '@/lib/tasks/db/series';
 import { listAreas, listClosedDays } from '@/lib/tasks/db/settings';
 import { NotFound, loadGroupNames, loadPeople, personKey, today } from '@/lib/tasks/db/shared';
-import { getTask, insertTask, listTasks, updateTask, updateTaskNotes, updateTaskState } from '@/lib/tasks/db/tasks';
+import { deleteTask, getTask, insertTask, listTasks, updateTask, updateTaskNotes, updateTaskPriority, updateTaskState } from '@/lib/tasks/db/tasks';
 import { getDayLoads, getHistory, getRange, getTaskPage, type HistoryRow, type RangeData, type TaskPageData } from '@/lib/tasks/db/views';
 import { OCCURRENCE_STATUSES, TASK_STATES, type Contact, type DayLoad, type GuideSummary, type NamedItem, type Person, type TaskDetail, type TaskInput, type TaskSummary } from '@/lib/tasks/types';
 import { attempt, refused, type Result, type Saved } from '@/app/tasks/results';
@@ -142,6 +145,40 @@ export async function setTaskStateAction(id: number, version: string, state: str
         if (!before) throw new NotFound();
         await updateTaskState(access, id, version, parsed.data, before.state);
         if (parsed.data === 'active') await refreshSeries([id]);
+        return {};
+    });
+}
+
+/** The Agenda search bar: tasks, procedures and contacts containing the text (each kind only if its page may be opened) */
+export async function searchAgendaAction(text: string): Promise<Result<{ hits: SearchHit[] }>> {
+    const access = await authorize('view', ...ALL_PAGES);
+    const term = String(text ?? '').trim();
+    if (term.length < APP_CONFIG.TASKS.SEARCH_MIN_CHARS || term.length > APP_CONFIG.TASKS.MAX_TITLE_LENGTH) return { success: true, hits: [] };
+    const kinds = { task: canOpen(access, TASK_PAGES.list), guide: canOpen(access, TASK_PAGES.guides), contact: canOpen(access, TASK_PAGES.contacts) };
+    return attempt('search', async () => ({ hits: await searchAgenda(access, term, kinds) }));
+}
+
+/** Only the priority of a task (calendar right-click) */
+export async function setTaskPriorityAction(id: number, priority: number): Promise<Saved> {
+    const access = await authorize('edit', ...EDIT_PAGES, TASK_PAGES.calendar);
+    const parsed = PrioritySchema.safeParse(priority);
+    if (!IdSchema.safeParse(id).success || !parsed.success) return refused();
+    return attempt('task priority', async () => {
+        if (!(await getTask(access, id, await loadPeople()))) throw new NotFound();
+        await updateTaskPriority(access, id, parsed.data);
+        return {};
+    });
+}
+
+/** Deletes a task for good, with all its dates and history (the superadmin, or whoever created it) */
+export async function deleteTaskAction(id: number): Promise<Saved> {
+    const access = await authorize('edit', ...EDIT_PAGES, TASK_PAGES.calendar);
+    if (!IdSchema.safeParse(id).success) return refused();
+    return attempt('delete task', async () => {
+        const task = await getTask(access, id, await loadPeople());
+        if (!task) throw new NotFound();
+        if (!task.deletable) throw new Error(APP_COPY.tasks.messages.deleteNotAllowed);
+        await deleteTask(access, id, task.title);
         return {};
     });
 }
