@@ -37,7 +37,7 @@ const COLUMNS = [
 const marginColor = (value: number) => toneColor(value, GOOD, FAIR);
 const marginPercent = (margin: number, revenue: number) => (revenue > 0 ? (margin / revenue) * 100 : 0);
 
-/** HTML of the Sommario Clienti PDF: totals, then every client on one A4 page */
+/** HTML of the Report Clienti PDF: totals, then every client on one A4 page */
 export function clientSummaryReportHtml(rows: ClientSummaryRow[], hourlyRate: number, periods: string[], clientFilter?: string, includeAllRevenueForSplit = false): string {
     const sum = (pick: (row: ClientSummaryRow) => number) => rows.reduce((total, row) => total + pick(row), 0);
     const revenue = sum((r) => r.total_revenue);

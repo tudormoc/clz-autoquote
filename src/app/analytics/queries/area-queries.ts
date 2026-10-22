@@ -1,5 +1,5 @@
 /**
- * Area reports from NetPro (Sommario Area, Sommario Ordini per Area): machines are grouped into the areas of
+ * Area reports from NetPro (Report Area, Report Ordini per Area): machines are grouped into the areas of
  * APP_CONFIG.ANALYTICS.MACHINE_AREAS in code, then sorted and paged with sortAndPage.
  * Tables and shared parts: shared/netpro-work.ts.
  */
@@ -19,7 +19,7 @@ const ANALYTICS = APP_CONFIG.ANALYTICS;
 
 /**
  * ============================================================================
- * AREA SUMMARY REPORT (Sommario Area): machine work time and speed per area
+ * AREA SUMMARY REPORT (Report Area): machine work time and speed per area
  * ============================================================================
  * Machine time (TIPO_OGGETTO 'MAC') per machine, summed per area. Quantity per area: the requested quantity of
  * each order once (the folding area: the sum of completed pieces), plus AREA_QUANTITY_EXCESS for the speed.
@@ -126,7 +126,7 @@ export async function getAreaSummaryDataAction(
 
 /**
  * ============================================================================
- * ORDER AREA SUMMARY REPORT (Sommario Ordini per Area): operator work time per order and area
+ * ORDER AREA SUMMARY REPORT (Report Ordini per Area): operator work time per order and area
  * ============================================================================
  * Operator time per machine and order from SQL, summed per area in code. Areas with no expected speed and rows
  * under MIN_WORK_TIME_MINUTES are left out. Pages and composition come from Business (movord).

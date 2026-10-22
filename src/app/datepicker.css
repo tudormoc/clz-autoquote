@@ -1,41 +1,85 @@
-/* Custom styles for react-day-picker */
-.rdp-custom {
-  --rdp-cell-size: 36px;
+/* The DatePicker calendar (react-day-picker 9) in the app's colours. `.rdp-root.rdp-custom` outweighs the library's own
+   style.css whatever order the two load in. */
+.rdp-root.rdp-custom {
   --rdp-accent-color: rgb(var(--primary-500));
-  --rdp-background-color: rgb(var(--card));
+  --rdp-accent-background-color: rgb(var(--primary-500) / 0.15);
+  --rdp-today-color: rgb(var(--primary-400));
+  --rdp-day-height: 40px;
+  --rdp-day-width: 40px;
+  --rdp-day_button-height: 36px;
+  --rdp-day_button-width: 36px;
+  --rdp-day_button-border-radius: var(--radius);
+  --rdp-selected-border: 0;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  --rdp-nav-height: 2.5rem;
   color: rgb(var(--fg));
+  font-size: 0.875rem;
 }
 
-.rdp-custom .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+.rdp-custom .rdp-month_caption {
+  color: rgb(var(--fg-strong));
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding-inline-start: 0.5rem;
+}
+
+.rdp-custom .rdp-weekday {
+  color: rgb(var(--fg-subtle));
+  opacity: 1;
+  font-size: 0.75rem;
+}
+
+.rdp-custom .rdp-button_previous,
+.rdp-custom .rdp-button_next {
+  border-radius: var(--radius);
+  transition: background-color 150ms;
+}
+
+.rdp-custom .rdp-chevron {
+  fill: rgb(var(--fg-muted));
+  width: 16px;
+  height: 16px;
+}
+
+.rdp-custom .rdp-button_previous:hover:not(:disabled),
+.rdp-custom .rdp-button_next:hover:not(:disabled) {
   background-color: rgb(var(--muted));
 }
 
-.rdp-custom .rdp-day_selected {
-  background-color: var(--rdp-accent-color);
+.rdp-custom .rdp-button_previous:hover:not(:disabled) .rdp-chevron,
+.rdp-custom .rdp-button_next:hover:not(:disabled) .rdp-chevron {
+  fill: rgb(var(--fg-strong));
+}
+
+.rdp-custom .rdp-day_button {
+  transition: background-color 150ms, color 150ms;
+}
+
+.rdp-custom .rdp-day:not(.rdp-selected):not(.rdp-disabled) .rdp-day_button:hover {
+  background-color: rgb(var(--muted));
   color: rgb(var(--fg-strong));
 }
 
-.rdp-custom .rdp-day_today {
-  font-weight: bold;
-  color: var(--rdp-accent-color);
+.rdp-custom .rdp-today:not(.rdp-outside) {
+  font-weight: 700;
 }
 
-.rdp-custom .rdp-head_cell {
-  color: rgb(var(--fg-subtle));
-  font-size: 0.875rem;
-  font-weight: 500;
+/* The chosen day: a solid primary fill, like a primary button */
+.rdp-custom .rdp-selected {
+  font-size: inherit;
 }
 
-.rdp-custom .rdp-caption {
-  color: rgb(var(--fg));
-  font-weight: 600;
+.rdp-custom .rdp-selected .rdp-day_button {
+  background-color: var(--rdp-accent-color);
+  color: rgb(var(--fg-inverse));
 }
 
-.rdp-custom .rdp-nav_button {
-  color: rgb(var(--fg-subtle));
-}
-
-.rdp-custom .rdp-nav_button:hover {
-  background-color: rgb(var(--muted));
-  color: rgb(var(--fg));
+.rdp-custom .rdp-day_button:focus-visible,
+.rdp-custom .rdp-button_previous:focus-visible,
+.rdp-custom .rdp-button_next:focus-visible {
+  outline: 2px solid var(--rdp-accent-color);
+  outline-offset: 1px;
 }

@@ -2,7 +2,7 @@
  * Labour rates of the analytics reports, changed in Impostazioni → Costo del Lavoro and kept in NETPRO.VALORI_TABELLE
  * (TABELLA 'ANALISI', see src/lib/settingsStore.ts). Until a rate is saved, its default from APP_CONFIG.ANALYTICS applies.
  *
- * - hourly: cost of one hour of NetPro work (labour cost and margin of Sommario Clienti, Ricavo Ordini and their PDF)
+ * - hourly: cost of one hour of NetPro work (labour cost and margin of Report Clienti, Ricavo Ordini and their PDF)
  * - partial: the part of it that turns an external supplier's cost into equivalent hours (Lavorazioni Esterne)
  */
 

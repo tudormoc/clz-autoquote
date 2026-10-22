@@ -124,7 +124,7 @@ export const APP_CONFIG = {
     PARTIAL_LABOR_RATE: 23,  // turns external supplier costs into equivalent hours
     MAX_LABOUR_RATE: 1000,  // highest rate a save accepts (guards against typing errors)
 
-    // Longest wait for one revenue/cost report query (Sommario Clienti, Ricavo Ordini), table or Excel export
+    // Longest wait for one revenue/cost report query (Report Clienti, Ricavo Ordini), table or Excel export
     REPORT_QUERY_TIMEOUT_MS: 90000,
 
     // Company Information
@@ -135,7 +135,7 @@ export const APP_CONFIG = {
 
     // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
     // Add client codes here to hide them from exported PDF reports
-    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365', '9010382', '9010179'] as string[],
+    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365', '9010382', '9010179', '9010035', '9010356'] as string[],
 
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
@@ -206,7 +206,7 @@ export const APP_CONFIG = {
     // Efficiency thresholds for color coding
     // Area efficiency (%): >= EXCELLENT green, >= ACCEPTABLE amber, below red
     // PDF reports: area trend (% change of efficiency between first and last period that counts as up / down),
-    // how many best areas are listed, and the Sommario Ordini per Area target and client ranking
+    // how many best areas are listed, and the Report Ordini per Area target and client ranking
     PDF: {
       TREND_CHANGE_PERCENT: 5,
       TOP_AREAS: 2,
@@ -242,14 +242,14 @@ export const APP_CONFIG = {
     MIN_WORK_TIME_MINUTES: 30,
     // Production report rows with less work than this (hours) are left out (stray clicks)
     MIN_ROW_WORK_HOURS: 0.1,
-    // Order numbers that are not real orders (internal / placeholders), left out of Sommario Ordini per Area
+    // Order numbers that are not real orders (internal / placeholders), left out of Report Ordini per Area
     EXCLUDED_ORDER_NUMBERS: ['9990', '9998', '9999'],
-    // Sommario Area: the quantity used for the speed gets this excess (2% spoilage)
+    // Report Area: the quantity used for the speed gets this excess (2% spoilage)
     AREA_QUANTITY_EXCESS: 1.02,
-    // Sommario Area: order lines asking for fewer pieces than this are ignored for the quantity (samples, tests)
+    // Report Area: order lines asking for fewer pieces than this are ignored for the quantity (samples, tests)
     AREA_MIN_REQUESTED_QTY: 10,
-    // The folding area: its quantity is the sum of completed pieces (Sommario Area) and its expected hours are
-    // measured in sheets (fogli) instead of requested pieces (Sommario Ordini per Area)
+    // The folding area: its quantity is the sum of completed pieces (Report Area) and its expected hours are
+    // measured in sheets (fogli) instead of requested pieces (Report Ordini per Area)
     FOLDING_AREA: 'Piega',
   },
 

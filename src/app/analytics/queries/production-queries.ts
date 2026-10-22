@@ -1,5 +1,5 @@
 /**
- * Production reports from NetPro (Report Produzione, Sommario Ordini): operator work time grouped and paged in SQL.
+ * Production reports from NetPro (Report Produzione, Report Ordini): operator work time grouped and paged in SQL.
  * Tables and shared parts: shared/netpro-work.ts.
  */
 
@@ -126,7 +126,7 @@ export async function getProductionDataAction(
 
 /**
  * ============================================================================
- * ORDER SUMMARY REPORT (Sommario Ordini): operator work time per machine and order, all dates
+ * ORDER SUMMARY REPORT (Report Ordini): operator work time per machine and order, all dates
  * ============================================================================
  */
 export type OrderSummaryRow = Omit<ProductionRow, 'date' | 'operator' | 'operator_name'>;

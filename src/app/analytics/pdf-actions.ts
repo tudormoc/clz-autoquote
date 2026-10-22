@@ -46,7 +46,7 @@ const periodSuffix = (values: number[], prefix: string, joiner: string) =>
 
 /**
  * ============================================================================
- * AREA SUMMARY (Sommario Area): by month or by ISO week
+ * AREA SUMMARY (Report Area): by month or by ISO week
  * ============================================================================
  */
 export async function generateAreaSummaryPDFAction(
@@ -97,7 +97,7 @@ export async function generateAreaSummaryPDFAction(
 
 /**
  * ============================================================================
- * ORDER AREA SUMMARY (Sommario Ordini per Area): by month, A4 or A3
+ * ORDER AREA SUMMARY (Report Ordini per Area): by month, A4 or A3
  * ============================================================================
  */
 export async function generateOrderAreaSummaryPDFAction(
@@ -135,7 +135,7 @@ export async function generateOrderAreaSummaryPDFAction(
 
 /**
  * ============================================================================
- * CLIENT SUMMARY (Sommario Clienti): every client on one A4 page
+ * CLIENT SUMMARY (Report Clienti): every client on one A4 page
  * ============================================================================
  */
 

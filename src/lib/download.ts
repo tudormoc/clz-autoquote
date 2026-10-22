@@ -10,7 +10,7 @@ export function fileSlug(text: string): string {
         .replace(/^-|-$/g, '');
 }
 
-/** File name of a report export: its name as in the app, then the period ("sommario-clienti_2025-01-01_2025-12-31.xlsx") */
+/** File name of a report export: its name as in the app, then the period ("report-clienti_2025-01-01_2025-12-31.xlsx") */
 export function reportFileName(reportName: string, parts: (string | undefined)[], extension: string): string {
     return [fileSlug(reportName), ...parts.filter(Boolean)].join('_') + `.${extension}`;
 }

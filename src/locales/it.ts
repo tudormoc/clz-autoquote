@@ -881,7 +881,7 @@ export const APP_COPY = {
     },
     labourCost: {
       rates: {
-        hourly: { label: "Costo orario del lavoro", hint: "Costo del lavoro e margine in Sommario Clienti, Ricavo Ordini e nel loro PDF" },
+        hourly: { label: "Costo orario del lavoro", hint: "Costo del lavoro e margine in Report Clienti, Ricavo Ordini e nel loro PDF" },
         partial: { label: "Costo orario parziale", hint: "Converte il costo dei fornitori in ore equivalenti in Lavorazioni Esterne" },
       },
       perHour: "all'ora",
@@ -964,10 +964,10 @@ export const APP_COPY = {
   analytics: {
     reports: {
       productionMetrics: "Report Produzione",
-      orderSummary: "Sommario Ordini",
-      areaSummary: "Sommario Area",
-      orderAreaSummary: "Sommario Ordini per Area",
-      clientSummary: "Sommario Clienti",
+      orderSummary: "Report Ordini",
+      areaSummary: "Report Area",
+      orderAreaSummary: "Report Ordini per Area",
+      clientSummary: "Report Clienti",
       clientDeliveries: "Consegne Clienti",
       orderRevenue: "Ricavo Ordini",
       externalWork: "Lavorazioni Esterne",
@@ -1516,7 +1516,7 @@ export const APP_COPY = {
       stats: {
         timeExpected: "Ore Attese",
         timeWorked: "Ore Lavoro",
-        summary: "Sommario Commesse",
+        summary: "Report Commesse",
       },
       complexOnly: "Solo Progetti Complessi (3+ aree)",
       pdfButton: "Genera Report PDF",

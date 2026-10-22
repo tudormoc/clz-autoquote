@@ -233,7 +233,7 @@ const orderTable = (order: OrderHours) => {
     </table>`;
 };
 
-/** HTML of the Sommario Ordini per Area PDF: totals, areas, hours balance and clients, then every order (A3: two columns) */
+/** HTML of the Report Ordini per Area PDF: totals, areas, hours balance and clients, then every order (A3: two columns) */
 export function orderAreaSummaryReportHtml(periods: PeriodData<OrderAreaRow>[], format: 'A4' | 'A3' = 'A4'): string {
     const s = summarize(periods);
     const net = s.gained - s.lost;

@@ -132,7 +132,7 @@ const areaList = (title: string, list: { name: string; averageEfficiency: number
         </table>
     </div>`;
 
-/** HTML of the Sommario Area PDF: totals, best and weakest areas, then one table per area with a row per period */
+/** HTML of the Report Area PDF: totals, best and weakest areas, then one table per area with a row per period */
 export function areaSummaryReportHtml(periods: PeriodData<AreaSummaryRow>[], areaFilter?: string, mode: 'months' | 'weeks' = 'months'): string {
     const { areas, totalHours, velocity, efficiency } = summarize(periods);
     const singlePeriod = periods.length === 1;

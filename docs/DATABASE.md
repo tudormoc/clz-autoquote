@@ -75,7 +75,7 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 
 ## Query rules (revenue, costs, margins)
 
-1. **Revenue** = client rows (`an_tipo = 'C'`), filtered by the date range. Sommario Clienti and Ricavo Ordini use the
+1. **Revenue** = client rows (`an_tipo = 'C'`), filtered by the date range. Report Clienti and Ricavo Ordini use the
    delivered value: `dw_valore` of delivery notes (`dw_tipork = 'B'`).
 2. **Material costs** = supplier rows (`an_tipo = 'F'`, `dw_acqvalore`), **never filtered by date**: an order invoiced in 2025
    with costs in 2024 needs those costs for its real margin. The same for work hours (`fetchWorkTimesForCommessas`).
@@ -91,7 +91,7 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 7. Paging: 100 rows per page. In SQL: `OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY` with a unique tie-breaker in
    the ORDER BY, or rows with equal values move between pages and the export repeats some and loses others. When a
    sortable column is added after the query (labour from NetPro), fetch all rows, complete them, then `sortAndPage`
-   (Sommario Clienti, Ricavo Ordini).
+   (Report Clienti, Ricavo Ordini).
 
 ## Reusable query helpers (`src/app/analytics/queries/shared/`)
 

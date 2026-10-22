@@ -1,5 +1,5 @@
 /**
- * Sommario Clienti from Business: delivered value, material and labour costs and margin per client, and its total card.
+ * Report Clienti from Business: delivered value, material and labour costs and margin per client, and its total card.
  * How the revenue, costs and speed work: shared/business-report.ts.
  */
 
@@ -25,7 +25,7 @@ import { authorize } from '@/lib/auth/access';
 
 /**
  * ============================================================================
- * CLIENT SUMMARY REPORT (Sommario Clienti)
+ * CLIENT SUMMARY REPORT (Report Clienti)
  * ============================================================================
  *
  * Delivered value (delivery notes), material and labour costs per client.
@@ -41,7 +41,7 @@ interface ClientSummaryFilters {
     includeAllRevenueForSplit?: boolean;
 }
 
-/** One client of Sommario Clienti */
+/** One client of Report Clienti */
 export interface ClientSummaryRow {
     client_code: number;
     client_name: string;
@@ -230,7 +230,7 @@ export async function getClientSummaryDataAction(
     }
 }
 
-/** Total revenue card of Sommario Clienti: the sum of the table's revenue column over all pages */
+/** Total revenue card of Report Clienti: the sum of the table's revenue column over all pages */
 export async function getClientSummaryStatsAction(
     year: number = 2024,
     filters?: ClientSummaryFilters

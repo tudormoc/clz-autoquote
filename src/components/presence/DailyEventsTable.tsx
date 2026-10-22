@@ -6,6 +6,7 @@ import { getDailyEventsAction, updateEventAction } from '@/app/presence/events-a
 import { AddEventForm } from '@/components/presence/AddEventForm';
 import { Button } from '@/components/ui/Button';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { FilterPanel } from '@/components/ui/FilterPanel';
@@ -74,22 +75,13 @@ export function DailyEventsTable() {
                     display={formatDbDateTime(row.ORA_EVENTO)}
                     startValue={() => dbDateTimeParts(row.ORA_EVENTO) ?? { date: '', time: '' }}
                     renderEditor={(draft, setDraft) => (
-                        <div className="flex items-center gap-1 bg-card border border-border-strong rounded px-2 py-1">
-                            <Input
-                                type="date"
-                                value={draft.date}
-                                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-                                className="h-7 text-xs border-0 bg-transparent p-0 w-28 focus:ring-0"
-                                autoFocus
-                            />
-                            <span className="text-fg-faint">|</span>
-                            <Input
-                                type="time"
-                                step="1"
-                                value={draft.time}
-                                onChange={(e) => setDraft({ ...draft, time: e.target.value })}
-                                className="h-7 text-xs border-0 bg-transparent p-0 w-24 focus:ring-0"
-                            />
+                        <div className="flex items-center gap-1">
+                            <div className="w-36">
+                                <DatePicker value={draft.date} onChange={(date) => setDraft({ ...draft, date })} autoFocus />
+                            </div>
+                            <div className="w-28">
+                                <Input type="time" step="1" value={draft.time} onChange={(e) => setDraft({ ...draft, time: e.target.value })} className="font-mono" />
+                            </div>
                         </div>
                     )}
                     onSave={saveTime(row)}
