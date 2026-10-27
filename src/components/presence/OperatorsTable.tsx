@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { FileText } from 'lucide-react';
 import { getOperatorsAction, updateOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
+import { OperatorChecklistModal } from '@/components/presence/OperatorChecklistModal';
+import { Button } from '@/components/ui/Button';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { FilterPanel } from '@/components/ui/FilterPanel';
@@ -14,6 +17,7 @@ import { ToggleChips } from '@/components/ui/ToggleChips';
 import { useClientSort } from '@/hooks/useClientSort';
 import { useListQuery } from '@/hooks/useListQuery';
 import { EMPTY_VALUE } from '@/lib/format';
+import { EMPLOYEE_CATEGORIES, normalizeReparto } from '@/lib/presence/categories';
 import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
 import { notify } from '@/lib/notify';
@@ -34,6 +38,10 @@ const SORT_COLUMNS: RowSortColumns<OperatorRow> = {
 /** Chip key of a row: its stato fisico, '' when it has none */
 const statoKey = (row: OperatorRow) => row.STATO_FISICO || '';
 
+/** Category chips, all on by default (operators of no known category are never shown) */
+const CATEGORY_OPTIONS = EMPLOYEE_CATEGORIES.map((c) => ({ key: c.key, label: c.label }));
+const DEFAULT_CATEGORIES: ReadonlySet<string> = new Set(CATEGORY_OPTIONS.map((c) => c.key));
+
 /** Editor of a text cell, for EditableCell's renderEditor */
 function textEditor(className?: string) {
     return function TextEditor(draft: string, setDraft: (value: string) => void) {
@@ -52,9 +60,11 @@ export function OperatorsTable() {
     const allStati = list.result?.allStati ?? [];
     // null = default: every stato on. Operators without a stato get their own chip, off by default.
     const [chosenStati, setChosenStati] = useState<Set<string> | null>(null);
+    const [showChecklist, setShowChecklist] = useState(false);
     const activeStati = chosenStati ?? new Set(allStati);
     const hasNoStato = list.rows.some((row) => statoKey(row) === '');
-    const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)));
+    const [activeCategories, setActiveCategories] = useState<ReadonlySet<string>>(DEFAULT_CATEGORIES);
+    const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)) && activeCategories.has(normalizeReparto(row.ENTITA)));
 
     const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
         const result = await updateOperatorAction(operatore, column, value.trim() || null);
@@ -117,16 +127,31 @@ export function OperatorsTable() {
                 onClear={() => {
                     list.clear();
                     setChosenStati(null);
+                    setActiveCategories(DEFAULT_CATEGORIES);
                 }}
+                actions={
+                    <Button type="button" variant="secondary" onClick={() => setShowChecklist(true)}>
+                        <FileText size={16} />
+                        {copy.checklist.button}
+                    </Button>
+                }
                 below={
-                    statoOptions.length > 0 && (
+                    <>
                         <ToggleChips
-                            label={copy.headers.statoFisico}
-                            options={statoOptions}
-                            active={activeStati}
-                            onToggle={(key) => setChosenStati(toggleInSet(activeStati, key))}
+                            label={copy.headers.categoria}
+                            options={CATEGORY_OPTIONS}
+                            active={activeCategories}
+                            onToggle={(key) => setActiveCategories(toggleInSet(activeCategories, key))}
                         />
-                    )
+                        {statoOptions.length > 0 && (
+                            <ToggleChips
+                                label={copy.headers.statoFisico}
+                                options={statoOptions}
+                                active={activeStati}
+                                onToggle={(key) => setChosenStati(toggleInSet(activeStati, key))}
+                            />
+                        )}
+                    </>
                 }
             >
                 <div className="md:col-span-2">
@@ -156,6 +181,8 @@ export function OperatorsTable() {
                 fill
                 emptyMessage={list.applied ? copy.noResults : APP_COPY.analytics.applyFiltersHint}
             />
+
+            {showChecklist && <OperatorChecklistModal onClose={() => setShowChecklist(false)} />}
         </div>
     );
 }

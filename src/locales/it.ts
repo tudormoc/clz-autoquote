@@ -1295,10 +1295,24 @@ export const APP_COPY = {
         nome: "Nome",
         badge: "Badge",
         statoFisico: "Stato Fisico",
+        categoria: "Categoria",
       },
       noResults: "Nessun operatore trovato.",
       loading: "Caricamento operatori...",
       editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli",
+      checklist: {
+        button: "Lista PDF",
+        title: "Lista operatori",
+        intro: "Scegli chi mettere nella lista da stampare:",
+        showDate: "Stampa la data",
+        showChecks: "Stampa le caselle Entrata / Uscita",
+        /** Headers of the tick columns, left to right */
+        checkColumns: ["Entrata", "Uscita", "Entrata", "Uscita"],
+        /** Under the title when the date is not printed, to write it by hand */
+        blankDate: "Data: ____________________",
+        open: "Apri PDF",
+        empty: "Nessun operatore per le categorie e gli stati scelti.",
+      },
     },
     dailyEvents: {
       title: "Eventi Giornalieri",

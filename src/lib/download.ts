@@ -15,13 +15,17 @@ export function reportFileName(reportName: string, parts: (string | undefined)[]
     return [fileSlug(reportName), ...parts.filter(Boolean)].join('_') + `.${extension}`;
 }
 
-/** Save a base64 payload (e.g. a PDF from a server action) as a file */
-export function downloadBase64File(base64: string, fileName: string, mimeType = 'application/pdf') {
+/** A base64 payload as a local object URL */
+function base64Url(base64: string, mimeType: string): string {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+}
 
-    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+/** Save a base64 payload (e.g. a PDF from a server action) as a file */
+export function downloadBase64File(base64: string, fileName: string, mimeType = 'application/pdf') {
+    const url = base64Url(base64, mimeType);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -30,6 +34,24 @@ export function downloadBase64File(base64: string, fileName: string, mimeType = 
     link.remove();
     // Give the browser time to start the download before releasing the data
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * A new tab for a PDF that is still being made: opened now, during the click (later the browser would block it),
+ * then `show` puts the PDF in it, or `close` drops it when making the PDF failed.
+ */
+export function openPdfTab() {
+    const tab = window.open('', '_blank');
+    return {
+        show(base64: string) {
+            const url = base64Url(base64, 'application/pdf');
+            if (tab) tab.location.href = url;
+            else window.open(url, '_blank');
+        },
+        close() {
+            tab?.close();
+        },
+    };
 }
 
 /** Pause between consecutive downloads so the browser does not block them */
