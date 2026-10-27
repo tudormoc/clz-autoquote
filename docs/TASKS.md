@@ -53,8 +53,8 @@ rule needs no database change. The task's first date (`due_date`) anchors the ru
 - **end**: never, until a date, after N times.
 - **visible from** (`show_days`): how many days before the due date it moves to "In arrivo".
 
-**Closed days** (`src/lib/tasks/closedDays.ts`): weekends (`APP_CONFIG.TASKS.CLOSED_WEEKDAYS`), Italian national
-holidays (Easter worked out) and the company's days. A due date is **never moved**: on a closed day the Agenda shows
+**Closed days** (`src/lib/tasks/closedDays.ts`): weekends (`APP_CONFIG.TASKS.CLOSED_WEEKDAYS`) and the days in
+`tsk_closed_days` (Impostazioni → Giorni di chiusura, holidays included: nothing is premade). A due date is **never moved**: on a closed day the Agenda shows
 "meglio entro <working day before>" and lists it under that day.
 
 ## How occurrences are made (`src/lib/tasks/series.ts` + `db/series.ts`)

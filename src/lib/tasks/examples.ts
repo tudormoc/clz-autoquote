@@ -8,7 +8,7 @@
 // ============================================================================
 
 import { agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
-import { closedDayChecker, easterSunday, type ClosedDay } from '@/lib/tasks/closedDays';
+import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';
 import { addMonths } from '@/lib/tasks/dates';
 import { compareByDate, compareInDay, placeAmong, placeAt } from '@/lib/tasks/dayOrder';
 import { parseQuickEntry } from '@/lib/tasks/quickParse';
@@ -119,11 +119,10 @@ const COMPANY_DAYS: ClosedDay[] = [
 const WORKING_DAY_EXAMPLES: { name: string; date: string; expect: string }[] = [
     { name: 'open day stays', date: TODAY, expect: TODAY },
     { name: 'Sunday → Friday', date: '2026-10-11', expect: TODAY },
-    { name: 'Ognissanti on a Sunday → Friday 30/10', date: '2026-11-01', expect: '2026-10-30' },
-    { name: 'Christmas Friday, Santo Stefano Saturday → Thursday 24/12', date: '2026-12-26', expect: '2026-12-24' },
-    { name: 'Pasquetta → Thursday before Easter', date: '2026-04-06', expect: '2026-04-03' },
+    { name: 'Sunday 1/11 → Friday 30/10', date: '2026-11-01', expect: '2026-10-30' },
+    { name: 'a day with no company closure stays open (Monday 6/4)', date: '2026-04-06', expect: '2026-04-06' },
     { name: 'patron saint every year (Tuesday 13/06/2028) → Monday', date: '2028-06-13', expect: '2028-06-12' },
-    { name: 'Ferragosto Saturday, company closed Friday → Thursday', date: '2026-08-15', expect: '2026-08-13' },
+    { name: 'Saturday, company closed Friday → Thursday', date: '2026-08-15', expect: '2026-08-13' },
 ];
 
 const GROUP_EXAMPLES: { name: string; dueDate: string | null; suggestedDate?: string; showDays?: number; expect: AgendaGroup }[] = [
@@ -307,7 +306,6 @@ export function runTaskExamples(): ExampleResult[] {
         ...NEXT_EXAMPLES.map((ex) => result('next', ex.name, ex.expect, nextPatternDate(ex.pattern, ex.anchor, ex.after))),
         ...INTERVAL_EXAMPLES.map((ex) => result('after', `${ex.from} + ${ex.every} ${ex.unit}`, ex.expect, addInterval(ex.from, ex.every, ex.unit))),
         result('dates', '31/01 + 1 month', '2026-02-28', addMonths('2026-01-31', 1)),
-        ...[['2025', '2025-04-20'], ['2026', '2026-04-05'], ['2027', '2027-03-28']].map(([year, expect]) => result('easter', year, expect, easterSunday(Number(year)))),
         ...WORKING_DAY_EXAMPLES.map((ex) => result('closed', ex.name, ex.expect, checker.workingDayOnOrBefore(ex.date))),
         ...GROUP_EXAMPLES.map((ex) =>
             result('agenda', ex.name, ex.expect, agendaGroup({ dueDate: ex.dueDate, suggestedDate: ex.suggestedDate ?? null, showDays: ex.showDays ?? 7 }, TODAY))

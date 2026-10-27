@@ -217,7 +217,7 @@ const TASK_AREAS: RecordTableConfig<AreaRow> = (() => {
     };
 })();
 
-/** Agenda: company closed days (weekends and national holidays are known already) */
+/** Agenda: company closed days (holidays included; weekends are known already) */
 const CLOSED_DAYS: RecordTableConfig<ClosedDayRow> = (() => {
     const t = APP_COPY.tasks.settings;
     return {
