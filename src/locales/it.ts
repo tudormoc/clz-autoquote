@@ -1183,6 +1183,7 @@ export const APP_COPY = {
     orderRevenue: {
       commessa: "Commessa",
       client: "Cliente",
+      orderedQuantity: "Qta Ordinata",
       deliveredValue: "Valore Consegnato",
       materialCost: "Costo Materiali",
       workTime: "Ore Lavoro",
@@ -1194,6 +1195,7 @@ export const APP_COPY = {
         description: "Descrizione",
         clientCode: "Codice Cliente",
         clientName: "Nome Cliente",
+        orderedQuantity: "Quantità Ordinata",
         quantity: "Quantità",
         deliveredValue: "Fatturato Consegnato (Valore)",
         materialCost: "Costo Materiali",

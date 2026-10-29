@@ -12,7 +12,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
 import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
-import { formatCurrency, formatHours } from '@/lib/format';
+import { formatCurrency, formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 
 interface Filters {
@@ -56,6 +56,7 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
         className: 'w-48',
         cell: (row) => <StackedCell tone="muted" primary={row.client_code} secondary={row.client_name} maxWidth="lg" />,
     },
+    { key: 'ordered_quantity', header: copy.orderedQuantity, variant: 'number', cell: (row) => formatNumber(row.ordered_quantity) },
     { key: 'delivered_revenue', header: copy.deliveredValue, variant: 'total', cell: (row) => formatCurrency(row.delivered_revenue) },
     { key: 'cost', header: copy.materialCost, variant: 'number', cell: (row) => formatCurrency(row.material_cost) },
     { key: 'work_time', header: copy.workTime, variant: 'total', cell: (row) => formatHours(row.work_time) },
@@ -85,6 +86,7 @@ const excelColumns: ExcelColumn<OrderRevenueRow>[] = [
     { header: copy.export.description, value: (row) => row.order_description || '', width: 40 },
     { header: copy.export.clientCode, value: (row) => row.client_code, width: 15 },
     { header: copy.export.clientName, value: (row) => row.client_name, width: 35 },
+    { header: copy.export.orderedQuantity, value: (row) => row.ordered_quantity, width: 15 },
     { header: copy.export.quantity, value: (row) => row.total_quantity, width: 12 },
     { header: copy.export.deliveredValue, value: (row) => Number(row.delivered_revenue.toFixed(2)), width: 15 },
     { header: copy.export.materialCost, value: (row) => Number(row.material_cost.toFixed(2)), width: 15 },

@@ -12,6 +12,7 @@ import { readLabourRates } from './shared/labour-rates';
 import { buildCommessaFilterBUSINESS, buildClientFilterForOrderRevenue } from './shared/filter-builders';
 import {
     buildCommessaDescriptionFilter,
+    businessOrderCore,
     businessOrderCodesSql,
     dropTempTablesSql,
     failedPage,
@@ -44,6 +45,8 @@ export interface OrderRevenueRow {
     delivered_revenue: number;
     material_cost: number;
     total_quantity: number;
+    /** Copies ordered: production orders (movord H) of all the order's editions */
+    ordered_quantity: number;
     has_split_revenue: number;
     work_time: number;
     work_cost: number;
@@ -54,11 +57,12 @@ export interface OrderRevenueRow {
 /** What the SQL returns; work time, labour cost, full cost and margin are added afterwards */
 type OrderRevenueSqlRow = Omit<OrderRevenueRow, 'work_time' | 'work_cost' | 'full_cost' | 'margin'>;
 
-const ORDER_REVENUE_TABLES = ['#ClientRevenue', '#OrderCodes', '#SupplierCosts', '#AllTimeRevenue'];
+const ORDER_REVENUE_TABLES = ['#ClientRevenue', '#OrderCodes', '#SupplierCosts', '#AllTimeRevenue', '#OrderedQty'];
 
 const ORDER_REVENUE_SORT: RowSortColumns<OrderRevenueRow> = {
     commessa: (row) => row.commessa_display,
     client: (row) => row.client_code,
+    ordered_quantity: (row) => row.ordered_quantity,
     delivered_revenue: (row) => row.delivered_revenue,
     cost: (row) => row.material_cost,
     work_time: (row) => row.work_time,
@@ -141,6 +145,15 @@ export async function getOrderRevenueDataAction(
               AND dw.dw_acqvalore <> 0
             GROUP BY ${ORDER_CORE};
 
+            -- Ordered copies of those orders (production orders, every edition)
+            SELECT ${businessOrderCore('mo.mo_commeca')} AS commessa_display, SUM(mo.mo_quant) AS ordered_quantity
+            INTO #OrderedQty
+            FROM movord mo WITH (NOLOCK)
+            WHERE mo.codditt = @codditt
+              AND mo.mo_tipork = 'H'
+              AND mo.mo_commeca IN (SELECT dw_commeca FROM #OrderCodes)
+            GROUP BY ${businessOrderCore('mo.mo_commeca')};
+
             -- "Intero" only: whole delivered value of each order, and whether it is also invoiced or delivered outside the period
             SELECT
                 ${ORDER_CORE} AS commessa_display,
@@ -166,10 +179,12 @@ export async function getOrderRevenueDataAction(
                 CASE WHEN atr.has_split_revenue = 1 THEN atr.delivered_revenue ELSE cr.delivered_revenue END AS delivered_revenue,
                 ISNULL(sc.material_cost, 0) AS material_cost,
                 cr.total_quantity,
+                ISNULL(oq.ordered_quantity, 0) AS ordered_quantity,
                 ISNULL(atr.has_split_revenue, 0) AS has_split_revenue
             FROM #ClientRevenue cr
             LEFT JOIN #SupplierCosts sc ON sc.commessa_display = cr.commessa_display
             LEFT JOIN #AllTimeRevenue atr ON atr.commessa_display = cr.commessa_display
+            LEFT JOIN #OrderedQty oq ON oq.commessa_display = cr.commessa_display
             LEFT JOIN commess co WITH (NOLOCK) ON co.co_comme = cr.commessa_full AND co.codditt = @codditt
             ${descriptionFilter};
 
