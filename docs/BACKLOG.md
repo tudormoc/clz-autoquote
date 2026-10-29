@@ -18,3 +18,15 @@
 2. Map each field to Business tables (commessa, client, article, phases/notes, materials, editions).
 3. Build an HTML template, render it to PDF, and compare it side by side with the NetPro PDF for a few real orders (single and multi-edition).
 4. Switch the print buttons over. Keep the NetPro route as a fallback until the new PDF is approved.
+
+## Toolbar for writing Markdown (Agenda procedures and notes)
+
+*Noted 2026-10-28.*
+
+**Today:** `MarkdownField` is a text box with a preview; the symbols (`**bold**`, `- item`) are typed by hand.
+
+**Plan:** a row of buttons above the box, built once inside `MarkdownField` so procedures, task notes and comments all get it:
+- Bold, italic, heading, bullet list, numbered list, checklist, link: they wrap the selected text (or put the symbols at the cursor) and a second click takes them off.
+- A **"?"** button opening a short cheat sheet popup (about ten lines of examples).
+- No keyboard shortcuts for now (Ctrl+B / Ctrl+I can be added on top later).
+- Optional with it: tables and `- [ ]` checklists in the text (`remark-gfm`).
