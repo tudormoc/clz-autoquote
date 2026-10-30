@@ -11,10 +11,12 @@ Puppeteer for PDFs, xlsx for Excel.
 1. **The databases are live.** No schema changes and no new write queries without the owner's explicit yes.
    Local `npm run dev` uses the live databases: look, don't save, delete or press "Riallinea".
 2. **Read queries** use `WITH (NOLOCK)` and go through `queryMSSQL` in `src/lib/mssql.ts` (never a new connection).
-   Query rules, commessa formats and tables: [docs/DATABASE.md](docs/DATABASE.md).
+   A write of more than one statement runs inside `withTransactions([...dbs], run => …)` (same file): all of it lands,
+   or none of it. Query rules, commessa formats and tables: [docs/DATABASE.md](docs/DATABASE.md).
 3. **Deploy only when the owner asks.** Secrets stay in `.env.local` (never committed).
 4. **Every page and every server action checks access** (see Login below). A new page calls `requirePage(...)`,
    a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`.
+   `npm run access:check` (part of `npm run check`) reads the source and fails when one is missing.
 
 ## Working with the owner
 
@@ -27,7 +29,8 @@ but don't implement them without a yes.
 ```bash
 npm install
 npm run dev        # http://localhost:3000 (live databases!)
-npm run check      # typecheck + lint + example checks + production build — run before every deploy
+npm run check      # typecheck + lint + access check + example checks + production build — run before every deploy
+npm run access:check        # every page and server action checks access (scripts/access-check.ts)
 npm run presence:examples   # presence rules on made-up data
 npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
@@ -62,6 +65,11 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   (`src/lib/auth/access.ts`). A page that changes data has `editable` in the menu config; Utenti / Gruppi / Database
   have `superadminOnly`.
 - `/api/auto-exit` accepts only the scheduler (a key derived from `AUTH_SECRET`, `scripts/scheduler.js`) or the superadmin.
+- **Who sees what, in practice.** A module is an area of the menu; a group gets it in Gruppi with one click on the
+  area's row (*vede* or *modifica*), or page by page below it; "Tutte le pagine" gives everything. A person gets the
+  pages of all their groups (tick columns in Utenti). To take the app away from someone: the *attivo* switch in Utenti
+  (sospeso) — or delete them. A new page or report added to `NAV_AREAS` is in Gruppi at once, nothing else to do; until
+  a group is given it, nobody but the superadmin can open it.
 
 ## Where things are
 
@@ -81,7 +89,7 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
 | Report state (filters, paging, sorting, export; loads only on "Applica", filters remembered in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
-| Quote pricing | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) |
+| Quote pricing / saved quotes | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) / `src/lib/quotes/db.ts` |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
 | Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
@@ -113,7 +121,7 @@ Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
 `fill` inside a `FillPage` = takes the free height, header and totals stay in view), `CardField` (a line of a phone card),
 `EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar`, `Section` + `RowList`/`Row` (blocks of a settings page),
-`Spinner`, `Modal` (every popup window), `ExportExcelButton`.
+`Spinner`, `LoadState` (spinner or load error while a screen's data is not there yet), `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
 (`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any`.
 

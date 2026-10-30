@@ -11,11 +11,11 @@
     "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts",
     "excel:examples": "tsx --tsconfig tsconfig.json scripts/excel-examples.ts",
     "tasks:examples": "tsx --tsconfig tsconfig.json scripts/tasks-examples.ts",
+    "access:check": "tsx --tsconfig tsconfig.json scripts/access-check.ts",
     "typecheck": "tsc --noEmit --incremental false",
-    "check": "npm run typecheck && npm run lint && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run access:check && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run build"
   },
   "dependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@hookform/resolvers": "^5.2.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -42,7 +42,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.16",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.27",
+    "eslint-config-next": "^16.4.3",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "tsx": "^4.23.13",

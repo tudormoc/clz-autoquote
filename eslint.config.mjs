@@ -1,13 +1,6 @@
-import { FlatCompat } from "@eslint/eslintrc";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 // Raw Tailwind palette classes (text-zinc-400, bg-emerald-500 …) bypass the design tokens in src/styles/theme.js
 const RAW_PALETTE_CLASS =
@@ -18,19 +11,22 @@ const ARBITRARY_FONT_SIZE = "/(^|[\\s:'\"`])text-\\[[0-9.]+(px|rem)\\]/";
 const ARBITRARY_FONT_SIZE_MESSAGE =
   "Use a font-size token (text-xs, text-2xs, text-3xs …) from src/styles/theme.js instead of text-[Npx].";
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals"),
-  ...compat.extends("next/typescript"),
-  {
-    // TEMPLATE.ts is the copy-me skeleton for new pricing formulas, unused on purpose
-    ignores: [".next/", "node_modules/", "dist/", "out/", "scripts/**", "ecosystem.config.js", "src/lib/pricing/formulas/TEMPLATE.ts"],
-  },
+export default defineConfig([
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  // TEMPLATE.ts is the copy-me skeleton for new pricing formulas, unused on purpose
+  globalIgnores([".next/", "node_modules/", "dist/", "out/", "scripts/**", "ecosystem.config.js", "src/lib/pricing/formulas/TEMPLATE.ts"]),
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       // Prefix a parameter with _ when it must exist (callback signatures) but is not used
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
       "react-hooks/exhaustive-deps": "warn",
+      // React Compiler rules (eslint-plugin-react-hooks 7): the app does not use the compiler, and these flag
+      // working patterns (a draft filled from loaded data in an effect, a ref read in a cell editor). Off until then.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/incompatible-library": "off",
       "no-restricted-syntax": [
         "error",
         { selector: `Literal[value=${RAW_PALETTE_CLASS}]`, message: RAW_PALETTE_MESSAGE },
@@ -38,15 +34,13 @@ const eslintConfig = [
         { selector: `Literal[value=${ARBITRARY_FONT_SIZE}]`, message: ARBITRARY_FONT_SIZE_MESSAGE },
         { selector: `TemplateElement[value.raw=${ARBITRARY_FONT_SIZE}]`, message: ARBITRARY_FONT_SIZE_MESSAGE },
       ],
-    }
+    },
   },
   {
     // CommonJS because tailwind.config.js loads the design tokens with require()
     files: ["tailwind.config.js", "src/styles/theme.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
-    }
-  }
-];
-
-export default eslintConfig;
+    },
+  },
+]);
