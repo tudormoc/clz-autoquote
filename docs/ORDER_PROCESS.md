@@ -34,7 +34,7 @@ Two official apps + this webapp (autoquote). Test case used throughout: article 
 ## Sync from DiBa ("Riallinea Ordine da DiBa") — verified 2026-10-06 on test order 674
 
 Code: `syncOrderFromDiba` in `src/lib/orders/sync.ts` (steps: find the order, phases, phase chain, materials), row cloning in `src/lib/orders/syncRows.ts`; called by `syncOrderFromDibaAction` (`src/app/analytics/queries/order-operations-queries.ts`).
-Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo Distinta / Solo Ordine. The button writes to BOTH live DBs (no transaction).
+Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo Distinta / Solo Ordine. The button writes to BOTH live DBs, one transaction each (`withTransactions`, `src/lib/mssql.ts`): if any statement fails, nothing is changed (Business commits first, then NetPro).
 
 **Per phase (fase)** — new rows are cloned from an existing row of the same order, only key/value columns overridden:
 - NetPro: `OPERAZIONI` (OPERAZIONE = fase 2-digit, CENTRO_ASSEGNATO/REALE, DESCRIZIONE, **note → DESCRIZIONE01**, QTA_*, TIPO WRK, STATO REL), `TASKS` (MACCHINA / MACCHINA_ASSEGNATA = centro), `JOBSET` (ORDINE, OPERAZIONE, ID_OPER, TASK).

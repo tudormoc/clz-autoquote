@@ -1,6 +1,6 @@
 /**
  * "Riallinea": rewrites the Business and NetPro production order of a commessa in place from its DiBa (the truth),
- * keeping the order ids. WRITES to both production databases; see docs/ORDER_PROCESS.md.
+ * keeping the order ids. WRITES to both production databases, one transaction each (withTransactions); see docs/ORDER_PROCESS.md.
  *
  * - Business: attivit, assris, movord (tipo Y), keyord
  * - NetPro: OPERAZIONI, TASKS, JOBSET, MATERIALI_ORDINI
@@ -8,7 +8,7 @@
  * Only single-edition commesse are supported: with more editions the statements could touch the wrong order.
  */
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, withTransactions, type SqlRunner } from '@/lib/mssql';
 import { dibaMaterialQty, isPlaceholderMaterial } from '@/lib/orders/compare';
 import { rowExists } from '@/lib/orders/sql';
 import { buildBusinessOverrides, buildNetProOverrides, cloneRowInsert, netOperId, NOW } from '@/lib/orders/syncRows';
@@ -109,8 +109,8 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
 }
 
 /** Phases: removes those not in the DiBa, adds the missing ones, refreshes the others */
-async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOrdine }: SyncTarget) {
-    const dibaOpsRes = await queryMSSQL<DibaOperationRow>(`
+async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, netOrdine }: SyncTarget) {
+    const dibaOpsRes = await run<DibaOperationRow>(`
             SELECT
                 dd.dd_riga as riga,
                 dd.dd_fase as fase,
@@ -131,7 +131,7 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
         `, { articleFather }, 'BUSINESS');
     const dibaOps = dibaOpsRes.recordset;
 
-    const netOpsRes = await queryMSSQL<{ ID_OPER: string; SEQUENZA: number; DESCRIZIONE: string }>(`
+    const netOpsRes = await run<{ ID_OPER: string; SEQUENZA: number; DESCRIZIONE: string }>(`
             SELECT ID_OPER, SEQUENZA, DESCRIZIONE
             FROM OPERAZIONI WITH (NOLOCK)
             WHERE ORDINE = @netOrdine
@@ -144,13 +144,13 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
 
     // In the order but not in the DiBa: removed from both databases
     for (const op of netOps.filter((o) => !dibaFasi.has(o.SEQUENZA))) {
-        await queryMSSQL(`DELETE FROM JOBSET WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await queryMSSQL(`DELETE FROM TASKS WHERE TASK = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await queryMSSQL(`DELETE FROM OPERAZIONI WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await queryMSSQL(`
+        await run(`DELETE FROM JOBSET WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
+        await run(`DELETE FROM TASKS WHERE TASK = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
+        await run(`DELETE FROM OPERAZIONI WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
+        await run(`
                 DELETE FROM assris WHERE codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase
             `, { numord, anno, fase: op.SEQUENZA }, 'BUSINESS');
-        await queryMSSQL(`
+        await run(`
                 DELETE FROM attivit WHERE codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
             `, { numord, anno, fase: op.SEQUENZA }, 'BUSINESS');
     }
@@ -160,20 +160,20 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
         const ov = buildNetProOverrides(op, netOrdine, orderFatherQuant, NOW);
         const bv = buildBusinessOverrides(op, orderFatherQuant);
 
-        if (!(await rowExists('OPERAZIONI', 'ID_OPER = @id', { id: ov.idOper }, 'NETPRO'))) {
-            await cloneRowInsert('NETPRO', 'OPERAZIONI', 'ORDINE = @netOrdine', { netOrdine }, ov.OPERAZIONI);
+        if (!(await rowExists(run, 'OPERAZIONI', 'ID_OPER = @id', { id: ov.idOper }, 'NETPRO'))) {
+            await cloneRowInsert(run, 'NETPRO', 'OPERAZIONI', 'ORDINE = @netOrdine', { netOrdine }, ov.OPERAZIONI);
         }
-        if (!(await rowExists('TASKS', 'TASK = @id', { id: ov.idOper }, 'NETPRO'))) {
-            await cloneRowInsert('NETPRO', 'TASKS', 'TASK IN (SELECT TASK FROM JOBSET WHERE ORDINE = @netOrdine)', { netOrdine }, ov.TASKS);
+        if (!(await rowExists(run, 'TASKS', 'TASK = @id', { id: ov.idOper }, 'NETPRO'))) {
+            await cloneRowInsert(run, 'NETPRO', 'TASKS', 'TASK IN (SELECT TASK FROM JOBSET WHERE ORDINE = @netOrdine)', { netOrdine }, ov.TASKS);
         }
-        if (!(await rowExists('JOBSET', 'ID_OPER = @id AND TASK = @id', { id: ov.idOper }, 'NETPRO'))) {
-            await cloneRowInsert('NETPRO', 'JOBSET', 'ORDINE = @netOrdine', { netOrdine }, ov.JOBSET);
+        if (!(await rowExists(run, 'JOBSET', 'ID_OPER = @id AND TASK = @id', { id: ov.idOper }, 'NETPRO'))) {
+            await cloneRowInsert(run, 'NETPRO', 'JOBSET', 'ORDINE = @netOrdine', { netOrdine }, ov.JOBSET);
         }
-        if (!(await rowExists('attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
-            await cloneRowInsert('BUSINESS', 'attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno`, { numord, anno }, bv.attivit);
+        if (!(await rowExists(run, 'attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
+            await cloneRowInsert(run, 'BUSINESS', 'attivit', `codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno`, { numord, anno }, bv.attivit);
         }
-        if (!(await rowExists('assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
-            await cloneRowInsert('BUSINESS', 'assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno`, { numord, anno }, bv.assris);
+        if (!(await rowExists(run, 'assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno AND as_fase = @fase`, { numord, anno, fase: op.fase }, 'BUSINESS'))) {
+            await cloneRowInsert(run, 'BUSINESS', 'assris', `codditt = '${BUSINESS_COMPANY}' AND as_numord = @numord AND as_anno = @anno`, { numord, anno }, bv.assris);
         }
     }
 
@@ -182,7 +182,7 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
         const idOper = netOperId(netOrdine, op.fase);
 
         // Business attivit — work type, planned time (sec), planned qty, terzista, notes
-        await queryMSSQL(`
+        await run(`
                 UPDATE attivit
                 SET at_codlavo    = @codlavo,
                     at_tempesepr  = @tesec,
@@ -196,7 +196,7 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
             `, { codlavo: op.codlavo, tesec: op.tesec, orderFatherQuant, terzista: op.terzista, note: op.note || null, numord, anno, fase: op.fase }, 'BUSINESS');
 
         // Business assris — work center
-        await queryMSSQL(`
+        await run(`
                 UPDATE assris
                 SET as_codcent = @codcent
                 WHERE codditt = '${BUSINESS_COMPANY}'
@@ -206,7 +206,7 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
             `, { codcent: op.codcent, numord, anno, fase: op.fase }, 'BUSINESS');
 
         // NetPro OPERAZIONI — description, work centers (real centre only if not manually reassigned), qty
-        await queryMSSQL(`
+        await run(`
                 UPDATE OPERAZIONI
                 SET DESCRIZIONE      = @descr,
                     DESCRIZIONE01    = @note,
@@ -218,7 +218,7 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note ? op.note.slice(0, 100) : null, orderFatherQuant, idOper }, 'NETPRO');
 
         // NetPro TASKS — description, machine, notes, qty
-        await queryMSSQL(`
+        await run(`
                 UPDATE TASKS
                 SET DESCRIZIONE        = @descr,
                     MACCHINA_ASSEGNATA = CASE WHEN MACCHINA_ASSEGNATA = MACCHINA THEN @centro ELSE MACCHINA_ASSEGNATA END,
@@ -228,14 +228,14 @@ async function syncPhases({ articleFather, orderFatherQuant, anno, numord, netOr
             `, { descr: op.descr_lavor, centro: String(op.codcent), orderFatherQuant, idOper }, 'NETPRO');
 
         // NetPro JOBSET — qty
-        await queryMSSQL(`UPDATE JOBSET SET QTA_RICHIESTA = @orderFatherQuant WHERE ID_OPER = @idOper`,
+        await run(`UPDATE JOBSET SET QTA_RICHIESTA = @orderFatherQuant WHERE ID_OPER = @idOper`,
             { orderFatherQuant, idOper }, 'NETPRO');
     }
 }
 
 /** Phase chain: NetPro CENTRO_SUCCESSIVO and Business at_sufase point to the next phase */
-async function syncPhaseChain({ anno, numord, rigaPadre, netOrdine }: SyncTarget) {
-    const chainRes = await queryMSSQL<{ ID_OPER: string; SEQUENZA: number; CENTRO_ASSEGNATO: string; CENTRO_SUCCESSIVO: string | null }>(`
+async function syncPhaseChain(run: SqlRunner, { anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+    const chainRes = await run<{ ID_OPER: string; SEQUENZA: number; CENTRO_ASSEGNATO: string; CENTRO_SUCCESSIVO: string | null }>(`
             SELECT ID_OPER, SEQUENZA, CENTRO_ASSEGNATO, CENTRO_SUCCESSIVO
             FROM OPERAZIONI WITH (NOLOCK) WHERE ORDINE = @netOrdine ORDER BY SEQUENZA ASC
         `, { netOrdine }, 'NETPRO');
@@ -244,10 +244,10 @@ async function syncPhaseChain({ anno, numord, rigaPadre, netOrdine }: SyncTarget
         const next = chainOps[i + 1];
         const wantCentro = next ? String(next.CENTRO_ASSEGNATO) : null;
         if ((chainOps[i].CENTRO_SUCCESSIVO ?? null) !== wantCentro) {
-            await queryMSSQL(`UPDATE OPERAZIONI SET CENTRO_SUCCESSIVO = @c WHERE ID_OPER = @id`,
+            await run(`UPDATE OPERAZIONI SET CENTRO_SUCCESSIVO = @c WHERE ID_OPER = @id`,
                 { c: wantCentro, id: chainOps[i].ID_OPER }, 'NETPRO');
         }
-        await queryMSSQL(`
+        await run(`
                 UPDATE attivit
                 SET at_sufase = @next, at_suanno = @suanno, at_sunumord = @sunumord, at_suriga = @suriga
                 WHERE codditt = '${BUSINESS_COMPANY}' AND at_numord = @numord AND at_anno = @anno AND at_fase = @fase
@@ -264,8 +264,8 @@ async function syncPhaseChain({ anno, numord, rigaPadre, netOrdine }: SyncTarget
  * NetPro row ↔ Business row via MATERIALI_ORDINI.SEQUENZA = mo_riga (a DiBa can list the same code twice).
  * The MP_FITTIZIA placeholder is never added, updated or removed.
  */
-async function syncMaterials({ articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
-    const dibaMatRes = await queryMSSQL<DibaMaterialRow>(`
+async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+    const dibaMatRes = await run<DibaMaterialRow>(`
             SELECT
                 md.md_riga as riga,
                 RTRIM(md.md_codfigli) as codfigli,
@@ -281,7 +281,7 @@ async function syncMaterials({ articleFather, orderFatherQuant, anno, numord, ri
         `, { articleFather }, 'BUSINESS');
     const dibaMat = dibaMatRes.recordset.filter((m) => !isPlaceholderMaterial(m.codfigli));
 
-    const busMatRes = await queryMSSQL<BusinessMaterialRow>(`
+    const busMatRes = await run<BusinessMaterialRow>(`
             SELECT
                 mo_riga, RTRIM(mo_codart) as codart, mo_quant, RTRIM(mo_descr) as descr, RTRIM(mo_unmis) as unmis,
                 mo_disbasriga as disbasriga
@@ -307,17 +307,17 @@ async function syncMaterials({ articleFather, orderFatherQuant, anno, numord, ri
         const dm = dibaByRiga.get(Number(m.disbasriga));
         if (dm && dm.codfigli === m.codart && busByDibaRiga.get(Number(m.disbasriga)) === m) continue;
 
-        await queryMSSQL(`
+        await run(`
                 DELETE FROM keyord
                 WHERE codditt = '${BUSINESS_COMPANY}' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
             `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
 
-        await queryMSSQL(`
+        await run(`
                 DELETE FROM movord
                 WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
             `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
 
-        await queryMSSQL(`
+        await run(`
                 DELETE FROM MATERIALI_ORDINI
                 WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
             `, { netOrdine, riga: m.mo_riga }, 'NETPRO');
@@ -334,13 +334,13 @@ async function syncMaterials({ articleFather, orderFatherQuant, anno, numord, ri
 
         if (existing && existing.codart === dm.codfigli) {
             const riga = existing.mo_riga;
-            await queryMSSQL(`
+            await run(`
                     UPDATE movord
                     SET mo_quant = @expectedQuant, mo_colli = @expectedQuant, mo_ultagg = GETDATE()
                     WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
                 `, { expectedQuant, numord, anno, riga }, 'BUSINESS');
 
-            await queryMSSQL(`
+            await run(`
                     UPDATE MATERIALI_ORDINI
                     SET QUANTITA = @expectedQuant, QTA_IMPIEGO = @qtaImpiego
                     WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
@@ -352,31 +352,36 @@ async function syncMaterials({ articleFather, orderFatherQuant, anno, numord, ri
             const tplParams = { anno, numord };
             const busTpl = `codditt = '${BUSINESS_COMPANY}' AND mo_anno = @anno AND mo_numord = @numord AND mo_tipork = 'Y'`;
             // Business movord (cloned from an existing material row of this order; price fields not recalculated)
-            await cloneRowInsert('BUSINESS', 'movord', busTpl, tplParams, {
+            await cloneRowInsert(run, 'BUSINESS', 'movord', busTpl, tplParams, {
                 mo_riga: newRiga, mo_codart: dm.codfigli, mo_unmis: dm.unmis || 'Nr', mo_ump: dm.unmis || 'Nr',
                 mo_descr: dm.description, mo_colli: expectedQuant, mo_quant: expectedQuant, mo_coleva: 0, mo_quaeva: 0,
                 mo_prezzo: 0, mo_valore: 0, mo_valoremm: 0, mo_desint: dm.desint || null, mo_stasino: 'N',
                 mo_disbasriga: dm.riga, mo_ultagg: NOW,
             });
             // Business keyord (ko_conto etc. copied from the order's existing rows)
-            await cloneRowInsert('BUSINESS', 'keyord',
+            await cloneRowInsert(run, 'BUSINESS', 'keyord',
                 `codditt = '${BUSINESS_COMPANY}' AND ko_anno = @anno AND ko_numord = @numord AND ko_tipork = 'Y'`, tplParams,
                 { ko_riga: newRiga, ko_codart: dm.codfigli });
             // NetPro MATERIALI_ORDINI (cloned from an existing row of this order)
-            await cloneRowInsert('NETPRO', 'MATERIALI_ORDINI', 'ORDINE = @netOrdine', { netOrdine }, {
+            await cloneRowInsert(run, 'NETPRO', 'MATERIALI_ORDINI', 'ORDINE = @netOrdine', { netOrdine }, {
                 SEQUENZA: newRiga, PART_NUMBER: dm.codfigli, QUANTITA: expectedQuant, QTA_IMPIEGO: qtaImpiego,
             });
         }
     }
 }
 
-/** Realigns the order of the commessa to its DiBa: phases, phase chain, materials (in this order) */
+/**
+ * Realigns the order of the commessa to its DiBa: phases, phase chain, materials (in this order).
+ * All the writes run in one transaction per database: if any statement fails, both orders stay as they were.
+ */
 export async function syncOrderFromDiba(rootCommessaKey: string, articleFatherHint?: string): Promise<SyncResult> {
     const target = await findTarget(rootCommessaKey, articleFatherHint);
     if (typeof target === 'string') return { success: false, error: target };
 
-    await syncPhases(target);
-    await syncPhaseChain(target);
-    await syncMaterials(target);
+    await withTransactions(['BUSINESS', 'NETPRO'], async (run) => {
+        await syncPhases(run, target);
+        await syncPhaseChain(run, target);
+        await syncMaterials(run, target);
+    });
     return { success: true };
 }

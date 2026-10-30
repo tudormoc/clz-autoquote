@@ -3,72 +3,40 @@
 /** Daily Events: presence events (EVENTI) — list, edit the time, add by hand. */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL, type SqlParams } from '@/lib/mssql';
+import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
-import { suspendActiveExecutionIfAny } from './presence-db';
+import { buildOperatorSearch, suspendActiveExecutionIfAny, withMillis } from './presence-db';
 import { authorize } from '@/lib/auth/access';
 
-export async function getDailyEventsAction(
-    dateFrom: string, 
-    dateTo: string, 
-    operatorFilter?: string
-) {
+export async function getDailyEventsAction(dateFrom: string, dateTo: string, operatorFilter?: string) {
     await authorize('view', '/presence/daily-events');
     try {
         const conditions: string[] = [
             'EVT.TASK = @task',
             'CAST(EVT.ORA_EVENTO AS DATE) >= @dateFrom',
-            'CAST(EVT.ORA_EVENTO AS DATE) <= @dateTo'
+            'CAST(EVT.ORA_EVENTO AS DATE) <= @dateTo',
         ];
+        const params: SqlParams = { task: 'presenza', dateFrom, dateTo };
 
-        const params: SqlParams = {
-            task: 'presenza',
-            dateFrom,
-            dateTo
-        };
+        const operatorSearch = buildOperatorSearch(operatorFilter, ['EVT.OGGETTO', 'OPE.NOME'], 'operator', params);
+        if (operatorSearch) conditions.push(operatorSearch);
 
-        // Build operator filter (advanced: searches both code and name for each term)
-        if (operatorFilter) {
-            const operatorTerms = operatorFilter.split(',').map(o => o.trim()).filter(o => o);
-            if (operatorTerms.length > 0) {
-                // For each term, search in both code and name
-                const termConditions = operatorTerms.map((_, i) => 
-                    `(EVT.OGGETTO LIKE @operator${i} OR OPE.NOME LIKE @operator${i})`
-                );
-                conditions.push(`(${termConditions.join(' OR ')})`);
-                operatorTerms.forEach((term, i) => {
-                    params[`operator${i}`] = `%${term}%`;
-                });
-            }
-        }
-
-        const whereClause = conditions.join(' AND ');
-
-        const query = `
-            SELECT 
+        const result = await queryMSSQL<PresenceEventRow>(`
+            SELECT
                 EVT.OGGETTO,
                 OPE.NOME as operator_name,
                 EVT.EVENTO,
                 EVT.ORA_EVENTO
             FROM EVENTI EVT WITH (NOLOCK)
             LEFT JOIN OPERATORI OPE WITH (NOLOCK) ON EVT.OGGETTO = OPE.OPERATORE
-            WHERE ${whereClause}
+            WHERE ${conditions.join(' AND ')}
             ORDER BY EVT.ORA_EVENTO ASC
-        `;
+        `, params, 'NETPRO');
 
-        const result = await queryMSSQL<PresenceEventRow>(query, params, 'NETPRO');
-
-        return {
-            success: true,
-            data: result.recordset
-        };
+        return { success: true, data: result.recordset };
     } catch (err) {
-        return {
-            success: false,
-            error: errorMessage(err),
-            data: [] as PresenceEventRow[]
-        };
+        return { success: false, error: errorMessage(err), data: [] as PresenceEventRow[] };
     }
 }
 
@@ -85,99 +53,64 @@ export async function updateEventAction(
     await authorize('edit', '/presence/daily-events');
     if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
-        // For datetime updates, ensure we're storing the exact value without timezone conversion
-        let queryValue = newValue;
-        if (columnName === 'ORA_EVENTO') {
-            // Ensure datetime format and add milliseconds if missing
-            queryValue = newValue.includes('.') ? newValue : `${newValue}.000`;
-        }
+        // A time is stored as typed (no time zone conversion), with milliseconds
+        const queryValue = columnName === 'ORA_EVENTO' ? withMillis(newValue) : newValue;
 
-        // Update based on composite key: OGGETTO + ORA_EVENTO
-        const query = `
+        // The event is identified by OGGETTO + ORA_EVENTO
+        await queryMSSQL(`
             UPDATE EVENTI
             SET ${columnName} = @newValue
             WHERE OGGETTO = @oggetto
               AND ORA_EVENTO = @oraEvento
               AND TASK = 'presenza'
-        `;
+        `, { newValue: queryValue, oggetto, oraEvento }, 'NETPRO');
 
-        await queryMSSQL(query, {
-            newValue: queryValue,
-            oggetto,
-            oraEvento
-        }, 'NETPRO');
-
-        return {
-            success: true,
-            message: 'Event updated successfully'
-        };
+        return { success: true };
     } catch (err) {
-        return {
-            success: false,
-            error: errorMessage(err)
-        };
+        return { success: false, error: errorMessage(err) };
     }
 }
 
-export async function createEventAction(
-    oggetto: string,
-    evento: string,
-    oraEvento: string
-) {
+/** "YYYY-MM-DD HH:MM:SS" one second earlier, on the text itself so no time zone can shift it */
+function oneSecondBefore(time: string): string {
+    const parts = time.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!parts) throw new Error(`Invalid time format: ${time}`);
+    const [, date, hours, minutes, seconds] = parts;
+    const total = Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) - 1;
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${date} ${two(Math.floor(total / 3600))}:${two(Math.floor((total % 3600) / 60))}:${two(total % 60)}`;
+}
+
+/**
+ * Adds a presence event by hand and sets the operator's stato fisico. An exit (EXT) first suspends the task the
+ * operator was executing, one second before the exit; everything is one transaction.
+ */
+export async function createEventAction(oggetto: string, evento: string, oraEvento: string) {
     await authorize('edit', '/presence/daily-events');
     try {
         const upperEvt = evento.trim().toUpperCase();
-        
-        // If the event is an exit (EXT), suspend any active machine task BEFORE creating the EXT event
-        // Use a timestamp 1 second before the EXT event for the SUS events
-        if (upperEvt === 'EXT') {
-            // Parse the local time string (format: "YYYY-MM-DD HH:MM:SS")
-            // Subtract 1 second directly from the time string to avoid timezone issues
-            const timeParts = oraEvento.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
-            if (!timeParts) {
-                throw new Error(`Invalid time format: ${oraEvento}`);
+        const time = withMillis(oraEvento);
+        const newStatus = upperEvt === 'EXT' ? 'OUT' : upperEvt === 'ENT' ? 'IN' : null;
+
+        await withTransactions(['NETPRO'], async (run) => {
+            if (upperEvt === 'EXT') await suspendActiveExecutionIfAny(run, oggetto, oneSecondBefore(oraEvento));
+
+            await run(`
+                INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
+                VALUES (@oggetto, @evento, @oraEvento, 'presenza', 'OPE', 'WS', 'ADMIN', @oggetto)
+            `, { oggetto, evento, oraEvento: time }, 'NETPRO');
+
+            if (newStatus) {
+                await run(
+                    `UPDATE OPERATORI SET STATO_FISICO = @newStatus, ORA_ST_FISICO = @oraEvento WHERE OPERATORE = @oggetto`,
+                    { newStatus, oggetto, oraEvento: time },
+                    'NETPRO'
+                );
             }
-            
-            const [, datePart, hours, minutes, seconds] = timeParts;
-            const totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds) - 1;
-            const newHours = Math.floor(totalSeconds / 3600);
-            const newMinutes = Math.floor((totalSeconds % 3600) / 60);
-            const newSeconds = totalSeconds % 60;
-            
-            const susTimeStr = `${datePart} ${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')}`;
-            console.log('=== EXT timestamp calculation ===', { original: oraEvento, susTime: susTimeStr });
-            await suspendActiveExecutionIfAny(oggetto, susTimeStr);
-        }
+        });
 
-        const query = `
-            INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
-            VALUES (@oggetto, @evento, @oraEvento, 'presenza', 'OPE', 'WS', 'ADMIN', @oggetto)
-        `;
-
-        await queryMSSQL(query, {
-            oggetto,
-            evento,
-            oraEvento: oraEvento.includes('.') ? oraEvento : `${oraEvento}.000`
-        }, 'NETPRO');
-
-        // Also update OPERATORI.STATO_FISICO status
-        const newStatus = upperEvt === 'EXT' ? 'OUT' : (upperEvt === 'ENT' ? 'IN' : null);
-        if (newStatus) {
-            await queryMSSQL(
-                `UPDATE OPERATORI SET STATO_FISICO = @newStatus, ORA_ST_FISICO = @oraEvento WHERE OPERATORE = @oggetto`,
-                { newStatus, oggetto, oraEvento: oraEvento.includes('.') ? oraEvento : `${oraEvento}.000` },
-                'NETPRO'
-            );
-        }
-
-        return {
-            success: true,
-            message: 'Event created and operator status updated successfully'
-        };
+        return { success: true };
     } catch (err) {
-        return {
-            success: false,
-            error: errorMessage(err)
-        };
+        return { success: false, error: errorMessage(err) };
     }
 }

@@ -3,9 +3,10 @@
 /** Operators (OPERATORI): list, edit badge / name / stato, TURNO2 group. */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { APP_COPY } from '@/locales';
 import { authorize } from '@/lib/auth/access';
+import { buildOperatorSearch } from './presence-db';
 import { EMPLOYEE_CATEGORIES } from '@/lib/presence/categories';
 import { reportFileName } from '@/lib/download';
 import { getTodayDate } from '@/lib/dateUtils';
@@ -31,23 +32,9 @@ export interface OperatorGroupRow {
 export async function getOperatorsAction(search?: string) {
     await authorize('view', '/presence/operators');
     try {
-        const conditions: string[] = [];
-        const params: Record<string, string> = {};
-
-        if (search && search.trim()) {
-            const terms = search.split(',').map(t => t.trim()).filter(t => t);
-            if (terms.length > 0) {
-                const termConditions = terms.map((_, i) =>
-                    `(OPERATORE LIKE @term${i} OR NOME LIKE @term${i} OR BADGE LIKE @term${i})`
-                );
-                conditions.push(`(${termConditions.join(' OR ')})`);
-                terms.forEach((term, i) => {
-                    params[`term${i}`] = `%${term}%`;
-                });
-            }
-        }
-
-        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        const params: SqlParams = {};
+        const operatorSearch = buildOperatorSearch(search, ['OPERATORE', 'NOME', 'BADGE'], 'term', params);
+        const whereClause = operatorSearch ? `WHERE ${operatorSearch}` : '';
 
         const query = `
             SELECT 
@@ -163,10 +150,7 @@ export async function updateOperatorAction(
             operatore
         }, 'NETPRO');
 
-        return {
-            success: true,
-            message: 'Operator updated successfully'
-        };
+        return { success: true };
     } catch (err) {
         return {
             success: false,

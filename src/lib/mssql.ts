@@ -48,11 +48,11 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
         .then((pool) => {
             console.log(`Connected to MSSQL Database: ${db} (${dbName})`);
 
-            // Critical: Handle connection loss
+            // Connection lost: the pool is closed and forgotten, the next query opens a new one
             pool.on('error', (err) => {
                 console.error(`MSSQL Pool Error for ${db}:`, err);
-                // Invalidate the pool so next request creates a new one
                 delete pools[db];
+                void pool.close().catch(() => undefined);
             });
 
             return pool;
@@ -65,6 +65,9 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
 
     return pools[db];
 };
+
+/** Runs one statement: queryMSSQL itself, or its twin inside withTransactions */
+export type SqlRunner = <T = Record<string, unknown>>(query: string, params?: SqlParams, db?: MSSQL_DB) => Promise<mssql.IResult<T>>;
 
 /**
  * Execute a query on the specified MSSQL database.
@@ -105,6 +108,40 @@ export const queryMSSQL = async <T = Record<string, unknown>>(
     }
 };
 
+/**
+ * Runs `work` with one transaction per listed database: every statement `run` sends goes into the transaction of
+ * its database, and at the end all of them are committed, or all rolled back when `work` throws (a failed statement
+ * included). A statement for a database not listed is refused.
+ * SQL Server cannot commit two databases as one: the transactions commit one after the other, so a change can only
+ * be left half-done between those two commits, never between two statements.
+ */
+export async function withTransactions<T>(dbs: readonly MSSQL_DB[], work: (run: SqlRunner) => Promise<T>): Promise<T> {
+    const open = new Map<MSSQL_DB, mssql.Transaction>();
+    const rollbackAll = async () => {
+        for (const transaction of open.values()) await transaction.rollback().catch(() => undefined);
+    };
+    try {
+        for (const db of dbs) {
+            const transaction = new mssql.Transaction(await getMSSQLPool(db));
+            await transaction.begin();
+            open.set(db, transaction);
+        }
+        const run: SqlRunner = async (query, params = {}, db = 'BUSINESS') => {
+            const transaction = open.get(db);
+            if (!transaction) throw new Error(`No transaction open on ${db}`);
+            const request = new mssql.Request(transaction);
+            Object.entries(params).forEach(([key, value]) => request.input(key, value));
+            return request.query(query);
+        };
+        const result = await work(run);
+        for (const transaction of open.values()) await transaction.commit();
+        return result;
+    } catch (err) {
+        await rollbackAll();
+        throw err;
+    }
+}
+
 // Cache for pools with custom timeouts (keyed by "db:timeout")
 const customTimeoutPools: Record<string, Promise<mssql.ConnectionPool> | undefined> = {};
 
@@ -134,6 +171,7 @@ async function getCustomTimeoutPool(db: MSSQL_DB, timeout: number): Promise<mssq
             pool.on('error', (err) => {
                 console.error(`MSSQL Custom Pool Error for ${key}:`, err);
                 delete customTimeoutPools[key];
+                void pool.close().catch(() => undefined);
             });
             return pool;
         })

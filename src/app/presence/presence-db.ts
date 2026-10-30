@@ -3,8 +3,7 @@
  * these must not become actions the browser can call.
  */
 
-import { errorMessage } from '@/lib/utils';
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlRunner } from '@/lib/mssql';
 import type { PresenceSettingRow } from '@/types';
 import {
     DEFAULT_PRESENCE_RULES,
@@ -42,148 +41,59 @@ export const clockOf = (row: ClockRow): ClockDay => ({
     sessionMinutes: row.minuti_sessioni,
 });
 
+/** Date-time text for NetPro: "YYYY-MM-DD HH:MM:SS" with milliseconds when missing */
+export const withMillis = (time: string) => (time.includes('.') ? time : `${time}.000`);
+
 /**
- * Helper: Checks if the operator currently has an active production event (EVENTO = 'EXE').
- * If so, inserts two SUS (suspended) events in EVENTI at the exact exit timestamp:
- * 1) TIPO_OGGETTO = 'OPE' (for the operator)
- * 2) TIPO_OGGETTO = 'MAC' (for the machine)
+ * If the operator has a task in execution (an OPN/EXE/... event without a SUS/CLO after it), suspends it at the
+ * given time the way NetPro's own screens do: a MAC SUS event and the machine idle (when a machine is involved),
+ * an OPE SUS event, the task and operation in stato SUS, the operator idle.
+ * `run` is the caller's transaction (withTransactions), so these writes land together with the exit event.
  */
-export async function suspendActiveExecutionIfAny(operatorCode: string, exitTimeStr: string) {
-    try {
-        console.log('=== suspendActiveExecutionIfAny called ===', { operatorCode, exitTimeStr });
-        const formattedTime = exitTimeStr.includes('.') ? exitTimeStr : `${exitTimeStr}.000`;
-        
-        // Find if there's an open task (OPN event without a matching SUS/CLO after it)
-        const latestQuery = `
-            SELECT TOP 1 
-                EVT.TASK, EVT.MACCHINA, EVT.OPERATORE
-            FROM EVENTI EVT WITH (NOLOCK)
-            WHERE EVT.TASK NOT IN ('presenza', 'stato')
-              AND EVT.EVENTO IN ('OPN', 'EXE', 'WORK', 'REW', 'REL')
-              AND (EVT.OPERATORE = @operatorCode OR (EVT.OGGETTO = @operatorCode AND EVT.TIPO_OGGETTO = 'OPE'))
-              AND NOT EXISTS (
-                  -- Check if there's a SUS or CLO event after this OPN
-                  SELECT 1 FROM EVENTI E2 WITH (NOLOCK)
-                  WHERE E2.TASK = EVT.TASK
-                    AND (E2.OPERATORE = @operatorCode OR (E2.OGGETTO = @operatorCode AND E2.TIPO_OGGETTO = 'OPE'))
-                    AND E2.EVENTO IN ('SUS', 'CLO')
-                    AND E2.ORA_EVENTO > EVT.ORA_EVENTO
-              )
-            ORDER BY EVT.ORA_EVENTO DESC
-        `;
+export async function suspendActiveExecutionIfAny(run: SqlRunner, operatorCode: string, exitTimeStr: string) {
+    const formattedTime = withMillis(exitTimeStr);
 
-        const result = await queryMSSQL<{ TASK: string; MACCHINA: string | null; OPERATORE: string | null }>(latestQuery, { operatorCode }, 'NETPRO');
-        console.log('=== Query result ===', { 
-            recordCount: result.recordset?.length, 
-            records: result.recordset,
-            operatorCode,
-            queryUsed: 'Checking for OPN/EXE/WORK without subsequent SUS/CLO'
-        });
-        
-        if (!result.recordset || result.recordset.length === 0) {
-            console.log('=== No active task found, returning early ===');
-            return;
-        }
+    const open = await run<{ TASK: string; MACCHINA: string | null }>(`
+        SELECT TOP 1 EVT.TASK, EVT.MACCHINA
+        FROM EVENTI EVT WITH (NOLOCK)
+        WHERE EVT.TASK NOT IN ('presenza', 'stato')
+          AND EVT.EVENTO IN ('OPN', 'EXE', 'WORK', 'REW', 'REL')
+          AND (EVT.OPERATORE = @operatorCode OR (EVT.OGGETTO = @operatorCode AND EVT.TIPO_OGGETTO = 'OPE'))
+          AND NOT EXISTS (
+              SELECT 1 FROM EVENTI E2 WITH (NOLOCK)
+              WHERE E2.TASK = EVT.TASK
+                AND (E2.OPERATORE = @operatorCode OR (E2.OGGETTO = @operatorCode AND E2.TIPO_OGGETTO = 'OPE'))
+                AND E2.EVENTO IN ('SUS', 'CLO')
+                AND E2.ORA_EVENTO > EVT.ORA_EVENTO
+          )
+        ORDER BY EVT.ORA_EVENTO DESC
+    `, { operatorCode }, 'NETPRO');
+    const active = open.recordset[0];
+    if (!active) return;
 
-        const lastEvent = result.recordset[0];
-        const task = lastEvent.TASK;
-        const machine = lastEvent.MACCHINA;
-        const operator = lastEvent.OPERATORE;
-        console.log('=== Found task to suspend ===', { task, machine, operator });
-        
-        // Get the PART_NUMBER from the JOBSET/ORDINI tables for this task
-        const partQuery = `
-            SELECT TOP 1 O.PART_NUMBER
-            FROM JOBSET J WITH (NOLOCK)
-            INNER JOIN ORDINI O WITH (NOLOCK) ON J.ORDINE = O.ORDINE
-            WHERE J.TASK = @task
-        `;
-        const partResult = await queryMSSQL<{ PART_NUMBER: string | null }>(partQuery, { task }, 'NETPRO');
-        console.log('=== PART_NUMBER query result ===', { recordCount: partResult.recordset?.length, partNumber: partResult.recordset[0]?.PART_NUMBER });
-        
-        const partNumber = partResult.recordset.length > 0 ? partResult.recordset[0].PART_NUMBER : null;
-        const info1 = null;
-        const info2 = null;
-        const info3 = null;
-        console.log('=== About to insert SUS event ===', { task, partNumber, formattedTime });
+    const { TASK: task, MACCHINA: machine } = active;
+    const part = await run<{ PART_NUMBER: string | null }>(`
+        SELECT TOP 1 O.PART_NUMBER
+        FROM JOBSET J WITH (NOLOCK)
+        INNER JOIN ORDINI O WITH (NOLOCK) ON J.ORDINE = O.ORDINE
+        WHERE J.TASK = @task
+    `, { task }, 'NETPRO');
+    const partNumber = part.recordset[0]?.PART_NUMBER ?? null;
 
-        // CRITICAL: Create MAC SUS and OPE SUS events on the TASK (like official app)
-        // Create MAC SUS first
-        if (machine) {
-            await queryMSSQL(`
-                INSERT INTO EVENTI (
-                    TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, 
-                    MACCHINA, OPERATORE, PART_NUMBER, SOURCE, UTENTE, INFO1, INFO2, INFO3
-                )
-                VALUES (
-                    @task, 'MAC', @machine, 'SUS', @formattedTime,
-                    @machine, @operatorCode, @partNumber, 'WS', 'ADMIN', @info1, @info2, @info3
-                )
-            `, {
-                task,
-                machine,
-                formattedTime,
-                operatorCode,
-                partNumber,
-                info1,
-                info2,
-                info3
-            }, 'NETPRO');
+    const susEvent = (tipoOggetto: 'MAC' | 'OPE', oggetto: string) =>
+        run(`
+            INSERT INTO EVENTI (TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, MACCHINA, OPERATORE, PART_NUMBER, SOURCE, UTENTE, INFO1, INFO2, INFO3)
+            VALUES (@task, @tipoOggetto, @oggetto, 'SUS', @formattedTime, @machine, @operatorCode, @partNumber, 'WS', 'ADMIN', NULL, NULL, NULL)
+        `, { task, tipoOggetto, oggetto, formattedTime, machine, operatorCode, partNumber }, 'NETPRO');
 
-            // Update MACCHINE table
-            await queryMSSQL(`
-                UPDATE MACCHINE
-                SET STATO_LOGICO = 'IDLE',
-                    ORA_ST_LOGICO = @formattedTime
-                WHERE MACCHINA = @machine
-            `, { machine, formattedTime }, 'NETPRO');
-        }
-
-        // Then create OPE SUS
-        await queryMSSQL(`
-            INSERT INTO EVENTI (
-                TASK, TIPO_OGGETTO, OGGETTO, EVENTO, ORA_EVENTO, 
-                MACCHINA, OPERATORE, PART_NUMBER, SOURCE, UTENTE, INFO1, INFO2, INFO3
-            )
-            VALUES (
-                @task, 'OPE', @operatorCode, 'SUS', @formattedTime,
-                @machine, @operatorCode, @partNumber, 'WS', 'ADMIN', @info1, @info2, @info3
-            )
-        `, {
-            task,
-            operatorCode,
-            formattedTime,
-            machine,
-            partNumber,
-            info1,
-            info2,
-            info3
-        }, 'NETPRO');
-
-        // Update TASKS and OPERAZIONI to set status to 'SUS'
-        if (task) {
-            await queryMSSQL(`
-                UPDATE TASKS SET STATO = 'SUS' WHERE TASK = @task
-            `, { task }, 'NETPRO');
-            await queryMSSQL(`
-                UPDATE OPERAZIONI SET STATO = 'SUS' WHERE ID_OPER = @task
-            `, { task }, 'NETPRO');
-        }
-
-        // Update OPERATORI table to set logical state to 'IDLE'
-        await queryMSSQL(`
-            UPDATE OPERATORI
-            SET STATO_LOGICO = 'IDLE',
-                ORA_ST_LOGICO = @formattedTime
-            WHERE OPERATORE = @operatorCode
-        `, { operatorCode, formattedTime }, 'NETPRO');
-
-        console.log('=== MAC SUS and OPE SUS events inserted (no MAC IDLE stato), states updated ===');
-    } catch (err) {
-        console.error('Error suspending active execution for operator:', operatorCode, err);
-        // Re-throw to see the error in the parent function
-        throw new Error(`Suspend failed: ${errorMessage(err)}`);
+    if (machine) {
+        await susEvent('MAC', machine);
+        await run(`UPDATE MACCHINE SET STATO_LOGICO = 'IDLE', ORA_ST_LOGICO = @formattedTime WHERE MACCHINA = @machine`, { machine, formattedTime }, 'NETPRO');
     }
+    await susEvent('OPE', operatorCode);
+    await run(`UPDATE TASKS SET STATO = 'SUS' WHERE TASK = @task`, { task }, 'NETPRO');
+    await run(`UPDATE OPERAZIONI SET STATO = 'SUS' WHERE ID_OPER = @task`, { task }, 'NETPRO');
+    await run(`UPDATE OPERATORI SET STATO_LOGICO = 'IDLE', ORA_ST_LOGICO = @formattedTime WHERE OPERATORE = @operatorCode`, { operatorCode, formattedTime }, 'NETPRO');
 }
 
 /**
@@ -222,7 +132,7 @@ export function buildOperatorSearch(
     return `(${conds.join(' OR ')})`;
 }
 
-export const DISTRIBUTION_SELECT = `
+const DISTRIBUTION_SELECT = `
     SELECT
         operatore,
         CONVERT(VARCHAR(10), data, 120) AS data,
@@ -240,7 +150,7 @@ export const DISTRIBUTION_SELECT = `
     WHERE data >= @dateFrom AND data <= @dateTo
 `;
 
-export type DistributionRecord = Partial<Record<HourField | 'causale_ferie' | 'causale_permesso' | 'banca_ore_mese_n1' | 'banca_ore_mese_n', unknown>> & { operatore: string; data: string };
+type DistributionRecord = Partial<Record<HourField | 'causale_ferie' | 'causale_permesso' | 'banca_ore_mese_n1' | 'banca_ore_mese_n', unknown>> & { operatore: string; data: string };
 
 /** Map saved distributions by `operatore_YYYY-MM-DD`. */
 export async function loadDistributionMap(dateFrom: string, dateTo: string): Promise<Map<string, DistributionRecord>> {

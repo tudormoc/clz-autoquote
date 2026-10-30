@@ -13,6 +13,11 @@ datetime → `Date`, a nullable or LEFT JOIN column → `| null`). The report sc
 
 **The databases are live.** Analytics and lists only read (`WITH (NOLOCK)` on every SELECT). Writes exist in a few places
 (presence edits, "Riallinea Ordine da DiBa", settings tables, presence rules and labour rates) and change production data immediately.
+A write of more than one statement is one transaction per database: a SQL batch with `SET XACT_ABORT ON; BEGIN TRANSACTION … COMMIT`
+(pricing rules, the Agenda's `transaction()`), or `withTransactions(['BUSINESS', 'NETPRO'], async (run) => { await run(sql, params, db); … })`
+in `src/lib/mssql.ts` when the statements are built in code (Riallinea, presence exits): every `run` goes into its database's
+transaction, all are committed at the end, all rolled back if anything throws. Two databases cannot commit as one; the
+transactions commit one after the other, so the only moment a change can be half-done is between those two commits.
 A table or column name that comes from the browser never goes into the SQL as sent: settings tables are checked against
 `src/config/editableTables.ts`, the Database page against the database's own list of tables and columns, presence edits
 against their own column lists, sort keys and directions through `ownEntry` / `sqlDirection` (`query-utils.ts`).

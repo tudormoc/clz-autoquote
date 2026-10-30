@@ -4,14 +4,15 @@
  */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL, type SqlParams } from '@/lib/mssql';
+import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY } from '@/locales';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
 /**
  * Auto-exit: find all operators with an ENT event today but no EXT event,
  * then create an EXT event at the configured time based on the day of the week.
- * Sunday is always skipped.
+ * Sunday is always skipped. Each operator's writes (EXT event, stato fisico, suspended task) are one transaction.
  *
  * @param testOperator - Optional: limit to a single operator code (for testing)
  */
@@ -22,7 +23,7 @@ export async function runAutoExit(testOperator?: string) {
 
         // Skip Sundays
         if (dayOfWeek === 0) {
-            return { success: true, skipped: true, reason: 'Sunday — no auto-exit', processed: 0 };
+            return { success: true, skipped: true, reason: APP_COPY.analytics.presence.autoExitSunday, processed: 0 };
         }
 
         // Pick the correct exit time based on day
@@ -63,18 +64,16 @@ export async function runAutoExit(testOperator?: string) {
 
         // Create EXT event and update STATO_FISICO for each operator
         for (const oggetto of operators) {
-            await queryMSSQL(
-                `INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
-                 VALUES (@oggetto, 'EXT', @oraEvento, 'presenza', 'OPE', 'WS', 'AUTO', @oggetto)`,
-                { oggetto, oraEvento },
-                'NETPRO'
-            );
-            await queryMSSQL(
-                `UPDATE OPERATORI SET STATO_FISICO = 'OUT' WHERE OPERATORE = @oggetto`,
-                { oggetto },
-                'NETPRO'
-            );
-            await suspendActiveExecutionIfAny(oggetto, oraEvento);
+            await withTransactions(['NETPRO'], async (run) => {
+                await run(
+                    `INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
+                     VALUES (@oggetto, 'EXT', @oraEvento, 'presenza', 'OPE', 'WS', 'AUTO', @oggetto)`,
+                    { oggetto, oraEvento },
+                    'NETPRO'
+                );
+                await run(`UPDATE OPERATORI SET STATO_FISICO = 'OUT' WHERE OPERATORE = @oggetto`, { oggetto }, 'NETPRO');
+                await suspendActiveExecutionIfAny(run, oggetto, oraEvento);
+            });
         }
 
         return {

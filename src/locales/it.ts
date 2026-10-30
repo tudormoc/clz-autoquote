@@ -14,6 +14,7 @@ export const APP_COPY = {
     loading: "Caricamento...",
     noData: "Nessun dato disponibile",
     loadError: "Impossibile caricare i dati",
+    invalidData: "Dati non validi",
     showing: "Visualizzazione da",
     to: "a",
     of: "di",
@@ -678,6 +679,7 @@ export const APP_COPY = {
     quantityLabel: "Quantità",
     pagesLabel: "Numero di Pagine",
     totalLabel: "Totale",
+    blockLabel: "Blocco",
     blueprintButton: "Anteprima Schema",
     internalSpecsTitle: "Specifiche Interne",
     sheetWidth: "Larghezza Foglio (mm)",
@@ -1114,6 +1116,7 @@ export const APP_COPY = {
       dibaDiscrepanciesDetected: "Disallineato da DiBa ({count})",
       dibaMaterialsTab: "Materiali DiBa",
       expectedQty: "Q.tà DiBa Attesa",
+      printMissingOrder: "Indica la commessa da stampare (netproId o netproIds)",
     },
     pdf: {
       period: "Periodo",
@@ -1275,6 +1278,7 @@ export const APP_COPY = {
       folderNotFound: "Cartella dei file presenze non raggiungibile: {folders}",
       noFiles: "Nessun file Excel trovato per l'anno {year}",
       noRows: "Nessun dato valido nei file Excel",
+      autoExitSunday: "Domenica: nessuna auto-uscita",
     },
     operators: {
       title: "Operatori",

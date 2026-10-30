@@ -5,7 +5,7 @@
  * identity/value columns are overridden, so every column Business/NetPro
  * expects (TIPO, QTA_*, FACTIVE, MACCHINA_ASSEGNATA, ...) is always populated.
  */
-import { queryMSSQL, type MSSQL_DB, type SqlParams } from '@/lib/mssql';
+import type { MSSQL_DB, SqlParams, SqlRunner } from '@/lib/mssql';
 
 export interface SyncDibaOp {
     riga: number;
@@ -61,18 +61,19 @@ export function buildBusinessOverrides(op: SyncDibaOp, qty: number) {
 
 /** Insert a copy of the first row matching `templateWhere`, with `overrides` applied. */
 export async function cloneRowInsert(
+    run: SqlRunner,
     db: MSSQL_DB,
     table: string,
     templateWhere: string,
     templateParams: SqlParams,
     overrides: SqlParams,
 ) {
-    const tpl = (await queryMSSQL(
+    const tpl = (await run(
         `SELECT TOP 1 * FROM ${table} WITH (NOLOCK) WHERE ${templateWhere}`, templateParams, db,
     )).recordset[0];
     if (!tpl) throw new Error(`Nessuna riga modello in ${table} da cui clonare il nuovo record`);
 
-    const skip = (await queryMSSQL<{ name: string }>(
+    const skip = (await run<{ name: string }>(
         `SELECT name FROM sys.columns
          WHERE object_id = OBJECT_ID(@t)
            AND (is_identity = 1 OR is_computed = 1 OR TYPE_NAME(user_type_id) = 'timestamp')`,
@@ -84,7 +85,7 @@ export async function cloneRowInsert(
     const cols = Object.keys(row).filter(c => !skip.includes(c.toLowerCase()));
     const params: SqlParams = {};
     cols.forEach((c, i) => { if (row[c] !== NOW) params[`p${i}`] = row[c]; });
-    await queryMSSQL(
+    await run(
         `INSERT INTO ${table} (${cols.map(c => `[${c}]`).join(',')}) VALUES (${cols.map((c, i) => (row[c] === NOW ? 'GETDATE()' : `@p${i}`)).join(',')})`,
         params, db,
     );
