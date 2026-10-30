@@ -1,63 +1,26 @@
 # Dependencies
 node_modules
-.pnp
-.pnp.js
 
-# Testing
-coverage
-
-# Next.js
+# Next.js build and generated files
 /.next/
 /out/
-/build
-next.config.js.timestamp-*
+next-env.d.ts
+*.tsbuildinfo
 
-# Production
-dist/
-dist-ssr/
-
-# Environment variables
-# We ignore all .env files by default to keep secrets safe
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env
-# But we allow the example file so developers know what keys are needed
+# Secrets: every .env file except the example
+.env*
 !.env.example
-
-# Supabase
-supabase/.branches
-supabase/.temp
 
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# OS & Editor
+# OS and editor
 .DS_Store
 Thumbs.db
 .idea
 .vscode/*
-!.vscode/extensions.json
 !.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# Misc
+# Local scratch
 tmp/
-.gemini/
-
-# Exclude nested projects
-BindMasterPro/

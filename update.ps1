@@ -3,7 +3,6 @@
 # Usage: .\update.ps1
 
 Write-Host "`n[1/4] Pulling latest changes from Git..." -ForegroundColor Cyan
-git checkout -- next-env.d.ts 2>$null
 git checkout -- package-lock.json 2>$null
 git pull
 if ($LASTEXITCODE -ne 0) {
