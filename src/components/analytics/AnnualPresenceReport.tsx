@@ -1,35 +1,43 @@
 'use client'
 
 import { errorMessage } from '@/lib/utils';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY, fmt } from '@/locales';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterPanel } from '@/components/ui/FilterPanel';
+import { YearField } from '@/components/ui/YearField';
 import { PresenceData } from '@/types';
-import { Clock, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { copyToClipboard } from '@/lib/clipboard';
+import { recentYears } from '@/lib/dateUtils';
 import { formatDayMonth } from '@/lib/format';
 
 const copy = APP_COPY.analytics.presence;
+const thisYear = () => recentYears(1)[0];
 
+/** Presenze Annuali: the hours per group of every week of a year, read from the presence Excel files on "Applica". */
 export function AnnualPresenceReport() {
-    const year = new Date().getFullYear();
+    const [year, setYear] = useState(thisYear);
+    /** The year the tables show; null before "Applica" (the files take a while to read, so nothing loads on its own) */
+    const [applied, setApplied] = useState<number | null>(null);
     const [data, setData] = useState<PresenceData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [filesProcessed, setFilesProcessed] = useState(0);
 
-    const loadData = useCallback(async () => {
+    const load = async (chosen: number) => {
+        setApplied(chosen);
         setLoading(true);
         setError(null);
-        
         try {
-            const result = await getPresenceDataAction(year);
-
+            const result = await getPresenceDataAction(chosen);
             if (result.success && result.data) {
                 setData(result.data);
                 setFilesProcessed(result.filesProcessed || 0);
             } else {
+                setData(null);
                 setError(result.error || APP_COPY.common.loadError);
             }
         } catch (err) {
@@ -37,11 +45,15 @@ export function AnnualPresenceReport() {
         } finally {
             setLoading(false);
         }
-    }, [year]);
+    };
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    const clear = () => {
+        setYear(thisYear());
+        setApplied(null);
+        setData(null);
+        setError(null);
+        setFilesProcessed(0);
+    };
 
     // Plain whole hours (no thousands separator): also pasted into spreadsheets via the copy button
     const toWholeHours = (hours: number) => Math.round(hours).toString();
@@ -85,29 +97,20 @@ export function AnnualPresenceReport() {
 
     return (
         <div className="space-y-4">
-            {/* Year and files read on the left, reload on the right (the page title is above) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-fg-muted">
-                <span>
-                    <span className="font-semibold text-fg-strong">{fmt(copy.year, { year })}</span>
-                    {filesProcessed > 0 && (
-                        <>
-                            {' · '}
-                            {copy.filesProcessed}: <span className="font-mono text-fg-strong">{filesProcessed}</span>
-                        </>
-                    )}
-                </span>
-                <Button onClick={loadData} disabled={loading}>
-                    <Clock size={16} />
-                    {loading ? APP_COPY.analytics.common.loading : APP_COPY.analytics.common.refresh}
-                </Button>
-            </div>
+            <FilterPanel onApply={() => load(year)} onClear={clear} activeCount={applied !== null && applied !== thisYear() ? 1 : 0}>
+                <YearField value={year} onChange={setYear} />
+            </FilterPanel>
 
-            {/* Error */}
-            {error && (
-                <div className="p-4 bg-danger/10 border border-danger/20 rounded-md">
-                    <p className="text-sm text-danger">{error}</p>
-                </div>
+            {/* The year shown and how many files were read */}
+            {applied !== null && filesProcessed > 0 && (
+                <p className="text-sm text-fg-muted">
+                    <span className="font-semibold text-fg-strong">{fmt(copy.year, { year: applied })}</span>
+                    {' · '}
+                    {copy.filesProcessed}: <span className="font-mono text-fg-strong">{filesProcessed}</span>
+                </p>
             )}
+
+            {error && <EmptyState title={APP_COPY.common.loadError} description={error} />}
 
             {/* Loading */}
             {loading && (
@@ -182,12 +185,8 @@ export function AnnualPresenceReport() {
                 </div>
             )}
 
-            {/* Empty State */}
-            {!loading && !error && !data && (
-                <div className="text-center py-12 text-fg-subtle">
-                    {APP_COPY.analytics.common.noData}
-                </div>
-            )}
+            {/* Before "Applica", or a year without data */}
+            {!loading && !error && !data && <EmptyState title={applied === null ? APP_COPY.analytics.applyFiltersHint : APP_COPY.analytics.common.noData} />}
         </div>
     );
 }

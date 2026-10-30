@@ -7,13 +7,12 @@ export const APP_COPY = {
     // Filters
     period: "Periodo",
     periods: {
-      thisMonth: "Mese corrente",
+      lastWeek: "Settimana scorsa",
       lastMonth: "Mese scorso",
-      thisYear: "Anno corrente",
       lastYear: "Anno scorso",
-      last12Months: "Ultimi 12 mesi",
       custom: "Personalizzato",
     },
+    year: "Anno",
     dateFrom: "Data Da",
     dateTo: "Data A",
     search: "Cerca...",
@@ -600,8 +599,6 @@ export const APP_COPY = {
   cashflow: {
     title: "Flusso Monetario & Liquidità",
     subtitle: "Pianificazione e monitoraggio del flusso di cassa e liquidità aziendale",
-    yearLabel: "Anno:",
-    reload: "Ricarica Dati ERP",
     // Names used when the ERP has none
     labels: {
       otherSuppliers: "Altri Fornitori",

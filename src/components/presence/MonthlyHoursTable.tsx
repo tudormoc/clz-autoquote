@@ -37,7 +37,7 @@ import {
     toHours,
     type PresenceRulesConfig,
 } from '@/lib/presence';
-import { getTodayDate, periodRange } from '@/lib/dateUtils';
+import { defaultReportPeriod, getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
@@ -90,7 +90,7 @@ export function MonthlyHoursTable() {
     }, []);
 
     const list = useListQuery({
-        initialFilters: (): Filters => ({ ...periodRange('thisMonth'), operator: '' }),
+        initialFilters: (): Filters => ({ ...defaultReportPeriod(), operator: '' }),
         load: (f: Filters) => getMonthlyHoursAction(f.dateFrom, f.dateTo, f.operator || undefined),
     });
     const { rows, setRows } = list;

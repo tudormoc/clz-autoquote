@@ -22,26 +22,30 @@ export interface DateRange {
 }
 
 /** The ready-made periods of a date filter ("Periodo" in DateRangeFields), in menu order */
-export const DATE_PERIODS = ['thisMonth', 'lastMonth', 'thisYear', 'lastYear', 'last12Months'] as const;
+export const DATE_PERIODS = ['lastWeek', 'lastMonth', 'lastYear'] as const;
 export type DatePeriod = (typeof DATE_PERIODS)[number];
 
-/** The dates of a period as of `today` (local calendar): the current ones run up to today */
+/** The dates of a period as of `today` (local calendar): whole weeks, months and years already over */
 export function periodRange(period: DatePeriod, today: Date = new Date()): DateRange {
     const year = today.getFullYear();
     const month = today.getMonth();
     const range = (from: Date, to: Date): DateRange => ({ dateFrom: toIsoDate(from), dateTo: toIsoDate(to) });
     switch (period) {
-        case 'thisMonth':
-            return range(new Date(year, month, 1), today);
+        case 'lastWeek': {
+            // Monday to Sunday of the week before this one
+            const monday = new Date(year, month, today.getDate() - (today.getDay() || 7) + 1 - 7);
+            return range(monday, new Date(year, month, monday.getDate() + 6));
+        }
         case 'lastMonth':
             return range(new Date(year, month - 1, 1), new Date(year, month, 0));
-        case 'thisYear':
-            return range(new Date(year, 0, 1), today);
         case 'lastYear':
             return range(new Date(year - 1, 0, 1), new Date(year - 1, 11, 31));
-        case 'last12Months':
-            return range(new Date(year - 1, month, today.getDate() + 1), today);
     }
+}
+
+/** The years a year filter offers: this one and the `count - 1` before it, newest first */
+export function recentYears(count: number, today: Date = new Date()): number[] {
+    return Array.from({ length: count }, (_, i) => today.getFullYear() - i);
 }
 
 /** The period these dates are, as of today, or null when they are not one of DATE_PERIODS */
@@ -52,8 +56,8 @@ export function periodOf(dates: DateRange, today: Date = new Date()): DatePeriod
     }) ?? null;
 }
 
-/** What the analytics reports open with: the current year so far */
-export const defaultReportPeriod = (): DateRange => periodRange('thisYear');
+/** What a date filter opens with: today, as a calendar does ("Personalizzato"); the periods are one pick away */
+export const defaultReportPeriod = (): DateRange => ({ dateFrom: getTodayDate(), dateTo: getTodayDate() });
 
 /** Monday of ISO week `week` (1 to 53) of `year`: week 1 is the week with 4 January */
 export function isoWeekStart(year: number, week: number): Date {

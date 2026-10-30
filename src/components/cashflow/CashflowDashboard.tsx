@@ -1,88 +1,82 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
-import { Wallet, Calendar, RefreshCw } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { Wallet } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CashflowMonthlyMatrix } from '@/components/cashflow/CashflowMonthlyMatrix';
 import { CashflowKpiCards } from '@/components/cashflow/CashflowKpiCards';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterPanel } from '@/components/ui/FilterPanel';
+import { YearField } from '@/components/ui/YearField';
 import { getCashflowMonthlyDataAction } from '@/app/cashflow/cashflow-actions';
+import { recentYears } from '@/lib/dateUtils';
 import type { CashflowDataResult } from '@/lib/cashflow/types';
 
-/** Years offered in the selector: the current one and the two before it */
-const YEARS_SHOWN = 3;
+const thisYear = () => recentYears(1)[0];
 
+/** Flusso Monetario: the year's KPI cards and month-by-month table, loaded for the chosen year on "Applica". */
 export function CashflowDashboard() {
     const copy = APP_COPY.cashflow;
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: YEARS_SHOWN }, (_, i) => currentYear - i);
-
-    const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    const [year, setYear] = useState(thisYear);
+    /** The year on screen; null before "Applica" (nothing loads on its own) */
+    const [applied, setApplied] = useState<number | null>(null);
     const [isPending, startTransition] = useTransition();
     const [cashflowData, setCashflowData] = useState<CashflowDataResult | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const loadData = (year: number) => {
-        setLoading(true);
+    const load = (chosen: number) => {
+        setApplied(chosen);
+        setError(null);
         startTransition(async () => {
-            const res = await getCashflowMonthlyDataAction(year);
+            const res = await getCashflowMonthlyDataAction(chosen);
             if (res.success) {
                 setCashflowData(res);
+            } else {
+                setCashflowData(null);
+                setError(res.error || APP_COPY.common.loadError);
             }
-            setLoading(false);
         });
     };
 
-    useEffect(() => {
-        loadData(selectedYear);
-    }, [selectedYear]);
+    const clear = () => {
+        setYear(thisYear());
+        setApplied(null);
+        setCashflowData(null);
+        setError(null);
+    };
 
     return (
         <>
-            <PageHeader
-                icon={Wallet}
-                title={copy.title}
-                subtitle={copy.subtitle}
-                actions={
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-2">
-                        <Calendar size={18} className="text-primary" />
-                        <span className="text-xs text-fg-muted font-medium">{copy.yearLabel}</span>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="bg-card border border-border-strong/80 text-fg font-bold text-sm rounded-lg px-3 py-1 focus:outline-none focus:border-primary cursor-pointer"
-                        >
-                            {years.map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={() => loadData(selectedYear)}
-                            className="p-1.5 hover:bg-muted rounded-lg text-fg-muted hover:text-primary transition-colors ml-1"
-                            title={copy.reload}
-                        >
-                            <RefreshCw size={16} className={loading || isPending ? 'animate-spin' : ''} />
-                        </button>
-                    </div>
-                }
-            />
+            <PageHeader icon={Wallet} title={copy.title} subtitle={copy.subtitle} />
 
-            {/* Executive KPI Summary Cards */}
-            <CashflowKpiCards
-                totalBankBalance={cashflowData?.totalBankBalance ?? 0}
-                bankBalances={cashflowData?.bankBalances ?? []}
-                grandTotalIncome={cashflowData?.grandTotalIncome ?? 0}
-                totalIncomeInvoicesCount={cashflowData?.totalIncomeInvoicesCount ?? 0}
-                grandTotalExpense={cashflowData?.grandTotalExpense ?? 0}
-                grandTotalPayroll={cashflowData?.grandTotalPayroll ?? 0}
-                grandTotalExtraExpenses={cashflowData?.grandTotalExtraExpenses ?? 0}
-                totalExpenseInvoicesCount={cashflowData?.totalExpenseInvoicesCount ?? 0}
-                grandNetCashflow={cashflowData?.grandNetCashflow ?? 0}
-                loading={loading || isPending}
-            />
+            <div className="space-y-4">
+                <FilterPanel onApply={() => load(year)} onClear={clear} activeCount={applied !== null && applied !== thisYear() ? 1 : 0}>
+                    <YearField value={year} onChange={setYear} />
+                </FilterPanel>
 
-            {/* Monthly Executive Cashflow Matrix (Gennaio - Dicembre) */}
-            <CashflowMonthlyMatrix data={cashflowData} year={selectedYear} loading={loading || isPending} />
+                {applied === null ? (
+                    <EmptyState title={APP_COPY.analytics.applyFiltersHint} />
+                ) : error ? (
+                    <EmptyState title={APP_COPY.common.loadError} description={error} />
+                ) : (
+                    <>
+                        <CashflowKpiCards
+                            totalBankBalance={cashflowData?.totalBankBalance ?? 0}
+                            bankBalances={cashflowData?.bankBalances ?? []}
+                            grandTotalIncome={cashflowData?.grandTotalIncome ?? 0}
+                            totalIncomeInvoicesCount={cashflowData?.totalIncomeInvoicesCount ?? 0}
+                            grandTotalExpense={cashflowData?.grandTotalExpense ?? 0}
+                            grandTotalPayroll={cashflowData?.grandTotalPayroll ?? 0}
+                            grandTotalExtraExpenses={cashflowData?.grandTotalExtraExpenses ?? 0}
+                            totalExpenseInvoicesCount={cashflowData?.totalExpenseInvoicesCount ?? 0}
+                            grandNetCashflow={cashflowData?.grandNetCashflow ?? 0}
+                            loading={isPending}
+                        />
+                        <CashflowMonthlyMatrix data={cashflowData} year={applied} loading={isPending} />
+                    </>
+                )}
+            </div>
         </>
     );
 }

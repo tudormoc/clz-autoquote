@@ -15,6 +15,8 @@ export const APP_CONFIG = {
     // How long an on-screen notice stays (ms); errors stay longer so they can be read
     TOAST_DURATION: 4000,
     ERROR_TOAST_DURATION: 8000,
+    // Years a year filter offers (Flusso Monetario, Presenze Annuali): this one and the ones before it
+    YEARS_IN_FILTERS: 3,
     // Pause after the last click before a page of choices saves itself (Gruppi): several quick clicks, one save
     AUTOSAVE_DELAY_MS: 400,
     // Phones: holding a finger this long on a card opens its menu (like a right-click); moving it more than

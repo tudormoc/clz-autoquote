@@ -92,7 +92,7 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 | Settings pages / their screens / what they may change | `src/config/settingsPages.ts` / `src/components/admin/settingsComponents.ts` (table editors in `recordTables.tsx`; pages `/settings/<id>`) / `src/config/editableTables.ts` |
 | Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `FillPage`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
 | Shared UI parts | `src/components/ui/` |
-| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`, `defaultReportPeriod` = this year so far) `src/lib/dateUtils.ts` |
+| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`; every filter opens on today, `defaultReportPeriod`) `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
 | Report state (filters, paging, sorting, export; loads only on "Applica", filters remembered in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
