@@ -29,6 +29,14 @@ import { APP_COPY } from '@/locales';
 import { ANALYTICS_CATEGORIES, ANALYTICS_SECTIONS } from '@/config/analyticsSections';
 import { SETTINGS_CATEGORIES, SETTINGS_PAGES } from '@/config/settingsPages';
 
+/** Something a page can do that a group is given on its own, apart from "modifica" on the page (Riallinea) */
+export interface NavFunction {
+    /** The page's link + '#' + a name: the key in a group's pages and the link of its access check */
+    href: string;
+    label: string;
+    description?: string;
+}
+
 export interface NavItem {
     id: string;
     href: string;
@@ -39,7 +47,14 @@ export interface NavItem {
     editable?: boolean;
     /** Only the superadmin sees the page (users, groups, database); groups cannot be given it */
     superadminOnly?: boolean;
+    /** Its functions given one by one in Gruppi (Sì / No), each needing "modifica" on the page as well */
+    functions?: NavFunction[];
 }
+
+/** The link of a page's function: the page's link, '#', its name */
+export const functionHref = (pageHref: string, name: string) => `${pageHref}#${name}`;
+/** A function's link (as opposed to a page's) */
+export const isFunctionHref = (href: string) => href.includes('#');
 
 export interface NavGroup {
     label?: string;
@@ -100,10 +115,22 @@ export const TASK_PAGES = {
     history: '/tasks/history',
 } as const;
 
+/** Functions of Avanzamento Lavori; their links are also the access checks of their server actions */
+export const WORK_PROGRESS_FUNCTIONS = {
+    riallinea: functionHref('/work-progress', 'riallinea'),
+} as const;
+
 /** The app's areas, in sidebar order */
 export const NAV_AREAS: NavArea[] = [
     { id: 'quotes', href: '/quotes', ...areas.quotes, icon: FileText, editable: true },
-    { id: 'work-progress', href: '/work-progress', ...areas.workProgress, icon: Workflow, editable: true },
+    {
+        id: 'work-progress',
+        href: '/work-progress',
+        ...areas.workProgress,
+        icon: Workflow,
+        editable: true,
+        functions: [{ href: WORK_PROGRESS_FUNCTIONS.riallinea, ...APP_COPY.nav.functions.riallinea }],
+    },
     {
         id: 'analytics',
         href: '/analytics',

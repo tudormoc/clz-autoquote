@@ -74,6 +74,10 @@ export const APP_COPY = {
       tasks: { label: "Agenda", description: "Attività, scadenze e procedure: cosa fare, quando e come" },
       settings: { label: "Impostazioni", description: "Prezzi dei preventivi, costo del lavoro, regole presenze e strumenti" },
     },
+    // Functions of a page that a group is given on their own, in Gruppi (NavItem.functions)
+    functions: {
+      riallinea: { label: "Riallinea ordine da DiBa", description: "Riscrive l'ordine Business e NetPro dalla distinta base" },
+    },
   },
   // Login, logout, own PIN (src/lib/auth, src/app/auth-actions.ts)
   auth: {
@@ -845,6 +849,7 @@ export const APP_COPY = {
       pinReset: "Nuovo PIN di {name}: {pin}",
       sees: "Vede",
       edits: "Modifica",
+      uses: "Funzioni",
       nothing: "Nessuna pagina",
       deleteConfirm: "Eliminare l'utente {name}? Non potrà più entrare.",
       nameTaken: "Esiste già un utente o un gruppo con questo nome",
@@ -853,7 +858,7 @@ export const APP_COPY = {
       saved: "Salvato",
     },
     groups: {
-      hint: "Clicca su una casella per cambiarla: No → Vede → Modifica. Le righe in grassetto cambiano tutta l'area, la prima tutte le pagine.",
+      hint: "Clicca su una casella per cambiarla: No → Vede → Modifica. Le righe in grassetto cambiano tutta l'area, la prima tutte le pagine. Le funzioni rientrate (es. Riallinea) si danno a parte, Sì o No, e valgono solo con Modifica sulla pagina.",
       page: "Pagina",
       allPages: "Tutte le pagine",
       cell: "{group}, {page}: {level}",
@@ -868,6 +873,7 @@ export const APP_COPY = {
       noMembers: "Nessun utente: mettili nel gruppo dalla pagina Utenti",
       deleteConfirm: "Eliminare il gruppo {name}? I suoi utenti perdono le pagine che dava.",
       levels: { none: "No", view: "Vede", edit: "Modifica", mixed: "Misto" },
+      functionLevels: { none: "No", edit: "Sì" },
     },
     labourCost: {
       rates: {

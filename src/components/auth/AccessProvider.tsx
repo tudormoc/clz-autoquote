@@ -3,7 +3,7 @@
 import { createContext, useContext } from 'react';
 import { usePathname } from 'next/navigation';
 import { findNavLocation } from '@/config/navigation';
-import { canOpen, type UserAccess } from '@/lib/auth/permissions';
+import { canOpen, canUse, type UserAccess } from '@/lib/auth/permissions';
 
 const AccessContext = createContext<UserAccess | null>(null);
 
@@ -24,4 +24,13 @@ export function useCanEdit(): boolean {
     const { area, page } = findNavLocation(usePathname());
     const href = page?.href ?? area?.href;
     return !!access && !!href && canOpen(access, href, 'edit');
+}
+
+/**
+ * May the person use this function of the page (given on its own in Gruppi, e.g. WORK_PROGRESS_FUNCTIONS.riallinea)?
+ * Its button hides when not. Only for the look: the server action checks again.
+ */
+export function useCanUse(functionHref: string): boolean {
+    const access = useAccess();
+    return !!access && canUse(access, functionHref);
 }

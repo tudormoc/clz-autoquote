@@ -10,6 +10,7 @@ import type { MasterOrderMatch, OrderDetailsData } from '@/lib/orders/types';
 import { errorMessage } from '@/lib/utils';
 import type { OrderOperationsManagementData } from '@/types';
 import { authorize } from '@/lib/auth/access';
+import { WORK_PROGRESS_FUNCTIONS } from '@/config/navigation';
 
 type Failure = { success: false; error: string };
 
@@ -57,9 +58,13 @@ export async function refreshOrderOperationsManagementAction(
     }
 }
 
-/** "Riallinea": rewrites the Business and NetPro order from the DiBa (WRITES to both databases) */
+/**
+ * "Riallinea": rewrites the Business and NetPro order from the DiBa (WRITES to both databases).
+ * Needs "modifica" on the page and the Riallinea function, given apart in Gruppi.
+ */
 export async function syncOrderFromDibaAction(params: { rootCommessaKey: string; articleFather?: string }): Promise<{ success: true } | Failure> {
     await authorize('edit', '/work-progress');
+    await authorize('edit', WORK_PROGRESS_FUNCTIONS.riallinea);
     try {
         return await syncOrderFromDiba(params.rootCommessaKey, params.articleFather);
     } catch (err) {

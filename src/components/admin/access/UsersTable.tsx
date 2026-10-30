@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { useClientSort } from '@/hooks/useClientSort';
 import type { Group } from '@/lib/auth/accounts';
-import { mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
+import { isFunctionHref } from '@/config/navigation';
+import { functionLabels, mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
 import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
 import { compareValues, type RowSortColumns } from '@/lib/sort';
 import { APP_COPY, fmt } from '@/locales';
@@ -20,13 +21,15 @@ const copy = APP_COPY.admin.users;
 
 const groupKey = (id: number) => `group:${id}`;
 const byName = (a: UserView, b: UserView) => compareValues(a.name, b.name);
-const countPages = (pages: PagePermissions | undefined) => Object.keys(pages ?? {}).length;
+/** Pages only: a function of a page is not a page */
+const countPages = (pages: PagePermissions | undefined) => Object.keys(pages ?? {}).filter((href) => !isFunctionHref(href)).length;
 
-/** "Modifica: … / Vede: …" for the tooltip of the pages count */
+/** "Modifica: … / Vede: … / Funzioni: …" for the tooltip of the pages count */
 function pagesTooltip(pages: PagePermissions): string {
     const lines = [
         [copy.edits, pageLabels(pages, 'edit')],
         [copy.sees, pageLabels(pages, 'view')],
+        [copy.uses, functionLabels(pages)],
     ] as const;
     const text = lines.filter(([, labels]) => labels.length > 0).map(([level, labels]) => `${level}: ${labels.join(', ')}`);
     return text.length > 0 ? text.join('\n') : copy.nothing;

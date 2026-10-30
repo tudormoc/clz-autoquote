@@ -11,15 +11,15 @@ import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { LOGIN_PATH, NAV_AREAS, NO_ACCESS_PATH, getNavArea, type NavAreaId } from '@/config/navigation';
 import { loadAccountAccess } from '@/lib/auth/accounts';
-import { canOpen, canOpenPath, menuPages, type AccessLevel, type UserAccess } from '@/lib/auth/permissions';
+import { GRANTABLE_FUNCTIONS, canOpen, canOpenPath, menuPages, type AccessLevel, type UserAccess } from '@/lib/auth/permissions';
 import { pinFingerprint } from '@/lib/auth/secrets';
 import { SESSION_COOKIE, SUPERADMIN, parseSession, superadminAccount, superadminFingerprint } from '@/lib/auth/session';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.auth;
 
-/** Every page link of the menu, to catch a mistyped link in a check */
-const KNOWN_PAGES = new Set(menuPages(NAV_AREAS).map((page) => page.href));
+/** Every page link of the menu and every function link, to catch a mistyped link in a check */
+const KNOWN_PAGES = new Set([...menuPages(NAV_AREAS).map((page) => page.href), ...GRANTABLE_FUNCTIONS.map(({ fn }) => fn.href)]);
 
 /** The person logged in, or null. A deleted or suspended user, or one whose PIN changed since, is not logged in any more. */
 export const getAccess = cache(async (): Promise<UserAccess | null> => {
