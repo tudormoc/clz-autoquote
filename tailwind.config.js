@@ -51,8 +51,15 @@ module.exports = {
         },
     },
     plugins: [
-        // Publishes every token as a CSS variable on :root (e.g. --fg-muted, --success-400)
-        plugin(({ addBase }) => addBase({ ':root': theme.cssVariables })),
+        // Publishes every token as a CSS variable (e.g. --fg-muted, --success-400): the light look on :root, the dark
+        // one under <html data-theme="dark"> (set by the root layout from the cookie, switched in the sidebar).
+        // color-scheme makes the browser's own parts (scrollbars, date pickers, checkboxes) follow the look.
+        plugin(({ addBase }) =>
+            addBase({
+                ':root': { ...theme.cssVariables, colorScheme: 'light' },
+                ':root[data-theme="dark"]': { ...theme.darkCssVariables, colorScheme: 'dark' },
+            })
+        ),
         // `collapsed:` — applies while the desktop sidebar is folded to icons (from lg up). The state is the
         // data-sidebar attribute on <html>, set by src/lib/sidebar.ts before the first paint, so there is no flash.
         plugin(({ addVariant, theme: t }) => {

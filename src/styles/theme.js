@@ -1,17 +1,21 @@
 /**
- * DESIGN TOKENS — the single source of truth for every colour, radius, font and shadow.
+ * DESIGN TOKENS — the single source of truth for every colour, radius, font and shadow, in two looks.
  *
  * How it works
  *   1. PALETTE picks a colour family for each role.
- *   2. NEUTRAL maps the grey roles (surfaces, lines, text) to exact shades.
- *   3. tailwind.config.js turns every token into a CSS variable on :root and a Tailwind class:
+ *   2. NEUTRAL (light) and NEUTRAL_DARK map the grey roles (surfaces, lines, text) to exact shades of each look.
+ *   3. tailwind.config.js turns every token into a CSS variable — the light values on :root, the dark ones under
+ *      :root[data-theme="dark"] — and a Tailwind class:
  *        bg-card, bg-muted, border-border-strong, text-fg-muted, text-success-400, bg-danger/10 …
+ *      Light is the default; the switch in the sidebar sets the attribute and a cookie (src/lib/theme.ts).
  *
  * Restyling the app = editing this file. Components never use raw palette classes
  * (text-zinc-400, bg-emerald-500 …): ESLint flags them.
  *
  * Status roles (success, warning, danger, info, highlight, primary) expose the full 50–950 scale
- * plus DEFAULT (= 500), so `text-danger-400`, `bg-success/10`, `border-warning/30` all work.
+ * plus DEFAULT (= 500), so `text-danger-400`, `bg-success/10`, `border-warning/30` all work. A class names the
+ * shade of the dark look; the light look mirrors it (LIGHT_SHADE), so `text-success-400` is a light green on dark
+ * and a deep green on white, and `bg-success-950/60` a dark tint there and a pale one here.
  */
 const colors = require('tailwindcss/colors');
 
@@ -29,31 +33,74 @@ const PALETTE = {
 const STATUS_ROLES = ['primary', 'success', 'warning', 'danger', 'info', 'highlight'];
 const SHADES = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
 
+/**
+ * Light look: the shade a class names (chosen on dark) → the shade painted on white.
+ * Text (200–400) gets deep, tints (700–950) get pale, fills (500–600) stay bright with dark text on them.
+ */
+const LIGHT_SHADE = {
+    50: '950', 100: '900', 200: '800', 300: '700', 400: '700',
+    500: '500', 600: '500',
+    700: '300', 800: '200', 900: '100', 950: '100',
+};
+// The brand accent is also text (text-primary, in many places): on white it needs the deeper cyan, with white on it;
+// its text shades (text-primary-400: the current page in the menu, today in the date picker) go deeper still
+const LIGHT_PRIMARY_SHADE = { ...LIGHT_SHADE, 300: '800', 400: '800', 500: '700', 600: '700' };
+
 // ─── 2. Neutral roles ──────────────────────────────────────────────────────────
 const n = PALETTE.neutral;
+
+/** Light look (the default) */
 const NEUTRAL = {
-    // Surfaces, darkest → lightest
-    'background': n[950],       // page background, inputs
-    'card': n[900],             // panels, cards, sidebars, header
-    'muted': n[800],            // secondary buttons, chips, row hover
-    'muted-strong': n[700],     // hover on muted controls
+    // Surfaces
+    'background': n[100],       // page background, inputs
+    'card': colors.white,       // panels, cards, sidebars, header
+    'muted': n[100],            // secondary buttons, chips, row hover
+    'muted-strong': n[200],     // hover on muted controls
 
     // Lines
-    'border': n[800],           // default borders and dividers
-    'border-strong': n[700],    // input borders, emphasised outlines
+    'border': n[200],           // default borders and dividers
+    'border-strong': n[300],    // input borders, emphasised outlines
 
     // Text, strongest → faintest
-    'fg-strong': colors.white,  // page titles, key figures
-    'fg': n[100],               // default text
-    'fg-soft': n[200],          // emphasised values
-    'fg-secondary': n[300],     // secondary text
-    'fg-muted': n[400],         // labels, icons
-    // Between zinc-400 and 500: small hint text stays readable on cards (5.2:1, above the 4.5:1 minimum)
-    'fg-subtle': '#8a8a93',     // hints, secondary lines of a cell
-    'fg-faint': n[500],         // placeholders, disabled, decorative
-    'fg-inverse': n[950],       // text on bright fills (primary / warning buttons)
+    'fg-strong': n[950],        // page titles, key figures
+    'fg': n[800],               // default text
+    'fg-soft': n[700],          // emphasised values
+    'fg-secondary': n[600],     // secondary text
+    // Two steps between zinc-500 and 600: labels and hints stay readable on the grey page background (5.4:1, 4.9:1)
+    'fg-muted': '#62626b',      // labels, icons
+    'fg-subtle': '#6b6b74',     // hints, secondary lines of a cell
+    // Between zinc-400 and 500: faint, but a past day in the calendar can still be read (3.6:1)
+    'fg-faint': '#86868f',      // placeholders, disabled, decorative
+    'fg-inverse': n[950],       // text on bright fills (warning / success buttons, ticks)
+    'primary-fg': colors.white, // text on the primary fill (deep cyan here)
+    'bright': colors.white,     // white in both looks: the knob of a switch
 
-    'overlay': colors.black,    // modal backdrops, always with opacity: bg-overlay/60
+    'overlay': n[950],          // modal backdrops, always with opacity: bg-overlay/60
+};
+
+/** Dark look */
+const NEUTRAL_DARK = {
+    'background': n[950],
+    'card': n[900],
+    'muted': n[800],
+    'muted-strong': n[700],
+
+    'border': n[800],
+    'border-strong': n[700],
+
+    'fg-strong': colors.white,
+    'fg': n[100],
+    'fg-soft': n[200],
+    'fg-secondary': n[300],
+    'fg-muted': n[400],
+    // Between zinc-400 and 500: small hint text stays readable on cards (5.2:1, above the 4.5:1 minimum)
+    'fg-subtle': '#8a8a93',
+    'fg-faint': n[500],
+    'fg-inverse': n[950],
+    'primary-fg': n[950],       // dark text on the bright cyan fill
+    'bright': colors.white,
+
+    'overlay': colors.black,
 };
 
 // ─── 3. Shape, type & layout ───────────────────────────────────────────────────
@@ -109,12 +156,28 @@ function toChannels(hex) {
 
 const color = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 
-const cssVariables = { '--radius': RADIUS };
-Object.entries(SHADOWS).forEach(([name, value]) => { cssVariables[`--${name}`] = value; });
-Object.entries(NEUTRAL).forEach(([name, hex]) => { cssVariables[`--${name}`] = toChannels(hex); });
-STATUS_ROLES.forEach((role) => {
-    SHADES.forEach((shade) => { cssVariables[`--${role}-${shade}`] = toChannels(PALETTE[role][shade]); });
-});
+/** The CSS variables of one look: neutrals, and each status shade painted with `shadeOf(role)[shade]` */
+function variablesOf(neutral, shadeOf) {
+    const vars = {};
+    Object.entries(neutral).forEach(([name, hex]) => { vars[`--${name}`] = toChannels(hex); });
+    STATUS_ROLES.forEach((role) => {
+        const painted = shadeOf(role);
+        SHADES.forEach((shade) => { vars[`--${role}-${shade}`] = toChannels(PALETTE[role][painted[shade]]); });
+    });
+    return vars;
+}
+
+const sameShade = Object.fromEntries(SHADES.map((shade) => [shade, shade]));
+
+/** Light look, on :root (with the shared radius and shadows) */
+const cssVariables = {
+    '--radius': RADIUS,
+    ...Object.fromEntries(Object.entries(SHADOWS).map(([name, value]) => [`--${name}`, value])),
+    ...variablesOf(NEUTRAL, (role) => (role === 'primary' ? LIGHT_PRIMARY_SHADE : LIGHT_SHADE)),
+};
+
+/** Dark look, under :root[data-theme="dark"] */
+const darkCssVariables = variablesOf(NEUTRAL_DARK, () => sameShade);
 
 const tailwindColors = {
     background: color('background'),
@@ -131,6 +194,7 @@ const tailwindColors = {
         faint: color('fg-faint'),
         inverse: color('fg-inverse'),
     },
+    bright: color('bright'),
     overlay: color('overlay'),
 };
 STATUS_ROLES.forEach((role) => {
@@ -139,16 +203,18 @@ STATUS_ROLES.forEach((role) => {
     tailwindColors[role] = scale;
 });
 // Text placed on a solid primary fill
-tailwindColors.primary.foreground = color('fg-inverse');
+tailwindColors.primary.foreground = color('primary-fg');
 
 module.exports = {
     PALETTE,
     NEUTRAL,
+    NEUTRAL_DARK,
     RADIUS,
     FONT_FAMILY,
     FONT_SIZE,
     LAYOUT,
     SHADOWS,
     cssVariables,
+    darkCssVariables,
     tailwindColors,
 };

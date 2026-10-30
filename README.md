@@ -92,7 +92,7 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 | Settings pages / their screens / what they may change | `src/config/settingsPages.ts` / `src/components/admin/settingsComponents.ts` (table editors in `recordTables.tsx`; pages `/settings/<id>`) / `src/config/editableTables.ts` |
 | Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `FillPage`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
 | Shared UI parts | `src/components/ui/` |
-| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings `src/lib/dateUtils.ts` |
+| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`, `defaultReportPeriod` = this year so far) `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
 | Report state (filters, paging, sorting, export; loads only on "Applica", filters remembered in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
@@ -110,7 +110,14 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 
 The whole look is defined in `src/styles/theme.js`; `tailwind.config.js` turns it into CSS variables and classes.
 Restyle the app by editing that file only. Tailwind's own palette is switched off, and ESLint fails on raw colour
-classes and `text-[Npx]`, so a component can only use tokens:
+classes and `text-[Npx]`, so a component can only use tokens.
+
+**Two looks, light (default) and dark.** The light values sit on `:root`, the dark ones under `<html data-theme="dark">`;
+the choice is the `clz_theme` cookie (`src/lib/theme.ts`), read by the root layout so the first paint is already right, and
+switched by the Sun / Moon row at the foot of the sidebar (`ThemeProvider`). A component never knows which look is on:
+it names the dark shade (`text-success-400`, `bg-danger-950/40`) and the light look mirrors it (`LIGHT_SHADE` in
+`theme.js`: text shades get deep, tints get pale, fills stay bright). Text on a fill: `text-fg-inverse` on success /
+warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` is white in both looks (a switch's knob).
 
 - Surfaces: `bg-background` (page) · `bg-card` (panels) · `bg-muted` (controls, hover) · `bg-muted-strong` · `bg-overlay/60`
 - Lines: `border-border` · `border-border-strong`

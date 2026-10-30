@@ -52,7 +52,7 @@ export function LevelSegments({ level, editable, name, onChange }: LevelSegments
                             className={cn(
                                 'px-2 py-1 font-medium transition-colors',
                                 index > 0 && 'border-l border-border',
-                                lit ? LIT[choice.value ?? 'none'] : 'text-fg-faint hover:text-fg-secondary hover:bg-muted'
+                                lit ? LIT[choice.value ?? 'none'] : 'text-fg-muted hover:text-fg hover:bg-muted'
                             )}
                         >
                             {choice.label}

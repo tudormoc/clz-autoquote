@@ -24,7 +24,7 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
                 checked ? 'bg-success-500' : 'bg-muted-strong'
             )}
         >
-            <span className={cn('size-4 rounded-full bg-fg-strong transition-transform', checked && 'translate-x-4')} />
+            <span className={cn('size-4 rounded-full bg-bright shadow-sm transition-transform', checked && 'translate-x-4')} />
         </button>
     );
 }

@@ -114,7 +114,7 @@ export default function BlueprintPage() {
                 <main className="flex-1 overflow-hidden print-full">
                     <header className="border-b border-border bg-card/50 backdrop-blur-md no-print">
                         <div className="px-4 h-14 flex items-center gap-3">
-                            <div className="bg-primary p-1 rounded text-fg-inverse">
+                            <div className="bg-primary p-1 rounded text-primary-foreground">
                                 <Layers size={20} strokeWidth={2.5} />
                             </div>
                             <h1 className="font-bold text-lg tracking-tight text-fg-strong leading-none">

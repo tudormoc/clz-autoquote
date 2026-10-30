@@ -5,6 +5,15 @@ export const APP_COPY = {
     yes: "Sì",
     no: "No",
     // Filters
+    period: "Periodo",
+    periods: {
+      thisMonth: "Mese corrente",
+      lastMonth: "Mese scorso",
+      thisYear: "Anno corrente",
+      lastYear: "Anno scorso",
+      last12Months: "Ultimi 12 mesi",
+      custom: "Personalizzato",
+    },
     dateFrom: "Data Da",
     dateTo: "Data A",
     search: "Cerca...",
@@ -65,6 +74,8 @@ export const APP_COPY = {
     collapse: "Comprimi menu",
     expand: "Espandi menu",
     showPages: "Mostra o nascondi le pagine di {area}",
+    themeLight: "Tema chiaro",
+    themeDark: "Tema scuro",
     areas: {
       quotes: { label: "Preventivi", description: "Crea preventivi dettagliati per rilegatura libri" },
       workProgress: { label: "Avanzamento Lavori", description: "Stato di produzione delle commesse e confronto con la DiBa" },

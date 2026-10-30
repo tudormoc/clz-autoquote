@@ -25,7 +25,7 @@ export function SidebarPages({ groups, pathname, onNavigate }: SidebarPagesProps
                                 aria-current={active ? 'page' : undefined}
                                 className={cn(
                                     'flex items-center h-9 lg:h-8 px-2 rounded-md text-sm transition-colors',
-                                    active ? 'bg-primary/10 text-primary font-medium' : 'text-fg-muted hover:bg-muted hover:text-fg'
+                                    active ? 'bg-primary/10 text-primary-400 font-medium' : 'text-fg-muted hover:bg-muted hover:text-fg'
                                 )}
                             >
                                 <span className="truncate">{item.label}</span>

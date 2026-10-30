@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { KeyRound, LogOut, UserRound } from 'lucide-react';
+import { KeyRound, LogOut, Moon, Sun, UserRound } from 'lucide-react';
 import { logoutAction } from '@/app/auth-actions';
 import { ChangePinDialog } from '@/components/auth/ChangePinDialog';
 import { useAccess } from '@/components/auth/AccessProvider';
+import { useTheme } from '@/components/layout/ThemeProvider';
 import { SidebarAction } from '@/components/layout/sidebar/SidebarAction';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.auth;
 
-/** Foot of the sidebar: who is logged in, their own PIN (not the superadmin's: that one is in .env.local), logout. */
+/** Foot of the sidebar: who is logged in, light or dark look, their own PIN (not the superadmin's: that one is in .env.local), logout. */
 export function SidebarUser() {
     const access = useAccess();
+    const { theme, toggle } = useTheme();
     const [changingPin, setChangingPin] = useState(false);
     if (!access) return null;
 
@@ -22,6 +24,7 @@ export function SidebarUser() {
                 <UserRound size={18} className="shrink-0 text-primary" />
                 <span className="truncate collapsed:hidden">{access.name}</span>
             </div>
+            <SidebarAction icon={theme === 'dark' ? Sun : Moon} label={theme === 'dark' ? APP_COPY.nav.themeLight : APP_COPY.nav.themeDark} onClick={toggle} />
             {!access.superadmin && <SidebarAction icon={KeyRound} label={copy.changePin} onClick={() => setChangingPin(true)} />}
             <SidebarAction icon={LogOut} label={copy.logout} onClick={() => logoutAction()} />
             {changingPin && <ChangePinDialog onClose={() => setChangingPin(false)} />}
