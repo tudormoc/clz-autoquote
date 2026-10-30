@@ -8,7 +8,7 @@ import { DueLabel } from '@/components/tasks/shared/DueLabel';
 import { OccurrenceStatusBadge, PostponedBadge, PriorityBadge } from '@/components/tasks/shared/TaskBadges';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { OccurrenceActions } from '@/hooks/useOccurrenceActions';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import type { AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
@@ -47,7 +47,7 @@ export function AgendaRow({ item, today, actions, showAssignee }: AgendaRowProps
             )}
 
             <div className="flex-1 min-w-0">
-                <Link href={`${TASK_PAGES.list}/${item.taskId}`} className={cn('text-sm font-medium hover:text-primary break-words', done ? 'line-through text-fg-muted' : 'text-fg-strong')}>
+                <Link href={`${LINKS.tasks.list}/${item.taskId}`} className={cn('text-sm font-medium hover:text-primary break-words', done ? 'line-through text-fg-muted' : 'text-fg-strong')}>
                     {item.title}
                 </Link>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs text-fg-subtle">

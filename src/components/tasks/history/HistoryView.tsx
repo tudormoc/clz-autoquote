@@ -10,7 +10,7 @@ import { ExportExcelButton } from '@/components/ui/ExportExcelButton';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useClientSort } from '@/hooks/useClientSort';
 import { getTodayDate } from '@/lib/dateUtils';
 import { reportFileName } from '@/lib/download';
@@ -100,7 +100,7 @@ export function HistoryView() {
             header: columnsCopy.task,
             mobileHidden: true,
             cell: (row) => (
-                <Link href={`${TASK_PAGES.list}/${row.taskId}`} className="font-medium text-fg-strong hover:text-primary">
+                <Link href={`${LINKS.tasks.list}/${row.taskId}`} className="font-medium text-fg-strong hover:text-primary">
                     {row.title}
                 </Link>
             ),
@@ -161,7 +161,7 @@ export function HistoryView() {
                 loading={loading}
                 emptyMessage={rows === null ? copy.history.hint : copy.history.empty}
                 mobileTitle={(row) => (
-                    <Link href={`${TASK_PAGES.list}/${row.taskId}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.list}/${row.taskId}`} className="font-medium text-fg-strong">
                         {row.title}
                     </Link>
                 )}

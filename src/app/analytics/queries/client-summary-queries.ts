@@ -22,6 +22,7 @@ import {
 } from './shared/query-utils';
 import { fetchWorkCostsForClients } from './shared/work-time-fetcher';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 /**
  * ============================================================================
@@ -191,7 +192,7 @@ export async function getClientSummaryDataAction(
     filters?: ClientSummaryFilters,
     sort?: SortConfig
 ) {
-    await authorize('view', '/analytics/client-summary');
+    await authorize('view', LINKS.analytics['client-summary']);
     try {
         const { revenueSql, detailSql, params, startDate, endDate } = buildClientSummaryBatch(year, filters);
 
@@ -235,7 +236,7 @@ export async function getClientSummaryStatsAction(
     year: number = 2024,
     filters?: ClientSummaryFilters
 ) {
-    await authorize('view', '/analytics/client-summary');
+    await authorize('view', LINKS.analytics['client-summary']);
     try {
         const { revenueSql, detailSql, params } = buildClientSummaryBatch(year, filters);
         const totalSql = filters?.includeAllRevenueForSplit

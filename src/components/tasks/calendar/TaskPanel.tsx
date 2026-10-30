@@ -13,7 +13,7 @@ import { PriorityBadge } from '@/components/tasks/shared/TaskBadges';
 import { ClosedOccurrences } from '@/components/tasks/task/ClosedOccurrences';
 import { OccurrenceCard } from '@/components/tasks/task/OccurrenceCard';
 import { buttonClasses } from '@/components/ui/Button';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
 import type { AgendaCalendar, CalendarSelection } from '@/hooks/useAgendaCalendar';
 import { describeRepeat, formatShortDay } from '@/lib/tasks/describe';
@@ -89,7 +89,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
                                 <PriorityBadge priority={task.priority} />
                                 {task.areaName && <span className="text-xs text-fg-subtle">{task.areaName}</span>}
                             </div>
-                            <Link href={`${TASK_PAGES.list}/${task.id}`} className="block text-base font-semibold text-fg-strong hover:text-primary break-words">
+                            <Link href={`${LINKS.tasks.list}/${task.id}`} className="block text-base font-semibold text-fg-strong hover:text-primary break-words">
                                 {task.title}
                             </Link>
                             <p className="text-xs text-fg-muted">{describeRepeat(task.repeat)}</p>
@@ -140,7 +140,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
 
                         <QuickNotes taskId={task.id} version={task.version} notes={task.notes} onSaved={refresh}>
                             {guides.map((guide) => (
-                                <Link key={guide.id} href={`${TASK_PAGES.guides}/${guide.id}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                                <Link key={guide.id} href={`${LINKS.tasks.guides}/${guide.id}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
                                     <BookOpen size={14} />
                                     {guide.title}
                                 </Link>
@@ -160,12 +160,12 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
 
             {task && (
                 <footer className="flex gap-2 p-3 border-t border-border">
-                    <Link href={`${TASK_PAGES.list}/${task.id}`} className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'flex-1' })}>
+                    <Link href={`${LINKS.tasks.list}/${task.id}`} className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'flex-1' })}>
                         <ExternalLink size={14} />
                         {copy.calendar.openTask}
                     </Link>
                     {canEdit && (
-                        <Link href={`${TASK_PAGES.list}/${task.id}/edit`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+                        <Link href={`${LINKS.tasks.list}/${task.id}/edit`} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
                             <Pencil size={14} />
                             {copy.actions.edit}
                         </Link>

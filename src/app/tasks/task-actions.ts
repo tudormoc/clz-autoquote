@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
 import { canOpen } from '@/lib/auth/permissions';
 import type { ClosedDay } from '@/lib/tasks/closedDays';
@@ -26,8 +26,8 @@ import { OCCURRENCE_STATUSES, TASK_STATES, type Contact, type DayLoad, type Guid
 import { attempt, refused, type Result, type Saved } from '@/app/tasks/results';
 import { APP_COPY } from '@/locales';
 
-const ALL_PAGES = Object.values(TASK_PAGES);
-const EDIT_PAGES = [TASK_PAGES.list, TASK_PAGES.todo];
+const ALL_PAGES = Object.values(LINKS.tasks);
+const EDIT_PAGES = [LINKS.tasks.list, LINKS.tasks.todo];
 
 const IdSchema = z.number().int().positive();
 const VersionSchema = z.string().regex(/^0x[0-9A-Fa-f]{16}$/);
@@ -125,7 +125,7 @@ export async function saveTaskAction(id: number | null, input: TaskInput, versio
 
 /** Only the instructions ("Come si fa"), changed in place on the task page or the calendar's side panel */
 export async function saveTaskNotesAction(id: number, version: string, notes: string): Promise<Saved> {
-    const access = await authorize('edit', ...EDIT_PAGES, TASK_PAGES.calendar);
+    const access = await authorize('edit', ...EDIT_PAGES, LINKS.tasks.calendar);
     if (!IdSchema.safeParse(id).success || !VersionSchema.safeParse(version).success || !z.string().max(200_000).safeParse(notes).success) return refused();
     return attempt('task notes', async () => {
         const before = await getTask(access, id, await loadPeople());
@@ -154,13 +154,13 @@ export async function searchAgendaAction(text: string): Promise<Result<{ hits: S
     const access = await authorize('view', ...ALL_PAGES);
     const term = String(text ?? '').trim();
     if (term.length < APP_CONFIG.TASKS.SEARCH_MIN_CHARS || term.length > APP_CONFIG.TASKS.MAX_TITLE_LENGTH) return { success: true, hits: [] };
-    const kinds = { task: canOpen(access, TASK_PAGES.list), guide: canOpen(access, TASK_PAGES.guides), contact: canOpen(access, TASK_PAGES.contacts) };
+    const kinds = { task: canOpen(access, LINKS.tasks.list), guide: canOpen(access, LINKS.tasks.guides), contact: canOpen(access, LINKS.tasks.contacts) };
     return attempt('search', async () => ({ hits: await searchAgenda(access, term, kinds) }));
 }
 
 /** Only the priority of a task (calendar right-click) */
 export async function setTaskPriorityAction(id: number, priority: number): Promise<Saved> {
-    const access = await authorize('edit', ...EDIT_PAGES, TASK_PAGES.calendar);
+    const access = await authorize('edit', ...EDIT_PAGES, LINKS.tasks.calendar);
     const parsed = PrioritySchema.safeParse(priority);
     if (!IdSchema.safeParse(id).success || !parsed.success) return refused();
     return attempt('task priority', async () => {
@@ -172,7 +172,7 @@ export async function setTaskPriorityAction(id: number, priority: number): Promi
 
 /** Deletes a task for good, with all its dates and history (the superadmin, or whoever created it) */
 export async function deleteTaskAction(id: number): Promise<Saved> {
-    const access = await authorize('edit', ...EDIT_PAGES, TASK_PAGES.calendar);
+    const access = await authorize('edit', ...EDIT_PAGES, LINKS.tasks.calendar);
     if (!IdSchema.safeParse(id).success) return refused();
     return attempt('delete task', async () => {
         const task = await getTask(access, id, await loadPeople());
@@ -203,7 +203,7 @@ export async function getDayLoadsAction(start: string, end: string): Promise<Res
 
 /** Closed occurrences between two dates, with these outcomes */
 export async function getHistoryAction(from: string, to: string, statuses: string[]): Promise<Result<{ rows: HistoryRow[] }>> {
-    const access = await authorize('view', TASK_PAGES.history);
+    const access = await authorize('view', LINKS.tasks.history);
     const parsed = z.array(z.enum(OCCURRENCE_STATUSES)).min(1).safeParse(statuses);
     if (!isIsoDate(from) || !isIsoDate(to) || from > to || !parsed.success) return refused();
     return attempt('history', async () => ({ rows: await getHistory(access, from, to, parsed.data, await loadPeople()) }));

@@ -12,9 +12,8 @@ export default async function SettingsEntryPage({ params }: SettingsEntryPagePro
     const { pageId } = await params;
     await requirePage('settings', pageId);
     const page = getSettingsPage(pageId);
-    const Settings = SETTINGS_COMPONENTS[pageId];
-
-    if (!page || !Settings) notFound();
+    if (!page) notFound();
+    const Settings = SETTINGS_COMPONENTS[page.id];
 
     return (
         <>

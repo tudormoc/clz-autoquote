@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { MarkdownField } from '@/components/ui/MarkdownField';
 import { Select } from '@/components/ui/Select';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useGuideForm } from '@/hooks/useGuideForm';
 import { APP_COPY } from '@/locales';
 
@@ -31,7 +31,7 @@ export function GuideForm({ id }: { id: number | null }) {
         <AgendaForm
             onSave={save}
             saving={saving}
-            cancelHref={id ? `${TASK_PAGES.guides}/${id}` : TASK_PAGES.guides}
+            cancelHref={id ? `${LINKS.tasks.guides}/${id}` : LINKS.tasks.guides}
             saveLabel={copy.form.save}
             columns={[
                 <Fragment key="text">

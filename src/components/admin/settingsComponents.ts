@@ -8,8 +8,10 @@ import { ClosedDaysEditor, DiscountTiersEditor, FormatSurchargesEditor, PricingR
 import { LabourCostSettings } from '@/components/admin/LabourCostSettings';
 import { DatabaseExplorer } from '@/components/database/DatabaseExplorer';
 import { PresenceSettingsManager } from '@/components/presence/PresenceSettingsManager';
+import type { SettingsPageId } from '@/config/settingsPages';
 
-export const SETTINGS_COMPONENTS: Record<string, React.ComponentType> = {
+/** One component per settings page: a page without one does not compile */
+export const SETTINGS_COMPONENTS: Record<SettingsPageId, React.ComponentType> = {
     'pricing-configs': PricingRulesEditor,
     'discount-tiers': DiscountTiersEditor,
     'format-surcharges': FormatSurchargesEditor,

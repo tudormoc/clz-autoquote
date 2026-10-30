@@ -18,7 +18,7 @@ import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { MenuAction } from '@/components/ui/FloatingMenu';
 import { buttonClasses } from '@/components/ui/Button';
 import { Markdown } from '@/components/ui/Markdown';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
 import { askConfirm } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
@@ -75,7 +75,7 @@ export function GuideView({ id }: { id: number }) {
                 actions={
                     canEdit && (
                         <>
-                            <Link href={`${TASK_PAGES.guides}/${guide.id}/edit`} className={buttonClasses({ variant: 'secondary' })}>
+                            <Link href={`${LINKS.tasks.guides}/${guide.id}/edit`} className={buttonClasses({ variant: 'secondary' })}>
                                 <Pencil size={16} />
                                 {copy.actions.edit}
                             </Link>
@@ -104,7 +104,7 @@ export function GuideView({ id }: { id: number }) {
                             <ul className="space-y-1.5">
                                 {guide.tasks.map((task) => (
                                     <li key={task.id} className="flex items-center justify-between gap-2">
-                                        <Link href={`${TASK_PAGES.list}/${task.id}`} className="text-sm text-primary hover:underline">
+                                        <Link href={`${LINKS.tasks.list}/${task.id}`} className="text-sm text-primary hover:underline">
                                             {task.title}
                                         </Link>
                                         {task.state !== 'active' && <TaskStateBadge state={task.state} />}

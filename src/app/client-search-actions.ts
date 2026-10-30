@@ -2,9 +2,10 @@
 
 import { queryMSSQL } from '@/lib/mssql';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 export async function searchMSSQLClientsAction(searchTerm: string) {
-    await authorize('view', '/quotes');
+    await authorize('view', LINKS.quotes);
     if (!searchTerm || searchTerm.length < 2) return [];
 
     try {

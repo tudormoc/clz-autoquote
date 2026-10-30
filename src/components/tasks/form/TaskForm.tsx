@@ -14,7 +14,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { MarkdownField } from '@/components/ui/MarkdownField';
 import { Select } from '@/components/ui/Select';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useTaskForm } from '@/hooks/useTaskForm';
 import { PRIORITIES, VISIBILITIES, type Visibility } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
@@ -27,7 +27,7 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
     const { draft, options, loading, error, saving, set, setRepeat, save } = useTaskForm(id, copyFrom);
     if (!draft || !options) return <LoadState loading={loading} error={error} />;
 
-    const cancelHref = id ? `${TASK_PAGES.list}/${id}` : TASK_PAGES.list;
+    const cancelHref = id ? `${LINKS.tasks.list}/${id}` : LINKS.tasks.list;
     const guideOptions = options.guides
         .filter((guide) => guide.state === 'active' || draft.guideIds.includes(guide.id))
         .map((guide) => ({ id: guide.id, label: guide.title, detail: guide.areaName ?? undefined }));

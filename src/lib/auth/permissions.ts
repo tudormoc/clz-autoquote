@@ -1,7 +1,9 @@
 /**
- * Who may open what, from the menu itself (NAV_AREAS): a page is identified by its link (href), a group gives
- * "vede" (view) or "modifica" (edit) per page, a user gets the highest level of all their groups.
- * A page's function (NavItem.functions, e.g. Riallinea) is given on its own: its link "/page#name" → "edit".
+ * Who may open what, from the menu itself (NAV_AREAS): a group gives "vede" (view) or "modifica" (edit) per page,
+ * a user gets the highest level of all their groups. A page's function (NavItem.functions, e.g. Riallinea) is given
+ * on its own, as "edit".
+ * A group's pages are keyed by the page's id ("daily-events", a function "work-progress#riallinea"), not its link:
+ * a page can move to another area and keep its grants. The checks take links (LINKS.*) and look the key up.
  * Shared by the server checks (src/lib/auth/access.ts) and the browser (menu, home, edit buttons).
  */
 
@@ -9,14 +11,27 @@ import { NAV_AREAS, findNavLocation, type NavArea, type NavFunction, type NavIte
 
 export type AccessLevel = 'view' | 'edit';
 
-/** Page link → level; pages not listed are not visible. A function's link is listed with "edit" when given. */
+/** Grant key (page id, or "page id#function") → level; what is not listed is not visible */
 export type PagePermissions = Record<string, AccessLevel>;
 
-/** What a Gruppi row sets: a page, or a function (always editable, given as "edit") */
+/** What a Gruppi row sets: a page, or a function (always editable, given as "edit"), by its grant key */
 export interface Grantable {
-    href: string;
+    key: string;
     editable?: boolean;
 }
+
+/** The grant key of a page: its id, which stays when the page moves (ids are unique across areas, checked below) */
+export const grantKey = (page: NavItem): string => page.id;
+/** The grant key of a page's function */
+export const functionKey = (page: NavItem, fn: NavFunction): string => `${page.id}#${fn.name}`;
+/** A function's key, as opposed to a page's */
+export const isFunctionKey = (key: string) => key.includes('#');
+
+/**
+ * Links that pages had before, with the page's id now: a group that was given the old link keeps the page.
+ * Add a line here when a page's link changes (see README, "Move or rename a page").
+ */
+const RENAMED_LINKS: Record<string, string> = {};
 
 /** The logged-in person as the app needs them */
 export interface UserAccess {
@@ -38,33 +53,48 @@ export const ACCESS_AREAS: { area: NavArea; pages: NavItem[] }[] = NAV_AREAS.map
 
 /** Every page a group can be given, in menu order */
 export const GRANTABLE_PAGES = ACCESS_AREAS.flatMap((entry) => entry.pages);
-const GRANTABLE = new Map(GRANTABLE_PAGES.map((page) => [page.href, page]));
+const PAGE_BY_KEY = new Map(GRANTABLE_PAGES.map((page) => [grantKey(page), page]));
 
-/** Every function a group can be given, with its page, in menu order */
-export const GRANTABLE_FUNCTIONS: { page: NavItem; fn: NavFunction }[] = GRANTABLE_PAGES.flatMap((page) =>
-    (page.functions ?? []).map((fn) => ({ page, fn }))
+const duplicateId = GRANTABLE_PAGES.map(grantKey).find((key, index, all) => all.indexOf(key) !== index);
+if (duplicateId) throw new Error(`Two pages share the id "${duplicateId}": page ids must be unique across areas (src/config/navigation.ts)`);
+
+/** Every function a group can be given, with its page and key, in menu order */
+export const GRANTABLE_FUNCTIONS: { page: NavItem; fn: NavFunction; key: string }[] = GRANTABLE_PAGES.flatMap((page) =>
+    (page.functions ?? []).map((fn) => ({ page, fn, key: functionKey(page, fn) }))
 );
-const GRANTABLE_FUNCTION = new Set(GRANTABLE_FUNCTIONS.map(({ fn }) => fn.href));
+const FUNCTION_KEYS = new Set(GRANTABLE_FUNCTIONS.map(({ key }) => key));
 
-/** A page groups can be given, by its link (undefined for anything else) */
-const grantablePage = (href: string): NavItem | undefined => GRANTABLE.get(href);
+/** Link → grant key, for the checks (authorize, canOpen, canUse take links) */
+const KEY_BY_HREF = new Map<string, string>([
+    ...GRANTABLE_PAGES.map((page): [string, string] => [page.href, grantKey(page)]),
+    ...GRANTABLE_FUNCTIONS.map(({ fn, key }): [string, string] => [fn.href, key]),
+]);
+
+/** A page or function as a Gruppi row sets it */
+export const grantable = (page: NavItem): Grantable => ({ key: grantKey(page), editable: page.editable });
 
 /** Names of the pages given at this level, in menu order */
 export const pageLabels = (pages: PagePermissions, level: AccessLevel): string[] =>
-    GRANTABLE_PAGES.filter((page) => pages[page.href] === level).map((page) => page.label);
+    GRANTABLE_PAGES.filter((page) => pages[grantKey(page)] === level).map((page) => page.label);
 
 /** "Page · function" for every function given, in menu order */
 export const functionLabels = (pages: PagePermissions): string[] =>
-    GRANTABLE_FUNCTIONS.filter(({ fn }) => pages[fn.href] === 'edit').map(({ page, fn }) => `${page.label} · ${fn.label}`);
+    GRANTABLE_FUNCTIONS.filter(({ key }) => pages[key] === 'edit').map(({ page, fn }) => `${page.label} · ${fn.label}`);
 
-/** Only known pages and functions, "edit" only where a page changes data (stored groups are read through this) */
+/**
+ * Only known pages and functions, "edit" only where a page changes data (stored groups are read through this).
+ * A key stored as a link (the form before 2026-10-30, or a link since renamed) becomes the page's key.
+ */
 export function cleanPermissions(value: unknown): PagePermissions {
     if (!value || typeof value !== 'object') return {};
     const clean: PagePermissions = {};
-    for (const [href, level] of Object.entries(value)) {
-        const page = grantablePage(href);
-        if (page && (level === 'view' || level === 'edit')) clean[href] = level === 'edit' && page.editable ? 'edit' : 'view';
-        else if (GRANTABLE_FUNCTION.has(href) && level === 'edit') clean[href] = 'edit';
+    for (const [stored, level] of Object.entries(value)) {
+        if (level !== 'view' && level !== 'edit') continue;
+        const key = PAGE_BY_KEY.has(stored) || FUNCTION_KEYS.has(stored) ? stored : (KEY_BY_HREF.get(stored) ?? RENAMED_LINKS[stored]);
+        if (!key) continue;
+        const page = PAGE_BY_KEY.get(key);
+        if (page) clean[key] = level === 'edit' && page.editable ? 'edit' : 'view';
+        else if (FUNCTION_KEYS.has(key) && level === 'edit') clean[key] = 'edit';
     }
     return clean;
 }
@@ -84,8 +114,8 @@ export function mergePermissions(all: PagePermissions[]): PagePermissions {
 export function withLevel(pages: PagePermissions, items: Grantable[], level: AccessLevel | null): PagePermissions {
     const next = { ...pages };
     for (const item of items) {
-        if (level) next[item.href] = level === 'edit' && !item.editable ? 'view' : level;
-        else delete next[item.href];
+        if (level) next[item.key] = level === 'edit' && !item.editable ? 'view' : level;
+        else delete next[item.key];
     }
     return next;
 }
@@ -97,7 +127,7 @@ export function withLevel(pages: PagePermissions, items: Grantable[], level: Acc
 export function sharedLevel(pages: PagePermissions, items: Grantable[]): AccessLevel | null | 'mixed' {
     const fits = (level: AccessLevel | null) =>
         items.every((item) => {
-            const granted = pages[item.href] ?? null;
+            const granted = pages[item.key] ?? null;
             return level === 'edit' ? granted === 'edit' || (granted === 'view' && !item.editable) : granted === level;
         });
     if (fits(null)) return null;
@@ -105,9 +135,11 @@ export function sharedLevel(pages: PagePermissions, items: Grantable[]): AccessL
     return fits('edit') ? 'edit' : 'mixed';
 }
 
+/** May the person open this page (its link from LINKS) at this level? Links of nothing grantable are refused. */
 export function canOpen(access: UserAccess, href: string, level: AccessLevel = 'view'): boolean {
     if (access.superadmin) return true;
-    const granted = access.pages[href];
+    const key = KEY_BY_HREF.get(href);
+    const granted = key ? access.pages[key] : undefined;
     return level === 'view' ? granted !== undefined : granted === 'edit';
 }
 

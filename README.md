@@ -16,7 +16,8 @@ Puppeteer for PDFs, xlsx for Excel.
 3. **Deploy only when the owner asks.** Secrets stay in `.env.local` (never committed).
 4. **Every page and every server action checks access** (see Login below). A new page calls `requirePage(...)`,
    a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`.
-   `npm run access:check` (part of `npm run check`) reads the source and fails when one is missing.
+   `npm run access:check` (part of `npm run check`) reads the source and fails when one is missing. A page is
+   always named through `LINKS` (`src/config/navigation.ts`), never by a literal link: the check refuses that too.
 
 ## Working with the owner
 
@@ -57,7 +58,8 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database.
 - **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin; new users get a random PIN, they can
   change it with "Cambia PIN"), groups, last login, *sospeso* (cannot log in, an open login ends at once; PIN and
-  groups stay). **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*. Utenti is one table of all
+  groups stay). **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*, stored under the page's id (not
+  its link, so a page can move to another area and keep its grants). Utenti is one table of all
   users (a tick column per group); Gruppi is one table of all groups (a column each, a row per area that opens to its
   pages and functions; each cell is No | Vede | Modifica, with Modifica only where the page changes data; a search box
   finds a page).
@@ -156,6 +158,11 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 data gets `editable: true` in the menu config, so groups can be given *modifica* on it. A page that
 fills the height uses `h-full`. Add the link to `NAV_AREAS` in `src/config/navigation.ts` (a new area, or a page in an
 area's `groups`); the sidebar, the phone menu and the overview cards follow.
+
+**Move or rename a page**: move its folder under `src/app`, change its link in `LINKS` (and its area in `NAV_AREAS`);
+every check and link follows, since nothing names a page by a literal link. Keep the page's `id`: the groups' grants are
+stored under it. If the link itself changes, add the old link to `RENAMED_LINKS` in `src/lib/auth/permissions.ts` so a
+link stored by an old group still counts, and a redirect to `next.config.mjs` for bookmarks. Run `npm run check`.
 
 **New analytics report**:
 1. Query in its own file `src/app/analytics/queries/<report>-queries.ts`, using the shared parts in `queries/shared/`

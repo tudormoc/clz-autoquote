@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { orderDayAction, postponeOccurrenceAction, quickAddAction, scheduleOccurrenceAction } from '@/app/tasks/agenda-actions';
 import { getDayLoadsAction, getRangeAction, setTaskPriorityAction } from '@/app/tasks/task-actions';
 import { APP_CONFIG } from '@/config/constants';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { EMPTY_FILTERS, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
 import { useActionData } from '@/hooks/useActionData';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';
@@ -306,7 +306,7 @@ export function useAgendaCalendar() {
         setPriority,
         taskDeleted,
         /** The task's own page, or the form for a copy of it ("Duplica") */
-        openTask: (taskId: number, copy = false) => router.push(copy ? `${TASK_PAGES.list}/new?copy=${taskId}` : `${TASK_PAGES.list}/${taskId}`),
+        openTask: (taskId: number, copy = false) => router.push(copy ? `${LINKS.tasks.list}/new?copy=${taskId}` : `${LINKS.tasks.list}/${taskId}`),
         addOn,
     };
 }

@@ -17,6 +17,7 @@ import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import type { PresenceData, WeekDateRange, WeeklyGroupData } from '@/types';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 // The files live on a network share, outside the project: the turbopackIgnore hints keep the build
 // from tracing the whole project for these file-system calls
@@ -91,7 +92,7 @@ function sumByWeek(rows: PresenceRow[], year: number): PresenceData {
 
 /** Weekly ordinary hours per operator group for a whole year, from that year's monthly files */
 export async function getPresenceDataAction(year: number = new Date().getFullYear()) {
-    await authorize('view', '/analytics/annual-presence-report');
+    await authorize('view', LINKS.analytics['annual-presence-report']);
     try {
         const folder = presenceFolder();
         if (!folder) {

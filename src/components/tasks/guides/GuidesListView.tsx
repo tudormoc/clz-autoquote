@@ -12,7 +12,7 @@ import { buttonClasses } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { MissingValue } from '@/components/ui/TableCells';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
 import { useClientSort } from '@/hooks/useClientSort';
 import type { RowSortColumns } from '@/lib/sort';
@@ -52,7 +52,7 @@ export function GuidesListView() {
             header: copy.columns.title,
             mobileHidden: true,
             cell: (guide) => (
-                <Link href={`${TASK_PAGES.guides}/${guide.id}`} className="font-medium text-fg-strong hover:text-primary">
+                <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="font-medium text-fg-strong hover:text-primary">
                     {guide.title}
                     {guide.state === 'archived' && <span className="ml-2 text-2xs font-normal text-fg-faint">{APP_COPY.tasks.states.archived}</span>}
                 </Link>
@@ -72,7 +72,7 @@ export function GuidesListView() {
                         <Checkbox id="guides-archived" label={copy.showArchived} checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
                     </div>
                     {canEdit && (
-                        <Link href={`${TASK_PAGES.guides}/new`} className={buttonClasses({ className: 'sm:ml-auto' })}>
+                        <Link href={`${LINKS.tasks.guides}/new`} className={buttonClasses({ className: 'sm:ml-auto' })}>
                             <Plus size={16} />
                             {copy.new}
                         </Link>
@@ -88,7 +88,7 @@ export function GuidesListView() {
                 onSort={toggleSort}
                 emptyMessage={data.guides.length === 0 ? copy.empty : copy.noMatch}
                 mobileTitle={(guide) => (
-                    <Link href={`${TASK_PAGES.guides}/${guide.id}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="font-medium text-fg-strong">
                         {guide.title}
                     </Link>
                 )}

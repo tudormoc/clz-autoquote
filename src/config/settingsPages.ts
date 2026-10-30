@@ -31,7 +31,7 @@ export interface SettingsPageConfig {
 const pages = APP_COPY.admin.pages;
 
 /** All settings pages; the order is the display order within each group */
-export const SETTINGS_PAGES: SettingsPageConfig[] = [
+export const SETTINGS_PAGES = [
     { id: 'pricing-configs', ...pages.pricingConfigs, icon: Target, category: 'quotes', editable: true },
     { id: 'discount-tiers', ...pages.discountTiers, icon: Tags, category: 'quotes', editable: true },
     { id: 'format-surcharges', ...pages.formatSurcharges, icon: Maximize2, category: 'quotes', editable: true },
@@ -43,8 +43,12 @@ export const SETTINGS_PAGES: SettingsPageConfig[] = [
     { id: 'users', ...pages.users, icon: KeyRound, category: 'access', superadminOnly: true },
     { id: 'groups', ...pages.groups, icon: UsersRound, category: 'access', superadminOnly: true },
     { id: 'database', ...pages.database, icon: Database, category: 'tools', superadminOnly: true },
-];
+] as const satisfies readonly SettingsPageConfig[];
 
-export function getSettingsPage(id: string): SettingsPageConfig | undefined {
+/** The id of a settings page: its folder under /settings, the key of SETTINGS_COMPONENTS and of LINKS.settings */
+export type SettingsPageId = (typeof SETTINGS_PAGES)[number]['id'];
+
+/** The settings page with this id (its id typed, so its component can be looked up) */
+export function getSettingsPage(id: string): (typeof SETTINGS_PAGES)[number] | undefined {
     return SETTINGS_PAGES.find((page) => page.id === id);
 }

@@ -20,7 +20,7 @@ import { TaskTimeline } from '@/components/tasks/task/TaskTimeline';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { MenuAction } from '@/components/ui/FloatingMenu';
 import { buttonClasses } from '@/components/ui/Button';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';
 import { askConfirm } from '@/lib/confirm';
@@ -60,7 +60,7 @@ export function TaskView({ id }: { id: number }) {
     };
 
     const menu: MenuAction[] = [
-        { label: copy.actions.duplicate, icon: Copy, onSelect: () => router.push(`${TASK_PAGES.list}/new?copy=${task.id}`) },
+        { label: copy.actions.duplicate, icon: Copy, onSelect: () => router.push(`${LINKS.tasks.list}/new?copy=${task.id}`) },
         ...(task.state === 'active'
             ? [{ label: copy.actions.pause, icon: Pause, onSelect: () => changeState('paused', fmt(copy.dialogs.pauseConfirm, { title: task.title })) }]
             : task.state === 'paused'
@@ -77,7 +77,7 @@ export function TaskView({ id }: { id: number }) {
                       tone: 'danger' as const,
                       divider: true,
                       onSelect: async () => {
-                          if (await confirmAndDeleteTask(task)) router.push(TASK_PAGES.list);
+                          if (await confirmAndDeleteTask(task)) router.push(LINKS.tasks.list);
                       },
                   },
               ]
@@ -93,7 +93,7 @@ export function TaskView({ id }: { id: number }) {
                 actions={
                     canEdit && (
                         <>
-                            <Link href={`${TASK_PAGES.list}/${task.id}/edit`} className={buttonClasses({ variant: 'secondary' })}>
+                            <Link href={`${LINKS.tasks.list}/${task.id}/edit`} className={buttonClasses({ variant: 'secondary' })}>
                                 <Pencil size={16} />
                                 {copy.actions.edit}
                             </Link>
@@ -132,7 +132,7 @@ export function TaskView({ id }: { id: number }) {
                             <ul className="space-y-1">
                                 {guides.map((guide) => (
                                     <li key={guide.id}>
-                                        <Link href={`${TASK_PAGES.guides}/${guide.id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+                                        <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
                                             <BookOpen size={14} />
                                             {guide.title}
                                         </Link>

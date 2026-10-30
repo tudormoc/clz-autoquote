@@ -11,8 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { useClientSort } from '@/hooks/useClientSort';
 import type { Group } from '@/lib/auth/accounts';
-import { isFunctionHref } from '@/config/navigation';
-import { functionLabels, mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
+import { functionLabels, isFunctionKey, mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
 import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
 import { compareValues, type RowSortColumns } from '@/lib/sort';
 import { APP_COPY, fmt } from '@/locales';
@@ -22,7 +21,7 @@ const copy = APP_COPY.admin.users;
 const groupKey = (id: number) => `group:${id}`;
 const byName = (a: UserView, b: UserView) => compareValues(a.name, b.name);
 /** Pages only: a function of a page is not a page */
-const countPages = (pages: PagePermissions | undefined) => Object.keys(pages ?? {}).filter((href) => !isFunctionHref(href)).length;
+const countPages = (pages: PagePermissions | undefined) => Object.keys(pages ?? {}).filter((key) => !isFunctionKey(key)).length;
 
 /** "Modifica: … / Vede: … / Funzioni: …" for the tooltip of the pages count */
 function pagesTooltip(pages: PagePermissions): string {

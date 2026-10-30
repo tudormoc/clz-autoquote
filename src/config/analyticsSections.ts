@@ -29,7 +29,7 @@ const descriptions = APP_COPY.analytics.reportDescriptions;
 /**
  * All analytics sections. Order determines display order within each sidebar group.
  */
-export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
+export const ANALYTICS_SECTIONS = [
     { id: 'production-metrics', label: reports.productionMetrics, icon: Package, category: 'production', description: descriptions.productionMetrics },
     { id: 'order-summary', label: reports.orderSummary, icon: FileText, category: 'production', description: descriptions.orderSummary },
     { id: 'order-area-summary', label: reports.orderAreaSummary, icon: Table2, category: 'production', description: descriptions.orderAreaSummary },
@@ -39,8 +39,12 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionConfig[] = [
     { id: 'order-revenue', label: reports.orderRevenue, icon: DollarSign, category: 'revenue', description: descriptions.orderRevenue },
     { id: 'external-work', label: reports.externalWork, icon: Truck, category: 'revenue', description: descriptions.externalWork },
     { id: 'annual-presence-report', label: reports.annualPresenceReport, icon: CalendarDays, category: 'production', description: descriptions.annualPresenceReport },
-];
+] as const satisfies readonly AnalyticsSectionConfig[];
 
-export function getAnalyticsSection(id: string): AnalyticsSectionConfig | undefined {
+/** The id of a report: its folder under /analytics, the key of REPORT_COMPONENTS and of LINKS.analytics */
+export type AnalyticsSectionId = (typeof ANALYTICS_SECTIONS)[number]['id'];
+
+/** The report with this id (its id typed, so its component can be looked up) */
+export function getAnalyticsSection(id: string): (typeof ANALYTICS_SECTIONS)[number] | undefined {
     return ANALYTICS_SECTIONS.find((section) => section.id === id);
 }

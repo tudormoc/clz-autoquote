@@ -120,7 +120,7 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 | Table | Columns |
 |---|---|
 | `app_users` | `id`, `name` (UNIQUE, compared without case), `pin` (AES-GCM text `v1:…`, key from `AUTH_SECRET`), `group_ids` (`"1,3"`), `last_login` (DATETIME, wall-clock time of the last login, NULL = never), `suspended` (BIT, default 0); the last two added 2026-10-09 with the owner's yes |
-| `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: menu link → `"view"` / `"edit"`; a page's function as `"/page#name": "edit"`, e.g. `"/work-progress#riallinea"`) |
+| `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: page id → `"view"` / `"edit"`, e.g. `"daily-events"`; a page's function as `"page id#name": "edit"`, e.g. `"work-progress#riallinea"`. Until 2026-10-30 the keys were the menu links; `cleanPermissions` still reads those) |
 
 Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not stored here (`.env.local`).
 

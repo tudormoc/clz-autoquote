@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
 import { ContactInputSchema, GuideInputSchema, inputProblem, type ContactInput, type GuideInput } from '@/lib/tasks/input';
 import { insertContact, listContacts, updateContact, updateContactState } from '@/lib/tasks/db/contacts';
@@ -16,7 +16,7 @@ import { NotFound, loadPeople } from '@/lib/tasks/db/shared';
 import { GUIDE_STATES, type Contact, type GuideDetail, type GuideSummary, type GuideVersion, type NamedItem } from '@/lib/tasks/types';
 import { attempt, refused, type Result, type Saved } from '@/app/tasks/results';
 
-const ALL_PAGES = Object.values(TASK_PAGES);
+const ALL_PAGES = Object.values(LINKS.tasks);
 
 const IdSchema = z.number().int().positive();
 const VersionSchema = z.string().regex(/^0x[0-9A-Fa-f]{16}$/);
@@ -66,7 +66,7 @@ export async function getGuideVersionAction(guideId: number, versionId: number):
 
 /** Creates (id null) or saves a procedure; answers its id */
 export async function saveGuideAction(id: number | null, input: GuideInput, version: string | null): Promise<Result<{ id: number }>> {
-    const access = await authorize('edit', TASK_PAGES.guides);
+    const access = await authorize('edit', LINKS.tasks.guides);
     const problem = inputProblem(GuideInputSchema, input);
     if (problem) return refused(problem);
     if (id !== null && !valid(id, version)) return refused();
@@ -79,7 +79,7 @@ export async function saveGuideAction(id: number | null, input: GuideInput, vers
 }
 
 export async function restoreGuideVersionAction(id: number, version: string, versionId: number): Promise<Saved> {
-    const access = await authorize('edit', TASK_PAGES.guides);
+    const access = await authorize('edit', LINKS.tasks.guides);
     if (!valid(id, version) || !IdSchema.safeParse(versionId).success) return refused();
     return attempt('restore guide version', async () => {
         await restoreGuideVersion(access, id, version, versionId, await loadPeople());
@@ -88,7 +88,7 @@ export async function restoreGuideVersionAction(id: number, version: string, ver
 }
 
 export async function markGuideReviewedAction(id: number, version: string): Promise<Saved> {
-    const access = await authorize('edit', TASK_PAGES.guides);
+    const access = await authorize('edit', LINKS.tasks.guides);
     if (!valid(id, version)) return refused();
     return attempt('guide reviewed', async () => {
         await markGuideReviewed(access, id, version);
@@ -97,7 +97,7 @@ export async function markGuideReviewedAction(id: number, version: string): Prom
 }
 
 export async function setGuideStateAction(id: number, version: string, state: string): Promise<Saved> {
-    const access = await authorize('edit', TASK_PAGES.guides);
+    const access = await authorize('edit', LINKS.tasks.guides);
     const parsed = z.enum(GUIDE_STATES).safeParse(state);
     if (!valid(id, version) || !parsed.success) return refused();
     return attempt('guide state', async () => {
@@ -115,7 +115,7 @@ export async function getContactsAction(): Promise<Result<{ contacts: Contact[] 
 
 /** Creates (id null) or saves a contact; answers its id */
 export async function saveContactAction(id: number | null, input: ContactInput, version: string | null): Promise<Result<{ id: number }>> {
-    const access = await authorize('edit', TASK_PAGES.contacts);
+    const access = await authorize('edit', LINKS.tasks.contacts);
     const problem = inputProblem(ContactInputSchema, input);
     if (problem) return refused(problem);
     if (id !== null && !valid(id, version)) return refused();
@@ -128,7 +128,7 @@ export async function saveContactAction(id: number | null, input: ContactInput, 
 }
 
 export async function setContactStateAction(id: number, version: string, state: string): Promise<Saved> {
-    const access = await authorize('edit', TASK_PAGES.contacts);
+    const access = await authorize('edit', LINKS.tasks.contacts);
     const parsed = z.enum(GUIDE_STATES).safeParse(state);
     if (!valid(id, version) || !parsed.success) return refused();
     return attempt('contact state', async () => {

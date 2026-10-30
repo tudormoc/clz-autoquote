@@ -8,9 +8,10 @@ import { APP_COPY } from '@/locales';
 import type { PresenceEventRow } from '@/types';
 import { buildOperatorSearch, suspendActiveExecutionIfAny, withMillis } from './presence-db';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 export async function getDailyEventsAction(dateFrom: string, dateTo: string, operatorFilter?: string) {
-    await authorize('view', '/presence/daily-events');
+    await authorize('view', LINKS.presence.dailyEvents);
     try {
         const conditions: string[] = [
             'EVT.TASK = @task',
@@ -50,7 +51,7 @@ export async function updateEventAction(
     columnName: (typeof EVENT_COLUMNS)[number],
     newValue: string
 ) {
-    await authorize('edit', '/presence/daily-events');
+    await authorize('edit', LINKS.presence.dailyEvents);
     if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         // A time is stored as typed (no time zone conversion), with milliseconds
@@ -86,7 +87,7 @@ function oneSecondBefore(time: string): string {
  * operator was executing, one second before the exit; everything is one transaction.
  */
 export async function createEventAction(oggetto: string, evento: string, oraEvento: string) {
-    await authorize('edit', '/presence/daily-events');
+    await authorize('edit', LINKS.presence.dailyEvents);
     try {
         const upperEvt = evento.trim().toUpperCase();
         const time = withMillis(oraEvento);

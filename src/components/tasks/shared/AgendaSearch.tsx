@@ -7,7 +7,7 @@ import { BookOpen, Contact, ListChecks, Search, type LucideIcon } from 'lucide-r
 import { searchAgendaAction } from '@/app/tasks/task-actions';
 import { Input } from '@/components/ui/Input';
 import { APP_CONFIG } from '@/config/constants';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import type { SearchHit, SearchKind } from '@/lib/tasks/db/search';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ const ICONS: Record<SearchKind, LucideIcon> = { task: ListChecks, guide: BookOpe
 
 /** Where a result leads: the task's or procedure's page; for a contact the Contatti list showing that name */
 const hrefOf = (hit: SearchHit) =>
-    hit.kind === 'task' ? `${TASK_PAGES.list}/${hit.id}` : hit.kind === 'guide' ? `${TASK_PAGES.guides}/${hit.id}` : `${TASK_PAGES.contacts}?q=${encodeURIComponent(hit.title)}`;
+    hit.kind === 'task' ? `${LINKS.tasks.list}/${hit.id}` : hit.kind === 'guide' ? `${LINKS.tasks.guides}/${hit.id}` : `${LINKS.tasks.contacts}?q=${encodeURIComponent(hit.title)}`;
 
 /**
  * The search bar of the Agenda pages: from a couple of letters, tasks, procedures and contacts whose words contain

@@ -27,6 +27,7 @@ import {
 } from '@/lib/presence';
 import { CLOCK_COLUMNS, clockOf, loadPresenceRules, loadDistributionMap, type ClockRow } from './presence-db';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 const copy = APP_COPY.analytics.monthlySummary.prefill;
 
@@ -86,7 +87,7 @@ const EMPTY_PREFILL: Omit<PrefillResult, 'success'> = {
  * dryRun = true only counts candidates; nothing is written.
  */
 export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dryRun: boolean = false): Promise<PrefillResult> {
-    await authorize('edit', '/presence/monthly-summary');
+    await authorize('edit', LINKS.presence.monthlySummary);
     try {
         const rules = await loadPresenceRules();
         const todayStr = getTodayDate();

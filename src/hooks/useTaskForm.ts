@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTaskFormAction, saveTaskAction } from '@/app/tasks/task-actions';
 import { useActionData } from '@/hooks/useActionData';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { notify } from '@/lib/notify';
 import { emptyTaskDraft, taskDraftFrom, toTaskInput, type RepeatDraft, type TaskDraft } from '@/lib/tasks/taskDraft';
 import { APP_COPY, fmt } from '@/locales';
@@ -51,7 +51,7 @@ export function useTaskForm(id: number | null, copyFrom: number | null) {
                 return;
             }
             notify.success(id === null ? messages.created : messages.saved);
-            router.push(`${TASK_PAGES.list}/${result.id}`);
+            router.push(`${LINKS.tasks.list}/${result.id}`);
         } catch (err) {
             notify.failure(err);
         } finally {

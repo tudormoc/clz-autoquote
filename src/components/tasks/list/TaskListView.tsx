@@ -10,7 +10,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { ExportExcelButton } from '@/components/ui/ExportExcelButton';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
 import { useClientSort } from '@/hooks/useClientSort';
 import { getTodayDate } from '@/lib/dateUtils';
@@ -86,7 +86,7 @@ export function TaskListView() {
             mobileHidden: true,
             cell: (task) => (
                 <div className="min-w-0">
-                    <Link href={`${TASK_PAGES.list}/${task.id}`} className="font-medium text-fg-strong hover:text-primary">
+                    <Link href={`${LINKS.tasks.list}/${task.id}`} className="font-medium text-fg-strong hover:text-primary">
                         {task.title}
                     </Link>
                     {task.tags.length > 0 && <div className="text-2xs text-fg-subtle">{task.tags.join(' · ')}</div>}
@@ -152,7 +152,7 @@ export function TaskListView() {
                 onSort={toggleSort}
                 emptyMessage={tasks.length === 0 ? copy.list.empty : copy.list.noMatch}
                 mobileTitle={(task) => (
-                    <Link href={`${TASK_PAGES.list}/${task.id}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.list}/${task.id}`} className="font-medium text-fg-strong">
                         {task.title}
                     </Link>
                 )}

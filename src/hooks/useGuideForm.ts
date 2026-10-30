@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGuideFormAction, saveGuideAction } from '@/app/tasks/guide-actions';
 import { useActionData } from '@/hooks/useActionData';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { notify } from '@/lib/notify';
 import { GuideInputSchema, inputProblem, type GuideInput } from '@/lib/tasks/input';
 import { isFilledLink } from '@/lib/tasks/links';
@@ -73,7 +73,7 @@ export function useGuideForm(id: number | null) {
                 return;
             }
             notify.success(id === null ? APP_COPY.tasks.guides.created : APP_COPY.tasks.messages.saved);
-            router.push(`${TASK_PAGES.guides}/${result.id}`);
+            router.push(`${LINKS.tasks.guides}/${result.id}`);
         } catch (err) {
             notify.failure(err);
         } finally {

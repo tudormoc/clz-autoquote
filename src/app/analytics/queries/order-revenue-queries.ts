@@ -23,6 +23,7 @@ import {
 } from './shared/query-utils';
 import { fetchWorkTimesForCommessas } from './shared/work-time-fetcher';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 /**
  * ============================================================================
@@ -84,7 +85,7 @@ export async function getOrderRevenueDataAction(
     },
     sort?: SortConfig
 ) {
-    await authorize('view', '/analytics/order-revenue');
+    await authorize('view', LINKS.analytics['order-revenue']);
     try {
         const { startDate, endDate } = setupDateParams(year, filters?.dateFrom, filters?.dateTo);
 

@@ -21,6 +21,7 @@ import {
     type SortConfig
 } from './shared/query-utils';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 const ANALYTICS = APP_CONFIG.ANALYTICS;
 
@@ -92,7 +93,7 @@ export async function getProductionDataAction(
     },
     sort?: SortConfig
 ) {
-    await authorize('view', '/analytics/production-metrics');
+    await authorize('view', LINKS.analytics['production-metrics']);
     try {
         const { conditions, params } = workFilter(year, 'OPE', filters);
         conditions.push('ORD.COMMESSA IS NOT NULL');
@@ -151,7 +152,7 @@ export async function getOrderSummaryDataAction(
     },
     sort?: SortConfig
 ) {
-    await authorize('view', '/analytics/order-summary');
+    await authorize('view', LINKS.analytics['order-summary']);
     try {
         const { conditions, params } = workFilter(year, 'OPE', filters);
         conditions.push('ORD.COMMESSA IS NOT NULL');

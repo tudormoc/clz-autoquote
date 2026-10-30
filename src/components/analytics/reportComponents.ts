@@ -11,8 +11,10 @@ import { OrderRevenueReport } from '@/components/analytics/OrderRevenueReport';
 import { AreaSummaryReport } from '@/components/analytics/AreaSummaryReport';
 import { AnnualPresenceReport } from '@/components/analytics/AnnualPresenceReport';
 import { ExternalWorkReport } from '@/components/analytics/ExternalWorkReport';
+import type { AnalyticsSectionId } from '@/config/analyticsSections';
 
-export const REPORT_COMPONENTS: Record<string, React.ComponentType> = {
+/** One component per report: a report without one does not compile */
+export const REPORT_COMPONENTS: Record<AnalyticsSectionId, React.ComponentType> = {
     'production-metrics': ProductionReport,
     'order-summary': OrderSummaryReport,
     'order-area-summary': OrderAreaSummaryReport,

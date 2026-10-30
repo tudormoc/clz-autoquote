@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { CalendarCheck, ChevronRight } from 'lucide-react';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import type { UserAccess } from '@/lib/auth/permissions';
 import { loadPeople } from '@/lib/tasks/db/shared';
 import { agendaCounts } from '@/lib/tasks/db/views';
@@ -23,7 +23,7 @@ export async function AgendaSummary({ access }: { access: UserAccess }) {
 
     return (
         <Link
-            href={TASK_PAGES.todo}
+            href={LINKS.tasks.todo}
             className={cn(
                 'mb-6 flex items-center gap-3 p-4 rounded-lg border bg-card transition-colors hover:bg-muted/50',
                 urgent ? 'border-danger-500/40 hover:border-danger-500/70' : 'border-border hover:border-primary/50'

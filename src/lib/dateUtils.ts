@@ -32,9 +32,9 @@ export function periodRange(period: DatePeriod, today: Date = new Date()): DateR
     const range = (from: Date, to: Date): DateRange => ({ dateFrom: toIsoDate(from), dateTo: toIsoDate(to) });
     switch (period) {
         case 'lastWeek': {
-            // Monday to Sunday of the week before this one
+            // Monday to Sunday of the week before this one (the Monday may fall in the month before)
             const monday = new Date(year, month, today.getDate() - (today.getDay() || 7) + 1 - 7);
-            return range(monday, new Date(year, month, monday.getDate() + 6));
+            return range(monday, new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6));
         }
         case 'lastMonth':
             return range(new Date(year, month - 1, 1), new Date(year, month, 0));

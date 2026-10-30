@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import type { NavAreaId, NavItem } from '@/config/navigation';
 import type { Group } from '@/lib/auth/accounts';
-import { ACCESS_AREAS, GRANTABLE_PAGES, sharedLevel, withLevel, type Grantable, type PagePermissions } from '@/lib/auth/permissions';
+import { ACCESS_AREAS, GRANTABLE_PAGES, functionKey, grantable, sharedLevel, withLevel, type Grantable, type PagePermissions } from '@/lib/auth/permissions';
 import { cn, foldText, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -34,16 +34,24 @@ interface MatrixRow {
 
 /** A page's functions, as rows under it */
 const functionRows = (page: NavItem, areaId: NavAreaId, depth: 1 | 2): MatrixRow[] =>
-    (page.functions ?? []).map((fn) => ({ key: fn.href, label: fn.label, hint: fn.description, variant: 'function', areaId, depth, items: [{ href: fn.href, editable: true }] }));
+    (page.functions ?? []).map((fn) => ({
+        key: fn.href,
+        label: fn.label,
+        hint: fn.description,
+        variant: 'function',
+        areaId,
+        depth,
+        items: [{ key: functionKey(page, fn), editable: true }],
+    }));
 
 /** Every row, in menu order: all pages, then each area followed by its pages (a single-page area is one row) and their functions */
 const ROWS: MatrixRow[] = [
-    { key: 'all', label: copy.allPages, variant: 'all', depth: 0, items: GRANTABLE_PAGES },
+    { key: 'all', label: copy.allPages, variant: 'all', depth: 0, items: GRANTABLE_PAGES.map(grantable) },
     ...ACCESS_AREAS.flatMap(({ area, pages }): MatrixRow[] => [
-        { key: area.id, label: area.label, variant: 'area', areaId: area.id, depth: 0, items: pages },
+        { key: area.id, label: area.label, variant: 'area', areaId: area.id, depth: 0, items: pages.map(grantable) },
         ...(area.groups
             ? pages.flatMap((page): MatrixRow[] => [
-                  { key: page.href, label: page.label, variant: 'page', areaId: area.id, depth: 1, items: [page] },
+                  { key: page.href, label: page.label, variant: 'page', areaId: area.id, depth: 1, items: [grantable(page)] },
                   ...functionRows(page, area.id, 2),
               ])
             : functionRows(area, area.id, 1)),

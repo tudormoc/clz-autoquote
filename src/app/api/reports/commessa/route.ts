@@ -5,6 +5,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { netproAuthenticatedGet } from '@/lib/netproSession';
 import { authorize } from '@/lib/auth/access';
 import { APP_COPY } from '@/locales';
+import { LINKS } from '@/config/navigation';
 
 /**
  * Fetch a single commessa PDF from NetPro Crystal Reports service
@@ -84,7 +85,7 @@ async function fetchNetProPDF(netproId: string): Promise<ArrayBuffer> {
 export async function GET(request: NextRequest) {
     // The print buttons of the work progress page
     try {
-        await authorize('view', '/work-progress');
+        await authorize('view', LINKS.workProgress);
     } catch (error) {
         return NextResponse.json({ error: errorMessage(error) }, { status: 403 });
     }

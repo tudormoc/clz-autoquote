@@ -61,6 +61,7 @@ import {
     supplierCostGroupSql,
 } from './cashflow-sql';
 import { authorize } from '@/lib/auth/access';
+import { LINKS } from '@/config/navigation';
 
 const labels = APP_COPY.cashflow.labels;
 const NO_ROWS = Promise.resolve({ recordset: [] as CashOutRow[] });
@@ -68,7 +69,7 @@ const round2 = (value: number) => Number(value.toFixed(2));
 
 /** Monthly cashflow of a year (all queries run in parallel) */
 export async function getCashflowMonthlyDataAction(year: number = new Date().getFullYear()): Promise<CashflowDataResult> {
-    await authorize('view', '/cashflow');
+    await authorize('view', LINKS.cashflow);
     try {
         const bankCodes = CASHFLOW_CONFIG.getEnabledAccountCodes();
         if (bankCodes.length === 0) return emptyCashflow(year, true);
@@ -192,7 +193,7 @@ export async function getBankAccountTransactionsAction(
     accountCode: number,
     year: number = new Date().getFullYear()
 ): Promise<BankAccountDetailsResult> {
-    await authorize('view', '/cashflow');
+    await authorize('view', LINKS.cashflow);
     try {
         const [nameRes, openingRes, movementsRes] = await Promise.all([
             queryMSSQL<AccountNameRow>(accountNameSql(), { accountCode }, 'BUSINESS'),

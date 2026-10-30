@@ -16,11 +16,8 @@ export default async function AnalyticsReportPage({ params }: AnalyticsReportPag
     await requirePage('analytics', reportId);
 
     const section = getAnalyticsSection(reportId);
-    const ReportComponent = REPORT_COMPONENTS[reportId];
-
-    if (!section || !ReportComponent) {
-        notFound();
-    }
+    if (!section) notFound();
+    const ReportComponent = REPORT_COMPONENTS[section.id];
 
     return (
         <FillPage header={<PageHeader icon={section.icon} title={section.label} subtitle={section.description} />}>

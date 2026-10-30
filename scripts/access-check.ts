@@ -3,7 +3,9 @@
  *   - a page (src/app/** /page.tsx) does not call requirePage / requireLogin (or render AreaOverview, which does),
  *   - a function exported by a 'use server' file does not start with authorize / requireSuperadmin / requireLogin,
  *     directly or through a helper of the same file (access-actions' run(), for one),
- *   - a route handler (src/app/api/** /route.ts) does not check who is calling (authorize / requireSuperadmin / getAccess).
+ *   - a route handler (src/app/api/** /route.ts) does not check who is calling (authorize / requireSuperadmin / getAccess),
+ *   - anywhere in src/, an access check names a page by a literal link ('/presence/operators') instead of LINKS.*
+ *     (src/config/navigation.ts), so that a page can move or be renamed in one place.
  * A re-export (`export const x = xImpl`) is checked where xImpl is defined.
  * Pages and files that need no check are listed in NO_CHECK_NEEDED, with the reason.
  */
@@ -12,7 +14,11 @@ import * as path from 'node:path';
 import ts from 'typescript';
 
 const ROOT = path.resolve(__dirname, '..');
-const APP = path.join(ROOT, 'src', 'app');
+const SRC = path.join(ROOT, 'src');
+const APP = path.join(SRC, 'app');
+
+/** Calls that take a page or function link: the link must come from LINKS / WORK_PROGRESS_FUNCTIONS */
+const LINK_TAKERS = ['authorize', 'canOpen', 'canUse', 'useCanUse'];
 
 /** Pages and files that are public or check access in their own way */
 const NO_CHECK_NEEDED: Record<string, string> = {
@@ -26,7 +32,7 @@ const ACTION_GUARDS = ['authorize', 'requireSuperadmin', 'requireLogin'];
 const ROUTE_GUARDS = [...ACTION_GUARDS, 'getAccess'];
 
 const problems: string[] = [];
-let checked = { pages: 0, actions: 0, routes: 0 };
+let checked = { pages: 0, actions: 0, routes: 0, links: 0 };
 
 const rel = (file: string) => path.relative(ROOT, file).split(path.sep).join('/');
 
@@ -165,15 +171,35 @@ function checkRoute(file: string) {
     }
 }
 
+/** Every access check of the file names its page through LINKS, never as a literal link */
+function checkLinks(file: string) {
+    const sf = source(file);
+    const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && LINK_TAKERS.includes(node.expression.text)) {
+            checked.links++;
+            const literal = node.arguments.find((arg) => ts.isStringLiteral(arg) && arg.text.startsWith('/'));
+            if (literal) {
+                const { line } = sf.getLineAndCharacterOfPosition(literal.getStart(sf));
+                problems.push(`${rel(file)}:${line + 1}: ${node.expression.text} names a page by its link ${literal.getText(sf)}: use LINKS from src/config/navigation.ts`);
+            }
+        }
+        ts.forEachChild(node, visit);
+    };
+    visit(sf);
+}
+
 for (const file of walk(APP)) {
     if (NO_CHECK_NEEDED[rel(file)]) continue;
     if (/[\\/]page\.tsx$/.test(file)) checkPage(file);
     else if (/[\\/]api[\\/].*route\.ts$/.test(file)) checkRoute(file);
     else if (isUseServer(source(file))) checkActionFile(file);
 }
+for (const file of walk(SRC)) checkLinks(file);
 
 if (problems.length > 0) {
     console.error(`Access check: ${problems.length} problem(s)\n` + problems.map((p) => `  - ${p}`).join('\n'));
     process.exit(1);
 }
-console.log(`Access check ok: ${checked.pages} pages, ${checked.actions} server actions, ${checked.routes} route handlers all check access.`);
+console.log(
+    `Access check ok: ${checked.pages} pages, ${checked.actions} server actions, ${checked.routes} route handlers all check access; ${checked.links} checks name their page through LINKS.`
+);

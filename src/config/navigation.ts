@@ -31,7 +31,9 @@ import { SETTINGS_CATEGORIES, SETTINGS_PAGES } from '@/config/settingsPages';
 
 /** Something a page can do that a group is given on its own, apart from "modifica" on the page (Riallinea) */
 export interface NavFunction {
-    /** The page's link + '#' + a name: the key in a group's pages and the link of its access check */
+    /** Its name under the page ("riallinea"): with the page's id, the key of the grant in a group's pages */
+    name: string;
+    /** The page's link + '#' + the name: the link of its access checks (authorize, useCanUse) */
     href: string;
     label: string;
     description?: string;
@@ -53,8 +55,44 @@ export interface NavItem {
 
 /** The link of a page's function: the page's link, '#', its name */
 export const functionHref = (pageHref: string, name: string) => `${pageHref}#${name}`;
-/** A function's link (as opposed to a page's) */
-export const isFunctionHref = (href: string) => href.includes('#');
+
+/** A page's function for NAV_AREAS: its name, its link, its texts (it.ts → nav.functions) */
+const pageFunction = (pageHref: string, name: string, texts: { label: string; description?: string }): NavFunction => ({
+    name,
+    href: functionHref(pageHref, name),
+    ...texts,
+});
+
+/** The links of pages listed under a base path, by id: linksOf(ANALYTICS_SECTIONS, '/analytics')['client-summary'] */
+function linksOf<T extends readonly { id: string }[]>(pages: T, basePath: string): { readonly [Id in T[number]['id']]: string } {
+    return Object.fromEntries(pages.map((page) => [page.id, `${basePath}/${page.id}`])) as { [Id in T[number]['id']]: string };
+}
+
+/**
+ * Every page link, by area and page — the one place a link is written. Access checks (authorize, canOpen, useCanUse),
+ * pages and links use these, never a string: moving or renaming a page is then one change here, and a mistyped
+ * page does not compile. npm run access:check refuses a literal link in an access check.
+ */
+export const LINKS = {
+    quotes: '/quotes',
+    workProgress: '/work-progress',
+    cashflow: '/cashflow',
+    analytics: linksOf(ANALYTICS_SECTIONS, '/analytics'),
+    presence: {
+        operators: '/presence/operators',
+        dailyEvents: '/presence/daily-events',
+        monthlySummary: '/presence/monthly-summary',
+    },
+    tasks: {
+        todo: '/tasks/todo',
+        calendar: '/tasks/calendar',
+        list: '/tasks/list',
+        guides: '/tasks/guides',
+        contacts: '/tasks/contacts',
+        history: '/tasks/history',
+    },
+    settings: linksOf(SETTINGS_PAGES, '/settings'),
+} as const;
 
 export interface NavGroup {
     label?: string;
@@ -87,7 +125,7 @@ interface CategorisedPage<C extends string> extends Omit<NavItem, 'href'> {
 function groupByCategory<C extends string>(
     categories: readonly C[],
     labels: Record<C, string>,
-    pages: CategorisedPage<C>[],
+    pages: readonly CategorisedPage<C>[],
     basePath: string,
 ): NavGroup[] {
     return categories
@@ -105,31 +143,21 @@ const areas = APP_COPY.nav.areas;
 const analytics = APP_COPY.analytics;
 const tasks = APP_COPY.tasks.pages;
 
-/** The Agenda's pages (src/app/tasks); their links are also the access checks of its server actions */
-export const TASK_PAGES = {
-    todo: '/tasks/todo',
-    calendar: '/tasks/calendar',
-    list: '/tasks/list',
-    guides: '/tasks/guides',
-    contacts: '/tasks/contacts',
-    history: '/tasks/history',
-} as const;
-
 /** Functions of Avanzamento Lavori; their links are also the access checks of their server actions */
 export const WORK_PROGRESS_FUNCTIONS = {
-    riallinea: functionHref('/work-progress', 'riallinea'),
+    riallinea: functionHref(LINKS.workProgress, 'riallinea'),
 } as const;
 
 /** The app's areas, in sidebar order */
 export const NAV_AREAS: NavArea[] = [
-    { id: 'quotes', href: '/quotes', ...areas.quotes, icon: FileText, editable: true },
+    { id: 'quotes', href: LINKS.quotes, ...areas.quotes, icon: FileText, editable: true },
     {
         id: 'work-progress',
-        href: '/work-progress',
+        href: LINKS.workProgress,
         ...areas.workProgress,
         icon: Workflow,
         editable: true,
-        functions: [{ href: WORK_PROGRESS_FUNCTIONS.riallinea, ...APP_COPY.nav.functions.riallinea }],
+        functions: [pageFunction(LINKS.workProgress, 'riallinea', APP_COPY.nav.functions.riallinea)],
     },
     {
         id: 'analytics',
@@ -146,14 +174,14 @@ export const NAV_AREAS: NavArea[] = [
         groups: [
             {
                 items: [
-                    { id: 'operators', href: '/presence/operators', label: analytics.operators.title, description: analytics.operators.subtitle, icon: Users, editable: true },
-                    { id: 'daily-events', href: '/presence/daily-events', label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar, editable: true },
-                    { id: 'monthly-summary', href: '/presence/monthly-summary', label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays, editable: true },
+                    { id: 'operators', href: LINKS.presence.operators, label: analytics.operators.title, description: analytics.operators.subtitle, icon: Users, editable: true },
+                    { id: 'daily-events', href: LINKS.presence.dailyEvents, label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar, editable: true },
+                    { id: 'monthly-summary', href: LINKS.presence.monthlySummary, label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays, editable: true },
                 ],
             },
         ],
     },
-    { id: 'cashflow', href: '/cashflow', ...areas.cashflow, icon: Wallet },
+    { id: 'cashflow', href: LINKS.cashflow, ...areas.cashflow, icon: Wallet },
     {
         id: 'tasks',
         href: '/tasks',
@@ -162,12 +190,12 @@ export const NAV_AREAS: NavArea[] = [
         groups: [
             {
                 items: [
-                    { id: 'todo', href: TASK_PAGES.todo, ...tasks.todo, icon: ListTodo, editable: true },
-                    { id: 'calendar', href: TASK_PAGES.calendar, ...tasks.calendar, icon: CalendarRange, editable: true },
-                    { id: 'list', href: TASK_PAGES.list, ...tasks.list, icon: ListChecks, editable: true },
-                    { id: 'guides', href: TASK_PAGES.guides, ...tasks.guides, icon: BookOpen, editable: true },
-                    { id: 'contacts', href: TASK_PAGES.contacts, ...tasks.contacts, icon: Contact, editable: true },
-                    { id: 'history', href: TASK_PAGES.history, ...tasks.history, icon: History },
+                    { id: 'todo', href: LINKS.tasks.todo, ...tasks.todo, icon: ListTodo, editable: true },
+                    { id: 'calendar', href: LINKS.tasks.calendar, ...tasks.calendar, icon: CalendarRange, editable: true },
+                    { id: 'list', href: LINKS.tasks.list, ...tasks.list, icon: ListChecks, editable: true },
+                    { id: 'guides', href: LINKS.tasks.guides, ...tasks.guides, icon: BookOpen, editable: true },
+                    { id: 'contacts', href: LINKS.tasks.contacts, ...tasks.contacts, icon: Contact, editable: true },
+                    { id: 'history', href: LINKS.tasks.history, ...tasks.history, icon: History },
                 ],
             },
         ],

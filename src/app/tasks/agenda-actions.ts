@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
-import { TASK_PAGES } from '@/config/navigation';
+import { LINKS } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
 import { isIsoDate } from '@/lib/tasks/dates';
 import { TimeSchema } from '@/lib/tasks/input';
@@ -32,8 +32,8 @@ import { getAgenda, type AgendaData } from '@/lib/tasks/db/views';
 import { attempt, refused, type Result, type Saved } from '@/app/tasks/results';
 import { APP_COPY } from '@/locales';
 
-const ALL_PAGES = Object.values(TASK_PAGES);
-const EDIT_PAGES = [TASK_PAGES.todo, TASK_PAGES.calendar, TASK_PAGES.list];
+const ALL_PAGES = Object.values(LINKS.tasks);
+const EDIT_PAGES = [LINKS.tasks.todo, LINKS.tasks.calendar, LINKS.tasks.list];
 
 const IdSchema = z.number().int().positive();
 const VersionSchema = z.string().regex(/^0x[0-9A-Fa-f]{16}$/);

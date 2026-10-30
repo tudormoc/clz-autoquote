@@ -12,6 +12,7 @@ import { reportFileName } from '@/lib/download';
 import { getTodayDate } from '@/lib/dateUtils';
 import { operatorChecklistHtml } from '@/lib/pdf/operatorChecklistHtml';
 import { renderPdfBase64 } from '@/lib/pdf/renderPdf';
+import { LINKS } from '@/config/navigation';
 
 export interface OperatorRow {
     OPERATORE: string;
@@ -30,7 +31,7 @@ export interface OperatorGroupRow {
 }
 
 export async function getOperatorsAction(search?: string) {
-    await authorize('view', '/presence/operators');
+    await authorize('view', LINKS.presence.operators);
     try {
         const params: SqlParams = {};
         const operatorSearch = buildOperatorSearch(search, ['OPERATORE', 'NOME', 'BADGE'], 'term', params);
@@ -77,7 +78,7 @@ async function readStati(): Promise<string[]> {
 
 /** Stati fisici for the checklist window (it opens before the list is loaded) */
 export async function getOperatorStatiAction() {
-    await authorize('view', '/presence/operators');
+    await authorize('view', LINKS.presence.operators);
     try {
         return { success: true, data: await readStati() };
     } catch (err) {
@@ -93,7 +94,7 @@ const checklistCopy = APP_COPY.analytics.operators.checklist;
  * to write it by hand. Returns { success, pdf (base64), filename }.
  */
 export async function generateOperatorChecklistPDFAction(categoryKeys: string[], stati: string[], showDate: boolean, showChecks: boolean) {
-    await authorize('view', '/presence/operators');
+    await authorize('view', LINKS.presence.operators);
     try {
         const categories = EMPLOYEE_CATEGORIES.filter((c) => categoryKeys.includes(c.key));
         if (categories.length === 0 || stati.length === 0) return { success: false as const, error: checklistCopy.empty };
@@ -136,7 +137,7 @@ export async function updateOperatorAction(
     columnName: (typeof OPERATOR_COLUMNS)[number],
     newValue: string | null
 ) {
-    await authorize('edit', '/presence/operators');
+    await authorize('edit', LINKS.presence.operators);
     if (!OPERATOR_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         const query = `
@@ -163,7 +164,7 @@ export async function updateOperatorAction(
  * Get all operators currently assigned to TURNO2 (GRUPPO = 'TURNO2')
  */
 export async function getTurno2OperatorsAction() {
-    await authorize('view', '/settings/presence');
+    await authorize('view', LINKS.settings['presence']);
     try {
         const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT OPERATORE, NOME, GRUPPO
@@ -186,7 +187,7 @@ export async function getTurno2OperatorsAction() {
  * Search operators by name or code (for the add-to-TURNO2 picker)
  */
 export async function searchOperatorsAction(term: string) {
-    await authorize('view', '/settings/presence');
+    await authorize('view', LINKS.settings['presence']);
     try {
         const result = await queryMSSQL<OperatorGroupRow>(
             `SELECT TOP 20 OPERATORE, NOME, ISNULL(NULLIF(LTRIM(RTRIM(GRUPPO)), ''), NULL) AS GRUPPO
@@ -210,7 +211,7 @@ export async function searchOperatorsAction(term: string) {
  * Pass gruppo = 'TURNO2' to assign, or gruppo = '' to reset to standard
  */
 export async function setOperatorGruppoAction(operatore: string, gruppo: string) {
-    await authorize('edit', '/settings/presence');
+    await authorize('edit', LINKS.settings['presence']);
     try {
         await queryMSSQL(
             `UPDATE OPERATORI SET GRUPPO = @gruppo WHERE OPERATORE = @operatore`,
