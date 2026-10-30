@@ -12,7 +12,7 @@ import { ContactList } from '@/components/tasks/shared/ContactList';
 import { confirmAndDeleteTask } from '@/components/tasks/shared/deleteTask';
 import { FormCard } from '@/components/tasks/shared/FormCard';
 import { LinkList } from '@/components/tasks/shared/LinkList';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { QuickNotes } from '@/components/tasks/shared/QuickNotes';
 import { OccurrenceCard } from '@/components/tasks/task/OccurrenceCard';
 import { TaskInfo } from '@/components/tasks/task/TaskInfo';

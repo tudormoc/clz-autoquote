@@ -7,7 +7,7 @@ import { getTaskPageAction } from '@/app/tasks/task-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ContactList } from '@/components/tasks/shared/ContactList';
 import { LinkList } from '@/components/tasks/shared/LinkList';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { QuickNotes } from '@/components/tasks/shared/QuickNotes';
 import { PriorityBadge } from '@/components/tasks/shared/TaskBadges';
 import { ClosedOccurrences } from '@/components/tasks/task/ClosedOccurrences';

@@ -12,7 +12,7 @@ import { ReviewBadge } from '@/components/tasks/guides/ReviewBadge';
 import { ContactList } from '@/components/tasks/shared/ContactList';
 import { FormCard } from '@/components/tasks/shared/FormCard';
 import { LinkList } from '@/components/tasks/shared/LinkList';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { TaskStateBadge } from '@/components/tasks/shared/TaskBadges';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { MenuAction } from '@/components/ui/FloatingMenu';

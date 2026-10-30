@@ -78,7 +78,7 @@ export function repeatDraftFor(date: string): RepeatDraft {
 const toNumber = (text: string) => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : NaN);
 
 /** "1, 15 ,31" → [1, 15, 31] (anything else left out, so the check reports an empty list) */
-export const parseMonthDays = (text: string) =>
+const parseMonthDays = (text: string) =>
     text
         .split(/[,\s;]+/)
         .map(toNumber)
@@ -113,7 +113,7 @@ export function toRepeatRule(draft: RepeatDraft): RepeatRule {
 }
 
 /** A stored rule back into the fields */
-export function fromRepeatRule(rule: RepeatRule, firstDate: string): RepeatDraft {
+function fromRepeatRule(rule: RepeatRule, firstDate: string): RepeatDraft {
     const base = repeatDraftFor(firstDate);
     const end = { end: rule.end.type, until: rule.end.type === 'until' ? rule.end.date : '', count: rule.end.type === 'count' ? String(rule.end.count) : '' };
     if (rule.mode === 'after') return { ...base, ...end, mode: 'after', every: String(rule.every), unit: rule.unit };

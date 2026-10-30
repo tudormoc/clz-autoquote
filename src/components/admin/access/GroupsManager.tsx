@@ -6,6 +6,7 @@ import { GroupsMatrix } from '@/components/admin/access/GroupsMatrix';
 import { NewNameForm } from '@/components/admin/access/NewNameForm';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadState } from '@/components/ui/LoadState';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useGroupDrafts } from '@/hooks/useGroupDrafts';
@@ -24,14 +25,7 @@ export function GroupsManager() {
     const { users, groups, loading, error, run } = useAccounts();
     const drafts = useGroupDrafts((id, pages) => run(setGroupPagesAction(id, pages)));
 
-    if (loading) {
-        return (
-            <div className="p-8 flex justify-center">
-                <Spinner size={24} className="text-primary" />
-            </div>
-        );
-    }
-    if (error) return <EmptyState title={APP_COPY.common.loadError} description={error} />;
+    if (loading || error) return <LoadState loading={loading} error={error} />;
 
     const members = new Map(groups.map((group) => [group.id, users.filter((user) => user.groupIds.includes(group.id)).map((user) => user.name)]));
 

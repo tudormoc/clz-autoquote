@@ -51,4 +51,4 @@ export function weekdayOf(iso: string): number {
 export const weekStart = (iso: string) => addDays(iso, 1 - weekdayOf(iso));
 
 export const maxDate = (a: string, b: string) => (a > b ? a : b);
-export const minDate = (a: string, b: string) => (a < b ? a : b);
+

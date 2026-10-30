@@ -3,7 +3,7 @@
  * days), what is further away, what has no date. Pure, shared by the server and the screens.
  */
 
-import { addDays, daysBetween } from '@/lib/tasks/dates';
+import { addDays } from '@/lib/tasks/dates';
 
 export const AGENDA_GROUPS = ['overdue', 'today', 'soon', 'later', 'nodate'] as const;
 export type AgendaGroup = (typeof AGENDA_GROUPS)[number];
@@ -30,5 +30,3 @@ export function agendaGroup(item: Dated, today: string): AgendaGroup {
     return addDays(target, -item.showDays) <= today ? 'soon' : 'later';
 }
 
-/** Days from today to the due date (negative: days late) */
-export const daysLeft = (dueDate: string, today: string) => daysBetween(today, dueDate);

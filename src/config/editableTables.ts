@@ -19,7 +19,7 @@ const DISCOUNT_TIER_COLUMNS = ['min_quantity', 'max_quantity', 'discount_percent
 const FORMAT_SURCHARGE_COLUMNS = ['width_min', 'width_max', 'height_min', 'height_max', 'surcharge_percentage'] as const;
 const SIGNATURE_TYPE_COLUMNS = ['name', 'pages', 'unit_price'] as const;
 
-export const EDITABLE_TABLES = {
+const EDITABLE_TABLES = {
     discount_tiers: { update: DISCOUNT_TIER_COLUMNS, insert: DISCOUNT_TIER_COLUMNS, deletable: true, page: '/settings/discount-tiers' },
     format_surcharges: { update: FORMAT_SURCHARGE_COLUMNS, insert: FORMAT_SURCHARGE_COLUMNS, deletable: true, page: '/settings/format-surcharges' },
     signature_types: {

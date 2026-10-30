@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getTaskListAction } from '@/app/tasks/task-actions';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { PriorityBadge, TaskStateBadge } from '@/components/tasks/shared/TaskBadges';
 import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';

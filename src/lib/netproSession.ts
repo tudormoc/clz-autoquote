@@ -27,7 +27,7 @@ function storeCookies(res: Response) {
 }
 
 /** True when NetPro answered with its login page instead of the requested resource */
-export const isNetproLoginPage = (text: string) => /Account\/Login/i.test(text);
+const isNetproLoginPage = (text: string) => /Account\/Login/i.test(text);
 
 /** Fetch with the session cookies, following redirects manually so every Set-Cookie is kept */
 async function fetchWithJar(url: string, init: RequestInit = {}, hops = 5): Promise<Response> {

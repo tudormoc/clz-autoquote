@@ -8,7 +8,7 @@ import { AgendaSection, type SectionTone } from '@/components/tasks/agenda/Agend
 import { QuickAdd } from '@/components/tasks/agenda/QuickAdd';
 import { OccurrenceDialog } from '@/components/tasks/occurrence/OccurrenceDialog';
 import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useActionData } from '@/hooks/useActionData';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';

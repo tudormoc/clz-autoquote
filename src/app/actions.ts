@@ -4,9 +4,10 @@ import { calculateDetailedQuote } from '@/lib/pricing/engine';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { getPricingRules, getDiscountTiers, getSignatureTypes, getFormatSurcharges } from '@/lib/pricing/data';
 import { createPricingRule, deletePricingRule } from '@/lib/pricing/ruleWrites';
-import { dataService } from '@/services/dataService';
+import { quotesDb } from '@/lib/quotes/db';
 import { z } from 'zod';
 import { authorize } from '@/lib/auth/access';
+import { APP_COPY } from '@/locales';
 
 /**
  * Server Action to calculate a quote and save it using the new Pricing Engine.
@@ -20,7 +21,7 @@ export async function processQuoteAction(
     const validation = QuoteInputSchema.safeParse(formData);
 
     if (!validation.success) {
-        return { error: "Validation failed", issues: validation.error.issues };
+        return { error: APP_COPY.common.invalidData, issues: validation.error.issues };
     }
 
     // cast validation.data to ensure it matches what engine expects (dates/undefined handling)
@@ -57,9 +58,9 @@ export async function processQuoteAction(
 
     let saveResponse;
     if (quoteId) {
-        saveResponse = await dataService.updateQuote(quoteId, quotePayload);
+        saveResponse = await quotesDb.updateQuote(quoteId, quotePayload);
     } else {
-        saveResponse = await dataService.saveQuote(quotePayload);
+        saveResponse = await quotesDb.saveQuote(quotePayload);
     }
 
     if (saveResponse.error) {
@@ -78,7 +79,7 @@ export async function processQuoteAction(
  */
 export async function getQuoteHistoryAction() {
     await authorize('view', '/quotes');
-    return await dataService.getQuotes();
+    return await quotesDb.getQuotes();
 }
 
 /**
@@ -86,7 +87,7 @@ export async function getQuoteHistoryAction() {
  */
 export async function deleteQuoteAction(id: string) {
     await authorize('edit', '/quotes');
-    return await dataService.deleteQuote(id);
+    return await quotesDb.deleteQuote(id);
 }
 
 /**

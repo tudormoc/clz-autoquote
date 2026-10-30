@@ -20,7 +20,7 @@ const text = (max: number) => z.string().trim().max(max);
 
 export const PrioritySchema = z.union([z.literal(PRIORITIES[0]), z.literal(PRIORITIES[1]), z.literal(PRIORITIES[2])]);
 
-export const LinkSchema = z.object({
+const LinkSchema = z.object({
     label: text(200),
     kind: z.enum(LINK_KINDS),
     value: text(MAX_LINK_LENGTH).min(1),

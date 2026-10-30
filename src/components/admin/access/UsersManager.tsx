@@ -14,10 +14,9 @@ import {
 import { NewNameForm } from '@/components/admin/access/NewNameForm';
 import { UsersTable } from '@/components/admin/access/UsersTable';
 import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
+import { LoadState } from '@/components/ui/LoadState';
 import { RecordCount } from '@/components/ui/RecordCount';
-import { Spinner } from '@/components/ui/Spinner';
 import { useAccounts } from '@/hooks/useAccounts';
 import { askConfirm, confirmDelete } from '@/lib/confirm';
 import { APP_COPY, fmt } from '@/locales';
@@ -32,14 +31,7 @@ export function UsersManager() {
     const { users, groups, loading, error, run } = useAccounts();
     const [search, setSearch] = useState('');
 
-    if (loading) {
-        return (
-            <div className="p-8 flex justify-center">
-                <Spinner size={24} className="text-primary" />
-            </div>
-        );
-    }
-    if (error) return <EmptyState title={APP_COPY.common.loadError} description={error} />;
+    if (loading || error) return <LoadState loading={loading} error={error} />;
 
     const text = search.trim().toLowerCase();
     const shown = text ? users.filter((user) => user.name.toLowerCase().includes(text)) : users;

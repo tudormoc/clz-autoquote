@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 import { getGuidesAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ReviewBadge } from '@/components/tasks/guides/ReviewBadge';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
 import { buttonClasses } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';

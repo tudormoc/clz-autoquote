@@ -3,7 +3,7 @@ import { linkHref } from '@/lib/tasks/links';
 import type { Contact } from '@/lib/tasks/types';
 
 /** One contact: name, role and company, phone and email clickable, notes */
-export function ContactCard({ contact }: { contact: Contact }) {
+function ContactCard({ contact }: { contact: Contact }) {
     const phone = contact.phone ? linkHref({ kind: 'phone', label: '', value: contact.phone }) : null;
     const email = contact.email ? linkHref({ kind: 'email', label: '', value: contact.email }) : null;
     const who = [contact.role, contact.company].filter(Boolean).join(' · ');

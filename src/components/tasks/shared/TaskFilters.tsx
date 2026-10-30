@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 const copy = APP_COPY.tasks.filters;
 
 /** Value of the area filter: '' = all, 'none' = without area, else the area id */
-export const NO_AREA = 'none';
+const NO_AREA = 'none';
 
 export interface TaskFilterValues {
     search: string;

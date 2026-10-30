@@ -1,5 +1,5 @@
-import type { SqlParams } from '@/lib/mssql';
-import { queryMSSQL } from '../lib/mssql';
+/** The app's own quotes table (QUOTES database): list, save, change, delete. Server only. */
+import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import type { Quote, QuoteInsert, QuoteUpdate } from '@/types';
 
 /** Columns of a quote that a save may change (anything else in the update is ignored) */
@@ -17,7 +17,7 @@ const parseQuote = (row: QuoteRow): Quote => ({
   specifications: row.specifications ? JSON.parse(row.specifications) : row.specifications,
 });
 
-export const dataService = {
+export const quotesDb = {
   /**
    * Fetches all quotes from Local MSSQL
    */

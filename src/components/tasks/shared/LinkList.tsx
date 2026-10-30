@@ -10,7 +10,7 @@ import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.tasks;
 
-export const LINK_ICONS: Record<LinkKind, LucideIcon> = { web: Globe, path: Folder, page: AppWindow, email: Mail, phone: Phone, other: Link2 };
+const LINK_ICONS: Record<LinkKind, LucideIcon> = { web: Globe, path: Folder, page: AppWindow, email: Mail, phone: Phone, other: Link2 };
 
 function LinkRow({ link }: { link: TaskLink }) {
     const Icon = LINK_ICONS[link.kind];

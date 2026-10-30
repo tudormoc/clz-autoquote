@@ -7,7 +7,7 @@ const log = APP_COPY.tasks.log;
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
 /** The words of one log line: what happened, and its details (new dates, notes, fields changed) */
-export function logText(entry: LogEntry, checklist: ChecklistItem[]): { action: string; detail: string } {
+function logText(entry: LogEntry, checklist: ChecklistItem[]): { action: string; detail: string } {
     const action = (log as Record<string, unknown>)[entry.action];
     const details = entry.details ?? {};
     let detail = '';

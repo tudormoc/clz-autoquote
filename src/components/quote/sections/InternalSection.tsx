@@ -176,14 +176,14 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                         <div className="flex gap-2">
                             {pages > 0 && (
                                 <InfoBadge
-                                    label={APP_COPY.form.totalLabel || "TOTAL"}
+                                    label={APP_COPY.form.totalLabel}
                                     value={`${pages + (endpapersEnabled ? 8 : 0)} pp`}
                                     detail={endpapersEnabled ? `(${pages} + 8)` : undefined}
                                 />
                             )}
                             {blockThickness > 0 && (
                                 <InfoBadge
-                                    label="BLOCK"
+                                    label={APP_COPY.form.blockLabel}
                                     value={`${blockThickness.toFixed(1)}mm`}
                                 />
                             )}

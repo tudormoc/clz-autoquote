@@ -6,7 +6,7 @@ import type { LabourRateKey, LabourRates } from '@/app/analytics/queries/shared/
 import { Card } from '@/components/ui/Card';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
-import { Spinner } from '@/components/ui/Spinner';
+import { LoadState } from '@/components/ui/LoadState';
 import { formatCurrency } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { APP_COPY, fmt } from '@/locales';
@@ -25,8 +25,8 @@ export function LabourCostSettings() {
 
     if (!rates) {
         return (
-            <Card className="max-w-2xl p-8 flex justify-center">
-                <Spinner size={24} className="text-primary" />
+            <Card className="max-w-2xl">
+                <LoadState loading />
             </Card>
         );
     }

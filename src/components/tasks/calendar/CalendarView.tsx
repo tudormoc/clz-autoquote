@@ -10,7 +10,7 @@ import { TaskPanel } from '@/components/tasks/calendar/TaskPanel';
 import { WeekBoard } from '@/components/tasks/calendar/WeekBoard';
 import { WeekHorizon } from '@/components/tasks/calendar/WeekHorizon';
 import { OccurrenceDialog } from '@/components/tasks/occurrence/OccurrenceDialog';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { useAgendaCalendar } from '@/hooks/useAgendaCalendar';
 import { useCalendarDrag } from '@/hooks/useCalendarDrag';
 import { monthKey } from '@/lib/tasks/week';

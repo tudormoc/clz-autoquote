@@ -5,7 +5,7 @@ import { Archive, Pencil, Plus, RotateCcw } from 'lucide-react';
 import { getContactsAction, setContactStateAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ContactDialog } from '@/components/tasks/contacts/ContactDialog';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';

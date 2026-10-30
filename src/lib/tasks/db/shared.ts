@@ -15,7 +15,7 @@ import { getTodayDate } from '@/lib/dateUtils';
 import type { NamedItem, Person, PersonKey } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 
-export const DB = 'QUOTES';
+const DB = 'QUOTES';
 
 export const DATE_SQL = (column: string) => `CONVERT(char(10), ${column}, 23)`;
 export const TIME_SQL = (column: string) => `CONVERT(char(5), ${column}, 108)`;
@@ -24,7 +24,7 @@ export const VERSION_SQL = (column = 'row_version') => `CONVERT(varchar(18), CAS
 export const VERSION_MATCH = (column = 'row_version') => `${column} = CONVERT(binary(8), CAST(@version AS varchar(18)), 1)`;
 
 /** SQL Server error number of the "changed by someone else" THROW in our batches */
-export const STALE_ERROR = 50010;
+const STALE_ERROR = 50010;
 export const THROW_IF_STALE = `IF @@ROWCOUNT = 0 THROW ${STALE_ERROR}, 'stale', 1;`;
 
 /** Wraps statements so they all happen or none does */

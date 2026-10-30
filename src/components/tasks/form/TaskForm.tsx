@@ -7,7 +7,7 @@ import { WhenCard } from '@/components/tasks/form/WhenCard';
 import { AgendaForm } from '@/components/tasks/shared/AgendaForm';
 import { FormCard } from '@/components/tasks/shared/FormCard';
 import { LinksEditor } from '@/components/tasks/shared/LinksEditor';
-import { LoadState } from '@/components/tasks/shared/LoadState';
+import { LoadState } from '@/components/ui/LoadState';
 import { MultiPick } from '@/components/tasks/shared/MultiPick';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { Field } from '@/components/ui/Field';

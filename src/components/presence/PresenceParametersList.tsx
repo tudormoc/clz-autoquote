@@ -2,8 +2,8 @@
 
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
+import { LoadState } from '@/components/ui/LoadState';
 import { Row, RowList } from '@/components/ui/RowList';
-import { Spinner } from '@/components/ui/Spinner';
 import { EMPTY_VALUE } from '@/lib/format';
 import { getPresenceSettingDefinition } from '@/lib/presence';
 import { APP_COPY } from '@/locales';
@@ -18,13 +18,7 @@ interface PresenceParametersListProps {
 
 /** The parameters of the presence rules (pause, rounding, working days …), each value editable in place. */
 export function PresenceParametersList({ settings, loading, onSave }: PresenceParametersListProps) {
-    if (loading) {
-        return (
-            <div className="p-8 flex justify-center">
-                <Spinner size={24} className="text-primary" />
-            </div>
-        );
-    }
+    if (loading) return <LoadState loading />;
     if (settings.length === 0) return <div className="p-6 text-center text-fg-subtle text-sm">{APP_COPY.analytics.presenceSettings.noParameters}</div>;
 
     return (

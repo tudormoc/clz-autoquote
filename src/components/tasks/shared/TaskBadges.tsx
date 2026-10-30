@@ -1,8 +1,6 @@
-import { AlertTriangle, History, Repeat } from 'lucide-react';
+import { AlertTriangle, History } from 'lucide-react';
 import { StatusBadge, type StatusTone } from '@/components/ui/StatusBadge';
 import { APP_CONFIG } from '@/config/constants';
-import type { RepeatRule } from '@/lib/tasks/repeat';
-import { describeRepeat } from '@/lib/tasks/describe';
 import type { OccurrenceStatus, Priority, TaskState } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -56,15 +54,4 @@ const STATE_TONES: Record<TaskState, StatusTone> = { active: 'success', paused: 
 
 export function TaskStateBadge({ state }: { state: TaskState }) {
     return <StatusBadge tone={STATE_TONES[state]}>{copy.states[state]}</StatusBadge>;
-}
-
-/** A small repeat sign, the rule as tooltip */
-export function RepeatMark({ rule }: { rule: RepeatRule | null }) {
-    if (!rule) return null;
-    const text = describeRepeat(rule);
-    return (
-        <span title={text} aria-label={text} className="inline-flex text-fg-muted">
-            <Repeat size={13} />
-        </span>
-    );
 }

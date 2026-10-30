@@ -4,6 +4,7 @@ import { PDFDocument } from 'pdf-lib';
 import { APP_CONFIG } from '@/config/constants';
 import { netproAuthenticatedGet } from '@/lib/netproSession';
 import { authorize } from '@/lib/auth/access';
+import { APP_COPY } from '@/locales';
 
 /**
  * Fetch a single commessa PDF from NetPro Crystal Reports service
@@ -98,10 +99,7 @@ export async function GET(request: NextRequest) {
             : (netproId ? [netproId.trim()] : []);
 
         if (ids.length === 0) {
-            return NextResponse.json(
-                { error: 'Missing required parameter: netproId or netproIds' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: APP_COPY.analytics.orderOperations.printMissingOrder }, { status: 400 });
         }
 
         // If only 1 order ID requested

@@ -41,7 +41,7 @@ export interface PresenceExample {
     note?: string;
 }
 
-export const PRESENCE_EXAMPLES: readonly PresenceExample[] = [
+const PRESENCE_EXAMPLES: readonly PresenceExample[] = [
     // --- Shift 06:30 ---
     { in: '06:12', out: '16:34', countedStart: '06:30', countedEnd: '16:30', worked: 9.0, expect: { ore_ordinarie: 8, banca_ore: 1 } },
     { in: '06:12', out: '15:33', countedStart: '06:30', countedEnd: '15:30', worked: 8.0, expect: { ore_ordinarie: 8 } },
@@ -108,7 +108,7 @@ export const PRESENCE_EXAMPLES: readonly PresenceExample[] = [
 ];
 
 /** Per-operator exception: ORE_GIORNATA_OPERATORE = "OP6=6" → every formula uses 6 for that operator. */
-export const PRESENCE_OPERATOR_EXCEPTION_EXAMPLES: readonly {
+const PRESENCE_OPERATOR_EXCEPTION_EXAMPLES: readonly {
     operatore: string; profile: CategoryProfile; day: DayKind; in?: string; out?: string;
     expect: DistributionProposal['values'] | null; note: string;
 }[] = [
@@ -131,7 +131,7 @@ export function runOperatorExceptionExamples(baseRules: PresenceRulesConfig) {
 }
 
 /** No clock records at all: the only case not expressible as in/out. */
-export const PRESENCE_NO_RECORD_EXAMPLES: readonly { profile: CategoryProfile; day: DayKind; expect: DistributionProposal['values'] | null; note: string }[] = [
+const PRESENCE_NO_RECORD_EXAMPLES: readonly { profile: CategoryProfile; day: DayKind; expect: DistributionProposal['values'] | null; note: string }[] = [
     { profile: 'standard', day: 'working', expect: { ore_ferie: 8 }, note: 'absence → ferie' },
     { profile: 'fixed', day: 'working', expect: { ore_ordinarie: 8 }, note: 'office absent → still 8 ordinarie' },
     { profile: 'standard', day: 'extra', expect: null, note: 'Saturday nobody worked → nothing' },

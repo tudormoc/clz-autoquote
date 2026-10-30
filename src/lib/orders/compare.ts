@@ -44,7 +44,7 @@ const QTY_EPS = 0.001;
  * Placeholder material: keeps a production order's material list non-empty when it has no real materials.
  * Never compared and never touched by the DiBa sync (also hidden from the NetPro materials list).
  */
-export const PLACEHOLDER_MATERIAL = 'MP_FITTIZIA';
+const PLACEHOLDER_MATERIAL = 'MP_FITTIZIA';
 export const isPlaceholderMaterial = (code?: string) => String(code ?? '').trim().toUpperCase() === PLACEHOLDER_MATERIAL;
 /** NetPro keeps only the first 100 chars of the DiBa note (OPERAZIONI.DESCRIZIONE01) */
 const NETPRO_NOTE_LEN = 100;

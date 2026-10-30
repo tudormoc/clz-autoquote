@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-export const DimensionsSchema = z.object({
+const DimensionsSchema = z.object({
     width: z.number().min(10, "Minimum width is 10mm").max(1000, "Maximum width is 1000mm"),
     height: z.number().min(10, "Minimum height is 10mm").max(1000, "Maximum height is 1000mm"),
 });
 
-export const CoverDetailsSchema = z.object({
+const CoverDetailsSchema = z.object({
     type: z.string().min(1, "Cover type is required"),
     spine_type: z.enum(['square', 'round']),
     board_thickness: z.number().min(0.1, "Required"),
@@ -15,7 +15,7 @@ export const CoverDetailsSchema = z.object({
     cover_production_type: z.enum(['standard', 'fast', 'manual']).optional(),
 });
 
-export const InternalDetailsSchema = z.object({
+const InternalDetailsSchema = z.object({
     paper_material_id: z.string().optional(),
     printing_type: z.string().optional(),
 
@@ -41,7 +41,7 @@ export const InternalDetailsSchema = z.object({
     })).optional()
 });
 
-export const PackagingSchema = z.object({
+const PackagingSchema = z.object({
     type: z.string().optional(),
 });
 
