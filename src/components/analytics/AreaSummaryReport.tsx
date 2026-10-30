@@ -14,7 +14,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import { defaultReportPeriod } from '@/lib/dateUtils';
 import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
@@ -31,7 +31,7 @@ const copy = APP_COPY.analytics.areaSummary;
 const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
 const { EXCELLENT, ACCEPTABLE } = APP_CONFIG.ANALYTICS.EFFICIENCY_THRESHOLDS;
 
-const initialFilters = (): Filters => ({ area: '', dateFrom: getLastYearStart(), dateTo: getLastYearEnd() });
+const initialFilters = (): Filters => ({ area: '', ...defaultReportPeriod() });
 
 const toQuery = (f: Filters) => ({
     machine: f.area || undefined, // the query still calls the area filter "machine"

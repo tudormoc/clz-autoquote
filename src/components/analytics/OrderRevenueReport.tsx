@@ -10,7 +10,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
@@ -30,8 +30,7 @@ const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
 const initialFilters = (): Filters => ({
     commessa: '',
     client: '',
-    dateFrom: getLastYearStart(),
-    dateTo: getLastYearEnd(),
+    ...defaultReportPeriod(),
     includeAllRevenueForSplit: false,
 });
 

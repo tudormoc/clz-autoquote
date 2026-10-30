@@ -8,7 +8,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatCurrencyRounded } from '@/lib/format';
 import { APP_COPY } from '@/locales';
@@ -30,7 +30,7 @@ interface Stats {
 const copy = APP_COPY.analytics.externalWork;
 const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
 
-const initialFilters = (): Filters => ({ commessa: '', supplier: '', dateFrom: getLastYearStart(), dateTo: getLastYearEnd() });
+const initialFilters = (): Filters => ({ commessa: '', supplier: '', ...defaultReportPeriod() });
 
 const toQuery = (f: Filters) => ({
     commessa: f.commessa || undefined,

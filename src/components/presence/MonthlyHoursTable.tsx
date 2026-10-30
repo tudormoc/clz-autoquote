@@ -35,9 +35,9 @@ import {
     resolveEditSideEffects,
     rulesForOperator,
     toHours,
-    todayLocal,
     type PresenceRulesConfig,
 } from '@/lib/presence';
+import { getTodayDate, periodRange } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
@@ -78,7 +78,7 @@ const FOOTER_CELLS: FooterCell[] = [
 const LABEL_COLUMNS = 7;
 
 export function MonthlyHoursTable() {
-    const todayStr = useMemo(() => todayLocal(), []);
+    const todayStr = useMemo(() => getTodayDate(), []);
     const [rules, setRules] = useState<PresenceRulesConfig>(DEFAULT_PRESENCE_RULES);
     const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(DEFAULT_ACTIVE_CATEGORY_KEYS));
     const [activeStatuses, setActiveStatuses] = useState<Set<RowStatusKey>>(new Set(ALL_STATUSES));
@@ -90,7 +90,7 @@ export function MonthlyHoursTable() {
     }, []);
 
     const list = useListQuery({
-        initialFilters: (): Filters => ({ dateFrom: todayLocal(), dateTo: todayLocal(), operator: '' }),
+        initialFilters: (): Filters => ({ ...periodRange('thisMonth'), operator: '' }),
         load: (f: Filters) => getMonthlyHoursAction(f.dateFrom, f.dateTo, f.operator || undefined),
     });
     const { rows, setRows } = list;

@@ -6,6 +6,7 @@
  */
 
 import { errorMessage } from '@/lib/utils';
+import { getTodayDate } from '@/lib/dateUtils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_COPY, fmt } from '@/locales';
 import {
@@ -16,7 +17,6 @@ import {
     profileFromReparto,
     eachDateInRange,
     isPrefillableDay,
-    todayLocal,
     distributeDay,
     hasAnyDistribution,
     assertCoversWorkday,
@@ -89,7 +89,7 @@ export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dr
     await authorize('edit', '/presence/monthly-summary');
     try {
         const rules = await loadPresenceRules();
-        const todayStr = todayLocal();
+        const todayStr = getTodayDate();
 
         // 1. Working days strictly before today
         const workdays = eachDateInRange(dateFrom, dateTo).filter((d) => isPrefillableDay(d, todayStr, rules));

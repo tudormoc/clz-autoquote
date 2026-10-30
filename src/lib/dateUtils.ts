@@ -11,30 +11,49 @@ export function toIsoDate(date: Date): string {
     return `${y}-${m}-${d}`;
 }
 
-/**
- * Get the start date of last year (January 1st)
- * Example: If current year is 2026, returns '2025-01-01'
- */
-export function getLastYearStart(): string {
-    const now = new Date();
-    const lastYear = now.getFullYear() - 1;
-    return `${lastYear}-01-01`;
-}
-
-/**
- * Get the end date of last year (December 31st)
- * Example: If current year is 2026, returns '2025-12-31'
- */
-export function getLastYearEnd(): string {
-    const now = new Date();
-    const lastYear = now.getFullYear() - 1;
-    return `${lastYear}-12-31`;
-}
-
 /** Today's local date in YYYY-MM-DD format */
 export function getTodayDate(): string {
     return toIsoDate(new Date());
 }
+
+export interface DateRange {
+    dateFrom: string;
+    dateTo: string;
+}
+
+/** The ready-made periods of a date filter ("Periodo" in DateRangeFields), in menu order */
+export const DATE_PERIODS = ['thisMonth', 'lastMonth', 'thisYear', 'lastYear', 'last12Months'] as const;
+export type DatePeriod = (typeof DATE_PERIODS)[number];
+
+/** The dates of a period as of `today` (local calendar): the current ones run up to today */
+export function periodRange(period: DatePeriod, today: Date = new Date()): DateRange {
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const range = (from: Date, to: Date): DateRange => ({ dateFrom: toIsoDate(from), dateTo: toIsoDate(to) });
+    switch (period) {
+        case 'thisMonth':
+            return range(new Date(year, month, 1), today);
+        case 'lastMonth':
+            return range(new Date(year, month - 1, 1), new Date(year, month, 0));
+        case 'thisYear':
+            return range(new Date(year, 0, 1), today);
+        case 'lastYear':
+            return range(new Date(year - 1, 0, 1), new Date(year - 1, 11, 31));
+        case 'last12Months':
+            return range(new Date(year - 1, month, today.getDate() + 1), today);
+    }
+}
+
+/** The period these dates are, as of today, or null when they are not one of DATE_PERIODS */
+export function periodOf(dates: DateRange, today: Date = new Date()): DatePeriod | null {
+    return DATE_PERIODS.find((period) => {
+        const range = periodRange(period, today);
+        return range.dateFrom === dates.dateFrom && range.dateTo === dates.dateTo;
+    }) ?? null;
+}
+
+/** What the analytics reports open with: the current year so far */
+export const defaultReportPeriod = (): DateRange => periodRange('thisYear');
 
 /** Monday of ISO week `week` (1 to 53) of `year`: week 1 is the week with 4 January */
 export function isoWeekStart(year: number, week: number): Date {

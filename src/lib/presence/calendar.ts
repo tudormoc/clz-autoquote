@@ -38,9 +38,3 @@ export function eachDateInRange(from: string, to: string): string[] {
     }
     return out;
 }
-
-/** Today as 'YYYY-MM-DD' in local time (not UTC — the plant runs on local clock). */
-export function todayLocal(now: Date = new Date()): string {
-    return toIsoDate(now);
-}
-

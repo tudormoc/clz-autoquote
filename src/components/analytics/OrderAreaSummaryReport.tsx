@@ -14,7 +14,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell, TagCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { EXPORT_LIMIT, useReportTable, type PageResult } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import { defaultReportPeriod } from '@/lib/dateUtils';
 import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import { calcExpectedHours, hasExpectedVelocity } from '@/lib/expectedHours';
@@ -47,8 +47,7 @@ const YEAR = APP_CONFIG.ANALYTICS.FALLBACK_YEAR;
 const initialFilters = (): Filters => ({
     commessa: '',
     area: '',
-    dateFrom: getLastYearStart(),
-    dateTo: getLastYearEnd(),
+    ...defaultReportPeriod(),
     complexOnly: false,
 });
 

@@ -6,6 +6,7 @@
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
+import { getTodayDate } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
 import { suspendActiveExecutionIfAny } from './presence-db';
 
@@ -32,7 +33,7 @@ export async function runAutoExit(testOperator?: string) {
             : APP_CONFIG.PRESENCE.AUTO_EXIT_TIME_WEEKDAY;
 
         // Format today as YYYY-MM-DD for MSSQL date comparison
-        const todayStr = now.toISOString().slice(0, 10);
+        const todayStr = getTodayDate();
 
         const params: SqlParams = { today: todayStr };
         if (testOperator) params.testOperator = testOperator;

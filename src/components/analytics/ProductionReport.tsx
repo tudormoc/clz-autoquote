@@ -8,7 +8,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
-import { getLastYearEnd, getLastYearStart } from '@/lib/dateUtils';
+import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatDate, formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
@@ -28,8 +28,7 @@ const initialFilters = (): Filters => ({
     commessa: '',
     machine: '',
     operator: '',
-    dateFrom: getLastYearStart(),
-    dateTo: getLastYearEnd(),
+    ...defaultReportPeriod(),
 });
 
 const toQuery = (f: Filters) => ({
