@@ -1,11 +1,9 @@
 /** Download helpers and file names */
+import { foldText } from '@/lib/utils';
 
 /** Text → safe file-name part: "Area Taglio/2" → "area-taglio-2", accents dropped ("Attività" → "attivita") */
 export function fileSlug(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
+    return foldText(text)
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 }

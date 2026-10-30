@@ -4,6 +4,7 @@
  * weekdays, months); the date words are taken out of the title. What it does not understand stays in the title.
  */
 
+import { foldText } from '@/lib/utils';
 import { addDays, addMonths, dayOf, daysInMonth, makeDate, monthOf, weekStart, weekdayOf, yearOf } from '@/lib/tasks/dates';
 import { RepeatRuleSchema, type RepeatRule } from '@/lib/tasks/repeat';
 import { APP_COPY } from '@/locales';
@@ -23,10 +24,9 @@ type Unit = keyof typeof words.units;
 // ---- Building the patterns: lower case, accents optional ("lunedi" = "lunedì") -------------------------------------
 
 const ACCENTS: Record<string, string> = { a: '[aà]', e: '[eèé]', i: '[iì]', o: '[oò]', u: '[uù]' };
-const bare = (text: string) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 /** A word or phrase as a pattern: any accents, any spaces between words */
 const word = (text: string) =>
-    bare(text)
+    foldText(text)
         .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         .replace(/[aeiou]/g, (vowel) => ACCENTS[vowel])
         .replace(/\s+/g, '\\s+');
@@ -42,13 +42,13 @@ const NUMBER = `(?:\\d{1,3}|${anyOf(Object.keys(words.numbers))})`;
 const UNIT = anyOf(Object.values(words.units).flat());
 const BEFORE = `(?:${anyOf(words.before)}\\s+)?`;
 
-const weekdayOfName = (name: string) => WEEKDAYS.find((weekday) => weekday.names.some((known) => bare(known) === bare(name)))?.day ?? 0;
+const weekdayOfName = (name: string) => WEEKDAYS.find((weekday) => weekday.names.some((known) => foldText(known) === foldText(name)))?.day ?? 0;
 const monthOfName = (name: string) => {
-    const index = [...APP_COPY.months.long, ...APP_COPY.months.short].findIndex((known) => bare(known) === bare(name));
+    const index = [...APP_COPY.months.long, ...APP_COPY.months.short].findIndex((known) => foldText(known) === foldText(name));
     return index < 0 ? 0 : (index % 12) + 1;
 };
-const numberOf = (text: string) => (/^\d+$/.test(text) ? Number(text) : (words.numbers as Record<string, number>)[bare(text)] ?? 0);
-const unitOf = (text: string): Unit => (Object.keys(words.units) as Unit[]).find((unit) => words.units[unit].some((known) => bare(known) === bare(text))) ?? 'days';
+const numberOf = (text: string) => (/^\d+$/.test(text) ? Number(text) : (words.numbers as Record<string, number>)[foldText(text)] ?? 0);
+const unitOf = (text: string): Unit => (Object.keys(words.units) as Unit[]).find((unit) => words.units[unit].some((known) => foldText(known) === foldText(text))) ?? 'days';
 
 /** The first day on or after `from` that falls on one of the weekdays */
 const nextWeekday = (from: string, weekdays: number[]) => {

@@ -58,7 +58,9 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 - **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin; new users get a random PIN, they can
   change it with "Cambia PIN"), groups, last login, *sospeso* (cannot log in, an open login ends at once; PIN and
   groups stay). **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*. Utenti is one table of all
-  users (a tick column per group); Gruppi is one table of all groups (a column each, a row per page).
+  users (a tick column per group); Gruppi is one table of all groups (a column each, a row per area that opens to its
+  pages and functions; each cell is No | Vede | Modifica, with Modifica only where the page changes data; a search box
+  finds a page).
 - A person sees only their pages: menu, home and overview pages are filtered (`src/lib/auth/permissions.ts`), edit
   buttons and click-to-edit cells hide without *modifica* (`useCanEdit()`). The protection itself is on the server:
   `src/proxy.ts` (logged in?), `requirePage` in each page, `authorize` / `requireSuperadmin` in each server action
