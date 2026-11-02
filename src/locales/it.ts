@@ -87,7 +87,7 @@ export const APP_COPY = {
     // Functions of a page that a group is given on their own, in Gruppi (NavItem.functions)
     functions: {
       riallinea: { label: "Riallinea ordine da DiBa", description: "Riscrive l'ordine Business e NetPro dalla distinta base" },
-      newOperator: { label: "Nuovo operatore", description: "Crea un operatore in NetPro dalla pagina Operatori" },
+      manageOperators: { label: "Crea ed elimina operatori", description: "Nuovo operatore ed Elimina nella pagina Operatori: scrivono in NetPro" },
     },
   },
   // Login, logout, own PIN (src/lib/auth, src/app/auth-actions.ts)
@@ -1346,6 +1346,12 @@ export const APP_COPY = {
         nameRequired: "Inserisci il nome",
         categoryRequired: "Scegli la categoria",
         invalid: "Controlla il campo {field}",
+        delete: "Elimina",
+        deleteConfirm: "Eliminare l'operatore {code} {name} da NetPro? Non si può annullare.",
+        deleted: "Operatore {code} eliminato",
+        notFound: "Operatore {code} non trovato",
+        /** A person with clock records, events or saved hours is never deleted */
+        hasHistory: "{name} ({code}) ha {count} registrazioni in NetPro (timbrature, eventi, ore) e non si può eliminare: cambiagli la categoria in NetPro.",
         codeTaken: "Il codice {code} è già di {name}",
         badgeTaken: "Il badge {badge} è già di {name} ({code})",
         created: "Operatore {code} creato",

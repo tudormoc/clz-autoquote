@@ -148,9 +148,9 @@ export const WORK_PROGRESS_FUNCTIONS = {
     riallinea: functionHref(LINKS.workProgress, 'riallinea'),
 } as const;
 
-/** Functions of the presence pages given apart in Gruppi: creating an operator in NetPro */
+/** Functions of the presence pages given apart in Gruppi: creating and deleting operators in NetPro */
 export const PRESENCE_FUNCTIONS = {
-    newOperator: functionHref(LINKS.presence.operators, 'nuovo-operatore'),
+    manageOperators: functionHref(LINKS.presence.operators, 'anagrafica'),
 } as const;
 
 /** The app's areas, in sidebar order */
@@ -186,7 +186,7 @@ export const NAV_AREAS: NavArea[] = [
                         description: analytics.operators.subtitle,
                         icon: Users,
                         editable: true,
-                        functions: [pageFunction(LINKS.presence.operators, 'nuovo-operatore', APP_COPY.nav.functions.newOperator)],
+                        functions: [pageFunction(LINKS.presence.operators, 'anagrafica', APP_COPY.nav.functions.manageOperators)],
                     },
                     { id: 'daily-events', href: LINKS.presence.dailyEvents, label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar, editable: true },
                     { id: 'monthly-summary', href: LINKS.presence.monthlySummary, label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays, editable: true },

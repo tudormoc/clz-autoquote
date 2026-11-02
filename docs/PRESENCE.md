@@ -79,7 +79,7 @@ the Controllo badge and anomalies automatically. Add other per-operator knobs th
 An operator is one row of `NETPRO.OPERATORI` and nothing else (no other table, key, trigger or procedure is involved;
 the badge terminal finds the person through `BADGE` in that row). The Operatori page creates and edits them:
 
-- **Nuovo operatore** (a function of the page, given apart in Gruppi): code, name, badge, category. The server
+- **Nuovo operatore** (with the function "Crea ed elimina operatori", given apart in Gruppi): code, name, badge, category. The server
   (`createOperatorAction`) refuses a code or badge already in use, then inserts the row the way NetPro's own screen
   does: `MATRICOLA` = the code, stato logico IDLE as of now, and the fixed values in
   `APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES` (cost centre, level, flags). Check and insert are one transaction.
@@ -93,8 +93,11 @@ the badge terminal finds the person through `BADGE` in that row). The Operatori 
   `PRESENCE_RULES.CATEGORIES`). `nameForCategory()` adds it when the category is Interinali and takes it off when the
   person moves to another category, so nobody types it; the window shows the name it will save. Examples in
   `npm run presence:examples`.
-- Nothing is ever deleted: a person who leaves is moved to category 999 in NetPro and disappears from the lists
-  (the page shows only the known categories).
+- **Elimina** (in the edit window, same function): `deleteOperatorAction` deletes the row only when nothing names
+  the code, in `EVENTI`, `STO_EVENTI`, `SITUAZIONI`, `STO_SITUAZIONI`, `ATTIVITA`, `UTENTI` or the saved hours
+  (`HISTORY_TABLES`): nothing in the database would otherwise stop those rows from losing their person. A person
+  with history is kept, and the message says to change the category in NetPro: that is how someone who leaves
+  disappears from the lists (category 999, which the page does not show). Checks and delete are one transaction.
 
 ## Invariant
 

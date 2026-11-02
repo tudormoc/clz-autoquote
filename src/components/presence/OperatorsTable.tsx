@@ -60,7 +60,7 @@ export function OperatorsTable() {
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'OPERATORE', direction: 'asc' });
     const canEdit = useCanEdit();
-    const canCreate = useCanUse(PRESENCE_FUNCTIONS.newOperator);
+    const canCreate = useCanUse(PRESENCE_FUNCTIONS.manageOperators);
     /** The window: closed, a new operator, or the one being edited */
     const [form, setForm] = useState<{ operator: OperatorRow | null } | null>(null);
 

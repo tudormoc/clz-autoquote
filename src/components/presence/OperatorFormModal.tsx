@@ -1,13 +1,16 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Pencil, UserPlus } from 'lucide-react';
-import { createOperatorAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
+import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { createOperatorAction, deleteOperatorAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
+import { useCanUse } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { PRESENCE_FUNCTIONS } from '@/config/navigation';
+import { confirmDelete } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
 import { EMPLOYEE_CATEGORIES, categoryOf, nameForCategory } from '@/lib/presence/categories';
 import {
@@ -52,13 +55,15 @@ const draftOf = (operator: OperatorRow | null): Draft => ({
 
 /**
  * "Nuovo operatore": code, name, badge, category; the matricola is the code. "Modifica operatore": the same, the
- * matricola free, and NetPro's five free fields with a hint of what they usually hold. The name shows how it will
- * be saved when the category adds or removes its mark (" *lb").
+ * matricola free, NetPro's five free fields with a hint of what they usually hold, and Elimina (with the function
+ * "Crea ed elimina operatori"; the server deletes only a person without history). The name shows how it will be saved
+ * when the category adds or removes its mark (" *lb").
  */
 export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormModalProps) {
     const formId = useId();
     const [draft, setDraft] = useState<Draft>(() => draftOf(operator));
     const [saving, setSaving] = useState(false);
+    const canDelete = useCanUse(PRESENCE_FUNCTIONS.manageOperators);
     const set = (change: Partial<Draft>) => setDraft((current) => ({ ...current, ...change }));
     const setFree = (field: OperatorFreeField, value: string) => setDraft((current) => ({ ...current, free: { ...current.free, [field]: value } }));
 
@@ -92,6 +97,26 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
         }
     };
 
+    const remove = async () => {
+        if (!operator) return;
+        if (!(await confirmDelete(fmt(copy.deleteConfirm, { code: operator.OPERATORE, name: operator.NOME ?? '' })))) return;
+        setSaving(true);
+        try {
+            const result = await deleteOperatorAction(operator.OPERATORE);
+            if (!result.success) {
+                notify.error(result.error);
+                return;
+            }
+            notify.success(fmt(copy.deleted, { code: operator.OPERATORE }));
+            await onSaved();
+            onClose();
+        } catch (err) {
+            notify.failure(err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const id = (name: string) => `${formId}-${name}`;
 
     return (
@@ -104,6 +129,12 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
             busy={saving}
             footer={
                 <>
+                    {operator && canDelete && (
+                        <Button variant="danger" onClick={remove} disabled={saving} className="mr-auto">
+                            <Trash2 size={16} />
+                            {copy.delete}
+                        </Button>
+                    )}
                     <Button variant="secondary" onClick={onClose} disabled={saving}>
                         {APP_COPY.common.cancel}
                     </Button>

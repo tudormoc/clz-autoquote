@@ -74,7 +74,7 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   pages of all their groups (tick columns in Utenti). To take the app away from someone: the *attivo* switch in Utenti
   (sospeso) — or delete them. A new page or report added to `NAV_AREAS` is in Gruppi at once, nothing else to do; until
   a group is given it, nobody but the superadmin can open it.
-- **Functions of a page** (today: Riallinea on Avanzamento Lavori, Nuovo operatore on Operatori) are given apart, Sì or No, as an indented row under
+- **Functions of a page** (today: Riallinea on Avanzamento Lavori, "Crea ed elimina operatori" on Operatori) are given apart, Sì or No, as an indented row under
   the page in Gruppi; the area and "Tutte le pagine" rows never switch them on. A function counts only together with
   *modifica* on its page. To add one: `functions: [{ href: functionHref('/page', 'name'), ...APP_COPY.nav.functions.name }]`
   on the page in `NAV_AREAS`, `await authorize('edit', <that href>)` in its server action after the page check, and

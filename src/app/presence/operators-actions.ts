@@ -3,7 +3,7 @@
 /** Operators (OPERATORI): list, new operator, edit its fields, printable checklist, TURNO2 group. */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL, withTransactions, type SqlParams, type SqlRunner } from '@/lib/mssql';
+import { queryMSSQL, withTransactions, type MSSQL_DB, type SqlParams, type SqlRunner } from '@/lib/mssql';
 import { APP_COPY, fmt } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { authorize } from '@/lib/auth/access';
@@ -165,11 +165,11 @@ async function badgeProblem(run: SqlRunner, badge: string, exceptOperator?: stri
  * Creates an operator in NetPro the way its own screen does: one row of OPERATORI with the typed code, the name with
  * the category's mark (" *lb" for the interinali), badge and category, the matricola equal to the code, the stato
  * fisico of the category (OUT, OFF for the office) and IDLE as of now, and the fixed values NetPro writes (NEW_OPERATOR_VALUES). The code must be free, and so must the
- * badge; the checks and the insert are one transaction. Needs modifica on Operatori and the function "Nuovo operatore".
+ * badge; the checks and the insert are one transaction. Needs modifica on Operatori and the function "Crea ed elimina operatori".
  */
 export async function createOperatorAction(input: NewOperatorInput) {
     await authorize('edit', LINKS.presence.operators);
-    await authorize('edit', PRESENCE_FUNCTIONS.newOperator);
+    await authorize('edit', PRESENCE_FUNCTIONS.manageOperators);
     const parsed = NewOperatorSchema.safeParse(input);
     if (!parsed.success) return { success: false as const, error: operatorInputProblem(NewOperatorSchema, input) ?? APP_COPY.common.invalidData };
     const { code, badge, category } = parsed.data;
@@ -226,6 +226,48 @@ export async function saveOperatorAction(operatore: string, fields: OperatorFiel
             const params: SqlParams = { operatore };
             for (const column of columns) params[column] = changes[column] ?? null;
             await run(`UPDATE OPERATORI SET ${columns.map((column) => `${column} = @${column}`).join(', ')} WHERE OPERATORE = @operatore`, params, 'NETPRO');
+            return null;
+        });
+        return problem ? { success: false as const, error: problem } : { success: true as const };
+    } catch (err) {
+        return { success: false as const, error: errorMessage(err) };
+    }
+}
+
+/** The rows that name an operator: the history a deletion would leave without its person (nothing in the database stops it) */
+const HISTORY_TABLES: { table: string; where: string; db: MSSQL_DB }[] = [
+    { table: 'EVENTI', where: 'OGGETTO = @code OR OPERATORE = @code', db: 'NETPRO' },
+    { table: 'STO_EVENTI', where: 'OGGETTO = @code OR OPERATORE = @code', db: 'NETPRO' },
+    { table: 'SITUAZIONI', where: "OPERATORE = @code OR (TIPO_OGGETTO = 'OPE' AND OGGETTO = @code)", db: 'NETPRO' },
+    { table: 'STO_SITUAZIONI', where: "OPERATORE = @code OR (TIPO_OGGETTO = 'OPE' AND OGGETTO = @code)", db: 'NETPRO' },
+    { table: 'ATTIVITA', where: 'OPERATORE = @code', db: 'NETPRO' },
+    { table: 'UTENTI', where: 'OPERATORE = @code', db: 'NETPRO' },
+    { table: 'presence_hours_distribution', where: 'operatore = @code', db: 'QUOTES' },
+];
+
+/**
+ * Deletes an operator from NetPro, only one without history: no event, clock record, activity, NetPro user or saved
+ * hours may name the code, since nothing in the database would keep those rows from losing their person. Someone
+ * with history is kept and the message says to change the category in NetPro instead. The checks and the delete are
+ * one transaction. Needs modifica on Operatori and the function "Crea ed elimina operatori".
+ */
+export async function deleteOperatorAction(operatore: string) {
+    await authorize('edit', LINKS.presence.operators);
+    await authorize('edit', PRESENCE_FUNCTIONS.manageOperators);
+    const code = operatore.trim();
+    if (!code) return { success: false as const, error: APP_COPY.common.invalidData };
+    try {
+        const problem = await withTransactions(['NETPRO'], async (run) => {
+            const found = await run<{ NOME: string | null }>(`SELECT NOME FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @code`, { code }, 'NETPRO');
+            if (!found.recordset[0]) return fmt(formCopy.notFound, { code });
+            let count = 0;
+            for (const { table, where, db } of HISTORY_TABLES) {
+                const query = `SELECT COUNT(*) AS n FROM ${table} WITH (NOLOCK) WHERE ${where}`;
+                const result = db === 'NETPRO' ? await run<{ n: number }>(query, { code }, db) : await queryMSSQL<{ n: number }>(query, { code }, db);
+                count += result.recordset[0].n;
+            }
+            if (count > 0) return fmt(formCopy.hasHistory, { code, name: found.recordset[0].NOME ?? '', count });
+            await run(`DELETE FROM OPERATORI WHERE OPERATORE = @code`, { code }, 'NETPRO');
             return null;
         });
         return problem ? { success: false as const, error: problem } : { success: true as const };
