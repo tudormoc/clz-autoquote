@@ -4,7 +4,7 @@
  *
  *   npm run presence:examples
  */
-import { DEFAULT_PRESENCE_RULES } from '@/lib/presence';
+import { DEFAULT_PRESENCE_RULES, nameForCategory } from '@/lib/presence';
 import { runNoRecordExamples, runOperatorExceptionExamples, runPresenceExamples } from '@/lib/presence/examples';
 
 const results = runPresenceExamples(DEFAULT_PRESENCE_RULES);
@@ -40,6 +40,24 @@ for (const { example, actual, pass } of exceptions) {
     if (!pass) console.log(`     expected ${JSON.stringify(example.expect)}`);
 }
 
-const total = results.length + noRecord.length + exceptions.length;
+console.log('\n--- name mark by category (Interinali end with " *lb") ---');
+const NAME_EXAMPLES: { name: string; reparto: string | null; expect: string; note: string }[] = [
+    { name: 'ROSSI MARIO', reparto: '1001', expect: 'ROSSI MARIO *lb', note: 'a new interinale gets the mark' },
+    { name: 'ROSSI MARIO *lb', reparto: '1001', expect: 'ROSSI MARIO *lb', note: 'never twice' },
+    { name: 'ROSSI MARIO *LB ', reparto: '1001', expect: 'ROSSI MARIO *lb', note: 'any case, trimmed' },
+    { name: 'ROSSI MARIO *lb', reparto: '2', expect: 'ROSSI MARIO', note: 'moved to Produzione: the mark goes' },
+    { name: '  rossi mario  ', reparto: '3', expect: 'rossi mario', note: 'Ufficio: trimmed, no mark' },
+    { name: 'ROSSI MARIO', reparto: '999', expect: 'ROSSI MARIO', note: 'unknown category: no mark' },
+    { name: '   ', reparto: '1001', expect: '', note: 'an empty name stays empty' },
+];
+for (const { name, reparto, expect, note } of NAME_EXAMPLES) {
+    const actual = nameForCategory(name, reparto);
+    const pass = actual === expect;
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${JSON.stringify(name).padEnd(20)} ${String(reparto).padEnd(5)} ⇒ ${JSON.stringify(actual)}  — ${note}`);
+    if (!pass) console.log(`     expected ${JSON.stringify(expect)}`);
+}
+
+const total = results.length + noRecord.length + exceptions.length + NAME_EXAMPLES.length;
 console.log(`\n${total - failed}/${total} examples pass`);
 process.exit(failed > 0 ? 1 : 0);

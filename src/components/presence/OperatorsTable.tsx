@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
-import { getOperatorsAction, updateOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
+import { FileText, Pencil, Plus } from 'lucide-react';
+import { getOperatorsAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
 import { OperatorChecklistModal } from '@/components/presence/OperatorChecklistModal';
+import { OperatorFormModal } from '@/components/presence/OperatorFormModal';
 import { Button } from '@/components/ui/Button';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EditableCell } from '@/components/ui/EditableCell';
@@ -18,12 +19,15 @@ import { useClientSort } from '@/hooks/useClientSort';
 import { useListQuery } from '@/hooks/useListQuery';
 import { EMPTY_VALUE } from '@/lib/format';
 import { EMPLOYEE_CATEGORIES, normalizeReparto } from '@/lib/presence/categories';
+import type { OperatorFields } from '@/lib/presence/operatorInput';
 import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
-import { useCanEdit } from '@/components/auth/AccessProvider';
+import { useCanEdit, useCanUse } from '@/components/auth/AccessProvider';
+import { PRESENCE_FUNCTIONS } from '@/config/navigation';
 
+/** The cells of the list that edit in place; the window (pencil) has every field */
 type EditableColumn = 'BADGE' | 'NOME' | 'STATO_FISICO';
 
 const copy = APP_COPY.analytics.operators;
@@ -56,6 +60,9 @@ export function OperatorsTable() {
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'OPERATORE', direction: 'asc' });
     const canEdit = useCanEdit();
+    const canCreate = useCanUse(PRESENCE_FUNCTIONS.newOperator);
+    /** The window: closed, a new operator, or the one being edited */
+    const [form, setForm] = useState<{ operator: OperatorRow | null } | null>(null);
 
     const allStati = list.result?.allStati ?? [];
     // null = default: every stato on. Operators without a stato get their own chip, off by default.
@@ -67,7 +74,9 @@ export function OperatorsTable() {
     const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)) && activeCategories.has(normalizeReparto(row.ENTITA)));
 
     const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
-        const result = await updateOperatorAction(operatore, column, value.trim() || null);
+        const fields: OperatorFields = {};
+        fields[column] = value;
+        const result = await saveOperatorAction(operatore, fields);
         if (!result.success) {
             notify.failure(result.error);
             return false;
@@ -111,6 +120,28 @@ export function OperatorsTable() {
                     />
                 )),
         },
+        ...(canEdit
+            ? [
+                  {
+                      key: 'edit',
+                      header: '',
+                      sortable: false,
+                      compact: true,
+                      className: 'w-10',
+                      mobileLabel: copy.form.edit,
+                      cell: (row: OperatorRow) => (
+                          <button
+                              type="button"
+                              title={copy.form.edit}
+                              onClick={() => setForm({ operator: row })}
+                              className="p-1 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors"
+                          >
+                              <Pencil size={14} />
+                          </button>
+                      ),
+                  },
+              ]
+            : []),
     ];
 
     const statoOptions = [
@@ -130,10 +161,18 @@ export function OperatorsTable() {
                     setActiveCategories(DEFAULT_CATEGORIES);
                 }}
                 actions={
-                    <Button type="button" variant="secondary" onClick={() => setShowChecklist(true)}>
-                        <FileText size={16} />
-                        {copy.checklist.button}
-                    </Button>
+                    <>
+                        {canEdit && canCreate && (
+                            <Button type="button" onClick={() => setForm({ operator: null })}>
+                                <Plus size={16} />
+                                {copy.form.newButton}
+                            </Button>
+                        )}
+                        <Button type="button" variant="secondary" onClick={() => setShowChecklist(true)}>
+                            <FileText size={16} />
+                            {copy.checklist.button}
+                        </Button>
+                    </>
                 }
                 below={
                     <>
@@ -183,6 +222,7 @@ export function OperatorsTable() {
             />
 
             {showChecklist && <OperatorChecklistModal onClose={() => setShowChecklist(false)} />}
+            {form && <OperatorFormModal operator={form.operator} onSaved={list.reload} onClose={() => setForm(null)} />}
         </div>
     );
 }

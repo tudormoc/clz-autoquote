@@ -1,26 +1,39 @@
 'use server'
 
-/** Operators (OPERATORI): list, edit badge / name / stato, TURNO2 group. */
+/** Operators (OPERATORI): list, new operator, edit its fields, printable checklist, TURNO2 group. */
 
 import { errorMessage } from '@/lib/utils';
-import { queryMSSQL, type SqlParams } from '@/lib/mssql';
-import { APP_COPY } from '@/locales';
+import { queryMSSQL, withTransactions, type SqlParams, type SqlRunner } from '@/lib/mssql';
+import { APP_COPY, fmt } from '@/locales';
+import { APP_CONFIG } from '@/config/constants';
 import { authorize } from '@/lib/auth/access';
 import { buildOperatorSearch } from './presence-db';
-import { EMPLOYEE_CATEGORIES } from '@/lib/presence/categories';
+import { EMPLOYEE_CATEGORIES, nameForCategory } from '@/lib/presence/categories';
+import {
+    NewOperatorSchema,
+    OPERATOR_COLUMN_SIZES,
+    OPERATOR_FIELDS,
+    OperatorFieldsSchema,
+    operatorInputProblem,
+    type NewOperatorInput,
+    type OperatorField,
+    type OperatorFields,
+    type OperatorFreeField,
+} from '@/lib/presence/operatorInput';
 import { reportFileName } from '@/lib/download';
-import { getTodayDate } from '@/lib/dateUtils';
+import { getTodayDate, toLocalDateTime } from '@/lib/dateUtils';
 import { operatorChecklistHtml } from '@/lib/pdf/operatorChecklistHtml';
 import { renderPdfBase64 } from '@/lib/pdf/renderPdf';
-import { LINKS } from '@/config/navigation';
+import { LINKS, PRESENCE_FUNCTIONS } from '@/config/navigation';
 
-export interface OperatorRow {
+export interface OperatorRow extends Record<OperatorFreeField, string | null> {
     OPERATORE: string;
     NOME: string | null;
     BADGE: string | null;
     STATO_FISICO: string | null;
     /** Category code (PRESENCE_RULES.CATEGORIES → reparto) */
     ENTITA: string | null;
+    MATRICOLA: string | null;
 }
 
 /** An operator with its group (TURNO2 or none) */
@@ -38,12 +51,14 @@ export async function getOperatorsAction(search?: string) {
         const whereClause = operatorSearch ? `WHERE ${operatorSearch}` : '';
 
         const query = `
-            SELECT 
+            SELECT
                 OPERATORE,
                 NOME,
                 BADGE,
                 STATO_FISICO,
-                ENTITA
+                ENTITA,
+                MATRICOLA,
+                FCODE01, FCODE02, FCODE03, FCODE04, FCODE05
             FROM OPERATORI WITH (NOLOCK)
             ${whereClause}
             ORDER BY OPERATORE ASC
@@ -129,34 +144,93 @@ export async function generateOperatorChecklistPDFAction(categoryKeys: string[],
     }
 }
 
-/** Columns of an operator the list may change (the server refuses any other) */
-const OPERATOR_COLUMNS = ['BADGE', 'NOME', 'STATO_FISICO'] as const;
+const formCopy = APP_COPY.analytics.operators.form;
+const NEW_VALUES = APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES;
 
-export async function updateOperatorAction(
-    operatore: string,
-    columnName: (typeof OPERATOR_COLUMNS)[number],
-    newValue: string | null
-) {
+/** The message when another operator has this badge, null when it is free (NetPro does not keep badges unique: the app does) */
+async function badgeProblem(run: SqlRunner, badge: string, exceptOperator?: string): Promise<string | null> {
+    const params: SqlParams = { badge };
+    if (exceptOperator) params.exceptOperator = exceptOperator;
+    const result = await run<{ OPERATORE: string; NOME: string | null }>(
+        `SELECT TOP 1 OPERATORE, NOME FROM OPERATORI WITH (NOLOCK)
+         WHERE BADGE = @badge${exceptOperator ? ' AND OPERATORE <> @exceptOperator' : ''}`,
+        params,
+        'NETPRO'
+    );
+    const owner = result.recordset[0];
+    return owner ? fmt(formCopy.badgeTaken, { badge, name: owner.NOME ?? '', code: owner.OPERATORE }) : null;
+}
+
+/**
+ * Creates an operator in NetPro the way its own screen does: one row of OPERATORI with the typed code, the name with
+ * the category's mark (" *lb" for the interinali), badge and category, the matricola equal to the code, stato OFF /
+ * IDLE as of now and the fixed values NetPro writes (NEW_OPERATOR_VALUES). The code must be free, and so must the
+ * badge; the checks and the insert are one transaction. Needs modifica on Operatori and the function "Nuovo operatore".
+ */
+export async function createOperatorAction(input: NewOperatorInput) {
     await authorize('edit', LINKS.presence.operators);
-    if (!OPERATOR_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
+    await authorize('edit', PRESENCE_FUNCTIONS.newOperator);
+    const parsed = NewOperatorSchema.safeParse(input);
+    if (!parsed.success) return { success: false as const, error: operatorInputProblem(NewOperatorSchema, input) ?? APP_COPY.common.invalidData };
+    const { code, badge, category } = parsed.data;
+    const name = nameForCategory(parsed.data.name, category);
+    if (name.length > OPERATOR_COLUMN_SIZES.NOME) return { success: false as const, error: fmt(formCopy.invalid, { field: formCopy.name }) };
     try {
-        const query = `
-            UPDATE OPERATORI
-            SET ${columnName} = @newValue
-            WHERE OPERATORE = @operatore
-        `;
+        const problem = await withTransactions(['NETPRO'], async (run) => {
+            const existing = await run<{ NOME: string | null }>(`SELECT NOME FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @code`, { code }, 'NETPRO');
+            if (existing.recordset[0]) return fmt(formCopy.codeTaken, { code, name: existing.recordset[0].NOME ?? '' });
+            const taken = badge ? await badgeProblem(run, badge) : null;
+            if (taken) return taken;
 
-        await queryMSSQL(query, {
-            newValue: newValue ?? null,
-            operatore
-        }, 'NETPRO');
-
-        return { success: true };
+            const now = toLocalDateTime(new Date());
+            await run(
+                `INSERT INTO OPERATORI (OPERATORE, NOME, BADGE, ENTITA, MATRICOLA, CENTRO_COSTO, LIVELLO, STATO_FISICO, STATO_LOGICO, ORA_ST_FISICO, ORA_ST_LOGICO,
+                                        COSTO, FVALUE01, FVALUE02, FVALUE03, FVALUE04, FVALUE05, FMULTIASSMAC, FNDESCS, FPLANNING)
+                 VALUES (@code, @name, @badge, @category, @code, @centroCosto, @livello, @statoFisico, @statoLogico, @now, @now,
+                         @costo, @fvalue, @fvalue, @fvalue, @fvalue, @fvalue, @multiAssMac, @nDescs, @planning)`,
+                {
+                    code, name, badge, category, now,
+                    centroCosto: NEW_VALUES.CENTRO_COSTO, livello: NEW_VALUES.LIVELLO,
+                    statoFisico: NEW_VALUES.STATO_FISICO, statoLogico: NEW_VALUES.STATO_LOGICO,
+                    costo: NEW_VALUES.COSTO, fvalue: NEW_VALUES.FVALUE,
+                    multiAssMac: NEW_VALUES.FMULTIASSMAC, nDescs: NEW_VALUES.FNDESCS, planning: NEW_VALUES.FPLANNING,
+                },
+                'NETPRO'
+            );
+            return null;
+        });
+        return problem ? { success: false as const, error: problem } : { success: true as const, name };
     } catch (err) {
-        return {
-            success: false,
-            error: errorMessage(err)
-        };
+        return { success: false as const, error: errorMessage(err) };
+    }
+}
+
+/**
+ * Changes the given fields of an operator (one cell of the list, or the whole window): only the columns of
+ * OperatorFieldsSchema, trimmed, empty → NULL. When the name and the category come together the name takes the
+ * category's mark. A badge must not be another operator's; the check and the update are one transaction.
+ */
+export async function saveOperatorAction(operatore: string, fields: OperatorFields) {
+    await authorize('edit', LINKS.presence.operators);
+    const parsed = OperatorFieldsSchema.safeParse(fields);
+    if (!parsed.success) return { success: false as const, error: operatorInputProblem(OperatorFieldsSchema, fields) ?? APP_COPY.common.invalidData };
+    const changes: Partial<Record<OperatorField, string | null>> = { ...parsed.data };
+    if (changes.NOME !== undefined && changes.ENTITA !== undefined) changes.NOME = nameForCategory(changes.NOME ?? '', changes.ENTITA);
+    if ((changes.NOME?.length ?? 0) > OPERATOR_COLUMN_SIZES.NOME) return { success: false as const, error: fmt(formCopy.invalid, { field: formCopy.name }) };
+    const columns = OPERATOR_FIELDS.filter((column) => changes[column] !== undefined);
+    if (columns.length === 0) return { success: true as const };
+    try {
+        const problem = await withTransactions(['NETPRO'], async (run) => {
+            const taken = changes.BADGE ? await badgeProblem(run, changes.BADGE, operatore) : null;
+            if (taken) return taken;
+            const params: SqlParams = { operatore };
+            for (const column of columns) params[column] = changes[column] ?? null;
+            await run(`UPDATE OPERATORI SET ${columns.map((column) => `${column} = @${column}`).join(', ')} WHERE OPERATORE = @operatore`, params, 'NETPRO');
+            return null;
+        });
+        return problem ? { success: false as const, error: problem } : { success: true as const };
+    } catch (err) {
+        return { success: false as const, error: errorMessage(err) };
     }
 }
 

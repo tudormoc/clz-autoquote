@@ -25,7 +25,8 @@ formulas/*   ← server actions + MonthlyHoursTable
 | `src/lib/presence/formulas/edit-effects.ts` | Cell edit side effects (permesso clears ferie, causale → full ferie) |
 | `src/lib/presence/formulas/rounding.ts` | Shared rounding (step + floor/nearest/ceil) |
 | `src/lib/presence/calendar.ts` | Working days, date ranges, local today |
-| `src/lib/presence/categories.ts` | ENTITA → category, tracked reparti |
+| `src/lib/presence/categories.ts` | ENTITA → category, tracked reparti, the name mark of a category (`nameForCategory`) |
+| `src/lib/presence/operatorInput.ts` | What the Operatori window may write: column sizes, Zod schemas, the message of a wrong field |
 | `src/lib/presence/config.ts` | Setting definitions (DB key ↔ config field), parser, defaults |
 | `src/lib/presence/examples.ts` | Validated example table — run with `npm run presence:examples` |
 
@@ -72,6 +73,25 @@ Day kinds come from `GIORNI_LAVORATIVI` / `GIORNI_EXTRA`; extra-day numbers from
 **Per-operator exceptions** — `ORE_GIORNATA_OPERATORE` = `12345=6` (only the exceptions; everyone
 else uses `ORE_GIORNATA`). `rulesForOperator()` applies them, so the 6h flows into prefill, ferie/permesso,
 the Controllo badge and anomalies automatically. Add other per-operator knobs the same way.
+
+## Operators (anagrafica)
+
+An operator is one row of `NETPRO.OPERATORI` and nothing else (no other table, key, trigger or procedure is involved;
+the badge terminal finds the person through `BADGE` in that row). The Operatori page creates and edits them:
+
+- **Nuovo operatore** (a function of the page, given apart in Gruppi): code, name, badge, category. The server
+  (`createOperatorAction`) refuses a code or badge already in use, then inserts the row the way NetPro's own screen
+  does: `MATRICOLA` = the code, stato OFF / IDLE as of now, and the fixed values in
+  `APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES` (cost centre, level, flags). Check and insert are one transaction.
+- **Modifica** (the pencil, with *modifica* on the page): name, badge, category, matricola and NetPro's five free
+  fields, shown with their real names and a hint of what they usually hold. `saveOperatorAction` writes only the
+  columns of `OperatorFieldsSchema`; a badge must not be another operator's.
+- **The name mark**: by habit the names of the interinali end with ` *lb` (`nameMark` of the category in
+  `PRESENCE_RULES.CATEGORIES`). `nameForCategory()` adds it when the category is Interinali and takes it off when the
+  person moves to another category, so nobody types it; the window shows the name it will save. Examples in
+  `npm run presence:examples`.
+- Nothing is ever deleted: a person who leaves is moved to category 999 in NetPro and disappears from the lists
+  (the page shows only the known categories).
 
 ## Invariant
 

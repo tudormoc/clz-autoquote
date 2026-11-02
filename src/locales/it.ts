@@ -87,6 +87,7 @@ export const APP_COPY = {
     // Functions of a page that a group is given on their own, in Gruppi (NavItem.functions)
     functions: {
       riallinea: { label: "Riallinea ordine da DiBa", description: "Riscrive l'ordine Business e NetPro dalla distinta base" },
+      newOperator: { label: "Nuovo operatore", description: "Crea un operatore in NetPro dalla pagina Operatori" },
     },
   },
   // Login, logout, own PIN (src/lib/auth, src/app/auth-actions.ts)
@@ -1311,7 +1312,44 @@ export const APP_COPY = {
       },
       noResults: "Nessun operatore trovato.",
       loading: "Caricamento operatori...",
-      editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli",
+      editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli; la matita apre tutti i campi",
+      // "Nuovo operatore" / "Modifica operatore" window (OperatorFormModal, rules in src/lib/presence/operatorInput.ts)
+      form: {
+        newButton: "Nuovo operatore",
+        newTitle: "Nuovo operatore",
+        newSubtitle: "Creato in NetPro come dalla sua schermata: stato OFF, matricola uguale al codice",
+        editTitle: "Modifica operatore",
+        edit: "Modifica",
+        code: "Codice operatore",
+        codePlaceholder: "es. 1262",
+        name: "Nome",
+        namePlaceholder: "COGNOME NOME",
+        /** Under the name when the category adds or removes its mark */
+        nameSaved: "Verrà salvato come: {name}",
+        badge: "Badge",
+        badgePlaceholder: "numero della tessera, o vuoto",
+        category: "Categoria",
+        matricola: "Matricola",
+        matricolaHint: "Uguale al codice operatore",
+        freeFields: "Campi liberi di NetPro",
+        /** What each free field usually holds (seen in the rows of today) */
+        freeFieldHints: {
+          FCODE01: "Di solito: agenzia (OPENJOB, UMANA, ADECCO, GIGROUP)",
+          FCODE02: "Di solito: data di nascita, codice fiscale o paese",
+          FCODE03: "Di solito: indirizzo, città, paese o e-mail",
+          FCODE04: "Di solito: indirizzo, città, codice fiscale o data",
+          FCODE05: "Di solito: telefono o codice fiscale",
+        },
+        codeRequired: "Inserisci il codice operatore",
+        codeNoSpaces: "Il codice non può contenere spazi",
+        nameRequired: "Inserisci il nome",
+        categoryRequired: "Scegli la categoria",
+        invalid: "Controlla il campo {field}",
+        codeTaken: "Il codice {code} è già di {name}",
+        badgeTaken: "Il badge {badge} è già di {name} ({code})",
+        created: "Operatore {code} creato",
+        saved: "Operatore salvato",
+      },
       checklist: {
         button: "Lista PDF",
         title: "Lista operatori",

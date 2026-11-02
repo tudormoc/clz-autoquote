@@ -16,6 +16,12 @@ export function getTodayDate(): string {
     return toIsoDate(new Date());
 }
 
+/** Local date and time → "YYYY-MM-DD HH:MM:SS", the wall-clock text NetPro stores (no time zone can shift it) */
+export function toLocalDateTime(date: Date): string {
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${toIsoDate(date)} ${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`;
+}
+
 export interface DateRange {
     dateFrom: string;
     dateTo: string;

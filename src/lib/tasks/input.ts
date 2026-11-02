@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
+import { firstInputProblem } from '@/lib/inputProblem';
 import { isIsoDate } from '@/lib/tasks/dates';
 import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { LINK_KINDS, PRIORITIES, VISIBILITIES } from '@/lib/tasks/types';
@@ -77,13 +78,7 @@ const FIELD_LABELS: [string, string][] = [
 
 /** The first problem of a form as a text for the user, or null when all is fine */
 export function inputProblem<T>(schema: z.ZodType<T>, input: unknown): string | null {
-    const parsed = schema.safeParse(input);
-    if (parsed.success) return null;
-    const issue = parsed.error.issues[0];
-    if (OWN_MESSAGES.has(issue.message)) return issue.message;
-    const path = issue.path.map(String);
-    const label = FIELD_LABELS.find(([name]) => path.includes(name))?.[1] ?? path.join('.');
-    return fmt(messages.invalid, { detail: label });
+    return firstInputProblem(schema, input, { ownMessages: OWN_MESSAGES, labels: FIELD_LABELS, invalid: (label) => fmt(messages.invalid, { detail: label }) });
 }
 
 export const GuideInputSchema = z.object({

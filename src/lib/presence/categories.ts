@@ -16,6 +16,8 @@ export interface EmployeeCategory {
     defaultActive: boolean;
     /** Which formulas "Precompila" applies to this category. */
     profile: CategoryProfile;
+    /** What the names of its operators end with in NetPro (" *lb"), null when nothing */
+    nameMark: string | null;
 }
 
 /** Known categories, in display order (without "Altro"). */
@@ -24,6 +26,7 @@ export const EMPLOYEE_CATEGORIES: readonly EmployeeCategory[] = PRESENCE_RULES.C
     label: c.label,
     defaultActive: c.defaultActive,
     profile: c.profile,
+    nameMark: c.nameMark,
 }));
 
 export const OTHER_CATEGORY: EmployeeCategory = {
@@ -31,6 +34,7 @@ export const OTHER_CATEGORY: EmployeeCategory = {
     label: PRESENCE_RULES.OTHER_CATEGORY_LABEL,
     defaultActive: false,
     profile: 'none',
+    nameMark: null,
 };
 
 /** ENTITA values that belong to the presence system (used to list operators and to prefill). */
@@ -51,6 +55,22 @@ export function profileFromReparto(reparto: string | null | undefined): Category
 export const DEFAULT_ACTIVE_CATEGORY_KEYS: readonly string[] = EMPLOYEE_CATEGORIES
     .filter((c) => c.defaultActive)
     .map((c) => c.key);
+
+/** Every mark a name may end with, without its leading space */
+const NAME_MARKS = EMPLOYEE_CATEGORIES.flatMap((c) => (c.nameMark ? [c.nameMark.trim()] : []));
+
+/**
+ * The name as NetPro's habit writes it for the category: trimmed, any category mark taken off the end, then the
+ * category's own mark added when it has one ("rossi mario", Interinali → "rossi mario *lb"; back to Produzione → "rossi mario").
+ */
+export function nameForCategory(name: string, reparto: string | null | undefined): string {
+    let clean = name.trim();
+    for (const mark of NAME_MARKS) {
+        if (clean.toLowerCase().endsWith(mark.toLowerCase())) clean = clean.slice(0, -mark.length).trim();
+    }
+    const mark = EMPLOYEE_CATEGORIES.find((c) => c.key === normalizeReparto(reparto))?.nameMark;
+    return mark && clean ? `${clean}${mark}` : clean;
+}
 
 /** Map a raw ENTITA value to a category key ('altro' when unknown). */
 export function normalizeReparto(reparto: string | null | undefined): string {

@@ -34,6 +34,10 @@ All texts are Italian (`src/locales/it.ts`). Use these words so the same thing i
 | Efficiency | Efficienza |
 | Trend | Andamento |
 | Setup, Dashboard | kept in English |
+| Operator (a person on the clock, a row of NetPro's OPERATORI) | Operatore |
+| Agency worker (category 1001; the name ends with ` *lb` in NetPro) | Interinale |
+| Employee number | Matricola |
+| Badge card number | Badge |
 
 ## UI words
 
