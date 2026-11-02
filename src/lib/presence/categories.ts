@@ -18,6 +18,8 @@ export interface EmployeeCategory {
     profile: CategoryProfile;
     /** What the names of its operators end with in NetPro (" *lb"), null when nothing */
     nameMark: string | null;
+    /** The stato fisico a new operator of the category starts with ("OUT", or "OFF" for the office) */
+    newStato: string;
 }
 
 /** Known categories, in display order (without "Altro"). */
@@ -27,6 +29,7 @@ export const EMPLOYEE_CATEGORIES: readonly EmployeeCategory[] = PRESENCE_RULES.C
     defaultActive: c.defaultActive,
     profile: c.profile,
     nameMark: c.nameMark,
+    newStato: c.newStato,
 }));
 
 export const OTHER_CATEGORY: EmployeeCategory = {
@@ -35,6 +38,7 @@ export const OTHER_CATEGORY: EmployeeCategory = {
     defaultActive: false,
     profile: 'none',
     nameMark: null,
+    newStato: 'OFF',
 };
 
 /** ENTITA values that belong to the presence system (used to list operators and to prefill). */
@@ -68,8 +72,14 @@ export function nameForCategory(name: string, reparto: string | null | undefined
     for (const mark of NAME_MARKS) {
         if (clean.toLowerCase().endsWith(mark.toLowerCase())) clean = clean.slice(0, -mark.length).trim();
     }
-    const mark = EMPLOYEE_CATEGORIES.find((c) => c.key === normalizeReparto(reparto))?.nameMark;
+    const mark = categoryOf(reparto).nameMark;
     return mark && clean ? `${clean}${mark}` : clean;
+}
+
+/** The category of a raw ENTITA value ("Altro" when unknown) */
+export function categoryOf(reparto: string | null | undefined): EmployeeCategory {
+    const key = normalizeReparto(reparto);
+    return EMPLOYEE_CATEGORIES.find((c) => c.key === key) ?? OTHER_CATEGORY;
 }
 
 /** Map a raw ENTITA value to a category key ('altro' when unknown). */

@@ -282,8 +282,9 @@ export const APP_CONFIG = {
     // Event types the form can add
     NEW_EVENT_TYPES: ['ENT', 'EXT'],
     // What "Nuovo operatore" (Operatori) writes besides the typed code, name, badge and category: the same fixed
-    // values NetPro's own screen puts in every new row of OPERATORI (stato OFF / IDLE, cost centre, level, flags)
-    NEW_OPERATOR_VALUES: { CENTRO_COSTO: 'COOPZANARDI', LIVELLO: 'REP', STATO_FISICO: 'OFF', STATO_LOGICO: 'IDLE', COSTO: 0, FVALUE: 0, FMULTIASSMAC: 'N', FNDESCS: 0, FPLANNING: 'N' },
+    // values NetPro's own screen puts in every new row of OPERATORI (stato logico IDLE, cost centre, level, flags).
+    // The stato fisico comes from the category (PRESENCE_RULES.CATEGORIES → newStato), not from here.
+    NEW_OPERATOR_VALUES: { CENTRO_COSTO: 'COOPZANARDI', LIVELLO: 'REP', STATO_LOGICO: 'IDLE', COSTO: 0, FVALUE: 0, FMULTIASSMAC: 'N', FNDESCS: 0, FPLANNING: 'N' },
   },
 
   // External Report Services
@@ -459,10 +460,12 @@ export const PRESENCE_RULES = {
   // Extra days (Saturday) use the EXTRA_* rules for every profile except 'none'.
   // nameMark: what the name of this category's operators ends with in NetPro, by habit ("ROSSI MARIO *lb" for the
   // interinali); the Operatori window adds or removes it with the category. null = no mark.
+  // newStato: the stato fisico "Nuovo operatore" gives a new person of this category. By habit OFF means "no longer
+  // working, or office" (never clocks), so who works on the floor starts OUT (as after an exit) and the office OFF.
   CATEGORIES: [
-    { reparto: '2', label: 'CLZ Produzione', defaultActive: true, profile: 'standard', nameMark: null },
-    { reparto: '1001', label: 'Interinali', defaultActive: true, profile: 'standard', nameMark: ' *lb' },
-    { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed', nameMark: null },
+    { reparto: '2', label: 'CLZ Produzione', defaultActive: true, profile: 'standard', nameMark: null, newStato: 'OUT' },
+    { reparto: '1001', label: 'Interinali', defaultActive: true, profile: 'standard', nameMark: ' *lb', newStato: 'OUT' },
+    { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed', nameMark: null, newStato: 'OFF' },
   ],
   OTHER_CATEGORY_LABEL: 'Altro',
 } as const;

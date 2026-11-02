@@ -8,7 +8,7 @@ import { APP_COPY, fmt } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { authorize } from '@/lib/auth/access';
 import { buildOperatorSearch } from './presence-db';
-import { EMPLOYEE_CATEGORIES, nameForCategory } from '@/lib/presence/categories';
+import { EMPLOYEE_CATEGORIES, categoryOf, nameForCategory } from '@/lib/presence/categories';
 import {
     NewOperatorSchema,
     OPERATOR_COLUMN_SIZES,
@@ -163,8 +163,8 @@ async function badgeProblem(run: SqlRunner, badge: string, exceptOperator?: stri
 
 /**
  * Creates an operator in NetPro the way its own screen does: one row of OPERATORI with the typed code, the name with
- * the category's mark (" *lb" for the interinali), badge and category, the matricola equal to the code, stato OFF /
- * IDLE as of now and the fixed values NetPro writes (NEW_OPERATOR_VALUES). The code must be free, and so must the
+ * the category's mark (" *lb" for the interinali), badge and category, the matricola equal to the code, the stato
+ * fisico of the category (OUT, OFF for the office) and IDLE as of now, and the fixed values NetPro writes (NEW_OPERATOR_VALUES). The code must be free, and so must the
  * badge; the checks and the insert are one transaction. Needs modifica on Operatori and the function "Nuovo operatore".
  */
 export async function createOperatorAction(input: NewOperatorInput) {
@@ -191,7 +191,7 @@ export async function createOperatorAction(input: NewOperatorInput) {
                 {
                     code, name, badge, category, now,
                     centroCosto: NEW_VALUES.CENTRO_COSTO, livello: NEW_VALUES.LIVELLO,
-                    statoFisico: NEW_VALUES.STATO_FISICO, statoLogico: NEW_VALUES.STATO_LOGICO,
+                    statoFisico: categoryOf(category).newStato, statoLogico: NEW_VALUES.STATO_LOGICO,
                     costo: NEW_VALUES.COSTO, fvalue: NEW_VALUES.FVALUE,
                     multiAssMac: NEW_VALUES.FMULTIASSMAC, nDescs: NEW_VALUES.FNDESCS, planning: NEW_VALUES.FPLANNING,
                 },

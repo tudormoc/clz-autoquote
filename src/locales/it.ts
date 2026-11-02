@@ -1317,7 +1317,8 @@ export const APP_COPY = {
       form: {
         newButton: "Nuovo operatore",
         newTitle: "Nuovo operatore",
-        newSubtitle: "Creato in NetPro come dalla sua schermata: stato OFF, matricola uguale al codice",
+        /** {stato}: the stato fisico of the chosen category (OUT, OFF for the office) */
+        newSubtitle: "Creato in NetPro come dalla sua schermata: stato {stato}, matricola uguale al codice",
         editTitle: "Modifica operatore",
         edit: "Modifica",
         code: "Codice operatore",

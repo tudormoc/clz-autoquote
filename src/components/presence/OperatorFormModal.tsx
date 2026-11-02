@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { notify } from '@/lib/notify';
-import { EMPLOYEE_CATEGORIES, nameForCategory } from '@/lib/presence/categories';
+import { EMPLOYEE_CATEGORIES, categoryOf, nameForCategory } from '@/lib/presence/categories';
 import {
     NewOperatorSchema,
     OPERATOR_COLUMN_SIZES,
@@ -97,7 +97,7 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
     return (
         <Modal
             title={operator ? copy.editTitle : copy.newTitle}
-            subtitle={operator ? operator.OPERATORE : copy.newSubtitle}
+            subtitle={operator ? operator.OPERATORE : fmt(copy.newSubtitle, { stato: categoryOf(draft.category).newStato })}
             icon={operator ? Pencil : UserPlus}
             size="lg"
             onClose={onClose}

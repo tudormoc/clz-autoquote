@@ -81,8 +81,11 @@ the badge terminal finds the person through `BADGE` in that row). The Operatori 
 
 - **Nuovo operatore** (a function of the page, given apart in Gruppi): code, name, badge, category. The server
   (`createOperatorAction`) refuses a code or badge already in use, then inserts the row the way NetPro's own screen
-  does: `MATRICOLA` = the code, stato OFF / IDLE as of now, and the fixed values in
+  does: `MATRICOLA` = the code, stato logico IDLE as of now, and the fixed values in
   `APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES` (cost centre, level, flags). Check and insert are one transaction.
+- **Stato fisico of a new person**: by habit OFF means "no longer working, or office" (never clocks), so the stato
+  comes from the category (`newStato` in `PRESENCE_RULES.CATEGORIES`): OUT for Produzione and Interinali, as after an
+  exit, OFF for Ufficio. NetPro's own screen writes OFF for everyone; the window shows the stato it will write.
 - **Modifica** (the pencil, with *modifica* on the page): name, badge, category, matricola and NetPro's five free
   fields, shown with their real names and a hint of what they usually hold. `saveOperatorAction` writes only the
   columns of `OperatorFieldsSchema`; a badge must not be another operator's.
