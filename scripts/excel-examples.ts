@@ -65,7 +65,7 @@ const columns: ExcelColumn<Row>[] = [
 ];
 
 function main() {
-    const newBook = buildWorkbook(XLSX, { rows, columns, sheetName: 'Produzione' });
+    const newBook = buildWorkbook(XLSX, [{ rows, columns, sheetName: 'Produzione' }]);
 
     // Round-trip through the .xlsx format, as Excel would read the saved file
     const read = (book: XLSX.WorkBook) => {

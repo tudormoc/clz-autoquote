@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Dices, Trash2 } from 'lucide-react';
+import { Dices, Trash2, UserRound } from 'lucide-react';
 import type { UserView } from '@/app/access-actions';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { useClientSort } from '@/hooks/useClientSort';
 import type { Group } from '@/lib/auth/accounts';
+import { PIN_KIND_OPTIONS, type PinKindId } from '@/lib/auth/pinKinds';
 import { functionLabels, isFunctionKey, mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
 import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
 import { compareValues, type RowSortColumns } from '@/lib/sort';
@@ -42,17 +44,23 @@ interface UsersTableProps {
     onSuspend: (user: UserView, suspended: boolean) => void;
     /** Puts the user in the group (true) or takes them out */
     onGroup: (user: UserView, groupId: number, member: boolean) => void;
-    onNewPin: (user: UserView) => void;
+    /** Rolls a new random PIN of the kind (the dice next to the PIN) */
+    onNewPin: (user: UserView, kind: PinKindId) => void;
     /** Saves a PIN typed by the superadmin; true when saved */
     onSetPin: (user: UserView, pin: string) => Promise<boolean>;
     onDelete: (user: UserView) => void;
+    /** Opens the Scheda persona */
+    onPerson: (user: UserView) => void;
+    /** Per user id, how many facts differ between the programs (the "≠"); missing = none or not linked */
+    drift: Record<number, number>;
 }
 
 /**
- * All users in one table, every column sortable: name (click to change), active switch, a tick per group, how many
- * pages their groups open, last login, PIN (click to type one, or a random one), delete. On phones one card per user.
+ * All users in one table, every column sortable: name (click to change), the person behind it (Scheda persona, with
+ * "≠" when their data differ between the programs), active switch, a tick per group, how many pages their groups open,
+ * last login, PIN (click to type one; the dice rolls a random one of the chosen kind), delete. On phones one card per user.
  */
-export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete }: UsersTableProps) {
+export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete, onPerson, drift }: UsersTableProps) {
     const pagesOf = useMemo(
         () => new Map(users.map((user) => [user.id, mergePermissions(groups.filter((group) => user.groupIds.includes(group.id)).map((group) => group.pages))])),
         [users, groups]
@@ -90,8 +98,19 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
         </Button>
     );
 
+    const personButton = (user: UserView) => {
+        const count = drift[user.id] ?? 0;
+        return (
+            <Button variant="ghost" size="sm" title={count > 0 ? fmt(APP_COPY.admin.person.driftBadge, { count }) : APP_COPY.admin.person.open} onClick={() => onPerson(user)}>
+                <UserRound size={16} className={count > 0 ? 'text-warning-400' : undefined} />
+                {count > 0 && <span className="text-2xs font-medium text-warning-400">≠ {count}</span>}
+            </Button>
+        );
+    };
+
     const columns: DataTableColumn<UserView>[] = [
         { key: 'name', header: copy.columns.name, mobileHidden: true, cellClassName: 'font-medium text-fg-strong', cell: nameCell },
+        { key: 'person', header: copy.columns.person, sortable: false, compact: true, className: 'w-20', cell: personButton },
         {
             key: 'active',
             header: copy.columns.active,
@@ -159,9 +178,16 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
                             onSave={async (pin) => pin.trim() === user.pin || onSetPin(user, pin)}
                         />
                     </span>
-                    <Button variant="ghost" size="sm" title={copy.newPin} aria-label={copy.newPin} onClick={() => onNewPin(user)}>
-                        <Dices size={14} />
-                    </Button>
+                    {user.mustChangePin && (
+                        <span className="text-2xs text-fg-muted" title={copy.provisionalHint}>
+                            {copy.provisional}
+                        </span>
+                    )}
+                    <ActionMenu
+                        icon={Dices}
+                        label={copy.newPin}
+                        actions={PIN_KIND_OPTIONS.map((kind) => ({ label: kind.label, onSelect: () => onNewPin(user, kind.value) }))}
+                    />
                 </div>
             ),
         },

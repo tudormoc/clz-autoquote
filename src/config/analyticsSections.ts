@@ -8,7 +8,7 @@
  * 3. Register it in REPORT_COMPONENTS (src/components/analytics/reportComponents.ts)
  */
 
-import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, CalendarDays } from 'lucide-react';
+import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, CalendarDays, Banknote } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 /** Sidebar groups, in display order */
@@ -39,6 +39,7 @@ export const ANALYTICS_SECTIONS = [
     { id: 'order-revenue', label: reports.orderRevenue, icon: DollarSign, category: 'revenue', description: descriptions.orderRevenue },
     { id: 'external-work', label: reports.externalWork, icon: Truck, category: 'revenue', description: descriptions.externalWork },
     { id: 'annual-presence-report', label: reports.annualPresenceReport, icon: CalendarDays, category: 'production', description: descriptions.annualPresenceReport },
+    { id: 'payroll-hours', label: reports.payrollHours, icon: Banknote, category: 'production', description: descriptions.payrollHours },
 ] as const satisfies readonly AnalyticsSectionConfig[];
 
 /** The id of a report: its folder under /analytics, the key of REPORT_COMPONENTS and of LINKS.analytics */

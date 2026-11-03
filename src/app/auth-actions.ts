@@ -67,7 +67,7 @@ export async function logoutAction(): Promise<void> {
     redirect(LOGIN_PATH);
 }
 
-/** A user chooses a new PIN; the login stays valid (it is renewed with the new PIN) */
+/** A user chooses a new PIN (their own: no longer "provvisorio"); the login stays valid, renewed with the new PIN */
 export async function changeOwnPinAction(newPin: string): Promise<Result> {
     const access = await getAccess();
     if (!access || access.id === null) return { success: false, error: copy.notAllowed };
@@ -76,7 +76,7 @@ export async function changeOwnPinAction(newPin: string): Promise<Result> {
     if ('error' in checked) return { success: false, error: checked.error };
     try {
         const stored = encryptPin(checked.pin);
-        await updateAccountPin(access.id, stored);
+        await updateAccountPin(access.id, stored, false);
         (await cookies()).set(SESSION_COOKIE, newSessionToken(access.id, pinFingerprint(stored)), SESSION_COOKIE_OPTIONS);
         return { success: true };
     } catch (error) {

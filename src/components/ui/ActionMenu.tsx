@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { FloatingMenu, type MenuAction } from '@/components/ui/FloatingMenu';
 import { APP_COPY } from '@/locales';
 
@@ -9,13 +9,15 @@ interface ActionMenuProps {
     actions: MenuAction[];
     /** Tooltip / screen-reader name of the button (default "Altre azioni") */
     label?: string;
+    /** The button's icon (default "⋯") */
+    icon?: LucideIcon;
 }
 
 /**
  * "⋯" button opening a short list of actions (`FloatingMenu`): under the button, or above it when there is no room
  * below; a click outside, Escape or scrolling closes it.
  */
-export function ActionMenu({ actions, label = APP_COPY.common.moreActions }: ActionMenuProps) {
+export function ActionMenu({ actions, label = APP_COPY.common.moreActions, icon: Icon = MoreHorizontal }: ActionMenuProps) {
     const [open, setOpen] = useState(false);
     const button = useRef<HTMLButtonElement>(null);
     const close = useCallback(() => setOpen(false), []);
@@ -37,7 +39,7 @@ export function ActionMenu({ actions, label = APP_COPY.common.moreActions }: Act
                 title={label}
                 className="p-1.5 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors"
             >
-                <MoreHorizontal size={18} />
+                <Icon size={18} />
             </button>
             {open && <FloatingMenu actions={actions} anchor={{ button }} onClose={close} />}
         </>

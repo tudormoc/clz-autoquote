@@ -1,4 +1,4 @@
-import { AlignmentCell } from '@/components/analytics/order-operations/AlignmentCell';
+import { AlignmentCell } from '@/components/ui/AlignmentCell';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_VALUE, formatNumber } from '@/lib/format';
 import type { MaterialComparisonRow } from '@/lib/orders/compare';

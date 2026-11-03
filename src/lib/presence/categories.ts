@@ -63,6 +63,12 @@ export const DEFAULT_ACTIVE_CATEGORY_KEYS: readonly string[] = EMPLOYEE_CATEGORI
 /** Every mark a name may end with, without its leading space */
 const NAME_MARKS = EMPLOYEE_CATEGORIES.flatMap((c) => (c.nameMark ? [c.nameMark.trim()] : []));
 
+/** Whether a name ends with the mark of a category ("rossi mario *lb") */
+export function hasNameMark(name: string): boolean {
+    const lower = name.trim().toLowerCase();
+    return NAME_MARKS.some((mark) => lower.endsWith(mark.toLowerCase()));
+}
+
 /**
  * The name as NetPro's habit writes it for the category: trimmed, any category mark taken off the end, then the
  * category's own mark added when it has one ("rossi mario", Interinali → "rossi mario *lb"; back to Produzione → "rossi mario").

@@ -1,6 +1,6 @@
-import { AlignmentCell } from '@/components/analytics/order-operations/AlignmentCell';
 import { NetproStatusBadge } from '@/components/analytics/order-operations/NetproStatusBadge';
 import { OperationCell } from '@/components/analytics/order-operations/OperationCell';
+import { AlignmentCell } from '@/components/ui/AlignmentCell';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import type { OperationComparisonRow, OpField } from '@/lib/orders/compare';
 import { APP_COPY, fmt } from '@/locales';

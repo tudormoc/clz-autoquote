@@ -114,6 +114,8 @@ export const FRAMELESS_ROUTES = ['/blueprint', '/login'];
 
 /** Login page (src/app/login) */
 export const LOGIN_PATH = '/login';
+/** The home (nav cards): where a person goes after the login */
+export const HOME_PATH = '/';
 /** Shown instead of a page the logged-in user may not open */
 export const NO_ACCESS_PATH = '/no-access';
 

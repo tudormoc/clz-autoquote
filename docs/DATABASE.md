@@ -119,11 +119,30 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 
 | Table | Columns |
 |---|---|
-| `app_users` | `id`, `name` (UNIQUE, compared without case), `pin` (AES-GCM text `v1:…`, key from `AUTH_SECRET`), `group_ids` (`"1,3"`), `last_login` (DATETIME, wall-clock time of the last login, NULL = never), `suspended` (BIT, default 0); the last two added 2026-10-09 with the owner's yes |
+| `app_users` | `id`, `name` (UNIQUE, compared without case), `pin` (AES-GCM text `v1:…`, key from `AUTH_SECRET`), `group_ids` (`"1,3"`), `last_login` (DATETIME, wall-clock time of the last login, NULL = never), `suspended` (BIT, default 0); the last two added 2026-10-09 with the owner's yes; `must_change_pin` (BIT, default 0: 1 while the PIN is still the one the superadmin gave out, shown as *provvisorio* in Utenti), added 2026-11-02 with the owner's yes, `sql/auth/001_must_change_pin.sql`; `operator_code`, `netpro_user`, `erp_user` (VARCHAR(20), NULL = not linked: the same person in NetPro and Business, see People), added 2026-11-02 with the owner's yes, `sql/auth/002_person_links.sql` |
 | `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: page id → `"view"` / `"edit"`, e.g. `"daily-events"`; a page's function as `"page id#name": "edit"`, e.g. `"work-progress#riallinea"`. Until 2026-10-30 the keys were the menu links; `cleanPermissions` still reads those) |
 
 Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not stored here (`.env.local`).
 
+## People
+
+The same person lives in several places; the Scheda persona (Utenti) reads them all through the three links of `app_users` and
+writes only the e-mail, only where marked. Collations are case-insensitive, so `TM` = `tm`.
+
+| Place | Table | Key | Read | Written by Allinea |
+|---|---|---|---|---|
+| NetPro operator | `NETPRO.OPERATORI` | `OPERATORE` = `operator_code` | `NOME`, `BADGE`, `ENTITA` | no |
+| Business operator list | `COOPZANARDI.tabcope` | `tb_codcope` = `operator_code` | `tb_descope` | no |
+| NetPro login | `NETPRO.UTENTI` | `UTENTE` = `netpro_user` | `DESCRIZIONE`, `FEMAIL`, `RUOLO` | `FEMAIL` (varchar 50) |
+| Business login | `ARCPROC.OPERAT` | `OpNome` = `erp_user` | `OpDescont`, `OpDescont2`, `OpSumail`, `OpRuolo` | `OpSumail` |
+| Business org chart | `COOPZANARDI.organig` | `og_coperat` = `erp_user` | `og_descont`, `og_descont2`, `og_email`, `og_telef`, `og_codcope` | `og_email` |
+| Business mailbox | `COOPZANARDI.emailconf` | `em_user` = `erp_user` | `em_email` | never (it is the mailbox login) |
+
+Left out on purpose (owner, 2026-11-02): the e-mail signatures (`emailfirme`, one row per signature, a person may keep
+several addresses there), the ERP's settings store (`ARCPROC.REGPROP`) and the mailbox folder cache (`emaildir`).
+
+ARCPROC is the ERP's own database (users, roles, settings) on the same server, reached through the Business connection as
+`ARCPROC.dbo.…`. The Business logins' passwords and PINs there are the ERP's, never read by the app.
 ## Agenda tables (QUOTES, created 2026-10-09 with the owner's yes)
 
 Created by `sql/tasks/001_create_tables.sql`; read and written only by `src/lib/tasks/db/` (how they work: [TASKS.md](TASKS.md)).

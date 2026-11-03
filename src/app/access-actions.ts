@@ -1,11 +1,11 @@
 'use server'
 
 /**
- * Users and groups (Impostazioni → Utenti / Gruppi): superadmin only. New users get a random PIN that the
- * superadmin reads here and hands over; the user can keep it or change it.
+ * Users and groups (Impostazioni → Utenti / Gruppi): superadmin only. New users get a random PIN of the kind chosen
+ * on the page, which the superadmin reads here and hands over; a PIN given out here shows as "provvisorio" until the
+ * person changes it from the sidebar (must_change_pin), which they may or may not do.
  */
 
-import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
 import { requireSuperadmin } from '@/lib/auth/access';
@@ -25,7 +25,8 @@ import {
     type Group,
 } from '@/lib/auth/accounts';
 import { cleanPermissions } from '@/lib/auth/permissions';
-import { checkPin, decryptPin, encryptPin } from '@/lib/auth/secrets';
+import { DEFAULT_PIN_KIND, isPinKind, type PinKindId } from '@/lib/auth/pinKinds';
+import { checkPin, decryptPin, encryptPin, randomPin } from '@/lib/auth/secrets';
 import { superadminAccount } from '@/lib/auth/session';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
@@ -42,10 +43,16 @@ export interface UserView {
     groupIds: number[];
     lastLogin: Date | null;
     suspended: boolean;
+    /** Still the PIN the superadmin gave out, never changed by the person ("provvisorio") */
+    mustChangePin: boolean;
+    /** The same person in NetPro and Business (Scheda persona); null = not linked */
+    operatorCode: string | null;
+    netproUser: string | null;
+    erpUser: string | null;
 }
 
 const copy = APP_COPY.admin.users;
-const { GENERATED_PIN_LENGTH, MAX_NAME_LENGTH } = APP_CONFIG.AUTH;
+const { MAX_NAME_LENGTH } = APP_CONFIG.AUTH;
 
 const IdSchema = z.number().int().positive();
 const IdsSchema = z.array(IdSchema);
@@ -77,7 +84,8 @@ function checkName(name: unknown): { name: string } | { error: string } {
     return { name: clean };
 }
 
-const randomPin = () => String(randomInt(0, 10 ** GENERATED_PIN_LENGTH)).padStart(GENERATED_PIN_LENGTH, '0');
+/** The kind of random PIN asked for, the default when unknown */
+const pinKindOf = (kind: unknown): PinKindId => (isPinKind(kind) ? kind : DEFAULT_PIN_KIND);
 
 export async function getAccountsAction(): Promise<{ users: UserView[]; groups: Group[] }> {
     await requireSuperadmin();
@@ -96,11 +104,11 @@ export async function getAccountsAction(): Promise<{ users: UserView[]; groups: 
 
 // ── Users ──
 
-/** New user without groups (ticked afterwards) and a random PIN; answers its id and PIN */
-export async function createUserAction(name: string): Promise<Created> {
+/** New user without groups (ticked afterwards) and a random PIN of the kind; answers its id and PIN */
+export async function createUserAction(name: string, kind?: string): Promise<Created> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
-    const pin = randomPin();
+    const pin = randomPin(pinKindOf(kind));
     return run(async () => ({ id: await insertAccount(checked.name, encryptPin(pin)), pin }));
 }
 
@@ -123,12 +131,12 @@ export async function setUserGroupsAction(id: number, groupIds: number[]): Promi
     });
 }
 
-/** A new random PIN: the old one stops working and the user's open logins end */
-export async function newUserPinAction(id: number): Promise<WithPin> {
+/** A new random PIN of the kind: the old one stops working and the user's open logins end */
+export async function newUserPinAction(id: number, kind?: string): Promise<WithPin> {
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    const pin = randomPin();
+    const pin = randomPin(pinKindOf(kind));
     return run(async () => {
-        await updateAccountPin(id, encryptPin(pin));
+        await updateAccountPin(id, encryptPin(pin), true);
         return { pin };
     });
 }
@@ -139,7 +147,7 @@ export async function setUserPinAction(id: number, pin: string): Promise<WithPin
     const checked = checkPin(pin);
     if ('error' in checked) return { success: false, error: checked.error };
     return run(async () => {
-        await updateAccountPin(id, encryptPin(checked.pin));
+        await updateAccountPin(id, encryptPin(checked.pin), true);
         return { pin: checked.pin };
     });
 }

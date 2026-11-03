@@ -12,11 +12,11 @@ export interface ExcelColumn<R> {
     value: (row: R) => ExcelValue;
     /** Column width in characters */
     width?: number;
-    /** integer: plain number without separators (codes, ids) · date: dd/mm/yyyy */
-    format?: 'integer' | 'date';
+    /** integer: plain number without separators (codes, ids) · date: dd/mm/yyyy · weekdayDate: "giovedì 01/10/26" */
+    format?: 'integer' | 'date' | 'weekdayDate';
 }
 
-interface ExcelSheet<R> {
+export interface ExcelSheet<R> {
     rows: R[];
     columns: ExcelColumn<R>[];
     sheetName: string;
@@ -28,10 +28,11 @@ const sheetTitle = (name: string) => name.replace(/[:\\/?*[\]]/g, ' ').slice(0, 
 const CELL_FORMATS = {
     integer: '0',
     date: 'dd/mm/yyyy',
+    weekdayDate: '[$-410]dddd dd/mm/yy',
 } as const;
 
-/** One-sheet workbook: a header row, then one row per item */
-export function buildWorkbook<R>(XLSX: Xlsx, { rows, columns, sheetName }: ExcelSheet<R>) {
+/** One sheet: a header row, then one row per item */
+function buildSheet<R>(XLSX: Xlsx, { rows, columns }: ExcelSheet<R>) {
     const sheet = XLSX.utils.aoa_to_sheet([
         columns.map((c) => c.header),
         ...rows.map((row) => columns.map((c) => c.value(row) ?? '')),
@@ -49,13 +50,18 @@ export function buildWorkbook<R>(XLSX: Xlsx, { rows, columns, sheetName }: Excel
         }
     });
 
+    return sheet;
+}
+
+/** Workbook with one tab per sheet, in the given order */
+export function buildWorkbook<R>(XLSX: Xlsx, sheets: ExcelSheet<R>[]) {
     const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, sheetTitle(sheetName));
+    for (const sheet of sheets) XLSX.utils.book_append_sheet(book, buildSheet(XLSX, sheet), sheetTitle(sheet.sheetName));
     return book;
 }
 
 /** Build the workbook and download it as fileName */
-export async function exportToExcel<R>(options: ExcelSheet<R> & { fileName: string }) {
+export async function exportToExcel<R>({ sheets, fileName }: { sheets: ExcelSheet<R>[]; fileName: string }) {
     const XLSX = await import('xlsx');
-    XLSX.writeFile(buildWorkbook(XLSX, options), options.fileName);
+    XLSX.writeFile(buildWorkbook(XLSX, sheets), fileName);
 }

@@ -35,15 +35,16 @@ export function useAccounts() {
         reload();
     }, [reload]);
 
-    /** Runs a save, says how it went (`done` turns a success into a message), reloads; true when saved */
-    const run = async <R extends Answer>(save: Promise<R>, done?: (result: R & { success: true }) => string): Promise<boolean> => {
+    /** Runs a save, says how it went (`done` turns a success into a message, or acts on it), reloads; true when saved */
+    const run = async <R extends Answer>(save: Promise<R>, done?: (result: R & { success: true }) => string | void): Promise<boolean> => {
         try {
             const result = await save;
             if (!result.success) {
                 notify.error(result.error);
                 return false;
             }
-            if (done) notify.success(done(result as R & { success: true }));
+            const message = done?.(result as R & { success: true });
+            if (message) notify.success(message);
             return true;
         } catch (err) {
             notify.failure(err);
@@ -53,5 +54,5 @@ export function useAccounts() {
         }
     };
 
-    return { users, groups, loading, error, run };
+    return { users, groups, loading, error, run, reload };
 }

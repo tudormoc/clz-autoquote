@@ -30,7 +30,14 @@ export const APP_CONFIG = {
     SESSION_HOURS: 24,          // a login lasts until the browser closes, at most this long
     MAX_PIN_ATTEMPTS: 5,        // wrong PINs in a row before a name has to wait …
     LOCKOUT_MINUTES: 5,         // … this long
-    GENERATED_PIN_LENGTH: 4,    // digits of the random PIN given to a new user
+    // Kinds of random PIN the Utenti page gives out ("Nuovo utente", "Nuovo PIN a caso"); the first is the default.
+    // chars: digits = 0-9 · alnum = letters and digits without the look-alikes (0 O 1 l I) · strong = alnum and symbols
+    PIN_KINDS: [
+      { id: 'digits4', length: 4, chars: 'digits' },
+      { id: 'digits6', length: 6, chars: 'digits' },
+      { id: 'alnum8', length: 8, chars: 'alnum' },
+      { id: 'strong16', length: 16, chars: 'strong' },
+    ],
     MIN_PIN_LENGTH: 4,          // shortest PIN a user may choose
     MAX_PIN_LENGTH: 100,        // longest
     MAX_NAME_LENGTH: 100,       // app_users.name / app_groups.name
@@ -285,6 +292,38 @@ export const APP_CONFIG = {
     // values NetPro's own screen puts in every new row of OPERATORI (stato logico IDLE, cost centre, level, flags).
     // The stato fisico comes from the category (PRESENCE_RULES.CATEGORIES → newStato), not from here.
     NEW_OPERATOR_VALUES: { CENTRO_COSTO: 'COOPZANARDI', LIVELLO: 'REP', STATO_LOGICO: 'IDLE', COSTO: 0, FVALUE: 0, FMULTIASSMAC: 'N', FNDESCS: 0, FPLANNING: 'N' },
+  },
+
+  // Ore Studio Paghe: the month's hours per person for the pay studio, read from the monthly production file
+  // (PRESENCE.EXCEL_FOLDERS): the 0-based columns used, who is left out, and the layout of the export
+  PAYROLL: {
+    EXCEL_COLUMNS: {
+      ID: 14 /* O */, SARP: 15 /* P */, NAME: 17 /* R */, DATE: 18 /* S */,
+      FERIE: 20 /* U */, PERMESSO: 21 /* V */, MALATTIA: 22 /* W */, ORDINARIE: 23 /* X */, STRAORDINARIE: 24 /* Y */,
+      BANCA_ORE: 25 /* Z */, BANCA_ORE_N1: 26 /* AA */, BANCA_ORE_N: 27 /* AB */, GROUP: 40 /* AO */,
+    },
+    // "Clz?" value of the agency workers: their own sheet (a name ending with the Interinali mark counts too)
+    INTERINALI_GROUP: 'Interinali',
+    // Names of the file's spare rows, never real people
+    PLACEHOLDER_NAME_PREFIX: 'ZZZRISERVA',
+    // Empty rows between one person and the next, on screen and in the file
+    BLANK_ROWS_BETWEEN_PEOPLE: 2,
+    // The office people: not in the production file, so added with empty days (filled by hand after the download),
+    // name and codes as in the file sent to the studio
+    OFFICE_PEOPLE: [
+      { id: '1065', sarp: '81', name: 'Bravi Stefano' },
+      { id: '1047', sarp: '29', name: 'Brunello Fabio' },
+      { id: '1010', sarp: '12', name: 'Forcella Fabrizio' },
+      { id: '1050', sarp: '43', name: 'Maniero Loris' },
+      { id: '1055', sarp: '98', name: 'Mocanu Tudor' },
+      { id: '1071', sarp: '89', name: 'Monaldini Massimo' },
+      { id: '1071', sarp: '210', name: 'Morando Daniele' },
+      { id: null, sarp: null, name: 'Pasquatto Marta' },
+      { id: '1051', sarp: '45', name: 'Porelli Chiara' },
+      { id: '1052', sarp: '39', name: 'Scagnellato Lino' },
+      { id: '1053', sarp: '2', name: 'Zanellato Stefania' },
+      { id: '1054', sarp: '61', name: 'Zanon Elisa' },
+    ],
   },
 
   // External Report Services

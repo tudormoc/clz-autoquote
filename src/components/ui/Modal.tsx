@@ -10,6 +10,8 @@ const SIZES = {
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    /** A comparison table with several columns (Scheda persona) */
+    '2xl': 'max-w-5xl',
 } as const;
 
 const ICON_TONES = {

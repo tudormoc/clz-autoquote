@@ -56,9 +56,20 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   `APP_CONFIG.AUTH.SESSION_HOURS`. After 5 wrong PINs a name waits 5 minutes.
 - **Superadmin** (the owner): name + PIN from `.env.local`, not in the database; sees everything and manages
   Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database.
-- **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin; new users get a random PIN, they can
-  change it with "Cambia PIN"), groups, last login, *sospeso* (cannot log in, an open login ends at once; PIN and
-  groups stay). **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*, stored under the page's id (not
+- **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin), groups, last login, *sospeso*
+  (cannot log in, an open login ends at once; PIN and groups stay). A PIN given out from Utenti (new user, "Nuovo PIN a
+  caso", a typed one) shows there as *provvisorio* (`must_change_pin`) until the person changes it with "Cambia PIN"
+  in the sidebar, which they may or may not do. "Nuovo utente" gives a 4-digit PIN; the dice next to a PIN rolls a new one of the chosen kind
+  (`APP_CONFIG.AUTH.PIN_KINDS`: 4 or 6 digits, 8 letters and digits, 16 characters with symbols). Either way the PIN
+  opens in a window with a "Copia" button.
+- **Scheda persona** (Utenti → Persona): a login is linked to the same person's records elsewhere (`operator_code`,
+  `netpro_user`, `erp_user` in `app_users`), and the card shows every record and fact side by side, read live from
+  NetPro, Business and ARCPROC (`src/lib/persons/places.ts`, `src/app/person-actions.ts`); a "≠" on the user in Utenti
+  says how many facts differ. The card is laid out like the order comparison (one row per fact, a column per place,
+  "Allineato" at the end, the shared `AlignmentCell`). "Allinea e-mail" writes one address into the three places that
+  may be written (NetPro login, Business login, org chart), one transaction; the mailbox account is only shown and the
+  e-mail signatures are left out. Nothing else of NetPro or Business is written from here. Where each place is:
+  [docs/DATABASE.md](docs/DATABASE.md) → People. **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*, stored under the page's id (not
   its link, so a page can move to another area and keep its grants). Utenti is one table of all
   users (a tick column per group); Gruppi is one table of all groups (a column each, a row per area that opens to its
   pages and functions; each cell is No | Vede | Modifica, with Modifica only where the page changes data; a search box
@@ -100,6 +111,7 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing / saved quotes | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) / `src/lib/quotes/db.ts` |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
+| Ore Studio Paghe (a month's hours per person for the pay studio, from the production Excel files; the office people in `APP_CONFIG.PAYROLL`) | `src/lib/payroll.ts` (pure), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
 | Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
 | Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |

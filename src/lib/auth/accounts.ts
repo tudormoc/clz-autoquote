@@ -1,12 +1,15 @@
 /**
  * Users and groups of the login, in the QUOTES tables (created 2026-10-09 with the owner's yes):
- *   app_users  (id, name UNIQUE, pin = encrypted, group_ids = "1,3", last_login, suspended)
+ *   app_users  (id, name UNIQUE, pin = encrypted, group_ids = "1,3", last_login, suspended,
+ *               must_change_pin = the PIN is still the one the superadmin gave out, never changed by the person,
+ *               operator_code / netpro_user / erp_user = the same person in NetPro and Business, see src/lib/persons)
  *   app_groups (id, name UNIQUE, pages = JSON { "/page/link": "view" | "edit" })
  * Names compare without case (the columns' collation). Server only; callers check who may do it.
  */
 
 import { queryMSSQL } from '@/lib/mssql';
 import { cleanPermissions, mergePermissions, type PagePermissions } from '@/lib/auth/permissions';
+import type { PersonLinks } from '@/lib/persons/places';
 
 interface UserRow {
     id: number;
@@ -15,6 +18,10 @@ interface UserRow {
     group_ids: string;
     last_login: Date | null;
     suspended: boolean;
+    must_change_pin: boolean;
+    operator_code: string | null;
+    netpro_user: string | null;
+    erp_user: string | null;
 }
 
 interface GroupRow {
@@ -33,6 +40,12 @@ export interface Account {
     lastLogin: Date | null;
     /** Suspended: cannot log in, open logins end */
     suspended: boolean;
+    /** The PIN is still the one the superadmin gave out (shown as "provvisorio" in Utenti); the person may keep it */
+    mustChangePin: boolean;
+    /** The same person in NetPro (operator, login) and Business (login); null = not linked */
+    operatorCode: string | null;
+    netproUser: string | null;
+    erpUser: string | null;
 }
 
 export interface Group {
@@ -42,7 +55,7 @@ export interface Group {
 }
 
 const DB = 'QUOTES';
-const USER_COLUMNS = 'id, name, pin, group_ids, last_login, suspended';
+const USER_COLUMNS = 'id, name, pin, group_ids, last_login, suspended, must_change_pin, operator_code, netpro_user, erp_user';
 
 const toIds = (text: string) => text.split(',').map(Number).filter((id) => Number.isInteger(id) && id > 0);
 const toAccount = (row: UserRow): Account => ({
@@ -52,6 +65,10 @@ const toAccount = (row: UserRow): Account => ({
     groupIds: toIds(row.group_ids),
     lastLogin: row.last_login,
     suspended: Boolean(row.suspended),
+    mustChangePin: Boolean(row.must_change_pin),
+    operatorCode: row.operator_code,
+    netproUser: row.netpro_user,
+    erpUser: row.erp_user,
 });
 
 function toGroup(row: GroupRow): Group {
@@ -62,6 +79,11 @@ function toGroup(row: GroupRow): Group {
         // A damaged value gives no pages
     }
     return { id: row.id, name: row.name, pages: cleanPermissions(pages) };
+}
+
+export async function findAccountById(id: number): Promise<Account | null> {
+    const result = await queryMSSQL<UserRow>(`SELECT ${USER_COLUMNS} FROM app_users WITH (NOLOCK) WHERE id = @id`, { id }, DB);
+    return result.recordset[0] ? toAccount(result.recordset[0]) : null;
 }
 
 export async function findAccountByName(name: string): Promise<Account | null> {
@@ -106,10 +128,10 @@ export async function listGroups(): Promise<Group[]> {
 
 // ── Writes (superadmin; changeOwnPin for the user themselves) ──
 
-/** New user without groups; returns its id */
+/** New user without groups and with a provisional PIN (given out, not yet the person's own); returns its id */
 export async function insertAccount(name: string, encryptedPin: string): Promise<number> {
     const result = await queryMSSQL<{ id: number }>(
-        `INSERT INTO app_users (name, pin) OUTPUT INSERTED.id VALUES (@name, @pin)`,
+        `INSERT INTO app_users (name, pin, must_change_pin) OUTPUT INSERTED.id VALUES (@name, @pin, 1)`,
         { name, pin: encryptedPin },
         DB
     );
@@ -124,8 +146,18 @@ export async function updateAccountGroups(id: number, groupIds: number[]): Promi
     await queryMSSQL(`UPDATE app_users SET group_ids = @groupIds WHERE id = @id`, { id, groupIds: groupIds.join(',') }, DB);
 }
 
-export async function updateAccountPin(id: number, encryptedPin: string): Promise<void> {
-    await queryMSSQL(`UPDATE app_users SET pin = @pin WHERE id = @id`, { id, pin: encryptedPin }, DB);
+/** `provisional`: given out by the superadmin, or chosen by the person themselves */
+export async function updateAccountPin(id: number, encryptedPin: string, provisional: boolean): Promise<void> {
+    await queryMSSQL(`UPDATE app_users SET pin = @pin, must_change_pin = @provisional WHERE id = @id`, { id, pin: encryptedPin, provisional }, DB);
+}
+
+/** Which records of NetPro and Business this login is (Scheda persona) */
+export async function updateAccountLinks(id: number, links: PersonLinks): Promise<void> {
+    await queryMSSQL(
+        `UPDATE app_users SET operator_code = @operatorCode, netpro_user = @netproUser, erp_user = @erpUser WHERE id = @id`,
+        { id, operatorCode: links.operatorCode, netproUser: links.netproUser, erpUser: links.erpUser },
+        DB
+    );
 }
 
 export async function updateAccountSuspended(id: number, suspended: boolean): Promise<void> {

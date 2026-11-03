@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { HOME_PATH } from '@/config/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { getAccess } from '@/lib/auth/access';
 import { APP_COPY } from '@/locales';
@@ -11,7 +12,7 @@ interface LoginPageProps {
 
 /** The only page open without a login; someone already logged in goes home */
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-    if (await getAccess().catch(() => null)) redirect('/');
+    if (await getAccess().catch(() => null)) redirect(HOME_PATH);
     const { next } = await searchParams;
 
     return (

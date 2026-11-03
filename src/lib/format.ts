@@ -123,3 +123,11 @@ export function formatDayMonth(isoDate: string): string {
     const [, month, day] = isoDate.split('-');
     return `${day}/${month}`;
 }
+
+/** "2026-10-01" → "giovedì 01/10/26", the date as Excel shows it in the production files */
+export function formatWeekdayDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    const sundayFirst = new Date(Number(year), Number(month) - 1, Number(day)).getDay();
+    const weekday = APP_COPY.weekdays.long[(sundayFirst + 6) % 7].toLowerCase();
+    return `${weekday} ${day}/${month}/${year.slice(-2)}`;
+}

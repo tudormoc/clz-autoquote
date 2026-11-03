@@ -51,3 +51,8 @@ export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 
 // Export Presence action
 export const getPresenceDataAction = getPresenceData;
+
+import { getPayrollHoursAction as getPayrollHours } from './queries/payroll-queries';
+
+// Export Ore Studio Paghe action
+export const getPayrollHoursAction = getPayrollHours;
