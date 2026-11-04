@@ -25,10 +25,12 @@ export function closedDayChecker(closedDays: readonly ClosedDay[]) {
     const exact = new Map(closedDays.filter((day) => !day.everyYear).map((day) => [day.closedOn, day.name]));
     const yearly = new Map(closedDays.filter((day) => day.everyYear).map((day) => [day.closedOn.slice(5), day.name]));
 
+    /** The company closed day this date is (its name in Giorni di chiusura), or null: weekends are not counted here */
+    const companyDay = (iso: string): string | null => exact.get(iso) ?? yearly.get(iso.slice(5)) ?? null;
+
     /** Why the office is closed on this date (company day name, or "weekend"), or null when open */
     const reason = (iso: string): string | null =>
-        exact.get(iso) ??
-        yearly.get(iso.slice(5)) ??
+        companyDay(iso) ??
         ((APP_CONFIG.TASKS.CLOSED_WEEKDAYS as readonly number[]).includes(weekdayOf(iso)) ? holidays.weekend : null);
 
     /** The last working day before a closed date (the date itself when the office is open) */
@@ -39,7 +41,7 @@ export function closedDayChecker(closedDays: readonly ClosedDay[]) {
         return day;
     };
 
-    return { reason, workingDayOnOrBefore };
+    return { companyDay, reason, workingDayOnOrBefore };
 }
 
 export type ClosedDayChecker = ReturnType<typeof closedDayChecker>;

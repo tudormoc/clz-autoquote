@@ -3,16 +3,18 @@
 /**
  * The person behind a login (Impostazioni → Utenti → Scheda persona), superadmin only: the lists to link a login to
  * its records in NetPro, Business and ARCPROC, the card with every record and fact side by side (src/lib/persons),
- * how many facts differ per user (the "≠" in Utenti), and Allinea, which writes one e-mail into the three places
- * that may be written (NetPro login, Business login, org chart), in one transaction across NetPro and Business.
- * Nothing else is ever written by this file; the e-mail signatures (emailfirme) are not read either.
+ * how many facts differ per user (the "≠" in Utenti), and the two Allinea: one e-mail into the three places that
+ * may be written (NetPro login, Business login, org chart), one name in capitals into the five places that hold it,
+ * each in one transaction across NetPro and Business. Nothing else is ever written by this file; the e-mail
+ * signatures (emailfirme) are not read either.
  */
 
 import { z } from 'zod';
 import { requireSuperadmin } from '@/lib/auth/access';
 import { findAccountById, listAccounts, updateAccountLinks, type Account } from '@/lib/auth/accounts';
 import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
-import { EMAIL_MAX_LENGTH, buildFacts, driftCount, hasLinks, type Fact, type PersonLinks, type PersonRecords } from '@/lib/persons/places';
+import { EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, NamePartsSchema, buildFacts, driftCount, hasLinks, joinNameParts, type Fact, type NameParts, type PersonLinks, type PersonRecords } from '@/lib/persons/places';
+import { nameForCategory } from '@/lib/presence/categories';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
@@ -52,6 +54,9 @@ async function guarded<T extends object>(work: () => Promise<T>): Promise<Result
         return { success: false, error: errorMessage(error) };
     }
 }
+
+/** The rows an UPDATE changed */
+const changedRows = (result: { rowsAffected: number[] }) => result.rowsAffected[0] ?? 0;
 
 const linksOf = (account: Account): PersonLinks => ({ operatorCode: account.operatorCode, netproUser: account.netproUser, erpUser: account.erpUser });
 const named = <T extends { name: string | null }>(rows: T[]) => rows.map((row) => ({ ...row, name: row.name?.trim() || '' }));
@@ -189,7 +194,7 @@ export async function setPersonLinksAction(id: number, links: PersonLinks): Prom
  */
 export async function alignEmailAction(id: number, email: string): Promise<Result<{ written: number }>> {
     const parsedEmail = EmailSchema.safeParse(email);
-    if (!IdSchema.safeParse(id).success || !parsedEmail.success) return { success: false, error: copy.invalidEmail };
+    if (!IdSchema.safeParse(id).success || !parsedEmail.success) return { success: false, error: copy.alignEmail.invalid };
     const value = parsedEmail.data;
     return guarded(async () => {
         const account = await findAccountById(id);
@@ -198,11 +203,46 @@ export async function alignEmailAction(id: number, email: string): Promise<Resul
         if (!netproUser && !erpUser) throw new Error(copy.noLinks);
         let written = 0;
         await withTransactions(['NETPRO', 'BUSINESS'], async (run) => {
-            const rows = (result: { rowsAffected: number[] }) => result.rowsAffected[0] ?? 0;
-            if (netproUser) written += rows(await run(`UPDATE UTENTI SET FEMAIL = @value WHERE UTENTE = @user`, { value, user: netproUser }, 'NETPRO'));
+            if (netproUser) written += changedRows(await run(`UPDATE UTENTI SET FEMAIL = @value WHERE UTENTE = @user`, { value, user: netproUser }, 'NETPRO'));
             if (erpUser) {
-                written += rows(await run(`UPDATE ARCPROC.dbo.OPERAT SET OpSumail = @value WHERE OpNome = @user`, { value, user: erpUser }, 'BUSINESS'));
-                written += rows(await run(`UPDATE organig SET og_email = @value WHERE og_coperat = @user`, { value, user: erpUser }, 'BUSINESS'));
+                written += changedRows(await run(`UPDATE ARCPROC.dbo.OPERAT SET OpSumail = @value WHERE OpNome = @user`, { value, user: erpUser }, 'BUSINESS'));
+                written += changedRows(await run(`UPDATE organig SET og_email = @value WHERE og_coperat = @user`, { value, user: erpUser }, 'BUSINESS'));
+            }
+        });
+        return { written };
+    });
+}
+
+/**
+ * Writes one name for the person, in capitals, into the five places that hold it: NETPRO.OPERATORI.NOME (with the
+ * category's mark, as the interinali have it), NETPRO.UTENTI.DESCRIZIONE, tabcope.tb_descope, and cognome + nome
+ * apart in ARCPROC.OPERAT (OpDescont, OpDescont2) and organig (og_descont, og_descont2). One transaction across
+ * NetPro and Business; the login name of this app is not a person's name and stays. Answers how many rows changed.
+ */
+export async function alignNameAction(id: number, parts: NameParts): Promise<Result<{ written: number }>> {
+    const parsed = NamePartsSchema.safeParse(parts);
+    if (!IdSchema.safeParse(id).success || !parsed.success) return { success: false, error: copy.alignName.invalid };
+    const { surname, firstName } = parsed.data;
+    const full = joinNameParts(parsed.data);
+    return guarded(async () => {
+        const account = await findAccountById(id);
+        if (!account) throw new Error(copy.notFound);
+        const links = linksOf(account);
+        if (!hasLinks(links)) throw new Error(copy.noLinks);
+        const { operatorCode, netproUser, erpUser } = links;
+        const records = (await readRecords([links]))(links);
+        const operatorName = nameForCategory(full, records.operator?.category);
+        if (operatorName.length > NAME_MAX_LENGTH.full) throw new Error(copy.alignName.invalid);
+        let written = 0;
+        await withTransactions(['NETPRO', 'BUSINESS'], async (run) => {
+            if (operatorCode) {
+                written += changedRows(await run(`UPDATE OPERATORI SET NOME = @value WHERE OPERATORE = @code`, { value: operatorName, code: operatorCode }, 'NETPRO'));
+                written += changedRows(await run(`UPDATE tabcope SET tb_descope = @value WHERE CAST(tb_codcope AS VARCHAR(20)) = @code`, { value: full, code: operatorCode }, 'BUSINESS'));
+            }
+            if (netproUser) written += changedRows(await run(`UPDATE UTENTI SET DESCRIZIONE = @value WHERE UTENTE = @user`, { value: full, user: netproUser }, 'NETPRO'));
+            if (erpUser) {
+                written += changedRows(await run(`UPDATE ARCPROC.dbo.OPERAT SET OpDescont = @surname, OpDescont2 = @firstName WHERE OpNome = @user`, { surname, firstName, user: erpUser }, 'BUSINESS'));
+                written += changedRows(await run(`UPDATE organig SET og_descont = @surname, og_descont2 = @firstName WHERE og_coperat = @user`, { surname, firstName, user: erpUser }, 'BUSINESS'));
             }
         });
         return { written };

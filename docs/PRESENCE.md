@@ -59,6 +59,10 @@ Day kinds come from `GIORNI_LAVORATIVI` / `GIORNI_EXTRA`; extra-day numbers from
   clock records; no penalties, pause, straordinari or banca ore. Saturday: same extra-day rule.
 - `none` — never prefilled.
 
+A category marked `timesheet: true` (today Ufficio) enters its own hours in Le mie ore instead of clocking: that
+module reads only the workday (`ORE_GIORNATA`, `ORE_GIORNATA_OPERATORE`), the working days and the quick texts from
+these rules, and applies none of the formulas above — see [TIMESHEET.md](TIMESHEET.md).
+
 ## Change a rule
 
 - **Change a number** (shift starts, snap window, 15-min steps, 8h, rounding, banca ore threshold…): edit it in

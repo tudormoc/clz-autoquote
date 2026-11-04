@@ -8,9 +8,10 @@ import { FilterPanel } from '@/components/ui/FilterPanel';
 import { MonthField } from '@/components/ui/MonthField';
 import { TabBar } from '@/components/ui/TabBar';
 import { YearField } from '@/components/ui/YearField';
-import type { ExcelColumn, ExcelSheet } from '@/lib/excel';
+import { sameMonthPeriod, thisMonthPeriod, type MonthPeriod } from '@/lib/dateUtils';
+import type { ExcelSheet } from '@/lib/excel';
 import { formatNumber, formatWeekdayDate } from '@/lib/format';
-import { PAYROLL_FIELDS, payrollRows, type PayrollData, type PayrollRow, type PayrollValue } from '@/lib/payroll';
+import { PAYROLL_COLUMNS, dayOf, isPayrollNote, payrollExcelColumns, payrollRows, type PayrollData, type PayrollRow, type PayrollValue } from '@/lib/payroll';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
@@ -20,27 +21,8 @@ const copy = APP_COPY.analytics.payroll;
 type SheetId = 'clz' | 'interinali';
 const SHEETS: SheetId[] = ['clz', 'interinali'];
 
-interface Period {
-    year: number;
-    month: number;
-}
-
-const thisMonth = (): Period => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() + 1 };
-};
-const samePeriod = (a: Period, b: Period) => a.year === b.year && a.month === b.month;
-
-const dayOf = (row: PayrollRow) => (row.kind === 'day' ? row : null);
-
 /** On screen: the hours, a typed note, or nothing */
 const showValue = (value: PayrollValue) => (typeof value === 'number' ? formatNumber(value, 2) : (value ?? ''));
-
-/** In the file: a code as a number when it is one ("73" → 73), as the production file has it */
-const codeValue = (code: string | null | undefined) => (code == null ? null : /^\d+$/.test(code) ? Number(code) : code);
-
-/** Local midnight of "YYYY-MM-DD": an Excel date cell */
-const dateOf = (iso: string) => new Date(`${iso}T00:00:00`);
 
 const COLUMNS: DataTableColumn<PayrollRow>[] = [
     { key: 'id', header: copy.columns.id, variant: 'number', cell: (row) => dayOf(row)?.person.id ?? '' },
@@ -54,43 +36,29 @@ const COLUMNS: DataTableColumn<PayrollRow>[] = [
             return day ? formatWeekdayDate(day.day.date) : '';
         },
     },
-    ...PAYROLL_FIELDS.map(
-        (field): DataTableColumn<PayrollRow> => ({
-            key: field,
-            header: copy.columns[field],
-            variant: 'number',
+    ...PAYROLL_COLUMNS.map(
+        (column): DataTableColumn<PayrollRow> => ({
+            key: column,
+            header: copy.columns[column],
+            variant: isPayrollNote(column) ? undefined : 'number',
             cell: (row) => {
                 const day = dayOf(row);
-                return day ? showValue(day.day[field]) : '';
+                return day ? showValue(day.day[column]) : '';
             },
         })
     ),
 ];
 
-const EXCEL_COLUMNS: ExcelColumn<PayrollRow>[] = [
-    { header: copy.columns.id, value: (row) => codeValue(dayOf(row)?.person.id), width: 13 },
-    { header: copy.columns.sarp, value: (row) => codeValue(dayOf(row)?.person.sarp), width: 16 },
-    { header: copy.columns.name, value: (row) => dayOf(row)?.person.name ?? null, width: 30 },
-    {
-        header: copy.columns.date,
-        value: (row) => {
-            const day = dayOf(row);
-            return day ? dateOf(day.day.date) : null;
-        },
-        width: 22,
-        format: 'weekdayDate',
-    },
-    ...PAYROLL_FIELDS.map((field): ExcelColumn<PayrollRow> => ({ header: copy.columns[field], value: (row) => dayOf(row)?.day[field] ?? null, width: 16 })),
-];
+const EXCEL_COLUMNS = payrollExcelColumns();
 
 /**
- * Ore Studio Paghe: a month's hours per person from the production file, read on "Applica"; two tabs
- * (Clz e Ufficio, Interinali) that become the two sheets of one Excel named like the file.
+ * Ore Studio Paghe: a month's hours per person, read on "Applica" (production from the file, office from the
+ * timesheet); two tabs (Clz e Ufficio, Interinali) that become the two sheets of one Excel named like the file.
  */
 export function PayrollHoursReport() {
-    const [period, setPeriod] = useState<Period>(thisMonth);
+    const [period, setPeriod] = useState<MonthPeriod>(thisMonthPeriod);
     /** The period the table shows; null before "Applica" (the file takes a while to read, so nothing loads on its own) */
-    const [applied, setApplied] = useState<Period | null>(null);
+    const [applied, setApplied] = useState<MonthPeriod | null>(null);
     const [data, setData] = useState<PayrollData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -117,7 +85,7 @@ export function PayrollHoursReport() {
     };
 
     const clear = () => {
-        setPeriod(thisMonth());
+        setPeriod(thisMonthPeriod());
         setApplied(null);
         setData(null);
         setError(null);
@@ -133,7 +101,7 @@ export function PayrollHoursReport() {
             <FilterPanel
                 onApply={load}
                 onClear={clear}
-                activeCount={applied && !samePeriod(applied, thisMonth()) ? 1 : 0}
+                activeCount={applied && !sameMonthPeriod(applied, thisMonthPeriod()) ? 1 : 0}
                 actions={<ExportExcelButton fileName={data?.fileName ?? ''} getSheets={excelSheets} disabled={!data} />}
             >
                 <MonthField value={period.month} onChange={(month) => setPeriod({ ...period, month })} />

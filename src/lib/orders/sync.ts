@@ -2,14 +2,17 @@
  * "Riallinea": rewrites the Business and NetPro production order of a commessa in place from its DiBa (the truth),
  * keeping the order ids. WRITES to both production databases, one transaction each (withTransactions); see docs/ORDER_PROCESS.md.
  *
- * - Business: attivit, assris, movord (tipo Y), keyord
- * - NetPro: OPERAZIONI, TASKS, JOBSET, MATERIALI_ORDINI
+ * - Business: movord (tipo H: quantities, title, composition, measures), movdis (per pieces), testord and commess (title), artico (title,
+ *   measures), attivit, assris,
+ *   movord (tipo Y), keyord
+ * - NetPro: ORDINI (quantity, title), ANAG_MATERIALI (title), OPERAZIONI, TASKS, JOBSET, MATERIALI_ORDINI
  * artpro is intentionally left untouched (NetPro handles it when the order is completed).
  * Only single-edition commesse are supported: with more editions the statements could touch the wrong order.
  */
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, withTransactions, type SqlRunner } from '@/lib/mssql';
-import { dibaMaterialQty, isPlaceholderMaterial } from '@/lib/orders/compare';
+import { dibaMaterialQty, isPlaceholderMaterial, PLACEHOLDER_MATERIAL } from '@/lib/orders/compare';
+import { cutToPlace } from '@/lib/orders/documentFacts';
 import { rowExists } from '@/lib/orders/sql';
 import { buildBusinessOverrides, buildNetProOverrides, cloneRowInsert, netOperId, NOW } from '@/lib/orders/syncRows';
 import { APP_COPY, fmt } from '@/locales';
@@ -20,8 +23,20 @@ const copy = APP_COPY.analytics.orderOperations;
 /** The order being realigned */
 interface SyncTarget {
     articleFather: string;
-    /** Copies of the order: phase and material quantities follow it */
+    /** Ordered quantity, from the impegno cliente row when there is one: the order row, its phases and NetPro follow it */
     orderFatherQuant: number;
+    /** Maximum quantity to produce (Qta.Max.Prod of the impegno), kept on the order row */
+    maxProduction: number;
+    /** Title of the article (Titolo/Descrizione of the impegno row), written wherever the title is kept */
+    title: string;
+    /** Composizione and the measures (base, altezza, pages) of the impegno row, kept on the order row and the article master */
+    composition: string;
+    width: number;
+    height: number;
+    pages: number;
+    commessa: number;
+    /** The impegno cliente document, when there is one (its header carries the title too) */
+    impegnoDoc?: { anno: number; numord: number };
     anno: number;
     numord: number;
     /** Row of the H line in movord */
@@ -38,6 +53,12 @@ interface BusinessOrderRow {
     mo_riga: number;
     mo_codart: string;
     mo_quant: number;
+    mo_colli: number;
+    mo_descr: string;
+    mo_matric: string;
+    mo_misura1: number;
+    mo_misura2: number;
+    mo_misura3: number;
     mo_commeca: number;
     mo_datcons: Date;
 }
@@ -58,7 +79,8 @@ type SyncResult = { success: true } | { success: false; error: string };
 async function findTarget(rootCommessaKey: string, articleFatherHint?: string): Promise<SyncTarget | string> {
     const busOrderRes = await queryMSSQL<BusinessOrderRow>(`
             SELECT TOP 1
-                mo_anno, mo_serie, mo_numord, mo_riga, mo_codart, mo_quant, mo_commeca, mo_datcons
+                mo_anno, mo_serie, mo_numord, mo_riga, mo_codart, mo_quant, mo_colli, RTRIM(mo_descr) AS mo_descr,
+                ISNULL(RTRIM(mo_matric), '') AS mo_matric, mo_misura1, mo_misura2, mo_misura3, mo_commeca, mo_datcons
             FROM movord WITH (NOLOCK)
             WHERE codditt = '${BUSINESS_COMPANY}'
               AND mo_tipork = 'H'
@@ -88,6 +110,17 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
     const numord = busOrder.mo_numord;
     const rigaPadre = busOrder.mo_riga;
 
+    // The impegno cliente row that generated the order (same commessa and article): the truth for the quantities
+    const impegnoRes = await queryMSSQL<Pick<BusinessOrderRow, 'mo_anno' | 'mo_numord' | 'mo_quant' | 'mo_colli' | 'mo_descr' | 'mo_matric' | 'mo_misura1' | 'mo_misura2' | 'mo_misura3'>>(`
+            SELECT TOP 1 mo_anno, mo_numord, mo_quant, mo_colli, RTRIM(mo_descr) AS mo_descr,
+                   ISNULL(RTRIM(mo_matric), '') AS mo_matric, mo_misura1, mo_misura2, mo_misura3
+            FROM movord WITH (NOLOCK)
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'R' AND mo_commeca = @commeca AND mo_codart = @codart
+            ORDER BY mo_anno DESC, mo_numord DESC
+        `, { commeca: busOrder.mo_commeca, codart: busOrder.mo_codart.trim() }, 'BUSINESS');
+    const impegno = impegnoRes.recordset[0];
+    const source = impegno ?? busOrder;
+
     const netOrderRes = await queryMSSQL<{ ORDINE: string; PART_NUMBER: string | null }>(`
             SELECT TOP 1 ORDINE, PART_NUMBER
             FROM ORDINI WITH (NOLOCK)
@@ -97,7 +130,15 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
 
     return {
         articleFather: (articleFatherHint || busOrder.mo_codart).trim(),
-        orderFatherQuant: Number(busOrder.mo_quant) || APP_CONFIG.ORDERS.DEFAULT_QUANTITY,
+        orderFatherQuant: Number(source.mo_quant) || APP_CONFIG.ORDERS.DEFAULT_QUANTITY,
+        maxProduction: Number(source.mo_colli) || 0,
+        title: (source.mo_descr ?? '').trim(),
+        composition: (source.mo_matric ?? '').trim(),
+        width: Number(source.mo_misura1) || 0,
+        height: Number(source.mo_misura2) || 0,
+        pages: Number(source.mo_misura3) || 0,
+        commessa: Number(busOrder.mo_commeca),
+        impegnoDoc: impegno ? { anno: impegno.mo_anno, numord: impegno.mo_numord } : undefined,
         anno,
         numord,
         rigaPadre,
@@ -106,6 +147,71 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
                 ? netOrderRes.recordset[0].ORDINE
                 : `H${String(anno).substring(2)} ${String(numord).padStart(9, '0')}${String(rigaPadre).padStart(4, '0')}`,
     };
+}
+
+/**
+ * Quantities (owner's rules, 2026-11-04): the ordered quantity and the maximum to produce come from the impegno cliente row
+ * and go to the production order row and the NetPro order; the DiBa's "per pieces" (md_perpz) becomes the ordered quantity on
+ * every material row, so the material quantities stay as typed in the DiBa (a material changes only when the DiBa is edited).
+ * The phases, operations, tasks, jobset and materials follow in syncPhases / syncMaterials with the same quantity.
+ * Each write only where the value differs. Left alone: the sales order and the bridge rows (Business keeps them) and the
+ * document headers (Business does not maintain them either).
+ */
+async function syncQuantities(run: SqlRunner, { articleFather, orderFatherQuant, maxProduction, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+    await run(`
+            UPDATE movdis
+            SET md_perpz = @qty
+            WHERE codditt = '${BUSINESS_COMPANY}' AND md_coddb = @articleFather AND (md_perpz IS NULL OR md_perpz <> @qty)
+        `, { qty: orderFatherQuant, articleFather }, 'BUSINESS');
+
+    await run(`
+            UPDATE movord
+            SET mo_quant = @qty, mo_colli = @colli, mo_ultagg = GETDATE()
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H' AND mo_anno = @anno AND mo_numord = @numord AND mo_riga = @rigaPadre
+              AND (mo_quant <> @qty OR mo_colli <> @colli)
+        `, { qty: orderFatherQuant, colli: maxProduction, anno, numord, rigaPadre }, 'BUSINESS');
+
+    await run(`UPDATE ORDINI SET QTA_RICHIESTA = @qty WHERE ORDINE = @netOrdine AND QTA_RICHIESTA <> @qty`,
+        { qty: orderFatherQuant, netOrdine }, 'NETPRO');
+}
+
+/**
+ * Article data (owner's rule 2026-11-04): the impegno cliente row's title goes to the production order row, the document headers
+ * (the impegno's too; Business's own trigger then copies it into the commessa), the commessa, the Business article master,
+ * the NetPro order and the NetPro article master, each cut to what its column keeps; its composition goes to the order row,
+ * its measures (base, altezza, pages) to the order row and the Business article master (NetPro has no field for them).
+ * Only where it differs.
+ */
+async function syncArticle(run: SqlRunner, { articleFather, title, composition, width, height, pages, commessa, impegnoDoc, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+    if (!title) return;
+    const lengths = APP_CONFIG.ORDERS.TITLE_LENGTHS;
+    await run(`
+            UPDATE movord
+            SET mo_descr = @title, mo_matric = @composition, mo_misura1 = @width, mo_misura2 = @height, mo_misura3 = @pages, mo_ultagg = GETDATE()
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H' AND mo_anno = @anno AND mo_numord = @numord AND mo_riga = @rigaPadre
+              AND (mo_descr <> @title OR ISNULL(mo_matric, '') <> @composition OR mo_misura1 <> @width OR mo_misura2 <> @height OR mo_misura3 <> @pages)
+        `, { title: cutToPlace(title, lengths.movord), composition: cutToPlace(composition, lengths.movord), width, height, pages, anno, numord, rigaPadre }, 'BUSINESS');
+    await run(`
+            UPDATE testord SET td_riferim = @title, td_ultagg = GETDATE()
+            WHERE codditt = '${BUSINESS_COMPANY}' AND td_tipork IN ('H', 'Y') AND td_anno = @anno AND td_numord = @numord AND td_riferim <> @title
+        `, { title: cutToPlace(title, lengths.testord), anno, numord }, 'BUSINESS');
+    if (impegnoDoc) {
+        await run(`
+                UPDATE testord SET td_riferim = @title, td_ultagg = GETDATE()
+                WHERE codditt = '${BUSINESS_COMPANY}' AND td_tipork = 'R' AND td_anno = @anno AND td_numord = @numord AND td_riferim <> @title
+            `, { title: cutToPlace(title, lengths.testord), anno: impegnoDoc.anno, numord: impegnoDoc.numord }, 'BUSINESS');
+    }
+    await run(`UPDATE commess SET co_descr1 = @title WHERE codditt = '${BUSINESS_COMPANY}' AND co_comme = @commessa AND co_descr1 <> @title`,
+        { title: cutToPlace(title, lengths.commess), commessa }, 'BUSINESS');
+    await run(`
+            UPDATE artico SET ar_descr = @title, ar_misura1 = @width, ar_misura2 = @height, ar_misura3 = @pages, ar_ultagg = GETDATE()
+            WHERE codditt = '${BUSINESS_COMPANY}' AND ar_codart = @articleFather
+              AND (ar_descr <> @title OR ar_misura1 <> @width OR ar_misura2 <> @height OR ar_misura3 <> @pages)
+        `, { title: cutToPlace(title, lengths.artico), width, height, pages, articleFather }, 'BUSINESS');
+    await run(`UPDATE ORDINI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE ORDINE = @netOrdine AND DESCRIZIONE <> @title`,
+        { title: cutToPlace(title, lengths.netproOrder), netOrdine }, 'NETPRO');
+    await run(`UPDATE ANAG_MATERIALI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE PART_NUMBER = @articleFather AND DESCRIZIONE <> @title`,
+        { title: cutToPlace(title, lengths.netproArticle), articleFather }, 'NETPRO');
 }
 
 /** Phases: removes those not in the DiBa, adds the missing ones, refreshes the others */
@@ -213,6 +319,7 @@ async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, ann
                     CENTRO_REALE     = CASE WHEN CENTRO_REALE = CENTRO_ASSEGNATO THEN @centro ELSE CENTRO_REALE END,
                     CENTRO_ASSEGNATO = @centro,
                     T_LAVORO_MAC     = @tesec,
+                    QTA_BASE         = @orderFatherQuant,
                     QTA_RICHIESTA    = @orderFatherQuant
                 WHERE ID_OPER = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note ? op.note.slice(0, 100) : null, orderFatherQuant, idOper }, 'NETPRO');
@@ -223,7 +330,8 @@ async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, ann
                 SET DESCRIZIONE        = @descr,
                     MACCHINA_ASSEGNATA = CASE WHEN MACCHINA_ASSEGNATA = MACCHINA THEN @centro ELSE MACCHINA_ASSEGNATA END,
                     MACCHINA           = @centro,
-                    QTA_RICHIESTA      = @orderFatherQuant
+                    QTA_RICHIESTA      = @orderFatherQuant,
+                    DATA_UPD           = CASE WHEN DESCRIZIONE = @descr AND MACCHINA = @centro AND QTA_RICHIESTA = @orderFatherQuant THEN DATA_UPD ELSE GETDATE() END
                 WHERE TASK = @idOper
             `, { descr: op.descr_lavor, centro: String(op.codcent), orderFatherQuant, idOper }, 'NETPRO');
 
@@ -262,7 +370,7 @@ async function syncPhaseChain(run: SqlRunner, { anno, numord, rigaPadre, netOrdi
 /**
  * Materials: rows linked like the official process — Business Y row ↔ DiBa row via mo_disbasriga = md_riga,
  * NetPro row ↔ Business row via MATERIALI_ORDINI.SEQUENZA = mo_riga (a DiBa can list the same code twice).
- * The MP_FITTIZIA placeholder is never added, updated or removed.
+ * MP_FITTIZIA is never added; once the DiBa has a real material it is removed everywhere (removePlaceholder).
  */
 async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
     const dibaMatRes = await run<DibaMaterialRow>(`
@@ -338,6 +446,7 @@ async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, 
                     UPDATE movord
                     SET mo_quant = @expectedQuant, mo_colli = @expectedQuant, mo_ultagg = GETDATE()
                     WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
+                      AND (mo_quant <> @expectedQuant OR mo_colli <> @expectedQuant)
                 `, { expectedQuant, numord, anno, riga }, 'BUSINESS');
 
             await run(`
@@ -368,10 +477,35 @@ async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, 
             });
         }
     }
+
+    if (dibaMat.length > 0) await removePlaceholder(run, { articleFather, anno, numord, rigaPadre, netOrdine });
 }
 
 /**
- * Realigns the order of the commessa to its DiBa: phases, phase chain, materials (in this order).
+ * MP_FITTIZIA exists only so that NetPro sees one material on an order that has none (owner, 2026-11-04): Riallinea never
+ * adds it, and once the DiBa has a real material it goes from the DiBa, the Business order (movord Y + keyord) and NetPro.
+ */
+async function removePlaceholder(run: SqlRunner, { articleFather, anno, numord, rigaPadre, netOrdine }: Pick<SyncTarget, 'articleFather' | 'anno' | 'numord' | 'rigaPadre' | 'netOrdine'>) {
+    const params = { anno, numord, rigaPadre, placeholder: PLACEHOLDER_MATERIAL };
+    await run(`
+            DELETE FROM keyord
+            WHERE codditt = '${BUSINESS_COMPANY}' AND ko_tipork = 'Y' AND ko_anno = @anno AND ko_numord = @numord
+              AND ko_riga IN (SELECT mo_riga FROM movord WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'Y'
+                              AND mo_anno = @anno AND mo_numord = @numord AND mo_rigaor = @rigaPadre AND mo_codart = @placeholder)
+        `, params, 'BUSINESS');
+    await run(`
+            DELETE FROM movord
+            WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'Y' AND mo_anno = @anno AND mo_numord = @numord AND mo_rigaor = @rigaPadre
+              AND mo_codart = @placeholder
+        `, params, 'BUSINESS');
+    await run(`DELETE FROM MATERIALI_ORDINI WHERE ORDINE = @netOrdine AND PART_NUMBER = @placeholder`,
+        { netOrdine, placeholder: PLACEHOLDER_MATERIAL }, 'NETPRO');
+    await run(`DELETE FROM movdis WHERE codditt = '${BUSINESS_COMPANY}' AND md_coddb = @articleFather AND md_codfigli = @placeholder`,
+        { articleFather, placeholder: PLACEHOLDER_MATERIAL }, 'BUSINESS');
+}
+
+/**
+ * Realigns the order of the commessa to its impegno and its DiBa: quantities, article data, phases, phase chain, materials (in this order).
  * All the writes run in one transaction per database: if any statement fails, both orders stay as they were.
  */
 export async function syncOrderFromDiba(rootCommessaKey: string, articleFatherHint?: string): Promise<SyncResult> {
@@ -379,6 +513,8 @@ export async function syncOrderFromDiba(rootCommessaKey: string, articleFatherHi
     if (typeof target === 'string') return { success: false, error: target };
 
     await withTransactions(['BUSINESS', 'NETPRO'], async (run) => {
+        await syncQuantities(run, target);
+        await syncArticle(run, target);
         await syncPhases(run, target);
         await syncPhaseChain(run, target);
         await syncMaterials(run, target);

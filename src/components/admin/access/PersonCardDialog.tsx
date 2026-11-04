@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Check, Sparkles, UserRound } from 'lucide-react';
+import { AlertTriangle, CaseUpper, Check, Sparkles, UserRound } from 'lucide-react';
 import type { UserView } from '@/app/access-actions';
-import { alignEmailAction, getPersonCardAction, getPersonChoicesAction, setPersonLinksAction, type PersonCard, type PersonChoices } from '@/app/person-actions';
+import { alignEmailAction, alignNameAction, getPersonCardAction, getPersonChoicesAction, setPersonLinksAction, type PersonCard, type PersonChoices } from '@/app/person-actions';
 import { AlignEmailDialog } from '@/components/admin/access/AlignEmailDialog';
+import { AlignNameDialog } from '@/components/admin/access/AlignNameDialog';
 import { PersonComparison } from '@/components/admin/access/PersonComparison';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
@@ -13,7 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { notify } from '@/lib/notify';
-import { NO_LINKS, distinctValues, driftCount, type PersonLinks } from '@/lib/persons/places';
+import { NO_LINKS, distinctValues, driftCount, type Fact, type FactKey, type NameParts, type PersonLinks } from '@/lib/persons/places';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -21,7 +22,7 @@ const copy = APP_COPY.admin.person;
 
 interface PersonCardDialogProps {
     user: UserView;
-    /** After links are saved or the e-mail aligned: the Utenti list reloads (and with it the "≠" marks) */
+    /** After links are saved or a fact aligned: the Utenti list reloads (and with it the "≠" marks) */
     onSaved: () => Promise<void>;
     onClose: () => void;
 }
@@ -30,7 +31,7 @@ const sameLinks = (a: PersonLinks, b: PersonLinks) => a.operatorCode === b.opera
 
 /**
  * "Scheda persona", laid out like the order comparison: the links of the login (three selects, saved in app_users),
- * the status badge and the Allinea button, then one row per fact with a column per place (PersonComparison).
+ * the status badge and the Allinea buttons, then one row per fact with a column per place (PersonComparison).
  */
 export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogProps) {
     const [choices, setChoices] = useState<PersonChoices | null>(null);
@@ -38,7 +39,7 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
     const [links, setLinks] = useState<PersonLinks>(NO_LINKS);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-    const [confirming, setConfirming] = useState(false);
+    const [confirming, setConfirming] = useState<FactKey | null>(null);
 
     const load = useCallback(async () => {
         try {
@@ -80,26 +81,32 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
     };
 
     const saveLinks = () => write(() => setPersonLinksAction(user.id, links), () => copy.linksSaved);
-    const align = async (email: string) => {
+    /** Runs an Allinea and says how many rows it changed */
+    const alignWith = async (save: () => Promise<{ success: true; written: number } | { success: false; error: string }>, done: (count: number) => string) => {
         let written = 0;
-        const done = await write(
+        const ok = await write(
             async () => {
-                const result = await alignEmailAction(user.id, email);
+                const result = await save();
                 if (result.success) written = result.written;
                 return result;
             },
-            () => fmt(copy.aligned, { count: written })
+            () => done(written)
         );
-        if (done) setConfirming(false);
+        if (ok) setConfirming(null);
     };
+    const alignEmail = (email: string) => alignWith(() => alignEmailAction(user.id, email), (count) => fmt(copy.alignEmail.done, { count }));
+    const alignName = (parts: NameParts) => alignWith(() => alignNameAction(user.id, parts), (count) => fmt(copy.alignName.done, { count }));
 
     const option = (value: string, label: string) => ({ value, label: label ? `${value} · ${label}` : value });
     const withNone = (options: { value: string; label: string }[]) => [{ value: '', label: copy.notLinked }, ...options];
     const set = (change: Partial<PersonLinks>) => setLinks((current) => ({ ...current, ...change }));
     const value = (e: React.ChangeEvent<HTMLSelectElement>) => e.target.value || null;
 
-    const email = card?.facts.find((fact) => fact.key === 'email');
-    const canAlign = Boolean(email?.differs && email.values.some((item) => item.writable));
+    const factOf = (key: FactKey) => card?.facts.find((fact) => fact.key === key);
+    /** Allinea is offered when the fact differs and some place takes a write */
+    const canAlign = (fact: Fact | undefined): fact is Fact => Boolean(fact?.differs && fact.values.some((item) => item.writable));
+    const email = factOf('email');
+    const name = factOf('name');
     const drift = card ? driftCount(card.facts) : 0;
 
     return (
@@ -137,10 +144,16 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
                                     {copy.alignedStatus}
                                 </StatusBadge>
                             )}
-                            {canAlign && (
-                                <Button variant="warning" size="sm" onClick={() => setConfirming(true)} disabled={busy}>
+                            {canAlign(email) && (
+                                <Button variant="warning" size="sm" onClick={() => setConfirming('email')} disabled={busy}>
                                     <Sparkles className="w-3.5 h-3.5" />
-                                    {copy.align}
+                                    {copy.alignEmail.align}
+                                </Button>
+                            )}
+                            {canAlign(name) && (
+                                <Button variant="warning" size="sm" onClick={() => setConfirming('name')} disabled={busy}>
+                                    <CaseUpper className="w-3.5 h-3.5" />
+                                    {copy.alignName.align}
                                 </Button>
                             )}
                         </div>
@@ -148,7 +161,10 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
 
                     <PersonComparison facts={card.facts} />
 
-                    {confirming && email && <AlignEmailDialog name={user.name} options={distinctValues(email)} aligning={busy} onConfirm={align} onClose={() => setConfirming(false)} />}
+                    {confirming === 'email' && email && <AlignEmailDialog name={user.name} options={distinctValues(email)} aligning={busy} onConfirm={alignEmail} onClose={() => setConfirming(null)} />}
+                    {confirming === 'name' && name && (
+                        <AlignNameDialog name={user.name} options={distinctValues(name)} records={card.records} aligning={busy} onConfirm={alignName} onClose={() => setConfirming(null)} />
+                    )}
                 </div>
             )}
         </Modal>

@@ -38,13 +38,15 @@ export interface MaterialComparisonRow {
 }
 
 const txt = (v: unknown) => String(v ?? '').trim().toLowerCase();
-const QTY_EPS = 0.001;
+/** Quantities are compared to the thousandth (materials, order quantities) */
+export const QTY_EPS = 0.001;
 
 /**
- * Placeholder material: keeps a production order's material list non-empty when it has no real materials.
- * Never compared and never touched by the DiBa sync (also hidden from the NetPro materials list).
+ * Placeholder material: keeps a production order's material list non-empty when it has no real materials (NetPro wants one).
+ * Next to a real material it is useless: the comparison then shows it "da rimuovere" and Riallinea removes it everywhere
+ * (never adding it). Hidden from the NetPro materials list.
  */
-const PLACEHOLDER_MATERIAL = 'MP_FITTIZIA';
+export const PLACEHOLDER_MATERIAL = 'MP_FITTIZIA';
 export const isPlaceholderMaterial = (code?: string) => String(code ?? '').trim().toUpperCase() === PLACEHOLDER_MATERIAL;
 /** NetPro keeps only the first 100 chars of the DiBa note (OPERAZIONI.DESCRIZIONE01) */
 const NETPRO_NOTE_LEN = 100;
@@ -108,7 +110,12 @@ export function compareMaterials(
         if (!map.has(code)) map.set(code, { part_number: code, description, unmis, busDiff: false, netDiff: false, issues: [] });
         return map.get(code)!;
     };
-    // Sum per code (an order could hold the same code on more rows)
+    // The placeholder is compared apart (below); the real materials are summed per code (an order could hold a code on more rows)
+    const placeholder = {
+        diba: diba.find(m => isPlaceholderMaterial(m.codfigli)),
+        bus: bus.find(m => isPlaceholderMaterial(m.part_number)),
+        net: net.find(m => isPlaceholderMaterial(m.part_number)),
+    };
     diba = diba.filter(m => !isPlaceholderMaterial(m.codfigli));
     bus = bus.filter(m => !isPlaceholderMaterial(m.part_number));
     net = net.filter(m => !isPlaceholderMaterial(m.part_number));
@@ -126,6 +133,21 @@ export function compareMaterials(
         else if (Math.abs(r.bus - r.expected) > QTY_EPS) { r.busDiff = true; r.issues.push('Q.tà Business ≠ DiBa'); }
         if (r.net === undefined) { r.netDiff = true; r.issues.push('Manca nell\'ordine NetPro'); }
         else if (Math.abs(r.net - r.expected) > QTY_EPS) { r.netDiff = true; r.issues.push('Q.tà NetPro ≠ DiBa'); }
+    }
+    // Once the DiBa has a real material the placeholder has to go, wherever it still is
+    if (diba.length > 0 && (placeholder.diba || placeholder.bus || placeholder.net)) {
+        const sample = placeholder.bus ?? placeholder.net;
+        const where = [placeholder.diba && 'DiBa', placeholder.bus && 'Business', placeholder.net && 'NetPro'].filter(Boolean).join(', ');
+        map.set(PLACEHOLDER_MATERIAL, {
+            part_number: PLACEHOLDER_MATERIAL,
+            description: sample?.description ?? placeholder.diba?.description ?? PLACEHOLDER_MATERIAL,
+            unmis: sample?.unmis ?? placeholder.diba?.unmis ?? '',
+            bus: placeholder.bus ? Number(placeholder.bus.quant) : undefined,
+            net: placeholder.net ? Number(placeholder.net.quant) : undefined,
+            busDiff: !!placeholder.bus,
+            netDiff: !!placeholder.net,
+            issues: [`Materiale fittizio da rimuovere (${where})`],
+        });
     }
     return Array.from(map.values()).sort((a, b) =>
         (b.issues.length > 0 ? 1 : 0) - (a.issues.length > 0 ? 1 : 0) || a.part_number.localeCompare(b.part_number));

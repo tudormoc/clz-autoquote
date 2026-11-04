@@ -70,6 +70,10 @@ up. Row lists group by the full number and only *display* the core.
 | `dw_datmov`, `dw_anno` | Movement date, year |
 | `dw_scenario` | Always `1` (actual data) |
 
+**`movord`** — the rows of every order document (`mo_tipork`: `R` impegno cliente, `H` ordine di produzione, `Y` its materials under
+the H row, `O` ordine fornitore …; `mo_quant` = Q.tà ordinata, `mo_colli` = Qta.Max.Prod, the most that may be produced),
+**`testord`** their headers (`td_*`); the production order's phases in `attivit` / `assris`. How they link and where the quantity lives: [ORDER_PROCESS.md](ORDER_PROCESS.md).
+
 **`anagra`** — accounts: `an_conto`, `an_descr1`, `an_tipo` (`'C'` client, `'F'` supplier). **`commess`** — orders: `co_comme`, `co_descr1`.
 
 ```sql
@@ -127,15 +131,15 @@ Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not store
 ## People
 
 The same person lives in several places; the Scheda persona (Utenti) reads them all through the three links of `app_users` and
-writes only the e-mail, only where marked. Collations are case-insensitive, so `TM` = `tm`.
+writes the e-mail and the name (in capitals, the same text everywhere), only where marked. Collations are case-insensitive, so `TM` = `tm`.
 
 | Place | Table | Key | Read | Written by Allinea |
 |---|---|---|---|---|
-| NetPro operator | `NETPRO.OPERATORI` | `OPERATORE` = `operator_code` | `NOME`, `BADGE`, `ENTITA` | no |
-| Business operator list | `COOPZANARDI.tabcope` | `tb_codcope` = `operator_code` | `tb_descope` | no |
-| NetPro login | `NETPRO.UTENTI` | `UTENTE` = `netpro_user` | `DESCRIZIONE`, `FEMAIL`, `RUOLO` | `FEMAIL` (varchar 50) |
-| Business login | `ARCPROC.OPERAT` | `OpNome` = `erp_user` | `OpDescont`, `OpDescont2`, `OpSumail`, `OpRuolo` | `OpSumail` |
-| Business org chart | `COOPZANARDI.organig` | `og_coperat` = `erp_user` | `og_descont`, `og_descont2`, `og_email`, `og_telef`, `og_codcope` | `og_email` |
+| NetPro operator | `NETPRO.OPERATORI` | `OPERATORE` = `operator_code` | `NOME`, `BADGE`, `ENTITA` | `NOME` (varchar 30, with the category's mark) |
+| Business operator list | `COOPZANARDI.tabcope` | `tb_codcope` = `operator_code` | `tb_descope` | `tb_descope` (30) |
+| NetPro login | `NETPRO.UTENTI` | `UTENTE` = `netpro_user` | `DESCRIZIONE`, `FEMAIL`, `RUOLO` | `FEMAIL` (varchar 50), `DESCRIZIONE` (30) |
+| Business login | `ARCPROC.OPERAT` | `OpNome` = `erp_user` | `OpDescont`, `OpDescont2`, `OpSumail`, `OpRuolo` | `OpSumail`, `OpDescont` (30) + `OpDescont2` (20) |
+| Business org chart | `COOPZANARDI.organig` | `og_coperat` = `erp_user` | `og_descont`, `og_descont2`, `og_email`, `og_telef`, `og_codcope` | `og_email`, `og_descont` (30) + `og_descont2` (20) |
 | Business mailbox | `COOPZANARDI.emailconf` | `em_user` = `erp_user` | `em_email` | never (it is the mailbox login) |
 
 Left out on purpose (owner, 2026-11-02): the e-mail signatures (`emailfirme`, one row per signature, a person may keep
@@ -159,3 +163,14 @@ People are `VARCHAR(20)`: an `app_users` id as text, `superadmin`, or `system`. 
 | `tsk_contacts` / `tsk_contact_refs` | `name`, `company`, `role`, `phone`, `email`, `notes`, `state`; where used: `contact_id`, `owner_kind` (`task` / `guide`), `owner_id` |
 | `tsk_log` | `logged_at`, `person`, `entity_kind`, `entity_id`, `task_id`, `action`, `details` (JSON) |
 | `tsk_areas` / `tsk_closed_days` | settings tables (`editableTables.ts`): `name`, `sort_order` / `closed_on`, `name`, `every_year` |
+
+## Timesheet tables (QUOTES, created 2026-11-04 with the owner's yes)
+
+Created by `sql/timesheet/001_create_tables.sql`; read and written only by `src/lib/timesheet/db/` (how they work:
+[TIMESHEET.md](TIMESHEET.md)). People, dates and moments as in the Agenda tables; the operator is the NetPro code
+(`NETPRO.OPERATORI.OPERATORE` = `app_users.operator_code`). The SQL helpers both modules use: `src/lib/appTables.ts`.
+
+| Table | Columns |
+|---|---|
+| `timesheet_entries` | `id`, `operator_code`, `day`, `kind` (`work`, `ferie`, `permesso`, `malattia`, `straordinarie`, `banca_ore`: the app's list, not a CHECK, so a new kind needs no table change), `time_from` / `time_to` (work; `time_to` NULL while still in), `hours` (every other kind), `causale` (ferie / permesso: the type), `note`, `created_*`, `updated_*`, `row_version`. CHECKs: a work row has times and no hours, any other row hours and no times; `time_to > time_from`; `0 < hours ≤ 24`. Index (`operator_code`, `day`) |
+| `timesheet_log` | `logged_at`, `person`, `entry_id` (kept after a delete), `operator_code`, `day`, `action` (`created` / `changed` / `deleted`), `details` (JSON `{ before, after }`, the missing side left out) |

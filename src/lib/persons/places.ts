@@ -2,9 +2,14 @@
  * The person behind a login as the other programs know them, without a database: the records the three links of
  * app_users open (operator code, NetPro user, Business user) and the "places" of each fact (e-mail, name), which the
  * Scheda persona compares the way the order comparison does (one row per fact, one column per place). Allinea writes
- * only the e-mail, only into the places listed in docs/DATABASE.md → People; the reads and writes are in
- * src/app/person-actions.ts. The e-mail signatures of Business (emailfirme) are left out on purpose (owner, 2026-11-02).
+ * the e-mail and the name, only into the places listed in docs/DATABASE.md → People; the reads and writes are in
+ * src/app/person-actions.ts. A name is the same text, in capitals, in every place (owner, 2026-11-04): the rules of
+ * how it is written, split and checked are here too. The e-mail signatures of Business (emailfirme) are left out on
+ * purpose (owner, 2026-11-02).
  */
+
+import { z } from 'zod';
+import { bareName } from '@/lib/presence/categories';
 
 export interface PersonLinks {
     /** NETPRO.OPERATORI.OPERATORE = COOPZANARDI.tabcope.tb_codcope */
@@ -73,15 +78,53 @@ const joinName = (surname: string | null, name: string | null) => clean([surname
 /** The same address however it is typed */
 export const emailKey = (value: string) => value.trim().toLowerCase();
 
-/** The same person however the name is written: "MOCANU TUDOR", "Mocanu Tudor", "Tudor Mocanu", "MOCANU TUDOR *lb" */
-export const nameKey = (value: string) =>
-    value
-        .toUpperCase()
-        .replace(/\*LB\b/g, ' ')
-        .split(/\s+/)
-        .filter(Boolean)
-        .sort()
-        .join(' ');
+const singleSpaced = (value: string) => value.split(/\s+/).filter(Boolean).join(' ');
+
+/** The same name only when the text is the same ("MOCANU TUDOR" ≠ "Mocanu Tudor"): NetPro's category mark and spacing aside */
+export const nameKey = (value: string) => singleSpaced(bareName(value));
+
+/** A name as Allinea writes it everywhere: capitals, single spaces, no category mark */
+export const writtenName = (value: string) => singleSpaced(bareName(value)).toUpperCase();
+
+/** Cognome and nome, kept apart by the Business login and the org chart */
+export interface NameParts {
+    surname: string;
+    firstName: string;
+}
+
+/** The longest text each name column takes: NOME, DESCRIZIONE, tb_descope, OpDescont, og_descont are varchar(30); OpDescont2, og_descont2 varchar(20) */
+export const NAME_MAX_LENGTH = { full: 30, surname: 30, firstName: 20 } as const;
+
+/** The whole name from its parts, as written */
+export const joinNameParts = ({ surname, firstName }: NameParts) => writtenName(`${surname} ${firstName}`);
+
+/** The parts of a name written as one text, by NetPro's habit "COGNOME NOME": the last word is the first name, the rest the surname ("DE VECCHI MONICA") */
+export function splitName(full: string): NameParts {
+    const words = writtenName(full).split(' ').filter(Boolean);
+    return words.length > 1 ? { surname: words.slice(0, -1).join(' '), firstName: words[words.length - 1] } : { surname: words[0] ?? '', firstName: '' };
+}
+
+/**
+ * The parts to propose for a name: the split a Business place already has when its words are the same ("Rossi" +
+ * "Maria Grazia" for "ROSSI MARIA GRAZIA"), else splitName
+ */
+export function proposeNameParts(records: PersonRecords, full: string): NameParts {
+    const target = writtenName(full);
+    for (const place of [records.erpUser, records.orgChart]) {
+        if (!place?.surname) continue;
+        const parts = { surname: writtenName(place.surname), firstName: writtenName(place.name ?? '') };
+        if (joinNameParts(parts) === target) return parts;
+    }
+    return splitName(full);
+}
+
+/** What Allinea nome accepts: both parts as written, the surname never empty, each within its columns */
+export const NamePartsSchema = z
+    .object({
+        surname: z.string().transform(writtenName).pipe(z.string().min(1).max(NAME_MAX_LENGTH.surname)),
+        firstName: z.string().transform(writtenName).pipe(z.string().max(NAME_MAX_LENGTH.firstName)),
+    })
+    .refine((parts) => joinNameParts(parts).length <= NAME_MAX_LENGTH.full);
 
 /** How two values of a fact are told apart */
 export const factKeyOf: Record<FactKey, (value: string) => string> = { email: emailKey, name: nameKey };
@@ -127,11 +170,11 @@ export function buildFacts(records: PersonRecords): Fact[] {
         ...(records.mailbox ? [{ place: 'mailbox' as const, value: clean(records.mailbox.email), writable: false }] : []),
     ];
     const name: FactValue[] = [
-        ...(records.operator ? [{ place: 'operator' as const, value: clean(records.operator.name), writable: false }] : []),
-        ...(records.netproUser ? [{ place: 'netproUser' as const, value: clean(records.netproUser.description), writable: false }] : []),
-        ...(records.erpOperator ? [{ place: 'erpOperator' as const, value: clean(records.erpOperator.name), writable: false }] : []),
-        ...(records.erpUser ? [{ place: 'erpUser' as const, value: joinName(records.erpUser.surname, records.erpUser.name), writable: false }] : []),
-        ...(records.orgChart ? [{ place: 'orgChart' as const, value: joinName(records.orgChart.surname, records.orgChart.name), writable: false }] : []),
+        ...(records.operator ? [{ place: 'operator' as const, value: clean(records.operator.name), writable: true }] : []),
+        ...(records.netproUser ? [{ place: 'netproUser' as const, value: clean(records.netproUser.description), writable: true }] : []),
+        ...(records.erpOperator ? [{ place: 'erpOperator' as const, value: clean(records.erpOperator.name), writable: true }] : []),
+        ...(records.erpUser ? [{ place: 'erpUser' as const, value: joinName(records.erpUser.surname, records.erpUser.name), writable: true }] : []),
+        ...(records.orgChart ? [{ place: 'orgChart' as const, value: joinName(records.orgChart.surname, records.orgChart.name), writable: true }] : []),
     ];
     const fact = (key: FactKey, values: FactValue[]): Fact => {
         const draft: Fact = { key, values, differs: false };

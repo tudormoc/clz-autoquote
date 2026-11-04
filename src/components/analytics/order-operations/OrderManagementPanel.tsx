@@ -1,23 +1,26 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, Boxes, Cpu, Package } from 'lucide-react';
+import { ArrowLeftRight, Boxes, Cpu, Hash, Package, Tag } from 'lucide-react';
 import { DibaOperationsTable } from '@/components/analytics/order-operations/DibaOperationsTable';
 import { ManagementToolbar } from '@/components/analytics/order-operations/ManagementToolbar';
 import { MaterialsComparison } from '@/components/analytics/order-operations/MaterialsComparison';
 import { OperationsComparison } from '@/components/analytics/order-operations/OperationsComparison';
 import { ProductionOperationsTable } from '@/components/analytics/order-operations/ProductionOperationsTable';
+import { DocumentFactsComparison } from '@/components/analytics/order-operations/DocumentFactsComparison';
 import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
 import { APP_CONFIG } from '@/config/constants';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
+import { ARTICLE_RULES, titleText } from '@/lib/orders/article';
 import { compareMaterials, compareOperations } from '@/lib/orders/compare';
+import { QUANTITY_RULES, quantityText } from '@/lib/orders/quantities';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
 const t = APP_COPY.analytics.orderOperations;
 
-type ManagementTab = 'comparison' | 'materials' | 'diba' | 'order';
+type ManagementTab = 'comparison' | 'materials' | 'quantity' | 'article' | 'diba' | 'order';
 
 interface OrderManagementPanelProps {
     /** What was loaded with the order; the panel reloads it by itself afterwards */
@@ -30,7 +33,8 @@ interface OrderManagementPanelProps {
 
 /**
  * Compares an order with its DiBa (Distinta Base, the truth): phases and materials of the Business order and the NetPro
- * order side by side, the DiBa and the production order lists, and the realign of the order from the DiBa.
+ * order side by side, the quantity in every place, the DiBa and the production order lists, and the realign of the
+ * order from the DiBa.
  */
 export function OrderManagementPanel({ initial, rootCommessaKey, editions, onStatusChange }: OrderManagementPanelProps) {
     const { data, refreshing, syncing, refresh, selectEdition, sync } = useOrderManagement(initial, rootCommessaKey, onStatusChange);
@@ -54,6 +58,8 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
     const tabs: TabItem<ManagementTab>[] = [
         { id: 'comparison', label: t.comparisonTab, icon: <ArrowLeftRight className="w-3.5 h-3.5 text-primary" />, count: phases.length },
         { id: 'materials', label: t.dibaMaterialsTab, icon: <Package className="w-3.5 h-3.5 text-success-400" />, count: materials.length },
+        { id: 'quantity', label: t.quantityTab, icon: <Hash className="w-3.5 h-3.5 text-warning-300" />, count: data.quantities?.rows.length ?? 0 },
+        { id: 'article', label: t.articleTab, icon: <Tag className="w-3.5 h-3.5 text-primary" />, count: data.article?.rows.length ?? 0 },
         { id: 'diba', label: t.dibaTab, icon: <Boxes className="w-3.5 h-3.5 text-highlight-400" />, count: dibaOperations.length },
         { id: 'order', label: t.prodOrderOpsTab, icon: <Cpu className="w-3.5 h-3.5 text-info-400" />, count: orderOperations.length },
     ];
@@ -74,6 +80,12 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
 
             {tab === 'comparison' && <OperationsComparison rows={phases} businessOrderNumber={data.order_bus_numord} />}
             {tab === 'materials' && <MaterialsComparison rows={materials} />}
+            {tab === 'quantity' && (
+                <DocumentFactsComparison facts={data.quantities} rules={QUANTITY_RULES} names={t.quantityNames} factColumn={t.quantityColumn} format={quantityText} mono businessOrderNumber={data.order_bus_numord} />
+            )}
+            {tab === 'article' && (
+                <DocumentFactsComparison facts={data.article} rules={ARTICLE_RULES} names={t.articleNames} factColumn={t.articleColumn} format={titleText} businessOrderNumber={data.order_bus_numord} />
+            )}
             {tab === 'diba' && <DibaOperationsTable rows={dibaOperations} />}
             {tab === 'order' && <ProductionOperationsTable rows={orderOperations} />}
 

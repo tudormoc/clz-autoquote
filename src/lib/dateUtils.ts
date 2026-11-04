@@ -65,6 +65,30 @@ export function periodOf(dates: DateRange, today: Date = new Date()): DatePeriod
 /** What a date filter opens with: today, as a calendar does ("Personalizzato"); the periods are one pick away */
 export const defaultReportPeriod = (): DateRange => ({ dateFrom: getTodayDate(), dateTo: getTodayDate() });
 
+/** A month of a year, as the month pickers hold it */
+export interface MonthPeriod {
+    year: number;
+    /** 1–12 */
+    month: number;
+}
+
+export const thisMonthPeriod = (today: Date = new Date()): MonthPeriod => ({ year: today.getFullYear(), month: today.getMonth() + 1 });
+
+export const sameMonthPeriod = (a: MonthPeriod, b: MonthPeriod) => a.year === b.year && a.month === b.month;
+
+/** The month `by` months later (negative: earlier) */
+export function shiftMonthPeriod(period: MonthPeriod, by: number): MonthPeriod {
+    const index = period.year * 12 + period.month - 1 + by;
+    return { year: Math.floor(index / 12), month: (index % 12) + 1 };
+}
+
+/** Every day of a month (1–12) as "YYYY-MM-DD", in order */
+export function monthDates(year: number, month: number): string[] {
+    const days = new Date(year, month, 0).getDate();
+    const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+    return Array.from({ length: days }, (_, i) => `${prefix}${String(i + 1).padStart(2, '0')}`);
+}
+
 /** Monday of ISO week `week` (1 to 53) of `year`: week 1 is the week with 4 January */
 export function isoWeekStart(year: number, week: number): Date {
     const jan4 = new Date(year, 0, 4);

@@ -1,11 +1,17 @@
 /**
  * Data of the DiBa comparison of one order (server only, read queries): the DiBa (Business cicli + movdis), the Business
  * production order (movord H / attivit / assris / movord Y) and the NetPro order (OPERAZIONI / MATERIALI_ORDINI),
- * plus the number of differences. See docs/ORDER_PROCESS.md.
+ * plus the number of differences and the quantity of the edition in every place (quantityData.ts). See docs/ORDER_PROCESS.md.
  */
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import { compareMaterials, compareOperations, countDiscrepancies } from '@/lib/orders/compare';
+import { ARTICLE_RULES } from '@/lib/orders/article';
+import { loadOrderArticle } from '@/lib/orders/articleData';
+import { countFactIssues } from '@/lib/orders/documentFacts';
+import { loadDocumentRows } from '@/lib/orders/documentRows';
+import { QUANTITY_RULES } from '@/lib/orders/quantities';
+import { loadOrderQuantities } from '@/lib/orders/quantityData';
 import type {
     BusinessOrderOperationRow,
     DibaMaterialRow,
@@ -16,7 +22,7 @@ import type {
 } from '@/types';
 
 /** The Business production order row (movord tipo H) of one edition */
-interface BusinessOrderRef {
+export interface BusinessOrderRef {
     anno: number;
     numord: number;
     riga: number;
@@ -239,14 +245,23 @@ export async function fetchOrderManagement(
             loadBusinessMaterials(order),
         ]);
         const ordineNetpro = orderOperations[0]?.ordine ?? '';
-        const netproMaterials = await loadNetproMaterials(ordineNetpro);
+        // The impegno cliente and order rows feed the Quantità and Articolo tabs
+        const netproMake = order?.netpid || ordineNetpro;
+        const documents = order ? await loadDocumentRows(order) : {};
+        const [netproMaterials, quantities, articleFacts] = await Promise.all([
+            loadNetproMaterials(ordineNetpro),
+            loadOrderQuantities(documents, order, netproMake),
+            loadOrderArticle(documents, order, netproMake),
+        ]);
 
-        // Differences: DiBa (truth) vs Business order vs NetPro order (same logic as the comparison tables)
+        // Differences: DiBa (truth) vs Business order vs NetPro order (same logic as the comparison tables), plus the
+        // quantities and the title (impegno cliente as truth), so Riallinea shows up when only one of those differs
         const quantity = order?.quant || APP_CONFIG.ORDERS.DEFAULT_QUANTITY;
-        const discrepancyCount = countDiscrepancies(
-            compareOperations(dibaOperations, businessOperations, orderOperations),
-            compareMaterials(dibaMaterials, businessMaterials, netproMaterials, quantity)
-        );
+        const discrepancyCount =
+            countDiscrepancies(
+                compareOperations(dibaOperations, businessOperations, orderOperations),
+                compareMaterials(dibaMaterials, businessMaterials, netproMaterials, quantity)
+            ) + countFactIssues(quantities.rows, QUANTITY_RULES) + countFactIssues(articleFacts.rows, ARTICLE_RULES);
 
         return {
             article_father: article,
@@ -264,6 +279,8 @@ export async function fetchOrderManagement(
             netpro_materials: netproMaterials,
             has_discrepancies: discrepancyCount > 0,
             discrepancy_count: discrepancyCount,
+            quantities,
+            article: articleFacts,
         };
     } catch (err) {
         console.error('Error in fetchOrderManagement:', err);

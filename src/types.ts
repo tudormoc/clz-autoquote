@@ -279,7 +279,52 @@ export interface OrderOperationsManagementData {
     netpro_materials?: OrderMaterialSummaryRow[];
     has_discrepancies?: boolean;
     discrepancy_count?: number;
+    /** The quantities of the edition in the impegno cliente, the Business order and the NetPro order (the "Quantità" tab) */
+    quantities?: OrderQuantities;
+    /** The title of the article in the same documents and the article masters (the "Articolo" tab) */
+    article?: OrderArticle;
 }
 
+/** A distinct value found in a place and how many records hold it */
+export interface PlaceValue<V> {
+    value: V;
+    rows: number;
+}
 
+/** A table and column of a document that holds the fact, with the distinct values found there */
+export interface DocumentPlace<V> {
+    table: string;
+    column: string;
+    values: PlaceValue<V>[];
+    /** Text places: how many characters the column keeps (a longer title is cut there) */
+    maxLength?: number;
+}
 
+/** The fact in one document: the value of its row (the one shown) and every place of the document that holds it */
+export interface DocumentSide<V> {
+    value?: V;
+    places: DocumentPlace<V>[];
+}
+
+/** One fact of the edition in the impegno cliente (the truth), the Business production order and the NetPro order */
+export interface DocumentFactRow<K extends string, V> {
+    key: K;
+    /** The document (none = not found) */
+    impegno?: DocumentSide<V>;
+    bus?: DocumentSide<V>;
+    net?: DocumentSide<V>;
+}
+
+export type QuantityKey = 'ordered' | 'maxProduction';
+export type OrderQuantityRow = DocumentFactRow<QuantityKey, number>;
+export type ArticleKey = 'name' | 'composition' | 'width' | 'height' | 'pages';
+export type OrderArticleRow = DocumentFactRow<ArticleKey, string>;
+
+/** A comparison tab ("Quantità", "Articolo"): the impegno cliente behind the edition and its facts compared with the two orders */
+export interface DocumentFacts<R> {
+    /** Impegno cliente number ("2026/9999") when found */
+    impegnoRef?: string;
+    rows: R[];
+}
+export type OrderQuantities = DocumentFacts<OrderQuantityRow>;
+export type OrderArticle = DocumentFacts<OrderArticleRow>;

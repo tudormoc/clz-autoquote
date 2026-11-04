@@ -1,12 +1,14 @@
 /**
- * Ore Studio Paghe: the month's hours of every person as the pay studio gets them, read from the monthly production
- * Excel file (src/app/analytics/queries/payroll-queries.ts reads the file, the rest is here, pure): the people of
- * the file's rows, the days of a month, the order of the people, the rows of the table and of the Excel sheets
- * (empty rows between people).
+ * Ore Studio Paghe: the month's hours of every person as the pay studio gets them. The production people come from
+ * the monthly production Excel file (src/app/analytics/queries/payroll-queries.ts reads the file), the office people
+ * from the timesheet (src/lib/timesheet/payroll.ts); the rest is here, pure: the people of the file's rows, the order
+ * of the people, the rows of the table and of the Excel sheets (empty rows between people), the columns of the file.
  */
 
 import { APP_CONFIG } from '@/config/constants';
+import type { ExcelColumn } from '@/lib/excel';
 import { hasNameMark } from '@/lib/presence/categories';
+import { APP_COPY } from '@/locales';
 
 const { EXCEL_COLUMNS: COL, INTERINALI_GROUP, PLACEHOLDER_NAME_PREFIX, BLANK_ROWS_BETWEEN_PEOPLE } = APP_CONFIG.PAYROLL;
 
@@ -17,10 +19,19 @@ export type PayrollValue = number | string | null;
 export const PAYROLL_FIELDS = ['ferie', 'permesso', 'malattia', 'ordinarie', 'straordinarie', 'bancaOre', 'bancaOreN1', 'bancaOreN'] as const;
 export type PayrollField = (typeof PAYROLL_FIELDS)[number];
 
-export type PayrollDay = { date: string } & Record<PayrollField, PayrollValue>;
+/** The note next to ferie and to permesso: the type of the absence (the office rows have it, the production file not) */
+export const PAYROLL_NOTES = ['causaleFerie', 'causalePermesso'] as const;
+export type PayrollNote = (typeof PAYROLL_NOTES)[number];
+
+/** Every column after the date, in the order of the file */
+export const PAYROLL_COLUMNS = ['ferie', 'causaleFerie', 'permesso', 'causalePermesso', 'malattia', 'ordinarie', 'straordinarie', 'bancaOre', 'bancaOreN1', 'bancaOreN'] as const;
+export type PayrollColumn = (typeof PAYROLL_COLUMNS)[number];
+export const isPayrollNote = (column: PayrollColumn): column is PayrollNote => (PAYROLL_NOTES as readonly string[]).includes(column);
+
+export type PayrollDay = { date: string } & Record<PayrollField, PayrollValue> & Record<PayrollNote, string | null>;
 
 export interface PayrollPerson {
-    /** NetPro operator code ("ID Operatore"), as in the file */
+    /** "ID Operatore" as in the file: the NetPro code of a production person, the studio's own number of an office person */
     id: string | null;
     /** NetPro matricola ("Codice SARP net"), as in the file */
     sarp: string | null;
@@ -34,7 +45,7 @@ export interface PayrollData {
     month: number;
     /** The production file the hours come from */
     fileName: string;
-    /** Production people A–Z, then the office people A–Z (empty, filled by hand) */
+    /** Production people A–Z, then the office people A–Z (from the timesheet) */
     clz: PayrollPerson[];
     interinali: PayrollPerson[];
 }
@@ -42,16 +53,50 @@ export interface PayrollData {
 /** A row of the table and of the sheet: a person's day, or one of the empty rows between people */
 export type PayrollRow = { kind: 'day'; person: PayrollPerson; day: PayrollDay } | { kind: 'blank'; key: string };
 
+/** The day of a row, null for an empty row */
+export const dayOf = (row: PayrollRow) => (row.kind === 'day' ? row : null);
+
 /** A day with nothing in it */
 export function emptyDay(date: string): PayrollDay {
-    return { date, ferie: null, permesso: null, malattia: null, ordinarie: null, straordinarie: null, bancaOre: null, bancaOreN1: null, bancaOreN: null };
+    return {
+        date,
+        ferie: null,
+        causaleFerie: null,
+        permesso: null,
+        causalePermesso: null,
+        malattia: null,
+        ordinarie: null,
+        straordinarie: null,
+        bancaOre: null,
+        bancaOreN1: null,
+        bancaOreN: null,
+    };
 }
 
-/** Every day of a month as "YYYY-MM-DD" */
-export function monthDates(year: number, month: number): string[] {
-    const days = new Date(year, month, 0).getDate();
-    const prefix = `${year}-${String(month).padStart(2, '0')}-`;
-    return Array.from({ length: days }, (_, i) => `${prefix}${String(i + 1).padStart(2, '0')}`);
+/** In the file: a code as a number when it is one ("73" → 73), as the production file has it */
+const codeValue = (code: string | null | undefined) => (code == null ? null : /^\d+$/.test(code) ? Number(code) : code);
+
+/** Local midnight of "YYYY-MM-DD": an Excel date cell */
+const dateOf = (iso: string) => new Date(`${iso}T00:00:00`);
+
+/** The columns of the studio's file, for every sheet that has its layout (Ore Studio Paghe, Ore Ufficio) */
+export function payrollExcelColumns(): ExcelColumn<PayrollRow>[] {
+    const copy = APP_COPY.analytics.payroll.columns;
+    return [
+        { header: copy.id, value: (row) => codeValue(dayOf(row)?.person.id), width: 13 },
+        { header: copy.sarp, value: (row) => codeValue(dayOf(row)?.person.sarp), width: 16 },
+        { header: copy.name, value: (row) => dayOf(row)?.person.name ?? null, width: 30 },
+        {
+            header: copy.date,
+            value: (row) => {
+                const day = dayOf(row);
+                return day ? dateOf(day.day.date) : null;
+            },
+            width: 22,
+            format: 'weekdayDate',
+        },
+        ...PAYROLL_COLUMNS.map((column): ExcelColumn<PayrollRow> => ({ header: copy[column], value: (row) => dayOf(row)?.day[column] ?? null, width: 16 })),
+    ];
 }
 
 /** People A–Z by name, upper and lower case alike */
@@ -129,7 +174,9 @@ export function peopleOfFile(rows: unknown[][], dates: string[]): { production: 
         entry.byDate.set(date, {
             date,
             ferie: cellValue(row[COL.FERIE]),
+            causaleFerie: null,
             permesso: cellValue(row[COL.PERMESSO]),
+            causalePermesso: null,
             malattia: cellValue(row[COL.MALATTIA]),
             ordinarie: cellValue(row[COL.ORDINARIE]),
             straordinarie: cellValue(row[COL.STRAORDINARIE]),

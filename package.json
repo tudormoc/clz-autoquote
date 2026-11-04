@@ -11,11 +11,14 @@
     "format:examples": "tsx --tsconfig tsconfig.json scripts/format-examples.ts",
     "excel:examples": "tsx --tsconfig tsconfig.json scripts/excel-examples.ts",
     "tasks:examples": "tsx --tsconfig tsconfig.json scripts/tasks-examples.ts",
+    "timesheet:examples": "tsx --tsconfig tsconfig.json scripts/timesheet-examples.ts",
     "access:check": "tsx --tsconfig tsconfig.json scripts/access-check.ts",
     "permissions:examples": "tsx --tsconfig tsconfig.json scripts/permissions-examples.ts",
+    "persons:examples": "tsx --tsconfig tsconfig.json scripts/persons-examples.ts",
     "dates:examples": "tsx --tsconfig tsconfig.json scripts/dates-examples.ts",
+    "order:snapshot": "tsx --tsconfig tsconfig.json scripts/order-snapshot.ts",
     "typecheck": "tsc --noEmit --incremental false",
-    "check": "npm run typecheck && npm run lint && npm run access:check && npm run permissions:examples && npm run dates:examples && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run access:check && npm run permissions:examples && npm run persons:examples && npm run dates:examples && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run timesheet:examples && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -14,6 +14,8 @@ import {
     CalendarCheck,
     CalendarDays,
     CalendarRange,
+    ClipboardList,
+    Clock,
     Contact,
     FileText,
     History,
@@ -82,6 +84,8 @@ export const LINKS = {
         operators: '/presence/operators',
         dailyEvents: '/presence/daily-events',
         monthlySummary: '/presence/monthly-summary',
+        myHours: '/presence/my-hours',
+        officeHours: '/presence/office-hours',
     },
     tasks: {
         todo: '/tasks/todo',
@@ -144,6 +148,7 @@ const areas = APP_COPY.nav.areas;
 // it.ts keeps the presence page texts under analytics too
 const analytics = APP_COPY.analytics;
 const tasks = APP_COPY.tasks.pages;
+const timesheet = APP_COPY.timesheet.pages;
 
 /** Functions of Avanzamento Lavori; their links are also the access checks of their server actions */
 export const WORK_PROGRESS_FUNCTIONS = {
@@ -192,6 +197,12 @@ export const NAV_AREAS: NavArea[] = [
                     },
                     { id: 'daily-events', href: LINKS.presence.dailyEvents, label: analytics.dailyEvents.title, description: analytics.dailyEvents.subtitle, icon: Calendar, editable: true },
                     { id: 'monthly-summary', href: LINKS.presence.monthlySummary, label: analytics.monthlySummary.title, description: analytics.monthlySummary.subtitle, icon: CalendarDays, editable: true },
+                ],
+            },
+            {
+                items: [
+                    { id: 'my-hours', href: LINKS.presence.myHours, ...timesheet.myHours, icon: Clock, editable: true },
+                    { id: 'office-hours', href: LINKS.presence.officeHours, ...timesheet.officeHours, icon: ClipboardList, editable: true },
                 ],
             },
         ],

@@ -36,6 +36,8 @@ npm run presence:examples   # presence rules on made-up data
 npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
 npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do groups)
+npm run persons:examples    # Scheda persona name rules (same name, capitals, cognome / nome split)
+npm run order:snapshot -- 260999910 before   # read-only snapshot of one commessa in Business and NetPro, diffed with the previous one
 ```
 
 ## Deployment
@@ -68,7 +70,9 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   says how many facts differ. The card is laid out like the order comparison (one row per fact, a column per place,
   "Allineato" at the end, the shared `AlignmentCell`). "Allinea e-mail" writes one address into the three places that
   may be written (NetPro login, Business login, org chart), one transaction; the mailbox account is only shown and the
-  e-mail signatures are left out. Nothing else of NetPro or Business is written from here. Where each place is:
+  e-mail signatures are left out. "Allinea nome" writes one name in capitals into the five places that hold it (cognome
+  and nome apart in the Business login and the org chart); the name counts as the same only when the text is the same.
+  Nothing else of NetPro or Business is written from here. Where each place is:
   [docs/DATABASE.md](docs/DATABASE.md) → People. **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*, stored under the page's id (not
   its link, so a page can move to another area and keep its grants). Utenti is one table of all
   users (a tick column per group); Gruppi is one table of all groups (a column each, a row per area that opens to its
@@ -111,10 +115,11 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
 | List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing / saved quotes | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) / `src/lib/quotes/db.ts` |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
-| Ore Studio Paghe (a month's hours per person for the pay studio, from the production Excel files; the office people in `APP_CONFIG.PAYROLL`) | `src/lib/payroll.ts` (pure), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
+| Ore Studio Paghe (a month's hours per person for the pay studio: production from the monthly Excel files, the office from the timesheet) | `src/lib/payroll.ts` (pure, the file's columns), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
+| Timesheet (Le mie ore, Ore Ufficio: the office people's own hours, entrate / uscite and absences, exported for the studio) | `src/lib/timesheet/` (pure) + `src/lib/timesheet/db/` (its SQL), actions `src/app/presence/timesheet-actions.ts`, screens `src/components/timesheet/`, tables `sql/timesheet/` — [docs/TIMESHEET.md](docs/TIMESHEET.md) |
 | Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
-| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
+| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
 | Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orders/` |
 | Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |

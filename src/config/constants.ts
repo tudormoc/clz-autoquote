@@ -10,6 +10,9 @@
 export const BUSINESS_COMPANY = 'COOPZANARDI';
 
 export const APP_CONFIG = {
+  // The person a message names when something must be asked of the owner (a login not linked to an operator …)
+  OWNER_NAME: 'Tudor Mocanu',
+
   // UI & UX Configuration
   UI: {
     // How long an on-screen notice stays (ms); errors stay longer so they can be read
@@ -117,6 +120,8 @@ export const APP_CONFIG = {
     DEFAULT_QUANTITY: 1000,
     // First 7 characters of a commessa = the master order (year + number), e.g. 2609493 of 260949305
     ROOT_KEY_LENGTH: 7,
+    // How many characters each place of the order title keeps (Riallinea cuts the impegno's title to fit)
+    TITLE_LENGTHS: { movord: 255, testord: 80, commess: 80, artico: 255, netproOrder: 100, netproArticle: 110 },
   },
 
   // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box
@@ -308,22 +313,24 @@ export const APP_CONFIG = {
     PLACEHOLDER_NAME_PREFIX: 'ZZZRISERVA',
     // Empty rows between one person and the next, on screen and in the file
     BLANK_ROWS_BETWEEN_PEOPLE: 2,
-    // The office people: not in the production file, so added with empty days (filled by hand after the download),
-    // name and codes as in the file sent to the studio
-    OFFICE_PEOPLE: [
-      { id: '1065', sarp: '81', name: 'Bravi Stefano' },
-      { id: '1047', sarp: '29', name: 'Brunello Fabio' },
-      { id: '1010', sarp: '12', name: 'Forcella Fabrizio' },
-      { id: '1050', sarp: '43', name: 'Maniero Loris' },
-      { id: '1055', sarp: '98', name: 'Mocanu Tudor' },
-      { id: '1071', sarp: '89', name: 'Monaldini Massimo' },
-      { id: '1071', sarp: '210', name: 'Morando Daniele' },
-      { id: null, sarp: null, name: 'Pasquatto Marta' },
-      { id: '1051', sarp: '45', name: 'Porelli Chiara' },
-      { id: '1052', sarp: '39', name: 'Scagnellato Lino' },
-      { id: '1053', sarp: '2', name: 'Zanellato Stefania' },
-      { id: '1054', sarp: '61', name: 'Zanon Elisa' },
-    ],
+    // The office people come from the timesheet (NetPro operators of the categories with `timesheet: true`, their
+    // hours from Le mie ore). Their "ID Operatore" in the studio's file is the studio's own number, kept nowhere
+    // else: by NetPro code here. "Codice SARP net" is the NetPro matricola.
+    STUDIO_IDS: {
+      '81': '1065', '29': '1047', '12': '1010', '43': '1050', '98': '1055', '89': '1071', '210': '1071',
+      '45': '1051', '39': '1052', '2': '1053', '61': '1054',
+    } as Record<string, string>,
+  },
+
+  // Timesheet (src/lib/timesheet, docs/TIMESHEET.md): the office people's own hours, in the QUOTES tables
+  // timesheet_* (sql/timesheet/)
+  TIMESHEET: {
+    STEP_MINUTES: 30,          // times and hours move in half-hour steps: 08:00, 08:30; 8, 8.5
+    DEFAULT_TIME_FROM: '08:00', // what a new work line of a past or future day starts with (today: now)
+    CLOCK_REFRESH_MS: 30_000,  // how often the Entra / Esci button reads the clock again
+    MAX_HOURS: 24,             // the most hours one line may hold
+    MAX_CAUSALE_LENGTH: 100,   // timesheet_entries.causale
+    MAX_NOTE_LENGTH: 200,      // timesheet_entries.note
   },
 
   // External Report Services
@@ -501,10 +508,12 @@ export const PRESENCE_RULES = {
   // interinali); the Operatori window adds or removes it with the category. null = no mark.
   // newStato: the stato fisico "Nuovo operatore" gives a new person of this category. By habit OFF means "no longer
   // working, or office" (never clocks), so who works on the floor starts OUT (as after an exit) and the office OFF.
+  // timesheet: its people enter their own hours in Le mie ore and are listed in Ore Ufficio (src/lib/timesheet);
+  // the others clock in NetPro.
   CATEGORIES: [
-    { reparto: '2', label: 'CLZ Produzione', defaultActive: true, profile: 'standard', nameMark: null, newStato: 'OUT' },
-    { reparto: '1001', label: 'Interinali', defaultActive: true, profile: 'standard', nameMark: ' *lb', newStato: 'OUT' },
-    { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed', nameMark: null, newStato: 'OFF' },
+    { reparto: '2', label: 'CLZ Produzione', defaultActive: true, profile: 'standard', nameMark: null, newStato: 'OUT', timesheet: false },
+    { reparto: '1001', label: 'Interinali', defaultActive: true, profile: 'standard', nameMark: ' *lb', newStato: 'OUT', timesheet: false },
+    { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed', nameMark: null, newStato: 'OFF', timesheet: true },
   ],
   OTHER_CATEGORY_LABEL: 'Altro',
 } as const;
