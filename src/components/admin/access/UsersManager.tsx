@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
     createUserAction,
     deleteUserAction,
-    newUserPinAction,
+    draftPinAction,
     renameUserAction,
     setUserGroupsAction,
     setUserPinAction,
@@ -22,7 +22,8 @@ import { LoadState } from '@/components/ui/LoadState';
 import { RecordCount } from '@/components/ui/RecordCount';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DEFAULT_PIN_KIND, pinKindLabel, type PinKindId } from '@/lib/auth/pinKinds';
-import { askConfirm, confirmDelete } from '@/lib/confirm';
+import { confirmDelete } from '@/lib/confirm';
+import { notify } from '@/lib/notify';
 import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.admin.users;
@@ -47,8 +48,8 @@ export function UsersManager() {
             .then((result) => setDrift(result.success ? result.drift : {}))
             .catch(() => setDrift({}));
     }, [users]);
-    /** The PIN just given out, open in its window until closed; "Un altro" draws again for the same user and kind */
-    const [newPin, setNewPin] = useState<{ id: number; name: string; pin: string; kind: PinKindId } | null>(null);
+    /** The PIN proposed in the window: nothing is written until Salva (a new user's first PIN is already stored) */
+    const [newPin, setNewPin] = useState<{ id: number; name: string; pin: string; storedPin: string; kind: PinKindId } | null>(null);
 
     if (loading || error) return <LoadState loading={loading} error={error} />;
 
@@ -56,21 +57,40 @@ export function UsersManager() {
     const shown = text ? users.filter((user) => user.name.toLowerCase().includes(text)) : users;
 
     const create = async (name: string) => {
-        const saved = await run(createUserAction(name), (res) => setNewPin({ id: res.id, name: name.trim(), pin: res.pin, kind: DEFAULT_PIN_KIND }));
+        const saved = await run(createUserAction(name), (res) => setNewPin({ id: res.id, name: name.trim(), pin: res.pin, storedPin: res.pin, kind: DEFAULT_PIN_KIND }));
         if (saved) setSearch('');
         return saved;
     };
 
-    const rollPin = async ({ id, name }: UserView, kind: PinKindId) => {
-        if (!(await askConfirm({ title: copy.newPin, message: fmt(copy.newPinConfirm, { name }) }))) return;
-        await run(newUserPinAction(id, kind), (res) => setNewPin({ id, name, pin: res.pin, kind }));
+    /** A PIN of the kind proposed for the user, in the window; the stored one stays until Salva */
+    const draft = async (kind: PinKindId): Promise<string> => {
+        const result = await draftPinAction(kind);
+        if (!result.success) throw new Error(result.error);
+        return result.pin;
     };
 
-    /** Another PIN of the same kind for the user in the window (the one shown was never handed out, so no question) */
+    const rollPin = async ({ id, name, pin }: UserView, kind: PinKindId) => {
+        try {
+            setNewPin({ id, name, pin: await draft(kind), storedPin: pin, kind });
+        } catch (err) {
+            notify.failure(err);
+        }
+    };
+
+    /** Another proposal of the same kind, in the window */
     const rollAgain = async () => {
         if (!newPin) return;
-        const { id, kind } = newPin;
-        await run(newUserPinAction(id, kind), (res) => setNewPin((current) => (current ? { ...current, pin: res.pin } : current)));
+        const pin = await draft(newPin.kind);
+        setNewPin((current) => (current ? { ...current, pin } : current));
+    };
+
+    /** Writes the proposed PIN: the old one stops working and the user's open logins end */
+    const savePin = async (pin: string) => {
+        if (!newPin) return false;
+        const { id, name } = newPin;
+        const saved = await run(setUserPinAction(id, pin), () => fmt(copy.pinReset, { name, pin }));
+        if (saved) setNewPin(null);
+        return saved;
     };
 
     const remove = async ({ id, name }: UserView) => {
@@ -108,7 +128,17 @@ export function UsersManager() {
                 drift={drift}
             />
 
-            {newPin && <NewPinDialog name={newPin.name} pin={newPin.pin} kindLabel={pinKindLabel(newPin.kind)} onReroll={rollAgain} onClose={() => setNewPin(null)} />}
+            {newPin && (
+                <NewPinDialog
+                    name={newPin.name}
+                    pin={newPin.pin}
+                    storedPin={newPin.storedPin}
+                    kindLabel={pinKindLabel(newPin.kind)}
+                    onReroll={rollAgain}
+                    onSave={savePin}
+                    onClose={() => setNewPin(null)}
+                />
+            )}
             {person && <PersonCardDialog user={person} onSaved={reload} onClose={() => setPerson(null)} />}
         </div>
     );

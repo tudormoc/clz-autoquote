@@ -131,17 +131,17 @@ export async function setUserGroupsAction(id: number, groupIds: number[]): Promi
     });
 }
 
-/** A new random PIN of the kind: the old one stops working and the user's open logins end */
-export async function newUserPinAction(id: number, kind?: string): Promise<WithPin> {
-    if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    const pin = randomPin(pinKindOf(kind));
-    return run(async () => {
-        await updateAccountPin(id, encryptPin(pin), true);
-        return { pin };
-    });
+/** A random PIN of the kind, proposed and not stored: the superadmin rolls until they like one, then saves it */
+export async function draftPinAction(kind?: string): Promise<WithPin> {
+    try {
+        await requireSuperadmin();
+        return { success: true, pin: randomPin(pinKindOf(kind)) };
+    } catch (error) {
+        return { success: false, error: errorMessage(error) };
+    }
 }
 
-/** A PIN chosen by the superadmin (same length rule as "Cambia PIN"); the user's open logins end */
+/** A PIN chosen or accepted by the superadmin (same length rule as "Cambia PIN"); the user's open logins end */
 export async function setUserPinAction(id: number, pin: string): Promise<WithPin> {
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     const checked = checkPin(pin);

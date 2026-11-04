@@ -865,14 +865,14 @@ export const APP_COPY = {
       provisional: "provvisorio",
       provisionalHint: "PIN dato dall'amministratore, mai cambiato dall'utente (può farlo da «Cambia PIN»)",
       newPin: "Nuovo PIN a caso",
-      newPinConfirm: "Dare a {name} un nuovo PIN a caso? Il PIN di adesso smette di funzionare e {name} deve rientrare.",
-      /** Window with the PIN just given out (new user, or the dice) */
+      /** Window with a PIN: the one a new user just got (stored), or a proposal from the dice (stored only with Salva) */
       newPinTitle: "PIN di {name}",
       newPinHint: "Consegnalo alla persona: può tenerlo o cambiarlo da «Cambia PIN»",
+      draftPinHint: "Proposta: il PIN attuale resta finché non premi Salva. Annulla non cambia nulla.",
       pinCopied: "PIN copiato",
-      /** Draws another PIN of the same kind from the window */
+      /** Draws another proposal of the same kind, nothing is written */
       rollAgain: "Un altro",
-      rollAgainHint: "Un altro {kind}: quello mostrato viene sostituito",
+      rollAgainHint: "Un altro {kind}: solo una proposta, finché non salvi",
 
       pinReset: "Nuovo PIN di {name}: {pin}",
       sees: "Vede",

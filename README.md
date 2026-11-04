@@ -60,8 +60,8 @@ npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do gro
   (cannot log in, an open login ends at once; PIN and groups stay). A PIN given out from Utenti (new user, "Nuovo PIN a
   caso", a typed one) shows there as *provvisorio* (`must_change_pin`) until the person changes it with "Cambia PIN"
   in the sidebar, which they may or may not do. "Nuovo utente" gives a 4-digit PIN; the dice next to a PIN rolls a new one of the chosen kind
-  (`APP_CONFIG.AUTH.PIN_KINDS`: 4 or 6 digits, 8 letters and digits, 16 characters with symbols). Either way the PIN
-  opens in a window with a "Copia" button.
+  (`APP_CONFIG.AUTH.PIN_KINDS`: 4 or 6 digits, 8 letters and digits, 16 characters with symbols) as a proposal in a
+  window: roll again until you like it, "Copia", then "Salva" writes it; "Annulla" leaves the old PIN as it is.
 - **Scheda persona** (Utenti → Persona): a login is linked to the same person's records elsewhere (`operator_code`,
   `netpro_user`, `erp_user` in `app_users`), and the card shows every record and fact side by side, read live from
   NetPro, Business and ARCPROC (`src/lib/persons/places.ts`, `src/app/person-actions.ts`); a "≠" on the user in Utenti
