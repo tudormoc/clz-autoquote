@@ -2,6 +2,7 @@ import { Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
+import type { SyncChangeGroup } from '@/lib/orders/syncPreview';
 import { APP_COPY, fmt } from '@/locales';
 
 const t = APP_COPY.analytics.orderOperations;
@@ -9,21 +10,22 @@ const t = APP_COPY.analytics.orderOperations;
 interface SyncDialogProps {
     commessa: string;
     article: string;
-    businessOrderNumber?: number;
+    /** What the realign is about to change, by kind (src/lib/orders/syncPreview.ts) */
+    changes: SyncChangeGroup[];
     syncing: boolean;
     onConfirm: () => void;
     onClose: () => void;
 }
 
-/** Asks for confirmation before the order is rewritten from the DiBa (this writes to Business and NetPro). */
-export function SyncDialog({ commessa, article, businessOrderNumber, syncing, onConfirm, onClose }: SyncDialogProps) {
+/** Shows what Riallinea is about to change and asks for confirmation (this writes to Business and NetPro). */
+export function SyncDialog({ commessa, article, changes, syncing, onConfirm, onClose }: SyncDialogProps) {
     return (
         <Modal
             title={t.syncConfirmTitle}
             subtitle={fmt(t.syncConfirmSubtitle, { commessa: commessa || '-', article: article || '-' })}
             icon={Sparkles}
             iconTone="warning"
-            size="lg"
+            size="xl"
             onClose={onClose}
             busy={syncing}
             footer={
@@ -38,13 +40,20 @@ export function SyncDialog({ commessa, article, businessOrderNumber, syncing, on
         >
             <div className="text-xs text-fg-secondary leading-relaxed bg-background/60 p-4 rounded-lg border border-border space-y-3">
                 <p className="font-medium text-fg-soft">{t.syncConfirmDescription}</p>
-                <ul className="space-y-1.5 text-fg-muted list-disc list-inside">
-                    {t.syncConfirmEffects.map((effect) => (
-                        <li key={effect.title}>
-                            <strong className="text-fg-soft">{effect.title}</strong> {fmt(effect.text, { order: businessOrderNumber || '-' })}
-                        </li>
-                    ))}
-                </ul>
+                {changes.length === 0 && <p className="text-fg-muted">{t.syncPreview.none}</p>}
+                {changes.map((group) => (
+                    <div key={group.key}>
+                        <p className="font-semibold text-fg">
+                            {t.syncPreview.groups[group.key]} <span className="font-normal text-fg-muted">({group.changes.length})</span>
+                        </p>
+                        <ul className="mt-1 space-y-0.5 list-disc list-inside text-fg-muted">
+                            {group.changes.map((line, index) => (
+                                <li key={index} className="break-words">{line}</li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+                <p className="text-fg-subtle">{t.syncPreview.refreshed}</p>
             </div>
         </Modal>
     );

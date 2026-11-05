@@ -12,7 +12,7 @@ export const measureText = (value: unknown) => formatNumber(Number(value) || 0, 
 
 /** A place matches when it holds the impegno's text cut to what the place keeps (Business compares text without case) */
 export const ARTICLE_RULES: FactRules<string> = {
-    equals: (value, reference, place) => value.trim().toLowerCase() === cutToPlace(reference, place.maxLength).trim().toLowerCase(),
+    equals: (value, reference, place) => String(value ?? '').trim().toLowerCase() === cutToPlace(String(reference ?? ''), place.maxLength).trim().toLowerCase(),
     texts: {
         noImpegno: copy.factNoImpegno,
         busMissing: copy.factBusMissing,

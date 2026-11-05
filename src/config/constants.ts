@@ -121,7 +121,7 @@ export const APP_CONFIG = {
     // First 7 characters of a commessa = the master order (year + number), e.g. 2609493 of 260949305
     ROOT_KEY_LENGTH: 7,
     // How many characters each place of the order title keeps (Riallinea cuts the impegno's title to fit)
-    TITLE_LENGTHS: { movord: 255, testord: 80, commess: 80, artico: 255, netproOrder: 100, netproArticle: 110 },
+    TITLE_LENGTHS: { movord: 255, artico: 255, netproOrder: 100, netproArticle: 110 },
   },
 
   // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box

@@ -2,7 +2,7 @@
  * "Riallinea": rewrites the Business and NetPro production order of a commessa in place from its DiBa (the truth),
  * keeping the order ids. WRITES to both production databases, one transaction each (withTransactions); see docs/ORDER_PROCESS.md.
  *
- * - Business: movord (tipo H: quantities, title, composition, measures), movdis (per pieces), testord and commess (title), artico (title,
+ * - Business: movord (tipo H: quantities, title, composition, measures), movdis (per pieces), artico (title,
  *   measures), attivit, assris,
  *   movord (tipo Y), keyord
  * - NetPro: ORDINI (quantity, title), ANAG_MATERIALI (title), OPERAZIONI, TASKS, JOBSET, MATERIALI_ORDINI
@@ -34,9 +34,6 @@ interface SyncTarget {
     width: number;
     height: number;
     pages: number;
-    commessa: number;
-    /** The impegno cliente document, when there is one (its header carries the title too) */
-    impegnoDoc?: { anno: number; numord: number };
     anno: number;
     numord: number;
     /** Row of the H line in movord */
@@ -137,8 +134,6 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
         width: Number(source.mo_misura1) || 0,
         height: Number(source.mo_misura2) || 0,
         pages: Number(source.mo_misura3) || 0,
-        commessa: Number(busOrder.mo_commeca),
-        impegnoDoc: impegno ? { anno: impegno.mo_anno, numord: impegno.mo_numord } : undefined,
         anno,
         numord,
         rigaPadre,
@@ -152,7 +147,8 @@ async function findTarget(rootCommessaKey: string, articleFatherHint?: string): 
 /**
  * Quantities (owner's rules, 2026-11-04): the ordered quantity and the maximum to produce come from the impegno cliente row
  * and go to the production order row and the NetPro order; the DiBa's "per pieces" (md_perpz) becomes the ordered quantity on
- * every material row, so the material quantities stay as typed in the DiBa (a material changes only when the DiBa is edited).
+ * every material row (not the MP_FITTIZIA placeholder's, which is never a material of the order), so the material quantities
+ * stay as typed in the DiBa (a material changes only when the DiBa is edited).
  * The phases, operations, tasks, jobset and materials follow in syncPhases / syncMaterials with the same quantity.
  * Each write only where the value differs. Left alone: the sales order and the bridge rows (Business keeps them) and the
  * document headers (Business does not maintain them either).
@@ -161,56 +157,46 @@ async function syncQuantities(run: SqlRunner, { articleFather, orderFatherQuant,
     await run(`
             UPDATE movdis
             SET md_perpz = @qty
-            WHERE codditt = '${BUSINESS_COMPANY}' AND md_coddb = @articleFather AND (md_perpz IS NULL OR md_perpz <> @qty)
-        `, { qty: orderFatherQuant, articleFather }, 'BUSINESS');
+            WHERE codditt = '${BUSINESS_COMPANY}' AND md_coddb = @articleFather AND md_codfigli <> @placeholder
+              AND (md_perpz IS NULL OR md_perpz <> @qty)
+        `, { qty: orderFatherQuant, articleFather, placeholder: PLACEHOLDER_MATERIAL }, 'BUSINESS');
 
     await run(`
             UPDATE movord
             SET mo_quant = @qty, mo_colli = @colli, mo_ultagg = GETDATE()
             WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H' AND mo_anno = @anno AND mo_numord = @numord AND mo_riga = @rigaPadre
-              AND (mo_quant <> @qty OR mo_colli <> @colli)
+              AND (ISNULL(mo_quant, 0) <> @qty OR ISNULL(mo_colli, 0) <> @colli)
         `, { qty: orderFatherQuant, colli: maxProduction, anno, numord, rigaPadre }, 'BUSINESS');
 
-    await run(`UPDATE ORDINI SET QTA_RICHIESTA = @qty WHERE ORDINE = @netOrdine AND QTA_RICHIESTA <> @qty`,
+    await run(`UPDATE ORDINI SET QTA_RICHIESTA = @qty WHERE ORDINE = @netOrdine AND ISNULL(QTA_RICHIESTA, 0) <> @qty`,
         { qty: orderFatherQuant, netOrdine }, 'NETPRO');
 }
 
 /**
- * Article data (owner's rule 2026-11-04): the impegno cliente row's title goes to the production order row, the document headers
- * (the impegno's too; Business's own trigger then copies it into the commessa), the commessa, the Business article master,
- * the NetPro order and the NetPro article master, each cut to what its column keeps; its composition goes to the order row,
+ * Article data (owner's rule 2026-11-04): the impegno cliente row's title goes to the production order row, the Business article
+ * master, the NetPro order and the NetPro article master, each cut to what its column keeps (NOT to the document headers or the
+ * commessa: the impegno header has its own reference text, which Business's trigger copies into the commessa, and Business leaves
+ * the production order's headers empty); its composition goes to the order row,
  * its measures (base, altezza, pages) to the order row and the Business article master (NetPro has no field for them).
  * Only where it differs.
  */
-async function syncArticle(run: SqlRunner, { articleFather, title, composition, width, height, pages, commessa, impegnoDoc, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+async function syncArticle(run: SqlRunner, { articleFather, title, composition, width, height, pages, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
     if (!title) return;
     const lengths = APP_CONFIG.ORDERS.TITLE_LENGTHS;
     await run(`
             UPDATE movord
             SET mo_descr = @title, mo_matric = @composition, mo_misura1 = @width, mo_misura2 = @height, mo_misura3 = @pages, mo_ultagg = GETDATE()
             WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H' AND mo_anno = @anno AND mo_numord = @numord AND mo_riga = @rigaPadre
-              AND (mo_descr <> @title OR ISNULL(mo_matric, '') <> @composition OR mo_misura1 <> @width OR mo_misura2 <> @height OR mo_misura3 <> @pages)
+              AND (ISNULL(mo_descr, '') <> @title OR ISNULL(mo_matric, '') <> @composition OR ISNULL(mo_misura1, 0) <> @width OR ISNULL(mo_misura2, 0) <> @height OR ISNULL(mo_misura3, 0) <> @pages)
         `, { title: cutToPlace(title, lengths.movord), composition: cutToPlace(composition, lengths.movord), width, height, pages, anno, numord, rigaPadre }, 'BUSINESS');
-    await run(`
-            UPDATE testord SET td_riferim = @title, td_ultagg = GETDATE()
-            WHERE codditt = '${BUSINESS_COMPANY}' AND td_tipork IN ('H', 'Y') AND td_anno = @anno AND td_numord = @numord AND td_riferim <> @title
-        `, { title: cutToPlace(title, lengths.testord), anno, numord }, 'BUSINESS');
-    if (impegnoDoc) {
-        await run(`
-                UPDATE testord SET td_riferim = @title, td_ultagg = GETDATE()
-                WHERE codditt = '${BUSINESS_COMPANY}' AND td_tipork = 'R' AND td_anno = @anno AND td_numord = @numord AND td_riferim <> @title
-            `, { title: cutToPlace(title, lengths.testord), anno: impegnoDoc.anno, numord: impegnoDoc.numord }, 'BUSINESS');
-    }
-    await run(`UPDATE commess SET co_descr1 = @title WHERE codditt = '${BUSINESS_COMPANY}' AND co_comme = @commessa AND co_descr1 <> @title`,
-        { title: cutToPlace(title, lengths.commess), commessa }, 'BUSINESS');
     await run(`
             UPDATE artico SET ar_descr = @title, ar_misura1 = @width, ar_misura2 = @height, ar_misura3 = @pages, ar_ultagg = GETDATE()
             WHERE codditt = '${BUSINESS_COMPANY}' AND ar_codart = @articleFather
-              AND (ar_descr <> @title OR ar_misura1 <> @width OR ar_misura2 <> @height OR ar_misura3 <> @pages)
+              AND (ISNULL(ar_descr, '') <> @title OR ISNULL(ar_misura1, 0) <> @width OR ISNULL(ar_misura2, 0) <> @height OR ISNULL(ar_misura3, 0) <> @pages)
         `, { title: cutToPlace(title, lengths.artico), width, height, pages, articleFather }, 'BUSINESS');
-    await run(`UPDATE ORDINI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE ORDINE = @netOrdine AND DESCRIZIONE <> @title`,
+    await run(`UPDATE ORDINI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE ORDINE = @netOrdine AND ISNULL(DESCRIZIONE, '') <> @title`,
         { title: cutToPlace(title, lengths.netproOrder), netOrdine }, 'NETPRO');
-    await run(`UPDATE ANAG_MATERIALI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE PART_NUMBER = @articleFather AND DESCRIZIONE <> @title`,
+    await run(`UPDATE ANAG_MATERIALI SET DESCRIZIONE = @title, DATA_UPD = GETDATE() WHERE PART_NUMBER = @articleFather AND ISNULL(DESCRIZIONE, '') <> @title`,
         { title: cutToPlace(title, lengths.netproArticle), articleFather }, 'NETPRO');
 }
 

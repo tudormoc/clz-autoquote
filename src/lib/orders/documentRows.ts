@@ -36,7 +36,7 @@ export const docRef = (row: { anno: number; numord: number }) => `${row.anno}/${
 export async function loadDocumentRows(order: BusinessOrderRef): Promise<DocumentRows> {
     const res = await queryMSSQL<DocumentRow>(`
         SELECT mo_tipork AS tipork, mo_anno AS anno, mo_numord AS numord, mo_riga AS riga, mo_quant AS quant, mo_colli AS colli,
-               RTRIM(mo_descr) AS descr, ISNULL(RTRIM(mo_matric), '') AS matric, mo_misura1 AS misura1, mo_misura2 AS misura2, mo_misura3 AS misura3,
+               ISNULL(RTRIM(mo_descr), '') AS descr, ISNULL(RTRIM(mo_matric), '') AS matric, mo_misura1 AS misura1, mo_misura2 AS misura2, mo_misura3 AS misura3,
                ISNULL(RTRIM(mo_netpid), '') AS netpid
         FROM movord WITH (NOLOCK)
         WHERE codditt = '${BUSINESS_COMPANY}'

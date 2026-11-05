@@ -109,7 +109,7 @@ FX* bridge rows). Files in `tmp/order-snapshots/` (not committed).
 
 
 
-## Article data (2026-11-04)
+## Article data (2026-11-04, corrected 2026-11-05)
 
 The article data of an order are fields of the impegno cliente row (the truth); the article code never changes. Saving the impegno in
 Business updates its row and, through the bridge, the NetPro sales order's title (`ORDINI` SELL · `DESCRIZIONE`), nothing else; the
@@ -117,16 +117,33 @@ official regeneration then treats a renamed row as a new article and duplicates 
 
 | Datum (form label) | Impegno / order row | Also in | NetPro |
 |---|---|---|---|
-| Titolo (Titolo/Descrizione) | `movord` · `mo_descr` (255) | `testord` · `td_riferim` of the three headers (80), `commess` · `co_descr1` (80, Business's trigger `UPDATED_DESCR_COMMECA` on `testord` copies every impegno header's `td_riferim` here), `artico` · `ar_descr` (255) | `ORDINI` · `DESCRIZIONE` (100), `ANAG_MATERIALI` · `DESCRIZIONE` (110) |
+| Titolo (Titolo/Descrizione) | `movord` · `mo_descr` (255) | `artico` · `ar_descr` (255) | `ORDINI` · `DESCRIZIONE` (100), `ANAG_MATERIALI` · `DESCRIZIONE` (110) |
 | Composizione | `movord` · `mo_matric` (255) | — | no field |
 | Base, Altezza, Nr.pagine | `movord` · `mo_misura1`, `mo_misura2`, `mo_misura3` | `artico` · `ar_misura1-3` (equal on 898 of 967 orders of 2026) | no field |
+
+**Not places of the title**: the document headers and the commessa. `testord.td_riferim` of the impegno is the document's own reference
+text (on real orders it differs from the row's title, e.g. "… - FSC", and one impegno holds several rows), Business's trigger
+`UPDATED_DESCR_COMMECA` on `testord` copies it into `commess.co_descr1`, and Business leaves the production order's headers (H, Y)
+empty. The first version of the step (2026-11-04) wrote the title there too; found with the preview on real orders and removed on
+2026-11-05, before the step was used on any real order (on test order 674 those texts were overwritten, harmless). A text place can
+be NULL: the reads turn it into an empty text, and Riallinea treats NULL as different from the impegno's value.
 
 Lengths in `APP_CONFIG.ORDERS.TITLE_LENGTHS`. **Riallinea, article step** (`syncArticle` in `sync.ts`, after the quantities; owner's
 rule): the impegno row's values, cut to what each place keeps, written to every place above where they differ (update stamps only then).
 **Articolo tab** of Gestione Operazioni Ordine: the same three-column table as the quantities (`articleData.ts` reads, `article.ts` the
 rules, `documentFacts.ts` the comparison, `DocumentFactsComparison.tsx` the table), one row per datum with every place under its
 document, the article masters under the Business and NetPro columns, "non presente" where NetPro has no field; counted in the
-"Disallineato da DiBa" badge. Verified live on order 674 (2026-11-04): the title Riallinea changed exactly the eight title places.
+"Disallineato da DiBa" badge. On real open orders the usual differences are the composizione (Business does not copy it to the order
+row) and the max quantity (the order row holds the ordered one).
+
+## Preview before Riallinea (2026-11-05)
+
+The confirm window lists what the realign is about to change, by kind (Quantità, Articolo, Fasi, Materiali), one line per place or
+row: "Q.tà ordinata · attivit.at_qtapr: 1.000 ×16 → 2.000", "Fase 85: aggiunta in NetPro …", "MP_FITTIZIA: rimosso da …". The lines
+come from the same four comparisons the tabs show (`previewSync` in `src/lib/orders/syncPreview.ts`, pure), so the window and the tabs
+always agree. Two things make the comparisons say what the realign really writes: the Quantità tab lists the DiBa's per pieces
+(`movdis.md_perpz`, real material rows only: the placeholder's row is not touched), and a material's expected quantity is computed
+with per pieces = ordered quantity, i.e. the DiBa's own quantity. Not modelled: the phases' times and chain, refreshed on every realign.
 
 ## Production flow on the Avanzamento Lavori page (`/work-progress`)
 

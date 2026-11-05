@@ -34,6 +34,8 @@ export interface MaterialComparisonRow {
     net?: number;
     busDiff: boolean;
     netDiff: boolean;
+    /** Only on the placeholder's row: whether the DiBa still lists it */
+    placeholderInDiba?: boolean;
     issues: string[];
 }
 
@@ -49,7 +51,7 @@ export const QTY_EPS = 0.001;
 export const PLACEHOLDER_MATERIAL = 'MP_FITTIZIA';
 export const isPlaceholderMaterial = (code?: string) => String(code ?? '').trim().toUpperCase() === PLACEHOLDER_MATERIAL;
 /** NetPro keeps only the first 100 chars of the DiBa note (OPERAZIONI.DESCRIZIONE01) */
-const NETPRO_NOTE_LEN = 100;
+export const NETPRO_NOTE_LEN = 100;
 
 /**
  * Material quantity as Business/NetPro compute it from the DiBa:
@@ -110,7 +112,9 @@ export function compareMaterials(
         if (!map.has(code)) map.set(code, { part_number: code, description, unmis, busDiff: false, netDiff: false, issues: [] });
         return map.get(code)!;
     };
-    // The placeholder is compared apart (below); the real materials are summed per code (an order could hold a code on more rows)
+    // The placeholder is compared apart (below); the real materials are summed per code (an order could hold a code on more rows).
+    // Riallinea first sets the DiBa's per pieces to the ordered quantity (owner's rule), so what it writes for a material is
+    // the DiBa's own quantity: the expected value is computed with per pieces = order quantity, whatever the DiBa holds now.
     const placeholder = {
         diba: diba.find(m => isPlaceholderMaterial(m.codfigli)),
         bus: bus.find(m => isPlaceholderMaterial(m.part_number)),
@@ -119,7 +123,7 @@ export function compareMaterials(
     diba = diba.filter(m => !isPlaceholderMaterial(m.codfigli));
     bus = bus.filter(m => !isPlaceholderMaterial(m.part_number));
     net = net.filter(m => !isPlaceholderMaterial(m.part_number));
-    diba.forEach(m => { const r = row(m.codfigli, m.description, m.unmis); r.expected = (r.expected || 0) + dibaMaterialQty(orderQty, m.quant, m.perpz); });
+    diba.forEach(m => { const r = row(m.codfigli, m.description, m.unmis); r.expected = (r.expected || 0) + dibaMaterialQty(orderQty, m.quant, orderQty); });
     bus.forEach(m => { const r = row(m.part_number, m.description, m.unmis); r.bus = (r.bus || 0) + Number(m.quant); });
     net.forEach(m => { const r = row(m.part_number, m.description, m.unmis); r.net = (r.net || 0) + Number(m.quant); });
 
@@ -146,6 +150,7 @@ export function compareMaterials(
             net: placeholder.net ? Number(placeholder.net.quant) : undefined,
             busDiff: !!placeholder.bus,
             netDiff: !!placeholder.net,
+            placeholderInDiba: !!placeholder.diba,
             issues: [`Materiale fittizio da rimuovere (${where})`],
         });
     }

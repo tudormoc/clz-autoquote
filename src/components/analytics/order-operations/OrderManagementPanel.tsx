@@ -14,7 +14,9 @@ import { APP_CONFIG } from '@/config/constants';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { ARTICLE_RULES, titleText } from '@/lib/orders/article';
 import { compareMaterials, compareOperations } from '@/lib/orders/compare';
+import { compareFacts } from '@/lib/orders/documentFacts';
 import { QUANTITY_RULES, quantityText } from '@/lib/orders/quantities';
+import { previewSync } from '@/lib/orders/syncPreview';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
@@ -55,6 +57,18 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
         [data.diba_materials, data.order_materials, data.netpro_materials, quantity]
     );
 
+    // What Riallinea would change now, listed in its confirm window
+    const changes = useMemo(
+        () =>
+            previewSync({
+                quantities: compareFacts(data.quantities?.rows ?? [], QUANTITY_RULES),
+                article: compareFacts(data.article?.rows ?? [], ARTICLE_RULES),
+                phases,
+                materials,
+            }),
+        [data.quantities, data.article, phases, materials]
+    );
+
     const tabs: TabItem<ManagementTab>[] = [
         { id: 'comparison', label: t.comparisonTab, icon: <ArrowLeftRight className="w-3.5 h-3.5 text-primary" />, count: phases.length },
         { id: 'materials', label: t.dibaMaterialsTab, icon: <Package className="w-3.5 h-3.5 text-success-400" />, count: materials.length },
@@ -93,7 +107,7 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
                 <SyncDialog
                     commessa={rootCommessaKey}
                     article={data.article_father}
-                    businessOrderNumber={data.order_bus_numord}
+                    changes={changes}
                     syncing={syncing}
                     onConfirm={async () => {
                         if (await sync()) setConfirmingSync(false);
