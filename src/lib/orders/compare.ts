@@ -157,8 +157,3 @@ export function compareMaterials(
     return Array.from(map.values()).sort((a, b) =>
         (b.issues.length > 0 ? 1 : 0) - (a.issues.length > 0 ? 1 : 0) || a.part_number.localeCompare(b.part_number));
 }
-
-/** Number of phase/material rows with at least one difference */
-export function countDiscrepancies(ops: OperationComparisonRow[], mats: MaterialComparisonRow[]) {
-    return ops.filter(r => r.issues.length > 0).length + mats.filter(r => r.issues.length > 0).length;
-}

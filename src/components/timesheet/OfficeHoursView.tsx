@@ -19,7 +19,8 @@ import { formatDate } from '@/lib/format';
 import { payrollExcelColumns, payrollRows, type PayrollRow } from '@/lib/payroll';
 import { totalHours } from '@/lib/timesheet/month';
 import { toPayrollPerson } from '@/lib/timesheet/payroll';
-import type { DaySummary, TimesheetPerson } from '@/lib/timesheet/types';
+import { PRESENCE_RULES } from '@/config/constants';
+import type { DaySummary, NormalDay, TimesheetBounds, TimesheetPerson } from '@/lib/timesheet/types';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { DayEditor } from './DayEditor';
@@ -28,6 +29,11 @@ import { isHourField, officeHoursColumns } from './officeHoursColumns';
 
 const copy = APP_COPY.timesheet.office;
 const NO_PRESETS: CausalePresets = { feriePresets: [], permessoPresets: [] };
+const NO_NORMALS: Record<string, NormalDay> = {};
+/** Before "Applica" the defaults stand in; the real settings come with the month */
+const NO_BOUNDS: TimesheetBounds = { startDay: PRESENCE_RULES.TIMESHEET_START, firstTime: PRESENCE_RULES.TIMESHEET_FIRST_TIME, lastTime: PRESENCE_RULES.TIMESHEET_LAST_TIME };
+/** A person whose giornata normale is not known yet gets no one-click chip */
+const NO_NORMAL: NormalDay = { spans: [], hours: 0 };
 const EXCEL_COLUMNS = payrollExcelColumns();
 
 interface Filters {
@@ -57,19 +63,21 @@ export function OfficeHoursView() {
         load: async (filters: Filters) => {
             const result = await getOfficeMonthAction(filters.year, filters.month, filters.operatorCode || null);
             return result.success
-                ? { success: true, data: result.rows, today: result.today, presets: result.presets }
-                : { success: false, error: result.error, data: [] as OfficeDayRow[], today: '', presets: NO_PRESETS };
+                ? { success: true, data: result.rows, today: result.today, presets: result.presets, normals: result.normals, bounds: result.bounds }
+                : { success: false, error: result.error, data: [] as OfficeDayRow[], today: '', presets: NO_PRESETS, normals: NO_NORMALS, bounds: NO_BOUNDS };
         },
     });
     const [open, setOpen] = useState<{ operatorCode: string; day: string } | null>(null);
 
     const today = list.result?.today ?? '';
     const presets = list.result?.presets ?? NO_PRESETS;
+    const normals = list.result?.normals ?? NO_NORMALS;
+    const bounds = list.result?.bounds ?? NO_BOUNDS;
     const editing = open ? list.rows.find((row) => row.person.operatorCode === open.operatorCode && row.summary.day === open.day) : undefined;
 
     const columns = useMemo(
-        () => officeHoursColumns({ today, canEdit, onOpen: (row) => setOpen({ operatorCode: row.person.operatorCode, day: row.summary.day }) }),
-        [today, canEdit]
+        () => officeHoursColumns({ today, startDay: bounds.startDay, canEdit, onOpen: (row) => setOpen({ operatorCode: row.person.operatorCode, day: row.summary.day }) }),
+        [today, bounds.startDay, canEdit]
     );
 
     const totals = totalHours(list.rows.map((row) => row.summary));
@@ -134,8 +142,9 @@ export function OfficeHoursView() {
                 <DayEditor
                     person={editing.person}
                     summary={editing.summary}
-                    today={today}
                     presets={presets}
+                    normal={normals[editing.person.operatorCode] ?? NO_NORMAL}
+                    bounds={bounds}
                     canEdit={canEdit}
                     onChanged={list.reload}
                     onClose={() => setOpen(null)}

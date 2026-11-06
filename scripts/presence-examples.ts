@@ -47,7 +47,9 @@ const NAME_EXAMPLES: { name: string; reparto: string | null; expect: string; not
     { name: 'ROSSI MARIO *LB ', reparto: '1001', expect: 'ROSSI MARIO *lb', note: 'any case, trimmed' },
     { name: 'ROSSI MARIO *lb', reparto: '2', expect: 'ROSSI MARIO', note: 'moved to Produzione: the mark goes' },
     { name: '  rossi mario  ', reparto: '3', expect: 'rossi mario', note: 'Ufficio: trimmed, no mark' },
-    { name: 'ROSSI MARIO', reparto: '999', expect: 'ROSSI MARIO', note: 'unknown category: no mark' },
+    { name: 'ROSSI MARIO *lb', reparto: '999', expect: 'ROSSI MARIO *lb', note: 'OFF HR (who left): the name stays as it is' },
+    { name: 'ROSSI MARIO', reparto: '999', expect: 'ROSSI MARIO', note: 'OFF HR: no mark added either' },
+    { name: 'ROSSI MARIO *lb', reparto: '777', expect: 'ROSSI MARIO', note: 'unknown category: no mark' },
     { name: '   ', reparto: '1001', expect: '', note: 'an empty name stays empty' },
 ];
 for (const { name, reparto, expect, note } of NAME_EXAMPLES) {

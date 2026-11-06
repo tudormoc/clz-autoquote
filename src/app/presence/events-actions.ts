@@ -4,11 +4,15 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import type { PresenceEventRow } from '@/types';
 import { buildOperatorSearch, suspendActiveExecutionIfAny, withMillis } from './presence-db';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 export async function getDailyEventsAction(dateFrom: string, dateTo: string, operatorFilter?: string) {
     await authorize('view', LINKS.presence.dailyEvents);
@@ -51,7 +55,7 @@ export async function updateEventAction(
     columnName: (typeof EVENT_COLUMNS)[number],
     newValue: string
 ) {
-    await authorize('edit', LINKS.presence.dailyEvents);
+    const access = await authorize('edit', LINKS.presence.dailyEvents);
     if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
     try {
         // A time is stored as typed (no time zone conversion), with milliseconds
@@ -66,6 +70,14 @@ export async function updateEventAction(
               AND TASK = 'presenza'
         `, { newValue: queryValue, oggetto, oraEvento }, 'NETPRO');
 
+        await logEvent(personOf(access), {
+            page: LINKS.presence.dailyEvents,
+            action: 'changed',
+            entityKind: 'presence-event',
+            entityId: oggetto,
+            summary: fmt(log.eventUpdated, { operator: oggetto, column: columnName, value: newValue }),
+            details: { event: { operator: oggetto, at: oraEvento }, after: { [columnName]: newValue } },
+        });
         return { success: true };
     } catch (err) {
         return { success: false, error: errorMessage(err) };
@@ -87,7 +99,7 @@ function oneSecondBefore(time: string): string {
  * operator was executing, one second before the exit; everything is one transaction.
  */
 export async function createEventAction(oggetto: string, evento: string, oraEvento: string) {
-    await authorize('edit', LINKS.presence.dailyEvents);
+    const access = await authorize('edit', LINKS.presence.dailyEvents);
     try {
         const upperEvt = evento.trim().toUpperCase();
         const time = withMillis(oraEvento);
@@ -110,6 +122,14 @@ export async function createEventAction(oggetto: string, evento: string, oraEven
             }
         });
 
+        await logEvent(personOf(access), {
+            page: LINKS.presence.dailyEvents,
+            action: 'created',
+            entityKind: 'presence-event',
+            entityId: oggetto,
+            summary: fmt(log.eventCreated, { operator: oggetto, event: upperEvt, time: oraEvento }),
+            details: { after: { operator: oggetto, event: upperEvt, at: oraEvento, statoFisico: newStatus } },
+        });
         return { success: true };
     } catch (err) {
         return { success: false, error: errorMessage(err) };

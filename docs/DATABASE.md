@@ -48,7 +48,7 @@ up. Row lists group by the full number and only *display* the core.
 | `OPERAZIONI` | `ID_OPER`, `ORDINE`, `SEQUENZA` (fase), `DESCRIZIONE`, `STATO` (EXE in work, SUS suspended, COM completed) |
 | `TASKS` | `TASK`, `MACCHINA`, `STATO` |
 | `CENTRI` / `AREE` | machine/centre → `REPARTO` (area) → area name |
-| `OPERATORI` | one row per operator, key `OPERATORE` (typed by hand, no numbering), `NOME` (interinali end with ` *lb`), `BADGE` (card number, unique by the app only), `ENTITA` (category: 2 Produzione, 3 Ufficio, 1001 Interinali, 999 who left), `MATRICOLA`, `STATO_FISICO` / `STATO_LOGICO`, `FCODE01`…`05` (free fields: agency, then whatever was typed). "Nuovo operatore" inserts one row with the same fixed values NetPro writes (`APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES`), the stato fisico by category (OUT, OFF for Ufficio); nothing else in the database refers to a new operator (no keys, triggers or procedures). "Elimina" deletes the row only when no event, clock record, activity, user or saved hours names the code. Rules: [PRESENCE.md](PRESENCE.md) → Operators |
+| `OPERATORI` | one row per operator, key `OPERATORE` (typed by hand, no numbering), `NOME` (interinali end with ` *lb`), `BADGE` (card number, unique by the app only), `ENTITA` (category: 2 Produzione, 3 Ufficio, 1001 Interinali, 999 who left: "OFF HR" in Modifica operatore), `MATRICOLA`, `STATO_FISICO` / `STATO_LOGICO` (and when each last changed: `ORA_ST_FISICO` / `ORA_ST_LOGICO`, 1986-01-01 until the first event, `APP_CONFIG.PRESENCE.NO_MOVEMENT_DATE`; the first is the "Ultimo movimento" column of Operatori), `FCODE01`…`05` (free fields: agency, then whatever was typed). "Nuovo operatore" inserts one row with the same fixed values NetPro writes (`APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES`), the stato fisico by category (OUT, OFF for Ufficio); nothing else in the database refers to a new operator (no keys, triggers or procedures). "Elimina" deletes the row only when no event, clock record, activity, user or saved hours names the code. Rules: [PRESENCE.md](PRESENCE.md) → Operators |
 | `EVENTI` | presence and work events (ENT/EXT/SUS …) |
 | `VALORI_TABELLE` | settings the app saves (`src/lib/settingsStore.ts`): `TABELLA = 'PRESENZE'` the presence rules, `'ANALISI'` the labour rates |
 
@@ -127,6 +127,32 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 | `app_groups` | `id`, `name` (UNIQUE), `pages` (JSON: page id → `"view"` / `"edit"`, e.g. `"daily-events"`; a page's function as `"page id#name": "edit"`, e.g. `"work-progress#riallinea"`. Until 2026-10-30 the keys were the menu links; `cleanPermissions` still reads those) |
 
 Read and written only by `src/lib/auth/accounts.ts`; the superadmin is not stored here (`.env.local`).
+
+## Log table (QUOTES, created 2026-11-05 with the owner's yes)
+
+`app_log` (`sql/log/001_create_app_log.sql`): one row per thing a person did in the app. Written only by `logEvent`
+(`src/lib/log/log.ts`, never throws), read only by `src/lib/log/entries.ts` for the Registro page, which lists it together
+with the Agenda's `tsk_log` and the timesheet's `timesheet_log`.
+
+| Column | Meaning |
+|---|---|
+| `logged_at` | the moment (`GETDATE()`, wall-clock time) |
+| `person`, `person_name` | who: an `app_users` id as text, `superadmin`, `system` or `anonymous` (a login that failed), and the name at that moment |
+| `area` | the menu page's id (`work-progress`, `operators` …), or `login` |
+| `action` | what was done: `created`, `changed`, `deleted`, `renamed` on most records; `riallinea`, `prefill`, `auto-exit`, `links`, `align-email`, `align-name`, `groups`, `pages`, `pin-set`, `suspended`, `resumed`; `login`, `login-failed`, `login-locked`, `login-suspended`, `logout`, `pin-changed` |
+| `entity_kind`, `entity_id` | what it was done to: `order` + commessa, `user` + id … |
+| `summary` | one line a person can read |
+| `details` | JSON: `{ before, after }` for one record, `{ rows: [{ db, table, key, change, columns | row }] }` for a write over several tables (Riallinea: every row and column it really changed, from a snapshot before and after, `src/lib/orders/snapshot.ts`) |
+| `outcome`, `error` | `ok`, `refused` or `error`, with the error text |
+
+A PIN or a password is never written there.
+
+Logged since 2026-11-05: logins; Riallinea (every row it changed, also refused and failed runs); users and groups; quotes
+and price rules; the settings tables, the labour rates and the presence rules; presence events, the hours of a day, the
+prefill of the absences and the automatic exit (as `system`); operators; the Scheda persona's links and its two Allinea.
+Not logged, by the owner's choice: exports, prints and pages opened. Who reads it: the superadmin everything; a group that can
+open the Registro page the entries of the pages it can open, or of every grantable page with "Tutto il registro"; logins and the
+entries of Utenti, Gruppi and Esplora Database are the superadmin's alone (`src/lib/log/areas.ts`).
 
 ## People
 

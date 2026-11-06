@@ -10,11 +10,9 @@ import { ProductionOperationsTable } from '@/components/analytics/order-operatio
 import { DocumentFactsComparison } from '@/components/analytics/order-operations/DocumentFactsComparison';
 import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
-import { APP_CONFIG } from '@/config/constants';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { ARTICLE_RULES, titleText } from '@/lib/orders/article';
-import { compareMaterials, compareOperations } from '@/lib/orders/compare';
-import { compareFacts } from '@/lib/orders/documentFacts';
+import { compareOrder } from '@/lib/orders/differences';
 import { QUANTITY_RULES, quantityText } from '@/lib/orders/quantities';
 import { previewSync } from '@/lib/orders/syncPreview';
 import { APP_COPY } from '@/locales';
@@ -45,29 +43,12 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
 
     const dibaOperations = data.diba_operations;
     const orderOperations = data.order_operations;
-    const quantity = data.order_father_quant || APP_CONFIG.ORDERS.DEFAULT_QUANTITY;
 
-    // Same comparison as the server uses for the discrepancy count
-    const phases = useMemo(
-        () => compareOperations(dibaOperations, data.business_operations ?? [], orderOperations),
-        [dibaOperations, data.business_operations, orderOperations]
-    );
-    const materials = useMemo(
-        () => compareMaterials(data.diba_materials ?? [], data.order_materials ?? [], data.netpro_materials ?? [], quantity),
-        [data.diba_materials, data.order_materials, data.netpro_materials, quantity]
-    );
-
+    // Same comparisons as the server uses for the discrepancy count
+    const comparisons = useMemo(() => compareOrder(data), [data]);
+    const { phases, materials } = comparisons;
     // What Riallinea would change now, listed in its confirm window
-    const changes = useMemo(
-        () =>
-            previewSync({
-                quantities: compareFacts(data.quantities?.rows ?? [], QUANTITY_RULES),
-                article: compareFacts(data.article?.rows ?? [], ARTICLE_RULES),
-                phases,
-                materials,
-            }),
-        [data.quantities, data.article, phases, materials]
-    );
+    const changes = useMemo(() => previewSync(comparisons), [comparisons]);
 
     const tabs: TabItem<ManagementTab>[] = [
         { id: 'comparison', label: t.comparisonTab, icon: <ArrowLeftRight className="w-3.5 h-3.5 text-primary" />, count: phases.length },
@@ -105,7 +86,7 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
 
             {confirmingSync && (
                 <SyncDialog
-                    commessa={rootCommessaKey}
+                    commessa={data.commessa_full ?? rootCommessaKey}
                     article={data.article_father}
                     changes={changes}
                     syncing={syncing}

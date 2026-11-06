@@ -22,6 +22,8 @@ export const APP_CONFIG = {
     YEARS_IN_FILTERS: 3,
     // Pause after the last click before a page of choices saves itself (Gruppi): several quick clicks, one save
     AUTOSAVE_DELAY_MS: 400,
+    // Gruppi: how many clicks "Annulla" can take back, while the page stays open
+    UNDO_STEPS: 30,
     // Phones: holding a finger this long on a card opens its menu (like a right-click); moving it more than
     // TOUCH_SLOP_PX first means scrolling
     LONG_PRESS_MS: 500,
@@ -122,7 +124,17 @@ export const APP_CONFIG = {
     ROOT_KEY_LENGTH: 7,
     // How many characters each place of the order title keeps (Riallinea cuts the impegno's title to fit)
     TITLE_LENGTHS: { movord: 255, artico: 255, netproOrder: 100, netproArticle: 110 },
+    // "Ordini da riallineare": the states of a NetPro production order still open (issued, in work), and how many
+    // orders are compared at the same time (one costs about ten short reads; ~270 orders take about 4 seconds)
+    OPEN_STATES: ['EMI', 'EXE'],
+    ALIGNMENT_CHECKS_AT_ONCE: 6,
+    // The state of a NetPro operation nobody has worked on yet (the one Riallinea gives a new phase). Any other state,
+    // or work recorded on it, means the phase was started: Riallinea refuses to remove it (src/lib/orders/syncBlocks.ts)
+    UNSTARTED_OPERATION_STATE: 'REL',
   },
+
+  // The app-wide log (app_log, sql/log/): how many characters its text columns keep
+  LOG: { NAME_LENGTH: 100, ENTITY_LENGTH: 100, SUMMARY_LENGTH: 400, ERROR_LENGTH: 1000 },
 
   // Database explorer page: rows shown per table, "most frequent values" list, text columns used by the search box
   DB_EXPLORER: {
@@ -297,6 +309,9 @@ export const APP_CONFIG = {
     // values NetPro's own screen puts in every new row of OPERATORI (stato logico IDLE, cost centre, level, flags).
     // The stato fisico comes from the category (PRESENCE_RULES.CATEGORIES → newStato), not from here.
     NEW_OPERATOR_VALUES: { CENTRO_COSTO: 'COOPZANARDI', LIVELLO: 'REP', STATO_LOGICO: 'IDLE', COSTO: 0, FVALUE: 0, FMULTIASSMAC: 'N', FNDESCS: 0, FPLANNING: 'N' },
+    // The date NetPro's own screen puts in ORA_ST_FISICO / ORA_ST_LOGICO of a new operator, kept until the first
+    // clock event: Operatori shows it as no movement ("-")
+    NO_MOVEMENT_DATE: '1986-01-01',
   },
 
   // Ore Studio Paghe: the month's hours per person for the pay studio, read from the monthly production file
@@ -326,8 +341,9 @@ export const APP_CONFIG = {
   // timesheet_* (sql/timesheet/)
   TIMESHEET: {
     STEP_MINUTES: 30,          // times and hours move in half-hour steps: 08:00, 08:30; 8, 8.5
-    DEFAULT_TIME_FROM: '08:00', // what a new work line of a past or future day starts with (today: now)
-    CLOCK_REFRESH_MS: 30_000,  // how often the Entra / Esci button reads the clock again
+    DEFAULT_TIME_FROM: '08:00', // what a new work line starts with until the giornata normale is learned
+    NEXT_LINE_BREAK_MINUTES: 60,   // the break proposed between a work line and the next (new Dalle = last exit + this)
+    NORMAL_DAY_LOOKBACK_DAYS: 60,  // how far back a person's last full workday is looked for to learn their giornata normale
     MAX_HOURS: 24,             // the most hours one line may hold
     MAX_CAUSALE_LENGTH: 100,   // timesheet_entries.causale
     MAX_NOTE_LENGTH: 200,      // timesheet_entries.note
@@ -497,6 +513,11 @@ export const PRESENCE_RULES = {
   FERIE_PRESETS: ['FESTA'],
   PERMESSO_PRESETS: ['ROL', 'VISITA MEDICA', 'LUTTO'],
 
+  // --- Timesheet (Le mie ore / Ore Ufficio): editable in Regole Presenze, these are only the defaults ---
+  TIMESHEET_START: '2026-11-01',   // the first day hours are written there; earlier days are shown but locked
+  TIMESHEET_FIRST_TIME: '07:00',   // the first pick of Dalle / Alle (the company's open hours)
+  TIMESHEET_LAST_TIME: '19:00',    // the last pick of Dalle / Alle
+
   // --- Employee categories (OPERATORI.ENTITA → label + rule profile) ---
   // profile decides which formulas "Precompila" applies on working days:
   //   standard → shift snap, penalties, pause, 8h, permesso, banca ore (formulas above)
@@ -516,6 +537,10 @@ export const PRESENCE_RULES = {
     { reparto: '3', label: 'CLZ Ufficio', defaultActive: false, profile: 'fixed', nameMark: null, newStato: 'OFF', timesheet: true },
   ],
   OTHER_CATEGORY_LABEL: 'Altro',
+  // The people who left: NetPro's category 999. No presence page lists them; Operatori shows them only with the
+  // "OFF HR" chip of Categoria, off by default. "Modifica operatore" offers it as the way to retire someone: the name
+  // stays as it is (mark included) and the stato fisico becomes `stato`, as on every row of the category today.
+  LEFT_CATEGORY: { reparto: '999', label: 'OFF HR', stato: 'OFF' },
 } as const;
 
 // ============================================================================

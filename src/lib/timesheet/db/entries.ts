@@ -55,17 +55,19 @@ export async function getEntry(id: number): Promise<Entry | null> {
     return list[0] ? toEntry(list[0]) : null;
 }
 
-/** The parameters of a write: the line's values and, for the log, who writes and the line as JSON */
-const entryParams = (access: UserAccess, input: EntryInput) => ({
+/** The parameters of a write: the line's values and, for the log, who writes and the line as JSON; `i` tells lines of one batch apart */
+const entryParams = (access: UserAccess, input: EntryInput, i: number | '' = '') => ({
     me: personKey(access),
-    kind: input.kind,
-    timeFrom: input.timeFrom,
-    timeTo: input.timeTo,
-    hours: input.hours,
-    causale: input.causale || null,
-    note: input.note || null,
-    after: JSON.stringify(input),
+    [`kind${i}`]: input.kind,
+    [`timeFrom${i}`]: input.timeFrom,
+    [`timeTo${i}`]: input.timeTo,
+    [`hours${i}`]: input.hours,
+    [`causale${i}`]: input.causale || null,
+    [`note${i}`]: input.note || null,
+    [`after${i}`]: JSON.stringify(input),
 });
+
+const ENTRY_INSERT = `INSERT INTO timesheet_entries (operator_code, day, kind, time_from, time_to, hours, causale, note, created_by, updated_by)`;
 
 /** The row as it is now, as JSON for the log (NULL when there is no such row) */
 const BEFORE_SQL = `(SELECT kind, ${TIME_SQL('time_from')} AS timeFrom, ${TIME_SQL('time_to')} AS timeTo, hours, causale, note
@@ -77,7 +79,7 @@ export async function insertEntry(access: UserAccess, operatorCode: string, day:
     const result = await rows<{ id: number }>(
         transaction(`
             DECLARE @id INT;
-            INSERT INTO timesheet_entries (operator_code, day, kind, time_from, time_to, hours, causale, note, created_by, updated_by)
+            ${ENTRY_INSERT}
             VALUES (@operatorCode, @day, @kind, @timeFrom, @timeTo, @hours, @causale, @note, @me, @me);
             SET @id = SCOPE_IDENTITY();
             ${LOG_INSERT} VALUES (@me, @id, @operatorCode, @day, 'created', '{"after":' + @after + '}');
@@ -86,6 +88,48 @@ export async function insertEntry(access: UserAccess, operatorCode: string, day:
         { ...entryParams(access, input), operatorCode, day }
     );
     return result[0].id;
+}
+
+/** Several lines of one day land together with their log lines: all of them, or none (the one-click chips; "Completa i giorni mancanti" calls it once per day) */
+export async function insertDayEntries(access: UserAccess, operatorCode: string, day: string, inputs: readonly EntryInput[]): Promise<void> {
+    if (inputs.length === 0) return;
+    const statements = inputs.map(
+        (_, i) => `${ENTRY_INSERT}
+            VALUES (@operatorCode, @day, @kind${i}, @timeFrom${i}, @timeTo${i}, @hours${i}, @causale${i}, @note${i}, @me, @me);
+            ${LOG_INSERT} VALUES (@me, SCOPE_IDENTITY(), @operatorCode, @day, 'created', '{"after":' + @after${i} + '}');`
+    );
+    const params = Object.assign({ operatorCode, day }, ...inputs.map((input, i) => entryParams(access, input, i)));
+    await rows(transaction(statements.join('\n')), params);
+}
+
+/** Logs every line of a person's day as deleted (its values as JSON) and deletes them; part of a transaction */
+const DAY_DELETE_SQL = `${LOG_INSERT}
+            SELECT @me, e.id, e.operator_code, e.day, 'deleted',
+                '{"before":' + ISNULL((SELECT e2.kind, ${TIME_SQL('e2.time_from')} AS timeFrom, ${TIME_SQL('e2.time_to')} AS timeTo, e2.hours, e2.causale, e2.note
+                    FROM timesheet_entries e2 WHERE e2.id = e.id FOR JSON PATH, WITHOUT_ARRAY_WRAPPER, INCLUDE_NULL_VALUES), 'null') + '}'
+            FROM timesheet_entries e WHERE e.operator_code = @operatorCode AND e.day = @day;
+            DELETE FROM timesheet_entries WHERE operator_code = @operatorCode AND day = @day;`;
+
+/** A whole-day line (ferie, malattia) takes the day over: every line it held is logged and deleted, the new one lands, all in one transaction */
+export async function replaceDayEntries(access: UserAccess, operatorCode: string, day: string, input: EntryInput): Promise<number> {
+    const result = await rows<{ id: number }>(
+        transaction(`
+            DECLARE @id INT;
+            ${DAY_DELETE_SQL}
+            ${ENTRY_INSERT}
+            VALUES (@operatorCode, @day, @kind, @timeFrom, @timeTo, @hours, @causale, @note, @me, @me);
+            SET @id = SCOPE_IDENTITY();
+            ${LOG_INSERT} VALUES (@me, @id, @operatorCode, @day, 'created', '{"after":' + @after + '}');
+            SELECT @id AS id;
+        `),
+        { ...entryParams(access, input), operatorCode, day }
+    );
+    return result[0].id;
+}
+
+/** "Svuota giorno": every line of the day deleted together, each kept in the log, one transaction */
+export async function deleteDayEntries(access: UserAccess, operatorCode: string, day: string): Promise<void> {
+    await rows(transaction(DAY_DELETE_SQL), { operatorCode, day, me: personKey(access) });
 }
 
 export async function updateEntry(access: UserAccess, id: number, version: string, input: EntryInput): Promise<void> {

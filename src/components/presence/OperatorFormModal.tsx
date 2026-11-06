@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/Select';
 import { PRESENCE_FUNCTIONS } from '@/config/navigation';
 import { confirmDelete } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
-import { EMPLOYEE_CATEGORIES, categoryOf, nameForCategory } from '@/lib/presence/categories';
+import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, categoryOf, isLeftCategory, nameForCategory } from '@/lib/presence/categories';
 import {
     NewOperatorSchema,
     OPERATOR_COLUMN_SIZES,
@@ -27,6 +27,8 @@ import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.analytics.operators.form;
 const CATEGORY_OPTIONS = EMPLOYEE_CATEGORIES.map((c) => ({ label: c.label, value: c.key }));
+/** Modifica also offers the category of the people who left (OFF HR), which Operatori shows only with its chip */
+const EDIT_CATEGORY_OPTIONS = [...CATEGORY_OPTIONS, { label: LEFT_CATEGORY.label, value: LEFT_CATEGORY.reparto }];
 
 interface OperatorFormModalProps {
     /** null = a new operator */
@@ -57,7 +59,8 @@ const draftOf = (operator: OperatorRow | null): Draft => ({
  * "Nuovo operatore": code, name, badge, category; the matricola is the code. "Modifica operatore": the same, the
  * matricola free, NetPro's five free fields with a hint of what they usually hold, and Elimina (with the function
  * "Crea ed elimina operatori"; the server deletes only a person without history). The name shows how it will be saved
- * when the category adds or removes its mark (" *lb").
+ * when the category adds or removes its mark (" *lb"). Modifica also offers OFF HR, the category of the people who
+ * left: a line says the person leaves the lists and gets stato OFF.
  */
 export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormModalProps) {
     const formId = useId();
@@ -164,9 +167,19 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
                         className="font-mono"
                     />
                 </Field>
-                <Field label={copy.category} htmlFor={id('category')}>
-                    <Select id={id('category')} value={draft.category} onChange={(e) => set({ category: e.target.value })} options={CATEGORY_OPTIONS} />
-                </Field>
+                <div>
+                    <Field label={copy.category} htmlFor={id('category')}>
+                        <Select
+                            id={id('category')}
+                            value={draft.category}
+                            onChange={(e) => set({ category: e.target.value })}
+                            options={operator ? EDIT_CATEGORY_OPTIONS : CATEGORY_OPTIONS}
+                        />
+                    </Field>
+                    {isLeftCategory(draft.category) && (
+                        <p className="text-xs text-fg-muted mt-1">{fmt(copy.leaving, { category: LEFT_CATEGORY.label, stato: LEFT_CATEGORY.stato })}</p>
+                    )}
+                </div>
                 <div className="sm:col-span-2">
                     <Field label={copy.name} htmlFor={id('name')}>
                         <Input

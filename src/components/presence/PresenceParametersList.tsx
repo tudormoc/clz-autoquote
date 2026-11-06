@@ -35,7 +35,7 @@ export function PresenceParametersList({ settings, loading, onSave }: PresencePa
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-40">
                                         <Input
-                                            type={definition?.kind === 'time' ? 'time' : 'text'}
+                                            type={definition?.kind === 'time' ? 'time' : definition?.kind === 'date' ? 'date' : 'text'}
                                             value={draft}
                                             onChange={(e) => setDraft(e.target.value)}
                                             className="h-8 text-xs font-mono text-center"

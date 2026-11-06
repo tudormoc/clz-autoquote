@@ -5,14 +5,20 @@
  */
 import { fetchOrderDetails, findMasterOrders } from '@/lib/orders/details';
 import { emptyManagement, fetchOrderManagement } from '@/lib/orders/management';
-import { syncOrderFromDiba } from '@/lib/orders/sync';
-import type { MasterOrderMatch, OrderDetailsData } from '@/lib/orders/types';
+import { findMisalignedOrder, findMisalignedOrders } from '@/lib/orders/misaligned';
+import type { RowChange } from '@/lib/orders/snapshot';
+import { syncOrderFromDiba, type SyncOrderRef } from '@/lib/orders/sync';
+import type { MasterOrderMatch, MisalignedOrder, MisalignedOrders, OrderDetailsData } from '@/lib/orders/types';
+import { logEvent, personOf } from '@/lib/log/log';
 import { errorMessage } from '@/lib/utils';
+import { APP_COPY, fmt } from '@/locales';
 import type { OrderOperationsManagementData } from '@/types';
 import { authorize } from '@/lib/auth/access';
 import { LINKS, WORK_PROGRESS_FUNCTIONS } from '@/config/navigation';
 
 type Failure = { success: false; error: string };
+
+const log = APP_COPY.log.entries;
 
 export type OrderSearchResult =
     | { success: true; status: 'empty' }
@@ -58,17 +64,61 @@ export async function refreshOrderOperationsManagementAction(
     }
 }
 
-/**
- * "Riallinea": rewrites the Business and NetPro order from the DiBa (WRITES to both databases).
- * Needs "modifica" on the page and the Riallinea function, given apart in Gruppi.
- */
-export async function syncOrderFromDibaAction(params: { rootCommessaKey: string; articleFather?: string }): Promise<{ success: true } | Failure> {
-    await authorize('edit', LINKS.workProgress);
-    await authorize('edit', WORK_PROGRESS_FUNCTIONS.riallinea);
+/** "Ordini da riallineare": the open orders that differ from their impegno cliente or their DiBa, and what differs (read only) */
+export async function getMisalignedOrdersAction(): Promise<({ success: true } & MisalignedOrders) | Failure> {
+    await authorize('view', LINKS.workProgress);
     try {
-        return await syncOrderFromDiba(params.rootCommessaKey, params.articleFather);
+        return { success: true, ...(await findMisalignedOrders()) };
+    } catch (err) {
+        console.error('Error in getMisalignedOrdersAction:', err);
+        return { success: false, error: errorMessage(err) };
+    }
+}
+
+/** One row of "Ordini da riallineare" compared again (read only); `order` is null when the production order is no longer open */
+export async function refreshMisalignedOrderAction(netproOrder: string): Promise<{ success: true; order: MisalignedOrder | null } | Failure> {
+    await authorize('view', LINKS.workProgress);
+    try {
+        return { success: true, order: await findMisalignedOrder(netproOrder) };
+    } catch (err) {
+        console.error('Error in refreshMisalignedOrderAction:', err);
+        return { success: false, error: errorMessage(err) };
+    }
+}
+
+/**
+ * "Riallinea": rewrites the Business and NetPro order of one edition from its impegno and its DiBa (WRITES to both
+ * databases; the other editions of the commessa are not touched).
+ * Needs "modifica" on the page and the Riallinea function, given apart in Gruppi. Every run is written in the log
+ * (Registro) with the rows it changed, also when it is refused or fails.
+ */
+export async function syncOrderFromDibaAction(order: SyncOrderRef): Promise<{ success: true } | Failure> {
+    const access = await authorize('edit', LINKS.workProgress);
+    await authorize('edit', WORK_PROGRESS_FUNCTIONS.riallinea);
+    const who = personOf(access);
+    // What comes from the browser is taken as text, whatever it is
+    const commessa = String(order?.commessa ?? '').trim();
+    const netproOrder = order?.netproOrder ? String(order.netproOrder).trim() : undefined;
+    const entry = { page: LINKS.workProgress, action: 'riallinea', entityKind: 'order' };
+    const failed = (outcome: 'refused' | 'error', error: string) =>
+        logEvent(who, { ...entry, entityId: commessa, summary: fmt(log.riallineaFailed, { commessa }), outcome, error });
+    try {
+        const result = await syncOrderFromDiba({ commessa, netproOrder });
+        if (!result.success) {
+            await failed('refused', result.error);
+            return result;
+        }
+        const count = (change: RowChange['change']) => result.changes?.filter((row) => row.change === change).length ?? 0;
+        await logEvent(who, {
+            ...entry,
+            entityId: result.commessa,
+            summary: fmt(log.riallinea, { commessa: result.commessa, order: result.numord, changed: count('changed'), added: count('added'), removed: count('removed') }),
+            details: { order: result.numord, netpro: result.netOrdine, rows: result.changes },
+        });
+        return { success: true };
     } catch (err) {
         console.error('Error in syncOrderFromDibaAction:', err);
+        await failed('error', errorMessage(err));
         return { success: false, error: errorMessage(err) };
     }
 }

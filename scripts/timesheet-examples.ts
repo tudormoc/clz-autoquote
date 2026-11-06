@@ -4,7 +4,7 @@
  *
  *   npm run timesheet:examples
  */
-import { runDayExamples, runInputExamples, runStepExamples } from '@/lib/timesheet/examples';
+import { runDayExamples, runInputExamples, runNormalDayExamples, runStepExamples } from '@/lib/timesheet/examples';
 
 let failed = 0;
 
@@ -29,6 +29,13 @@ for (const { note, actual, expect, pass } of runStepExamples()) {
     if (!pass) console.log(`     expected ${String(expect)}`);
 }
 
-const total = runDayExamples().length + runInputExamples().length + runStepExamples().length;
+console.log('\n--- the giornata normale ---');
+for (const { note, actual, expect, pass } of runNormalDayExamples()) {
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${actual.padEnd(28)} — ${note}`);
+    if (!pass) console.log(`     expected ${expect}`);
+}
+
+const total = runDayExamples().length + runInputExamples().length + runStepExamples().length + runNormalDayExamples().length;
 console.log(`\n${total - failed}/${total} examples pass`);
 process.exit(failed > 0 ? 1 : 0);

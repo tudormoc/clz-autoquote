@@ -1,12 +1,13 @@
-import { AlertTriangle, Check, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, RefreshCw } from 'lucide-react';
+import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { Spinner } from '@/components/ui/Spinner';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { useCanRiallinea } from '@/hooks/useCanRiallinea';
+import { syncBlockText } from '@/lib/orders/syncBlocks';
 import { APP_COPY, fmt } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
-import { useCanEdit, useCanUse } from '@/components/auth/AccessProvider';
-import { WORK_PROGRESS_FUNCTIONS } from '@/config/navigation';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -22,12 +23,11 @@ interface ManagementToolbarProps {
 
 /** Edition picker, the ids of the orders, whether the order is aligned to the DiBa, and the realign and reload buttons. */
 export function ManagementToolbar({ data, editions, refreshing, syncing, onSelectEdition, onRefresh, onSync }: ManagementToolbarProps) {
-    // Riallinea needs "modifica" on the page and the function itself (given apart, in Gruppi)
-    const canEdit = useCanEdit();
-    const canRiallinea = useCanUse(WORK_PROGRESS_FUNCTIONS.riallinea);
-    const canSync = canEdit && canRiallinea;
+    const canSync = useCanRiallinea();
     const multiEdition = editions.length > 1;
     const hasDiscrepancies = data.has_discrepancies ?? false;
+    const blocks = data.sync_blocks ?? [];
+    const blocked = blocks.length > 0;
 
     return (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -75,9 +75,16 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, onSelec
                     </StatusBadge>
                 )}
 
+                {/* Realigns the edition shown: each edition is an article of its own, with its own orders. Not when it
+                    would remove something already used: the badge says what */}
+                {hasDiscrepancies && canSync && blocked && (
+                    <StatusBadge tone="danger" size="md" title={syncBlockText(blocks)}>
+                        {t.syncBlocked}
+                    </StatusBadge>
+                )}
                 {hasDiscrepancies && canSync && (
-                    <Button variant="warning" size="sm" onClick={onSync} disabled={syncing || multiEdition} title={multiEdition ? t.syncNeedsSingleEdition : t.syncButton}>
-                        <Sparkles className="w-3.5 h-3.5" />
+                    <Button variant="warning" size="sm" onClick={onSync} disabled={syncing || refreshing || blocked} title={blocked ? syncBlockText(blocks) : t.syncButton}>
+                        <AlignIcon className="w-3.5 h-3.5" />
                         {syncing ? t.syncing : t.syncButton}
                     </Button>
                 )}

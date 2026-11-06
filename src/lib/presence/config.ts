@@ -27,7 +27,7 @@ const HOUR_FIELDS: readonly HourField[] = [
 
 const ROUNDING_MODES: readonly RoundingMode[] = ['floor', 'nearest', 'ceil'];
 
-export type PresenceSettingKind = 'time' | 'number' | 'list' | 'field' | 'rounding' | 'weekdays' | 'operator-map';
+export type PresenceSettingKind = 'time' | 'date' | 'number' | 'list' | 'field' | 'rounding' | 'weekdays' | 'operator-map';
 
 export interface PresenceSettingDefinition {
     /** PARAMETRO value in VALORI_TABELLE. */
@@ -72,6 +72,9 @@ export const PRESENCE_SETTINGS: readonly PresenceSettingDefinition[] = [
     { key: 'ECCEDENZA_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.OVERFLOW_ROUNDING_MODE, description: 'Modo di arrotondamento eccedenza: floor | nearest | ceil' },
     { key: 'FERIE_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.FERIE_PRESETS.join(','), description: 'Opzioni rapide testo per Ore Ferie (separate da virgola)' },
     { key: 'PERMESSO_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.PERMESSO_PRESETS.join(','), description: 'Opzioni rapide testo per Ore Permesso (separate da virgola)' },
+    { key: 'FOGLIO_ORE_INIZIO', kind: 'date', defaultValue: PRESENCE_RULES.TIMESHEET_START, description: 'Primo giorno del foglio ore (Le mie ore / Ore Ufficio): i giorni prima si vedono ma sono bloccati' },
+    { key: 'FOGLIO_ORE_PRIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_FIRST_TIME, description: 'Prima ora proposta in Dalle / Alle del foglio ore (apertura azienda)' },
+    { key: 'FOGLIO_ORE_ULTIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_LAST_TIME, description: 'Ultima ora proposta in Dalle / Alle del foglio ore' },
 ];
 
 export const PRESENCE_SETTING_KEYS = PRESENCE_SETTINGS.map((s) => s.key);
@@ -116,6 +119,9 @@ export const DEFAULT_PRESENCE_RULES: PresenceRulesConfig = {
     },
     feriePresets: [...PRESENCE_RULES.FERIE_PRESETS],
     permessoPresets: [...PRESENCE_RULES.PERMESSO_PRESETS],
+    timesheetStart: PRESENCE_RULES.TIMESHEET_START,
+    timesheetFirstTime: PRESENCE_RULES.TIMESHEET_FIRST_TIME,
+    timesheetLastTime: PRESENCE_RULES.TIMESHEET_LAST_TIME,
     workdayHoursByOperator: { ...PRESENCE_RULES.WORKDAY_HOURS_BY_OPERATOR },
 };
 
@@ -143,6 +149,13 @@ function normalizeTime(v: string): string | null {
 
 function readTime(row: SettingSource | undefined, fallback: string): string {
     return normalizeTime(row?.VALORE ?? '') ?? fallback;
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function readDate(row: SettingSource | undefined, fallback: string): string {
+    const v = (row?.VALORE ?? '').trim();
+    return DATE_RE.test(v) ? v : fallback;
 }
 
 /** Sorted, de-duplicated list of "HH:MM" times. */
@@ -237,6 +250,9 @@ export function parsePresenceRules(rows: readonly SettingSource[]): PresenceRule
         },
         feriePresets: readList(byKey.get('FERIE_PRESETS'), d.feriePresets),
         permessoPresets: readList(byKey.get('PERMESSO_PRESETS'), d.permessoPresets),
+        timesheetStart: readDate(byKey.get('FOGLIO_ORE_INIZIO'), d.timesheetStart),
+        timesheetFirstTime: readTime(byKey.get('FOGLIO_ORE_PRIMA_ORA'), d.timesheetFirstTime),
+        timesheetLastTime: readTime(byKey.get('FOGLIO_ORE_ULTIMA_ORA'), d.timesheetLastTime),
         workdayHoursByOperator: readOperatorNumberMap(byKey.get('ORE_GIORNATA_OPERATORE'), d.workdayHoursByOperator),
     };
 }

@@ -10,6 +10,9 @@ interface DataCardsProps<R> {
     rows: R[];
     getRowKey: (row: R, index: number) => React.Key;
     getRowClassName?: (row: R) => string | undefined;
+    onRowClick?: (row: R) => void;
+    /** More about a row, shown at the foot of its card */
+    rowDetail?: (row: R) => React.ReactNode;
     sort?: SortState | null;
     onSort?: (column: string) => void;
     /** Shown instead of the cards (loading, error, nothing found) */
@@ -28,16 +31,32 @@ export function columnLabel<R>(column: DataTableColumn<R>): React.ReactNode {
     return column.headerTitle ?? column.header;
 }
 
+/** What makes a table row or a phone card open something: a click, or Enter while it has the focus */
+export function rowClickProps<R>(row: R, onRowClick?: (row: R) => void): React.HTMLAttributes<HTMLElement> {
+    if (!onRowClick) return {};
+    return {
+        tabIndex: 0,
+        onClick: () => onRowClick(row),
+        onKeyDown: (event) => {
+            if (event.key === 'Enter' && event.target === event.currentTarget) onRowClick(row);
+        },
+    };
+}
+
 /**
  * The rows of a DataTable on a phone: one card per row, the first column (or `title`) as its title and the others
  * as label / value lines, with a sort picker on top. Built from the same columns as the table.
  */
-export function DataCards<R>({ columns, rows, getRowKey, getRowClassName, sort, onSort, message, dimmed, title, footer }: DataCardsProps<R>) {
+export function DataCards<R>({ columns, rows, getRowKey, getRowClassName, onRowClick, rowDetail, sort, onSort, message, dimmed, title, footer }: DataCardsProps<R>) {
     const shown = columns.filter((column) => !column.mobileHidden);
     const [first, ...rest] = shown;
     const details = title ? shown : rest;
     const sortable = onSort ? columns.filter((column) => column.sortable !== false) : [];
     const copy = APP_COPY.common;
+    const detail = (row: R) => {
+        const content = rowDetail?.(row);
+        return content ? <div className="px-3 pb-3">{content}</div> : null;
+    };
 
     return (
         <div>
@@ -75,15 +94,18 @@ export function DataCards<R>({ columns, rows, getRowKey, getRowClassName, sort, 
             ) : (
                 <ul className={cn('divide-y divide-border', dimmed && 'opacity-50 transition-opacity')}>
                     {rows.map((row, index) => (
-                        <li key={getRowKey(row, index)} className={cn('px-3 py-3 text-sm', getRowClassName?.(row))}>
-                            <div className="min-w-0 mb-1.5">{title ? title(row) : first?.cell(row, index)}</div>
-                            <dl className="space-y-1">
-                                {details.map((column) => (
-                                    <CardField key={column.key} label={columnLabel(column)} variant={column.variant}>
-                                        {column.cell(row, index)}
-                                    </CardField>
-                                ))}
-                            </dl>
+                        <li key={getRowKey(row, index)} className={cn('text-sm', getRowClassName?.(row))}>
+                            <div className={cn('px-3 py-3', onRowClick && 'cursor-pointer')} {...rowClickProps(row, onRowClick)}>
+                                <div className="min-w-0 mb-1.5">{title ? title(row) : first?.cell(row, index)}</div>
+                                <dl className="space-y-1">
+                                    {details.map((column) => (
+                                        <CardField key={column.key} label={columnLabel(column)} variant={column.variant}>
+                                            {column.cell(row, index)}
+                                        </CardField>
+                                    ))}
+                                </dl>
+                            </div>
+                            {detail(row)}
                         </li>
                     ))}
                 </ul>

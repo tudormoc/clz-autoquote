@@ -1,24 +1,21 @@
 /**
  * Who may open what, from the menu itself (NAV_AREAS): a group gives "vede" (view) or "modifica" (edit) per page,
- * a user gets the highest level of all their groups. A page's function (NavItem.functions, e.g. Riallinea) is given
- * on its own, as "edit".
+ * a user gets the highest level of all their groups. A page's function (pageFunctions, e.g. Riallinea) is given on
+ * its own, as "edit". Utenti, Gruppi and Esplora Database stay with the superadmin (superadminOnly): giving pages and
+ * reading PINs cannot be handed to a group. The Registro has no grant per page: its entries follow the pages a person
+ * can open (src/lib/log/areas.ts).
  * A group's pages are keyed by the page's id ("daily-events", a function "work-progress#riallinea"), not its link:
  * a page can move to another area and keep its grants. The checks take links (LINKS.*) and look the key up.
  * Shared by the server checks (src/lib/auth/access.ts) and the browser (menu, home, edit buttons).
+ * How the Gruppi page turns its clicks into these grants: src/lib/auth/lights.ts.
  */
 
-import { NAV_AREAS, findNavLocation, type NavArea, type NavFunction, type NavItem } from '@/config/navigation';
+import { NAV_AREAS, findNavLocation, pageFunctions, type NavArea, type NavFunction, type NavItem } from '@/config/navigation';
 
 export type AccessLevel = 'view' | 'edit';
 
 /** Grant key (page id, or "page id#function") → level; what is not listed is not visible */
 export type PagePermissions = Record<string, AccessLevel>;
-
-/** What a Gruppi row sets: a page, or a function (always editable, given as "edit"), by its grant key */
-export interface Grantable {
-    key: string;
-    editable?: boolean;
-}
 
 /** The grant key of a page: its id, which stays when the page moves (ids are unique across areas, checked below) */
 export const grantKey = (page: NavItem): string => page.id;
@@ -60,7 +57,7 @@ if (duplicateId) throw new Error(`Two pages share the id "${duplicateId}": page 
 
 /** Every function a group can be given, with its page and key, in menu order */
 export const GRANTABLE_FUNCTIONS: { page: NavItem; fn: NavFunction; key: string }[] = GRANTABLE_PAGES.flatMap((page) =>
-    (page.functions ?? []).map((fn) => ({ page, fn, key: functionKey(page, fn) }))
+    pageFunctions(page).map((fn) => ({ page, fn, key: functionKey(page, fn) }))
 );
 const FUNCTION_KEYS = new Set(GRANTABLE_FUNCTIONS.map(({ key }) => key));
 
@@ -69,9 +66,6 @@ const KEY_BY_HREF = new Map<string, string>([
     ...GRANTABLE_PAGES.map((page): [string, string] => [page.href, grantKey(page)]),
     ...GRANTABLE_FUNCTIONS.map(({ fn, key }): [string, string] => [fn.href, key]),
 ]);
-
-/** A page or function as a Gruppi row sets it */
-export const grantable = (page: NavItem): Grantable => ({ key: grantKey(page), editable: page.editable });
 
 /** Names of the pages given at this level, in menu order */
 export const pageLabels = (pages: PagePermissions, level: AccessLevel): string[] =>
@@ -110,31 +104,6 @@ export function mergePermissions(all: PagePermissions[]): PagePermissions {
     return merged;
 }
 
-/** A level for several pages at once: "edit" where a page changes data, "view" on the others; null takes them away */
-export function withLevel(pages: PagePermissions, items: Grantable[], level: AccessLevel | null): PagePermissions {
-    const next = { ...pages };
-    for (const item of items) {
-        if (level) next[item.key] = level === 'edit' && !item.editable ? 'view' : level;
-        else delete next[item.key];
-    }
-    return next;
-}
-
-/**
- * The one level that gives these pages what they have now (as withLevel would), or "mixed".
- * Pages that cannot be changed count as "edit" too when they are visible, so "Modifica" on an area stays lit.
- */
-export function sharedLevel(pages: PagePermissions, items: Grantable[]): AccessLevel | null | 'mixed' {
-    const fits = (level: AccessLevel | null) =>
-        items.every((item) => {
-            const granted = pages[item.key] ?? null;
-            return level === 'edit' ? granted === 'edit' || (granted === 'view' && !item.editable) : granted === level;
-        });
-    if (fits(null)) return null;
-    if (fits('view')) return 'view';
-    return fits('edit') ? 'edit' : 'mixed';
-}
-
 /** May the person open this page (its link from LINKS) at this level? Links of nothing grantable are refused. */
 export function canOpen(access: UserAccess, href: string, level: AccessLevel = 'view'): boolean {
     if (access.superadmin) return true;
@@ -170,3 +139,7 @@ export function canOpenPath(access: UserAccess, pathname: string): boolean {
     if (!area.groups) return canOpen(access, area.href);
     return pathname === area.href && visibleAreas(access).some((visible) => visible.id === area.id);
 }
+
+const PAGE_ID_BY_HREF = new Map(menuPages(NAV_AREAS).map((page) => [page.href, page.id]));
+/** The id of the page a link (or a function's link) belongs to: how the log names where something happened */
+export const pageIdOf = (href: string): string | undefined => PAGE_ID_BY_HREF.get(href.split('#')[0]);

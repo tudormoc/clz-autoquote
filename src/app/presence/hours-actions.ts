@@ -5,7 +5,7 @@
 import { errorMessage } from '@/lib/utils';
 import { APP_CONFIG } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import { HOURS_DISTRIBUTION_FIELDS, type OperatorHoursRow, type HoursDistributionField } from '@/types';
 import {
     rulesForOperator,
@@ -19,6 +19,10 @@ import {
 import { CLOCK_COLUMNS, clockOf, loadPresenceRules, buildOperatorSearch, loadDistributionMap, type ClockRow } from './presence-db';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 /** One operator-day from the clock-in query (rows are also made up for days without clock-ins) */
 interface AttendanceRow extends ClockRow {
@@ -193,7 +197,7 @@ export async function updateHoursDistributionAction(
     field: HoursDistributionField,
     value: number | string | null
 ) {
-    await authorize('edit', LINKS.presence.monthlySummary);
+    const access = await authorize('edit', LINKS.presence.monthlySummary);
     try {
         if (!HOURS_DISTRIBUTION_FIELDS.includes(field)) {
             return { success: false, error: APP_COPY.common.notAllowed };
@@ -210,6 +214,13 @@ export async function updateHoursDistributionAction(
                 paramValue = !isNaN(num) ? num : null;
             }
         }
+
+        // What the field holds now, for the log (the field's name was checked above)
+        const before = await queryMSSQL<{ value: string | number | null }>(
+            `SELECT ${field} AS value FROM presence_hours_distribution WITH (NOLOCK) WHERE operatore = @operatore AND data = CAST(@data AS DATE)`,
+            { operatore, data },
+            'QUOTES'
+        );
 
         const query = `
             MERGE presence_hours_distribution AS target
@@ -232,6 +243,15 @@ export async function updateHoursDistributionAction(
             'QUOTES'
         );
 
+        const previous = before.recordset[0]?.value ?? null;
+        await logEvent(personOf(access), {
+            page: LINKS.presence.monthlySummary,
+            action: 'changed',
+            entityKind: 'hours',
+            entityId: `${operatore} ${data}`,
+            summary: fmt(log.hoursUpdated, { operator: operatore, date: data, field, from: previous ?? '-', value: paramValue ?? '-' }),
+            details: { before: { [field]: previous }, after: { [field]: paramValue } },
+        });
         return { success: true };
     } catch (err) {
         return { success: false, error: errorMessage(err) };

@@ -16,7 +16,13 @@ import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, NamePartsSchema, buildFacts, driftCount, hasLinks, joinNameParts, type Fact, type NameParts, type PersonLinks, type PersonRecords } from '@/lib/persons/places';
 import { nameForCategory } from '@/lib/presence/categories';
 import { errorMessage } from '@/lib/utils';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
+import { LINKS } from '@/config/navigation';
+import type { LogPerson } from '@/lib/log/log';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 const copy = APP_COPY.admin.person;
 
@@ -45,10 +51,10 @@ const IdSchema = z.number().int().positive();
 const EmailSchema = z.string().trim().email().max(EMAIL_MAX_LENGTH);
 
 /** Runs the work after the superadmin check, turning failures into an error text */
-async function guarded<T extends object>(work: () => Promise<T>): Promise<Result<T>> {
+async function guarded<T extends object>(work: (who: LogPerson) => Promise<T>): Promise<Result<T>> {
     try {
-        await requireSuperadmin();
-        return { success: true, ...(await work()) };
+        const access = await requireSuperadmin();
+        return { success: true, ...(await work(personOf(access))) };
     } catch (error) {
         console.error('Person action failed:', error);
         return { success: false, error: errorMessage(error) };
@@ -181,8 +187,17 @@ export async function getPersonDriftAction(): Promise<Result<{ drift: Record<num
 export async function setPersonLinksAction(id: number, links: PersonLinks): Promise<Result<object>> {
     const parsed = LinksSchema.safeParse(links);
     if (!IdSchema.safeParse(id).success || !parsed.success) return { success: false, error: APP_COPY.common.invalidData };
-    return guarded(async () => {
+    return guarded(async (who) => {
+        const before = await findAccountById(id);
         await updateAccountLinks(id, parsed.data);
+        await logEvent(who, {
+            page: LINKS.settings.users,
+            action: 'links',
+            entityKind: 'user',
+            entityId: id,
+            summary: fmt(log.personLinks, { name: before?.name ?? `#${id}` }),
+            details: { before: before && linksOf(before), after: parsed.data },
+        });
         return {};
     });
 }
@@ -196,7 +211,7 @@ export async function alignEmailAction(id: number, email: string): Promise<Resul
     const parsedEmail = EmailSchema.safeParse(email);
     if (!IdSchema.safeParse(id).success || !parsedEmail.success) return { success: false, error: copy.alignEmail.invalid };
     const value = parsedEmail.data;
-    return guarded(async () => {
+    return guarded(async (who) => {
         const account = await findAccountById(id);
         if (!account) throw new Error(copy.notFound);
         const { netproUser, erpUser } = linksOf(account);
@@ -208,6 +223,14 @@ export async function alignEmailAction(id: number, email: string): Promise<Resul
                 written += changedRows(await run(`UPDATE ARCPROC.dbo.OPERAT SET OpSumail = @value WHERE OpNome = @user`, { value, user: erpUser }, 'BUSINESS'));
                 written += changedRows(await run(`UPDATE organig SET og_email = @value WHERE og_coperat = @user`, { value, user: erpUser }, 'BUSINESS'));
             }
+        });
+        await logEvent(who, {
+            page: LINKS.settings.users,
+            action: 'align-email',
+            entityKind: 'user',
+            entityId: id,
+            summary: fmt(log.alignEmail, { name: account.name, value, written }),
+            details: { after: { email: value }, places: { netproUser, erpUser }, written },
         });
         return { written };
     });
@@ -224,7 +247,7 @@ export async function alignNameAction(id: number, parts: NameParts): Promise<Res
     if (!IdSchema.safeParse(id).success || !parsed.success) return { success: false, error: copy.alignName.invalid };
     const { surname, firstName } = parsed.data;
     const full = joinNameParts(parsed.data);
-    return guarded(async () => {
+    return guarded(async (who) => {
         const account = await findAccountById(id);
         if (!account) throw new Error(copy.notFound);
         const links = linksOf(account);
@@ -244,6 +267,14 @@ export async function alignNameAction(id: number, parts: NameParts): Promise<Res
                 written += changedRows(await run(`UPDATE ARCPROC.dbo.OPERAT SET OpDescont = @surname, OpDescont2 = @firstName WHERE OpNome = @user`, { surname, firstName, user: erpUser }, 'BUSINESS'));
                 written += changedRows(await run(`UPDATE organig SET og_descont = @surname, og_descont2 = @firstName WHERE og_coperat = @user`, { surname, firstName, user: erpUser }, 'BUSINESS'));
             }
+        });
+        await logEvent(who, {
+            page: LINKS.settings.users,
+            action: 'align-name',
+            entityKind: 'user',
+            entityId: id,
+            summary: fmt(log.alignName, { name: account.name, value: full, written }),
+            details: { before: records, after: { full, surname, firstName, operatorName }, written },
         });
         return { written };
     });

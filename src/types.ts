@@ -267,6 +267,9 @@ export interface OrderOperationsManagementData {
     order_bus_anno?: number;
     order_bus_riga?: number;
     order_father_quant?: number;
+    /** Year and number of the impegno cliente behind the edition, when found */
+    impegno_anno?: number;
+    impegno_numord?: number;
     diba_operations: DibaOperationRow[];
     /** NetPro order phases (OPERAZIONI) */
     order_operations: OrderProductionOperationRow[];
@@ -279,6 +282,8 @@ export interface OrderOperationsManagementData {
     netpro_materials?: OrderMaterialSummaryRow[];
     has_discrepancies?: boolean;
     discrepancy_count?: number;
+    /** Why Riallinea would be refused as the order is now, in words (src/lib/orders/syncBlocks.ts); none when it would not */
+    sync_blocks?: string[];
     /** The quantities of the edition in the impegno cliente, the Business order and the NetPro order (the "Quantità" tab) */
     quantities?: OrderQuantities;
     /** The title of the article in the same documents and the article masters (the "Articolo" tab) */

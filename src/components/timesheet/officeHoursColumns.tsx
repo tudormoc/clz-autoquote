@@ -16,13 +16,15 @@ export const isHourField = (key: string): key is HourField => (HOUR_FIELDS as re
 
 interface ColumnOptions {
     today: string;
+    /** YYYY-MM-DD, the first day of the timesheet (Regole Presenze): earlier days get no pencil */
+    startDay: string;
     canEdit: boolean;
     /** Opens the day's editor */
     onOpen: (row: OfficeDayRow) => void;
 }
 
 /** The columns of Ore Ufficio: the person and the day, what was entered, the hours as the studio's file has them, the state */
-export function officeHoursColumns({ today, canEdit, onOpen }: ColumnOptions): DataTableColumn<OfficeDayRow>[] {
+export function officeHoursColumns({ today, startDay, canEdit, onOpen }: ColumnOptions): DataTableColumn<OfficeDayRow>[] {
     const hours = (field: HourField): DataTableColumn<OfficeDayRow> => ({
         key: field,
         header: fieldLabel(field),
@@ -71,11 +73,13 @@ export function officeHoursColumns({ today, canEdit, onOpen }: ColumnOptions): D
                       header: '',
                       align: 'right' as const,
                       compact: true,
-                      cell: (row: OfficeDayRow) => (
-                          <Button variant="ghost" size="sm" title={APP_COPY.timesheet.day.open} aria-label={APP_COPY.timesheet.day.open} onClick={() => onOpen(row)}>
-                              <Pencil size={14} />
-                          </Button>
-                      ),
+                      // Days before the start of the timesheet are shown but locked (owner, 2026-11-05)
+                      cell: (row: OfficeDayRow) =>
+                          row.summary.day >= startDay && (
+                              <Button variant="ghost" size="sm" title={APP_COPY.timesheet.day.open} aria-label={APP_COPY.timesheet.day.open} onClick={() => onOpen(row)}>
+                                  <Pencil size={14} />
+                              </Button>
+                          ),
                   },
               ]
             : []),

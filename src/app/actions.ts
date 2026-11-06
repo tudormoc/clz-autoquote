@@ -7,8 +7,13 @@ import { createPricingRule, deletePricingRule } from '@/lib/pricing/ruleWrites';
 import { quotesDb } from '@/lib/quotes/db';
 import { z } from 'zod';
 import { authorize } from '@/lib/auth/access';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import { LINKS } from '@/config/navigation';
+import { formatCurrency } from '@/lib/format';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 /**
  * Server Action to calculate a quote and save it using the new Pricing Engine.
@@ -17,7 +22,7 @@ export async function processQuoteAction(
     formData: z.infer<typeof QuoteInputSchema>,
     quoteId?: string
 ) {
-    await authorize('edit', LINKS.quotes);
+    const access = await authorize('edit', LINKS.quotes);
     // 1. Validation
     const validation = QuoteInputSchema.safeParse(formData);
 
@@ -72,6 +77,14 @@ export async function processQuoteAction(
         };
     }
 
+    await logEvent(personOf(access), {
+        page: LINKS.quotes,
+        action: quoteId ? 'changed' : 'created',
+        entityKind: 'quote',
+        entityId: quoteId ?? saveResponse.data?.id,
+        summary: fmt(quoteId ? log.quoteUpdated : log.quoteSaved, { title: input.project_title, quantity: input.quantity, total: formatCurrency(result.total_price) }),
+        details: { after: quotePayload },
+    });
     return { result };
 }
 
@@ -87,8 +100,10 @@ export async function getQuoteHistoryAction() {
  * Server Action to delete a quote
  */
 export async function deleteQuoteAction(id: string) {
-    await authorize('edit', LINKS.quotes);
-    return await quotesDb.deleteQuote(id);
+    const access = await authorize('edit', LINKS.quotes);
+    const result = await quotesDb.deleteQuote(id);
+    if (!result.error) await logEvent(personOf(access), { page: LINKS.quotes, action: 'deleted', entityKind: 'quote', entityId: id, summary: log.quoteDeleted });
+    return result;
 }
 
 /**
@@ -103,16 +118,20 @@ export async function getPricingRulesAction() {
  * Server Action to delete a price rule with its operation (rules the quote calculation needs are refused)
  */
 export async function deletePricingRuleAction(id: string) {
-    await authorize('edit', LINKS.settings['pricing-configs']);
-    return await deletePricingRule(id);
+    const access = await authorize('edit', LINKS.settings['pricing-configs']);
+    const result = await deletePricingRule(id);
+    if (result.success) await logEvent(personOf(access), { page: LINKS.settings['pricing-configs'], action: 'deleted', entityKind: 'pricing-rule', entityId: id, summary: log.pricingRuleDeleted });
+    return result;
 }
 
 /**
  * Server Action to create a price rule (operation + prices in one transaction)
  */
 export async function createPricingRuleAction(values: Record<string, unknown>) {
-    await authorize('edit', LINKS.settings['pricing-configs']);
-    return await createPricingRule(values);
+    const access = await authorize('edit', LINKS.settings['pricing-configs']);
+    const result = await createPricingRule(values);
+    if (result.success) await logEvent(personOf(access), { page: LINKS.settings['pricing-configs'], action: 'created', entityKind: 'pricing-rule', summary: log.pricingRuleCreated, details: { after: values } });
+    return result;
 }
 
 /**

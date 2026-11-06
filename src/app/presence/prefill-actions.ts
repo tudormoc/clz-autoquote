@@ -28,6 +28,10 @@ import {
 import { CLOCK_COLUMNS, clockOf, loadPresenceRules, loadDistributionMap, type ClockRow } from './presence-db';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 const copy = APP_COPY.analytics.monthlySummary.prefill;
 
@@ -87,7 +91,7 @@ const EMPTY_PREFILL: Omit<PrefillResult, 'success'> = {
  * dryRun = true only counts candidates; nothing is written.
  */
 export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dryRun: boolean = false): Promise<PrefillResult> {
-    await authorize('edit', LINKS.presence.monthlySummary);
+    const access = await authorize('edit', LINKS.presence.monthlySummary);
     try {
         const rules = await loadPresenceRules();
         const todayStr = getTodayDate();
@@ -229,6 +233,13 @@ export async function prefillAbsencesAction(dateFrom: string, dateTo: string, dr
             );
         }
 
+        await logEvent(personOf(access), {
+            page: LINKS.presence.monthlySummary,
+            action: 'prefill',
+            entityKind: 'hours',
+            summary: fmt(log.prefill, { from: dateFrom, to: dateTo, count: candidates.length }),
+            details: { counts, rows: candidates.map((candidate) => ({ operatore: candidate.operatore, data: candidate.data, values: candidate.proposal.values })) },
+        });
         return { success: true, ...counts, dryRun: false, rules };
     } catch (err) {
         return { success: false, ...EMPTY_PREFILL, error: errorMessage(err) };

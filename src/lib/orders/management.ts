@@ -3,15 +3,13 @@
  * production order (movord H / attivit / assris / movord Y) and the NetPro order (OPERAZIONI / MATERIALI_ORDINI),
  * plus the number of differences and the quantity of the edition in every place (quantityData.ts). See docs/ORDER_PROCESS.md.
  */
-import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
+import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
-import { compareMaterials, compareOperations, countDiscrepancies } from '@/lib/orders/compare';
-import { ARTICLE_RULES } from '@/lib/orders/article';
 import { loadOrderArticle } from '@/lib/orders/articleData';
-import { countFactIssues } from '@/lib/orders/documentFacts';
-import { loadDocumentRows } from '@/lib/orders/documentRows';
-import { QUANTITY_RULES } from '@/lib/orders/quantities';
+import { compareOrder, countDifferences } from '@/lib/orders/differences';
+import { loadDocumentRows, type DocumentRows } from '@/lib/orders/documentRows';
 import { loadOrderQuantities } from '@/lib/orders/quantityData';
+import { findSyncBlocks } from '@/lib/orders/sync';
 import type {
     BusinessOrderOperationRow,
     DibaMaterialRow,
@@ -48,9 +46,11 @@ export const emptyManagement = (articleFather = ''): OrderOperationsManagementDa
 
 /**
  * Production order row of the edition (or of the commessa's first edition). A Business order can hold several
- * editions (H rows riga 5/10/15...), each with its own NetPro order, phases and materials.
+ * editions (H rows riga 5/10/15...), each with its own NetPro order, phases and materials. With `netpid` it is the
+ * row of the commessa that points to that NetPro order: an edition can hold more than one production order
+ * (always looked for inside the commessa: `mo_netpid` alone would read the whole table).
  */
-async function findBusinessOrder(rootCommessaKey: string, commessaFull?: string): Promise<BusinessOrderRef | undefined> {
+async function findBusinessOrder(rootCommessaKey: string, commessaFull?: string, netpid?: string): Promise<BusinessOrderRef | undefined> {
     const movRes = await queryMSSQL<BusinessOrderRef>(`
             SELECT TOP 1
                 mo_anno as anno,
@@ -65,8 +65,9 @@ async function findBusinessOrder(rootCommessaKey: string, commessaFull?: string)
             FROM movord WITH (NOLOCK)
             WHERE codditt = '${BUSINESS_COMPANY}' AND mo_tipork = 'H'
               AND ${commessaFull ? 'mo_commeca = @commessaFull' : 'LEFT(CAST(mo_commeca AS VARCHAR(20)), 7) = @rootCommessaKey'}
+              ${netpid ? 'AND mo_netpid = @netpid' : ''}
             ORDER BY mo_anno DESC, mo_numord DESC, mo_riga ASC
-        `, commessaFull ? { commessaFull } : { rootCommessaKey }, 'BUSINESS');
+        `, { ...(commessaFull ? { commessaFull } : { rootCommessaKey }), ...(netpid ? { netpid } : {}) }, 'BUSINESS');
     return movRes.recordset[0];
 }
 
@@ -219,69 +220,73 @@ async function loadBusinessMaterials(order?: BusinessOrderRef): Promise<OrderMat
     return busMatRes.recordset;
 }
 
-/**
- * The comparison of one edition (or of the commessa's first edition) with its DiBa.
- * Read errors give an empty comparison (logged), so the rest of the order page still shows.
- */
-export async function fetchOrderManagement(
+/** The comparison of one edition (or of the commessa's first edition) with its DiBa; a failed read throws */
+export async function loadOrderManagement(
     rootCommessaKey: string,
     articleHint?: string,
     /** Full commessa of one edition (e.g. 260960410): scopes everything to that edition */
-    commessaFull?: string
+    commessaFull?: string,
+    /** One NetPro production order: scopes everything to it and to the Business order that points to it */
+    netpid?: string
 ): Promise<OrderOperationsManagementData> {
+    const order = await findBusinessOrder(rootCommessaKey, commessaFull, netpid);
+    // The edition's own article wins over the hint (editions can have different articles)
+    let article = (!articleHint || commessaFull) && order ? order.codart : articleHint;
+    if (!article) article = await findNetproArticle(rootCommessaKey);
+    article = (article || '').trim();
+
+    // The independent reads run together
+    const [dibaOperations, dibaMaterials, orderOperations, businessOperations, businessMaterials] = await Promise.all([
+        loadDibaOperations(article),
+        loadDibaMaterials(article),
+        loadNetproOperations(rootCommessaKey, netpid || order?.netpid || '', commessaFull),
+        loadBusinessOperations(order),
+        loadBusinessMaterials(order),
+    ]);
+    const ordineNetpro = orderOperations[0]?.ordine ?? '';
+    // The impegno cliente and order rows feed the Quantità and Articolo tabs
+    const netproMake = order?.netpid || ordineNetpro;
+    const documents: DocumentRows = order ? await loadDocumentRows(order) : {};
+    const [netproMaterials, quantities, articleFacts, blocks] = await Promise.all([
+        loadNetproMaterials(ordineNetpro),
+        loadOrderQuantities(documents, order, netproMake),
+        loadOrderArticle(documents, order, netproMake),
+        // What Riallinea itself asks before it writes, so the list and the order page say it before the button is pressed
+        order && netproMake ? findSyncBlocks(queryMSSQL, { articleFather: article, anno: order.anno, numord: order.numord, rigaPadre: order.riga, netOrdine: netproMake }) : [],
+    ]);
+
+    const data: OrderOperationsManagementData = {
+        article_father: article,
+        ordine_netpro: ordineNetpro,
+        commessa_full: order ? String(order.commeca) : undefined,
+        order_bus_numord: order?.numord,
+        order_bus_anno: order?.anno,
+        order_bus_riga: order?.riga,
+        order_father_quant: order?.quant,
+        impegno_anno: documents.impegno?.anno,
+        impegno_numord: documents.impegno?.numord,
+        diba_operations: dibaOperations,
+        order_operations: orderOperations,
+        business_operations: businessOperations,
+        diba_materials: dibaMaterials,
+        order_materials: businessMaterials,
+        netpro_materials: netproMaterials,
+        quantities,
+        article: articleFacts,
+        sync_blocks: blocks,
+    };
+    // Differences: DiBa (truth) vs Business order vs NetPro order, plus the quantities and the article data (impegno
+    // cliente as truth), counted with the comparisons the tabs show, so Riallinea shows up when only one of those differs
+    const discrepancyCount = countDifferences(compareOrder(data));
+    return { ...data, has_discrepancies: discrepancyCount > 0, discrepancy_count: discrepancyCount };
+}
+
+/**
+ * The same for the order page: read errors give an empty comparison (logged), so the rest of the page still shows.
+ */
+export async function fetchOrderManagement(rootCommessaKey: string, articleHint?: string, commessaFull?: string): Promise<OrderOperationsManagementData> {
     try {
-        const order = await findBusinessOrder(rootCommessaKey, commessaFull);
-        // The edition's own article wins over the hint (editions can have different articles)
-        let article = (!articleHint || commessaFull) && order ? order.codart : articleHint;
-        if (!article) article = await findNetproArticle(rootCommessaKey);
-        article = (article || '').trim();
-
-        // The independent reads run together
-        const [dibaOperations, dibaMaterials, orderOperations, businessOperations, businessMaterials] = await Promise.all([
-            loadDibaOperations(article),
-            loadDibaMaterials(article),
-            loadNetproOperations(rootCommessaKey, order?.netpid || '', commessaFull),
-            loadBusinessOperations(order),
-            loadBusinessMaterials(order),
-        ]);
-        const ordineNetpro = orderOperations[0]?.ordine ?? '';
-        // The impegno cliente and order rows feed the Quantità and Articolo tabs
-        const netproMake = order?.netpid || ordineNetpro;
-        const documents = order ? await loadDocumentRows(order) : {};
-        const [netproMaterials, quantities, articleFacts] = await Promise.all([
-            loadNetproMaterials(ordineNetpro),
-            loadOrderQuantities(documents, order, netproMake),
-            loadOrderArticle(documents, order, netproMake),
-        ]);
-
-        // Differences: DiBa (truth) vs Business order vs NetPro order (same logic as the comparison tables), plus the
-        // quantities and the title (impegno cliente as truth), so Riallinea shows up when only one of those differs
-        const quantity = order?.quant || APP_CONFIG.ORDERS.DEFAULT_QUANTITY;
-        const discrepancyCount =
-            countDiscrepancies(
-                compareOperations(dibaOperations, businessOperations, orderOperations),
-                compareMaterials(dibaMaterials, businessMaterials, netproMaterials, quantity)
-            ) + countFactIssues(quantities.rows, QUANTITY_RULES) + countFactIssues(articleFacts.rows, ARTICLE_RULES);
-
-        return {
-            article_father: article,
-            ordine_netpro: ordineNetpro,
-            commessa_full: order ? String(order.commeca) : undefined,
-            order_bus_numord: order?.numord,
-            order_bus_anno: order?.anno,
-            order_bus_riga: order?.riga,
-            order_father_quant: order?.quant,
-            diba_operations: dibaOperations,
-            order_operations: orderOperations,
-            business_operations: businessOperations,
-            diba_materials: dibaMaterials,
-            order_materials: businessMaterials,
-            netpro_materials: netproMaterials,
-            has_discrepancies: discrepancyCount > 0,
-            discrepancy_count: discrepancyCount,
-            quantities,
-            article: articleFacts,
-        };
+        return await loadOrderManagement(rootCommessaKey, articleHint, commessaFull);
     } catch (err) {
         console.error('Error in fetchOrderManagement:', err);
         return emptyManagement(articleHint);

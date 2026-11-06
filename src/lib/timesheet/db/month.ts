@@ -6,8 +6,8 @@
 import { monthDates } from '@/lib/dateUtils';
 import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';
 import { listEntries } from '@/lib/timesheet/db/entries';
-import { summarizeMonth } from '@/lib/timesheet/month';
-import type { DaySummary, Entry, TimesheetPerson } from '@/lib/timesheet/types';
+import { entriesByPerson, summarizeMonth } from '@/lib/timesheet/month';
+import type { DaySummary, TimesheetPerson } from '@/lib/timesheet/types';
 import type { PresenceRulesConfig } from '@/lib/presence';
 
 export interface MonthSources {
@@ -27,12 +27,7 @@ export async function loadMonth(people: readonly TimesheetPerson[], year: number
         dates[0],
         dates[dates.length - 1]
     );
-    const byPerson = new Map<string, Entry[]>();
-    for (const entry of entries) {
-        const list = byPerson.get(entry.operatorCode);
-        if (list) list.push(entry);
-        else byPerson.set(entry.operatorCode, [entry]);
-    }
+    const byPerson = entriesByPerson(entries);
 
     const { companyDay } = closedDayChecker(sources.closedDays);
     return new Map(
@@ -43,6 +38,7 @@ export async function loadMonth(people: readonly TimesheetPerson[], year: number
                 workingDays: sources.rules.workingDays,
                 closedDay: companyDay,
                 today: sources.today,
+                startDay: sources.rules.timesheetStart,
             }),
         ])
     );

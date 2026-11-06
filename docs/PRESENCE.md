@@ -93,15 +93,22 @@ the badge terminal finds the person through `BADGE` in that row). The Operatori 
 - **Modifica** (the pencil, with *modifica* on the page): name, badge, category, matricola and NetPro's five free
   fields, shown with their real names and a hint of what they usually hold. `saveOperatorAction` writes only the
   columns of `OperatorFieldsSchema`; a badge must not be another operator's.
+- **OFF HR, who leaves**: the category list of Modifica (not of Nuovo operatore) also has **OFF HR**, NetPro's category
+  999 (`PRESENCE_RULES.LEFT_CATEGORY`). Who moves there leaves every presence page, keeps the name as it is (mark
+  included, NetPro's habit) and gets stato fisico OFF, like every row of that category (already OFF stays OFF); the
+  window says so under the category. Operatori shows these people only with the **OFF HR** chip of Categoria, off by
+  default; from there the pencil can move someone back.
+- **Chips**: Categoria and Stato Fisico only hide rows on screen. The stati in use are read when the page opens
+  (`getOperatorStatiAction`), so their chips are there before "Applica Filtri"; the list itself loads only on Applica.
 - **The name mark**: by habit the names of the interinali end with ` *lb` (`nameMark` of the category in
   `PRESENCE_RULES.CATEGORIES`). `nameForCategory()` adds it when the category is Interinali and takes it off when the
-  person moves to another category, so nobody types it; the window shows the name it will save. Examples in
-  `npm run presence:examples`.
+  person moves to another category (not to OFF HR), so nobody types it; the window shows the name it will save.
+  Examples in `npm run presence:examples`.
 - **Elimina** (in the edit window, same function): `deleteOperatorAction` deletes the row only when nothing names
   the code, in `EVENTI`, `STO_EVENTI`, `SITUAZIONI`, `STO_SITUAZIONI`, `ATTIVITA`, `UTENTI` or the saved hours
   (`HISTORY_TABLES`): nothing in the database would otherwise stop those rows from losing their person. A person
-  with history is kept, and the message says to change the category in NetPro: that is how someone who leaves
-  disappears from the lists (category 999, which the page does not show). Checks and delete are one transaction.
+  with history is kept, and the message says to move the person to OFF HR instead. Checks and delete are one
+  transaction.
 
 ## Invariant
 

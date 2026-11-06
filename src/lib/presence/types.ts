@@ -87,6 +87,13 @@ export interface PresenceRulesConfig {
     feriePresets: string[];
     permessoPresets: string[];
 
+    // --- Timesheet (Le mie ore / Ore Ufficio) ---
+    /** YYYY-MM-DD: the first day hours are written in the timesheet; earlier days are shown but locked. */
+    timesheetStart: string;
+    /** "HH:MM": the first and last pick of Dalle / Alle (the company's open hours). */
+    timesheetFirstTime: string;
+    timesheetLastTime: string;
+
     // --- Per-operator exceptions (operator code → value). Everyone else uses the base value. ---
     /** Overrides for workdayHours, e.g. a 6h contract. Applies to every formula that reads workdayHours. */
     workdayHoursByOperator: Record<string, number>;

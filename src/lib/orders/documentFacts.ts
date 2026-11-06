@@ -63,7 +63,3 @@ export function compareFacts<K extends string, V>(rows: DocumentFactRow<K, V>[],
         return result;
     });
 }
-
-/** Number of facts with at least one difference (counted in the "Disallineato da DiBa" badge) */
-export const countFactIssues = <K extends string, V>(rows: DocumentFactRow<K, V>[], rules: FactRules<V>) =>
-    compareFacts(rows, rules).filter((row) => row.issues.length > 0).length;

@@ -5,7 +5,11 @@
  * identity/value columns are overridden, so every column Business/NetPro
  * expects (TIPO, QTA_*, FACTIVE, MACCHINA_ASSEGNATA, ...) is always populated.
  */
+import { APP_CONFIG } from '@/config/constants';
 import type { MSSQL_DB, SqlParams, SqlRunner } from '@/lib/mssql';
+
+/** A new operation and its task start in the state of one nobody has worked on */
+const NEW_STATE = APP_CONFIG.ORDERS.UNSTARTED_OPERATION_STATE;
 
 export interface SyncDibaOp {
     riga: number;
@@ -34,12 +38,12 @@ export function buildNetProOverrides(op: SyncDibaOp, netOrdine: string, qty: num
         OPERAZIONI: {
             ORDINE: netOrdine, OPERAZIONE: String(op.fase).padStart(2, '0'), ID_OPER: idOper, SEQUENZA: op.fase,
             DESCRIZIONE: op.descr_lavor, CENTRO_ASSEGNATO: centro, CENTRO_REALE: centro,
-            DESCRIZIONE01: op.note ? op.note.slice(0, 100) : null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: 'REL',
+            DESCRIZIONE01: op.note ? op.note.slice(0, 100) : null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: NEW_STATE,
             DATA_INS: now, DATA_UPD: now,
         },
         TASKS: {
             TASK: idOper, DESCRIZIONE: op.descr_lavor, MACCHINA: centro, MACCHINA_ASSEGNATA: centro,
-            QTA_RICHIESTA: qty, STATO: 'REL', DATA_INS: now,
+            QTA_RICHIESTA: qty, STATO: NEW_STATE, DATA_INS: now,
         },
         JOBSET: {
             TASK: idOper, ORDINE: netOrdine, OPERAZIONE: String(op.fase).padStart(2, '0'), ID_OPER: idOper, QTA_RICHIESTA: qty,

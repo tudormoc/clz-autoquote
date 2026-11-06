@@ -7,6 +7,7 @@ import { UsersManager } from '@/components/admin/access/UsersManager';
 import { ClosedDaysEditor, DiscountTiersEditor, FormatSurchargesEditor, PricingRulesEditor, SignatureTypesEditor, TaskAreasEditor } from '@/components/admin/recordTables';
 import { LabourCostSettings } from '@/components/admin/LabourCostSettings';
 import { DatabaseExplorer } from '@/components/database/DatabaseExplorer';
+import { LogViewer } from '@/components/log/LogViewer';
 import { PresenceSettingsManager } from '@/components/presence/PresenceSettingsManager';
 import type { SettingsPageId } from '@/config/settingsPages';
 
@@ -23,4 +24,5 @@ export const SETTINGS_COMPONENTS: Record<SettingsPageId, React.ComponentType> = 
     'users': UsersManager,
     'groups': GroupsManager,
     'database': DatabaseExplorer,
+    'log': LogViewer,
 };

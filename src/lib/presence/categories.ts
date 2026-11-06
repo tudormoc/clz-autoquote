@@ -45,6 +45,12 @@ export const OTHER_CATEGORY: EmployeeCategory = {
     timesheet: false,
 };
 
+/** The category of the people who left (NetPro's 999): offered by "Modifica operatore", shown in Operatori only with its own chip */
+export const LEFT_CATEGORY = PRESENCE_RULES.LEFT_CATEGORY;
+
+/** Whether a raw ENTITA value is the category of the people who left */
+export const isLeftCategory = (reparto: string | null | undefined): boolean => (reparto ?? '').trim() === LEFT_CATEGORY.reparto;
+
 /** ENTITA values of the people who enter their own hours in the timesheet */
 export const TIMESHEET_REPARTI: readonly string[] = EMPLOYEE_CATEGORIES.filter((c) => c.timesheet).map((c) => c.key);
 
@@ -88,8 +94,10 @@ export function bareName(name: string): string {
 /**
  * The name as NetPro's habit writes it for the category: any category mark taken off the end, then the category's
  * own mark added when it has one ("rossi mario", Interinali → "rossi mario *lb"; back to Produzione → "rossi mario").
+ * Who leaves (OFF HR) keeps the name as it was, mark included: NetPro's habit.
  */
 export function nameForCategory(name: string, reparto: string | null | undefined): string {
+    if (isLeftCategory(reparto)) return name.trim();
     const clean = bareName(name);
     const mark = categoryOf(reparto).nameMark;
     return mark && clean ? `${clean}${mark}` : clean;

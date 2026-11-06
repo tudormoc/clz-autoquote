@@ -148,8 +148,10 @@ export async function fetchOrderDetails(rootCommessaKey: string): Promise<OrderD
         loadFlowOperations(rootCommessaKey),
         loadMaterials(rootCommessaKey),
     ]);
-    // The comparison starts from the article of the first edition
-    const management = await fetchOrderManagement(rootCommessaKey, editions.recordset[0]?.part_number);
+    // The comparison starts from the first edition: its own order row, article and NetPro order (the editions of a
+    // commessa can sit in different Business orders, so "the newest order of the commessa" could be another edition's)
+    const first = editions.recordset[0];
+    const management = await fetchOrderManagement(rootCommessaKey, first?.part_number, first?.commessa_full);
 
     return { editions: editions.recordset, operations: operations.recordset, materials: materials.recordset, management };
 }

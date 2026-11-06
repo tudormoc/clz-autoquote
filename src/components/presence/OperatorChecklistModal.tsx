@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { generateOperatorChecklistPDFAction, getOperatorStatiAction } from '@/app/presence/operators-actions';
+import { generateOperatorChecklistPDFAction } from '@/app/presence/operators-actions';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Modal } from '@/components/ui/Modal';
@@ -18,22 +18,18 @@ const copy = APP_COPY.analytics.operators;
 
 const CATEGORY_OPTIONS = EMPLOYEE_CATEGORIES.map((c) => ({ key: c.key, label: c.label }));
 
-/** Window of the printable operator list: pick categories and stati fisici, then open the PDF in a new tab */
-export function OperatorChecklistModal({ onClose }: { onClose: () => void }) {
+/**
+ * Window of the printable operator list: pick categories and stati fisici (the ones in use, read by the page when it
+ * opens), then open the PDF in a new tab
+ */
+export function OperatorChecklistModal({ stati: allStati, onClose }: { stati: string[]; onClose: () => void }) {
     const [categories, setCategories] = useState<Set<string>>(() => new Set(EMPLOYEE_CATEGORIES.map((c) => c.key)));
-    const [allStati, setAllStati] = useState<string[]>([]);
-    const [stati, setStati] = useState<Set<string>>(new Set());
+    // null = default: every stato on
+    const [chosenStati, setChosenStati] = useState<Set<string> | null>(null);
+    const stati = chosenStati ?? new Set(allStati);
     const [showDate, setShowDate] = useState(true);
     const [showChecks, setShowChecks] = useState(true);
     const [busy, setBusy] = useState(false);
-
-    useEffect(() => {
-        getOperatorStatiAction().then((result) => {
-            if (!result.success) return notify.failure(result.error);
-            setAllStati(result.data);
-            setStati(new Set(result.data));
-        });
-    }, []);
 
     const openPdf = async () => {
         const tab = openPdfTab();
@@ -86,7 +82,7 @@ export function OperatorChecklistModal({ onClose }: { onClose: () => void }) {
                         label={copy.headers.statoFisico}
                         options={allStati.map((stato) => ({ key: stato, label: stato }))}
                         active={stati}
-                        onToggle={(key) => setStati(toggleInSet(stati, key))}
+                        onToggle={(key) => setChosenStati(toggleInSet(stati, key))}
                     />
                 ) : (
                     <Spinner />

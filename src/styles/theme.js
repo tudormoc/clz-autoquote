@@ -129,8 +129,9 @@ const LAYOUT = {
         matrix: '64rem',              // a month-by-month table (12 months + label + total) below this scrolls sideways
     },
     maxHeight: {
-        // A table that scrolls inside its own box both ways, column names in view (Gruppi): the screen less the title
-        panel: 'calc(100svh - 14rem)',
+        // A table that scrolls inside its own box, column names in view (the lights of Gruppi): the screen less the
+        // page title, the group's card and the search above the table
+        panel: 'calc(100svh - 21rem)',
     },
 };
 

@@ -49,9 +49,9 @@ export interface NavItem {
     description?: string;
     /** The page changes data: a group can be given "modifica" on it, not only "vede" (src/lib/auth/permissions.ts) */
     editable?: boolean;
-    /** Only the superadmin sees the page (users, groups, database); groups cannot be given it */
+    /** Only the superadmin sees the page (users, groups, database): groups cannot be given it, nor see its entries in the Registro */
     superadminOnly?: boolean;
-    /** Its functions given one by one in Gruppi (Sì / No), each needing "modifica" on the page as well */
+    /** Its functions given one by one in Gruppi (a named light each), each needing "modifica" on the page as well */
     functions?: NavFunction[];
 }
 
@@ -123,8 +123,10 @@ export const HOME_PATH = '/';
 /** Shown instead of a page the logged-in user may not open */
 export const NO_ACCESS_PATH = '/no-access';
 
-interface CategorisedPage<C extends string> extends Omit<NavItem, 'href'> {
+interface CategorisedPage<C extends string> extends Omit<NavItem, 'href' | 'functions'> {
     category: C;
+    /** The page's functions without their links: built here, from the page's own link */
+    functions?: readonly Omit<NavFunction, 'href'>[];
 }
 
 /** One group per category (in the given order, empty ones left out), each page linked under basePath */
@@ -139,7 +141,10 @@ function groupByCategory<C extends string>(
             label: labels[category],
             items: pages
                 .filter((page) => page.category === category)
-                .map(({ category: _category, ...page }) => ({ ...page, href: `${basePath}/${page.id}` })),
+                .map(({ category: _category, functions, ...page }) => {
+                    const href = `${basePath}/${page.id}`;
+                    return { ...page, href, ...(functions ? { functions: functions.map((fn) => pageFunction(href, fn.name, fn)) } : {}) };
+                }),
         }))
         .filter((group) => group.items.length > 0);
 }
@@ -159,6 +164,17 @@ export const WORK_PROGRESS_FUNCTIONS = {
 export const PRESENCE_FUNCTIONS = {
     manageOperators: functionHref(LINKS.presence.operators, 'anagrafica'),
 } as const;
+
+/**
+ * Function of the Registro page: seeing the entries of every page a group can be given. Without it, who opens the
+ * Registro sees the entries of the pages they can open (src/lib/log/areas.ts).
+ */
+export const LOG_FUNCTIONS = {
+    all: functionHref(LINKS.settings.log, 'tutto'),
+} as const;
+
+/** A page's functions as Gruppi lists them, named lights on its row (most pages have none) */
+export const pageFunctions = (page: NavItem): NavFunction[] => page.functions ?? [];
 
 /** The app's areas, in sidebar order */
 export const NAV_AREAS: NavArea[] = [

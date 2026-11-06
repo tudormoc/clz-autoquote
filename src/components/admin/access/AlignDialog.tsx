@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
@@ -29,7 +30,7 @@ export function AlignDialog({ title, subtitle, description, effects, note, align
         <Modal
             title={title}
             subtitle={subtitle}
-            icon={Sparkles}
+            icon={AlignIcon}
             iconTone="warning"
             size="lg"
             onClose={onClose}

@@ -57,12 +57,15 @@ export function useOrderManagement(
         syncing,
         refresh: () => reload(data.article_father, data.commessa_full),
         selectEdition: (commessaFull: string) => (commessaFull === data.commessa_full ? undefined : reload(undefined, commessaFull)),
-        /** Rewrites the Business and NetPro order from the DiBa, then reloads; true when it worked */
+        /** Rewrites the Business and NetPro order of the edition shown from its DiBa, then reloads; true when it worked */
         sync: async () => {
-            if (!rootCommessaKey) return false;
+            if (!data.commessa_full) {
+                notify.error(t.syncNoOrder);
+                return false;
+            }
             setSyncing(true);
             try {
-                const res = await syncOrderFromDibaAction({ rootCommessaKey, articleFather: data.article_father });
+                const res = await syncOrderFromDibaAction({ commessa: data.commessa_full, netproOrder: data.ordine_netpro || undefined });
                 if (!res.success) {
                     notify.error(res.error || t.errorSaving);
                     return false;

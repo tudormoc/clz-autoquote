@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { DataCards } from '@/components/ui/DataCards';
+import { DataCards, rowClickProps } from '@/components/ui/DataCards';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,10 @@ interface DataTableProps<R> {
     rows: R[];
     getRowKey?: (row: R, index: number) => React.Key;
     getRowClassName?: (row: R) => string | undefined;
+    /** A click on a row (or Enter on it); buttons inside a cell stop the click themselves */
+    onRowClick?: (row: R) => void;
+    /** More about a row, shown under it over the whole width (nothing = no extra line) */
+    rowDetail?: (row: R) => React.ReactNode;
     sort?: SortState | null;
     onSort?: (column: string) => void;
     loading?: boolean;
@@ -49,6 +53,10 @@ interface DataTableProps<R> {
     footer?: React.ReactNode;
     /** Keep every header and cell on one line (wide tables that scroll sideways) */
     nowrap?: boolean;
+    /** Lower rows, for a long list read at a glance */
+    dense?: boolean;
+    /** What sends a table that scrolls inside back to its top when it changes. Default: the rows; a list that replaces a row in place gives its sort and filters instead */
+    scrollResetKey?: unknown;
     /** Desktop: take the free height of a full-height page and scroll inside it, header always in view */
     fill?: boolean;
     /** Phones: one card per row (default), or the table scrolling sideways */
@@ -80,6 +88,8 @@ export function DataTable<R>({
     rows,
     getRowKey = (_row, index) => index,
     getRowClassName,
+    onRowClick,
+    rowDetail,
     sort,
     onSort,
     loading,
@@ -87,6 +97,8 @@ export function DataTable<R>({
     emptyMessage = APP_COPY.common.noData,
     footer,
     nowrap,
+    dense,
+    scrollResetKey,
     fill,
     mobile = 'cards',
     mobileTitle,
@@ -97,9 +109,10 @@ export function DataTable<R>({
     const cards = mobile === 'cards';
 
     // New rows (another page, another order) start from the top of a table that scrolls inside
+    const scrollReset = scrollResetKey === undefined ? rows : scrollResetKey;
     useEffect(() => {
         table.current?.parentElement?.scrollTo({ top: 0 });
-    }, [rows]);
+    }, [scrollReset]);
 
     const message = error
         ? <span className="text-danger">{`${APP_COPY.common.loadError}: ${error}`}</span>
@@ -118,6 +131,8 @@ export function DataTable<R>({
                         rows={rows}
                         getRowKey={getRowKey}
                         getRowClassName={getRowClassName}
+                        onRowClick={onRowClick}
+                        rowDetail={rowDetail}
                         sort={sort}
                         onSort={onSort}
                         message={message}
@@ -170,25 +185,38 @@ export function DataTable<R>({
                             </TableCell>
                         </TableRow>
                     ) : (
-                        rows.map((row, index) => (
-                            <TableRow key={getRowKey(row, index)} className={getRowClassName?.(row)}>
-                                {columns.map((column) => (
-                                    <TableCell
-                                        key={column.key}
-                                        className={cn(
-                                            'text-sm',
-                                            TEXT_ALIGN[alignOf(column)],
-                                            column.variant && VARIANT[column.variant],
-                                            column.compact && 'px-2',
-                                            column.className,
-                                            column.cellClassName
-                                        )}
-                                    >
-                                        {column.cell(row, index)}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        ))
+                        rows.map((row, index) => {
+                            const detail = rowDetail?.(row);
+                            return (
+                                <Fragment key={getRowKey(row, index)}>
+                                    <TableRow className={cn(onRowClick && 'cursor-pointer', getRowClassName?.(row))} {...rowClickProps(row, onRowClick)}>
+                                        {columns.map((column) => (
+                                            <TableCell
+                                                key={column.key}
+                                                className={cn(
+                                                    'text-sm',
+                                                    dense && 'py-1.5',
+                                                    TEXT_ALIGN[alignOf(column)],
+                                                    column.variant && VARIANT[column.variant],
+                                                    column.compact && 'px-2',
+                                                    column.className,
+                                                    column.cellClassName
+                                                )}
+                                            >
+                                                {column.cell(row, index)}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                    {detail && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={columns.length} className="bg-background/60 text-sm">
+                                                {detail}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </Fragment>
+                            );
+                        })
                     )}
                 </TableBody>
                 {footer && !error && rows.length > 0 && <TableFooter>{footer}</TableFooter>}

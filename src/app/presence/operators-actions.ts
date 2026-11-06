@@ -4,11 +4,12 @@
 
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, withTransactions, type MSSQL_DB, type SqlParams, type SqlRunner } from '@/lib/mssql';
+import type { Result } from '@/lib/appTables';
 import { APP_COPY, fmt } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { authorize } from '@/lib/auth/access';
 import { buildOperatorSearch } from './presence-db';
-import { EMPLOYEE_CATEGORIES, categoryOf, nameForCategory } from '@/lib/presence/categories';
+import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, categoryOf, isLeftCategory, nameForCategory } from '@/lib/presence/categories';
 import {
     NewOperatorSchema,
     OPERATOR_COLUMN_SIZES,
@@ -25,12 +26,18 @@ import { getTodayDate, toLocalDateTime } from '@/lib/dateUtils';
 import { operatorChecklistHtml } from '@/lib/pdf/operatorChecklistHtml';
 import { renderPdfBase64 } from '@/lib/pdf/renderPdf';
 import { LINKS, PRESENCE_FUNCTIONS } from '@/config/navigation';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 export interface OperatorRow extends Record<OperatorFreeField, string | null> {
     OPERATORE: string;
     NOME: string | null;
     BADGE: string | null;
     STATO_FISICO: string | null;
+    /** When the stato fisico last changed: the last clock event (ENT / EXT) of the person; null when there was none yet */
+    ORA_ST_FISICO: Date | null;
     /** Category code (PRESENCE_RULES.CATEGORIES → reparto) */
     ENTITA: string | null;
     MATRICOLA: string | null;
@@ -46,7 +53,7 @@ export interface OperatorGroupRow {
 export async function getOperatorsAction(search?: string) {
     await authorize('view', LINKS.presence.operators);
     try {
-        const params: SqlParams = {};
+        const params: SqlParams = { noMovement: APP_CONFIG.PRESENCE.NO_MOVEMENT_DATE };
         const operatorSearch = buildOperatorSearch(search, ['OPERATORE', 'NOME', 'BADGE'], 'term', params);
         const whereClause = operatorSearch ? `WHERE ${operatorSearch}` : '';
 
@@ -56,6 +63,7 @@ export async function getOperatorsAction(search?: string) {
                 NOME,
                 BADGE,
                 STATO_FISICO,
+                NULLIF(ORA_ST_FISICO, @noMovement) AS ORA_ST_FISICO,
                 ENTITA,
                 MATRICOLA,
                 FCODE01, FCODE02, FCODE03, FCODE04, FCODE05
@@ -91,13 +99,16 @@ async function readStati(): Promise<string[]> {
     return result.recordset.map((r) => r.STATO_FISICO);
 }
 
-/** Stati fisici for the checklist window (it opens before the list is loaded) */
-export async function getOperatorStatiAction() {
+/**
+ * The stati fisici in use, read when the Operatori page opens: its Stato Fisico chips and the checklist window are
+ * there before the list is loaded (the list itself loads only on Applica)
+ */
+export async function getOperatorStatiAction(): Promise<Result<{ data: string[] }>> {
     await authorize('view', LINKS.presence.operators);
     try {
         return { success: true, data: await readStati() };
     } catch (err) {
-        return { success: false, error: errorMessage(err), data: [] as string[] };
+        return { success: false, error: errorMessage(err) };
     }
 }
 
@@ -168,7 +179,7 @@ async function badgeProblem(run: SqlRunner, badge: string, exceptOperator?: stri
  * badge; the checks and the insert are one transaction. Needs modifica on Operatori and the function "Crea ed elimina operatori".
  */
 export async function createOperatorAction(input: NewOperatorInput) {
-    await authorize('edit', LINKS.presence.operators);
+    const access = await authorize('edit', LINKS.presence.operators);
     await authorize('edit', PRESENCE_FUNCTIONS.manageOperators);
     const parsed = NewOperatorSchema.safeParse(input);
     if (!parsed.success) return { success: false as const, error: operatorInputProblem(NewOperatorSchema, input) ?? APP_COPY.common.invalidData };
@@ -199,7 +210,16 @@ export async function createOperatorAction(input: NewOperatorInput) {
             );
             return null;
         });
-        return problem ? { success: false as const, error: problem } : { success: true as const, name };
+        if (problem) return { success: false as const, error: problem };
+        await logEvent(personOf(access), {
+            page: LINKS.presence.operators,
+            action: 'created',
+            entityKind: 'operator',
+            entityId: code,
+            summary: fmt(log.operatorCreated, { code, name }),
+            details: { after: { code, name, badge, category } },
+        });
+        return { success: true as const, name };
     } catch (err) {
         return { success: false as const, error: errorMessage(err) };
     }
@@ -208,27 +228,41 @@ export async function createOperatorAction(input: NewOperatorInput) {
 /**
  * Changes the given fields of an operator (one cell of the list, or the whole window): only the columns of
  * OperatorFieldsSchema, trimmed, empty → NULL. When the name and the category come together the name takes the
- * category's mark. A badge must not be another operator's; the check and the update are one transaction.
+ * category's mark. Who moves to the category of the people who left (OFF HR) also gets its stato fisico (OFF).
+ * A badge must not be another operator's; the check and the update are one transaction.
  */
 export async function saveOperatorAction(operatore: string, fields: OperatorFields) {
-    await authorize('edit', LINKS.presence.operators);
+    const access = await authorize('edit', LINKS.presence.operators);
     const parsed = OperatorFieldsSchema.safeParse(fields);
     if (!parsed.success) return { success: false as const, error: operatorInputProblem(OperatorFieldsSchema, fields) ?? APP_COPY.common.invalidData };
     const changes: Partial<Record<OperatorField, string | null>> = { ...parsed.data };
     if (changes.NOME !== undefined && changes.ENTITA !== undefined) changes.NOME = nameForCategory(changes.NOME ?? '', changes.ENTITA);
+    if (isLeftCategory(changes.ENTITA)) changes.STATO_FISICO = LEFT_CATEGORY.stato;
     if ((changes.NOME?.length ?? 0) > OPERATOR_COLUMN_SIZES.NOME) return { success: false as const, error: fmt(formCopy.invalid, { field: formCopy.name }) };
     const columns = OPERATOR_FIELDS.filter((column) => changes[column] !== undefined);
     if (columns.length === 0) return { success: true as const };
+    // What the changed columns held, for the log
+    let previous: Record<string, unknown> | null = null;
     try {
         const problem = await withTransactions(['NETPRO'], async (run) => {
             const taken = changes.BADGE ? await badgeProblem(run, changes.BADGE, operatore) : null;
             if (taken) return taken;
+            previous = (await run<Record<string, unknown>>(`SELECT ${columns.join(', ')} FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @operatore`, { operatore }, 'NETPRO')).recordset[0] ?? null;
             const params: SqlParams = { operatore };
             for (const column of columns) params[column] = changes[column] ?? null;
             await run(`UPDATE OPERATORI SET ${columns.map((column) => `${column} = @${column}`).join(', ')} WHERE OPERATORE = @operatore`, params, 'NETPRO');
             return null;
         });
-        return problem ? { success: false as const, error: problem } : { success: true as const };
+        if (problem) return { success: false as const, error: problem };
+        await logEvent(personOf(access), {
+            page: LINKS.presence.operators,
+            action: 'changed',
+            entityKind: 'operator',
+            entityId: operatore,
+            summary: fmt(log.operatorChanged, { code: operatore, columns: columns.join(', ') }),
+            details: { before: previous, after: Object.fromEntries(columns.map((column) => [column, changes[column] ?? null])) },
+        });
+        return { success: true as const };
     } catch (err) {
         return { success: false as const, error: errorMessage(err) };
     }
@@ -248,14 +282,15 @@ const HISTORY_TABLES: { table: string; where: string; db: MSSQL_DB }[] = [
 /**
  * Deletes an operator from NetPro, only one without history: no event, clock record, activity, NetPro user or saved
  * hours may name the code, since nothing in the database would keep those rows from losing their person. Someone
- * with history is kept and the message says to change the category in NetPro instead. The checks and the delete are
+ * with history is kept and the message says to move the person to OFF HR instead. The checks and the delete are
  * one transaction. Needs modifica on Operatori and the function "Crea ed elimina operatori".
  */
 export async function deleteOperatorAction(operatore: string) {
-    await authorize('edit', LINKS.presence.operators);
+    const access = await authorize('edit', LINKS.presence.operators);
     await authorize('edit', PRESENCE_FUNCTIONS.manageOperators);
     const code = operatore.trim();
     if (!code) return { success: false as const, error: APP_COPY.common.invalidData };
+    let deletedName = '';
     try {
         const problem = await withTransactions(['NETPRO'], async (run) => {
             const found = await run<{ NOME: string | null }>(`SELECT NOME FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @code`, { code }, 'NETPRO');
@@ -266,11 +301,21 @@ export async function deleteOperatorAction(operatore: string) {
                 const result = db === 'NETPRO' ? await run<{ n: number }>(query, { code }, db) : await queryMSSQL<{ n: number }>(query, { code }, db);
                 count += result.recordset[0].n;
             }
-            if (count > 0) return fmt(formCopy.hasHistory, { code, name: found.recordset[0].NOME ?? '', count });
+            if (count > 0) return fmt(formCopy.hasHistory, { code, name: found.recordset[0].NOME ?? '', count, category: LEFT_CATEGORY.label });
+            deletedName = found.recordset[0].NOME ?? '';
             await run(`DELETE FROM OPERATORI WHERE OPERATORE = @code`, { code }, 'NETPRO');
             return null;
         });
-        return problem ? { success: false as const, error: problem } : { success: true as const };
+        if (problem) return { success: false as const, error: problem };
+        await logEvent(personOf(access), {
+            page: LINKS.presence.operators,
+            action: 'deleted',
+            entityKind: 'operator',
+            entityId: code,
+            summary: fmt(log.operatorDeleted, { code, name: deletedName }),
+            details: { before: { code, name: deletedName } },
+        });
+        return { success: true as const };
     } catch (err) {
         return { success: false as const, error: errorMessage(err) };
     }
@@ -327,13 +372,21 @@ export async function searchOperatorsAction(term: string) {
  * Pass gruppo = 'TURNO2' to assign, or gruppo = '' to reset to standard
  */
 export async function setOperatorGruppoAction(operatore: string, gruppo: string) {
-    await authorize('edit', LINKS.settings['presence']);
+    const access = await authorize('edit', LINKS.settings['presence']);
     try {
         await queryMSSQL(
             `UPDATE OPERATORI SET GRUPPO = @gruppo WHERE OPERATORE = @operatore`,
             { operatore, gruppo: gruppo || '' },
             'NETPRO'
         );
+        await logEvent(personOf(access), {
+            page: LINKS.settings['presence'],
+            action: 'changed',
+            entityKind: 'operator',
+            entityId: operatore,
+            summary: fmt(log.operatorGroup, { code: operatore, group: gruppo || '-' }),
+            details: { after: { GRUPPO: gruppo || '' } },
+        });
         return { success: true };
     } catch (err) {
         return { success: false, error: errorMessage(err) };

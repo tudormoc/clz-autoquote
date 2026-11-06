@@ -1,4 +1,6 @@
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { ChangeLines } from '@/components/analytics/order-operations/ChangeLines';
+import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
@@ -23,7 +25,7 @@ export function SyncDialog({ commessa, article, changes, syncing, onConfirm, onC
         <Modal
             title={t.syncConfirmTitle}
             subtitle={fmt(t.syncConfirmSubtitle, { commessa: commessa || '-', article: article || '-' })}
-            icon={Sparkles}
+            icon={AlignIcon}
             iconTone="warning"
             size="xl"
             onClose={onClose}
@@ -42,16 +44,7 @@ export function SyncDialog({ commessa, article, changes, syncing, onConfirm, onC
                 <p className="font-medium text-fg-soft">{t.syncConfirmDescription}</p>
                 {changes.length === 0 && <p className="text-fg-muted">{t.syncPreview.none}</p>}
                 {changes.map((group) => (
-                    <div key={group.key}>
-                        <p className="font-semibold text-fg">
-                            {t.syncPreview.groups[group.key]} <span className="font-normal text-fg-muted">({group.changes.length})</span>
-                        </p>
-                        <ul className="mt-1 space-y-0.5 list-disc list-inside text-fg-muted">
-                            {group.changes.map((line, index) => (
-                                <li key={index} className="break-words">{line}</li>
-                            ))}
-                        </ul>
-                    </div>
+                    <ChangeLines key={group.key} title={t.syncPreview.groups[group.key]} count={group.changes.length} lines={group.changes} />
                 ))}
                 <p className="text-fg-subtle">{t.syncPreview.refreshed}</p>
             </div>

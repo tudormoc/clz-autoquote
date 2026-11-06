@@ -5,7 +5,7 @@
  */
 
 /** What one line of a day can be. A new kind: here, in KIND_SPECS (kinds.ts) and in it.ts → timesheet.kinds. */
-export const ENTRY_KINDS = ['work', 'ferie', 'permesso', 'malattia', 'straordinarie', 'banca_ore'] as const;
+export const ENTRY_KINDS = ['work', 'permesso', 'ferie', 'malattia', 'straordinarie', 'banca_ore'] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 /** One line of a person's day as stored (timesheet_entries) */
@@ -67,6 +67,27 @@ export interface DaySummary {
     status: DayStatus;
     /** The company closed day it is (its name in Giorni di chiusura), null when the office is open */
     closedReason: string | null;
+}
+
+/** A closed span of work of a day ("08:00" to "12:00") */
+export interface WorkSpan {
+    from: string;
+    to: string;
+}
+
+/** The work spans one click writes into an empty day (src/lib/timesheet/normalDay.ts), and the hours they add up to */
+export interface NormalDay {
+    spans: WorkSpan[];
+    hours: number;
+}
+
+/** What Regole Presenze fixes for the timesheet: its first day and the picks of Dalle / Alle */
+export interface TimesheetBounds {
+    /** YYYY-MM-DD: days before it are shown but locked */
+    startDay: string;
+    /** "HH:MM": the first and last pick of Dalle / Alle (the company's open hours) */
+    firstTime: string;
+    lastTime: string;
 }
 
 /** Someone who enters their hours here: a NetPro operator of a timesheet category */

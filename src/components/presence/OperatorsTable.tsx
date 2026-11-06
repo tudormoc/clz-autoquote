@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, Pencil, Plus } from 'lucide-react';
-import { getOperatorsAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
+import { getOperatorStatiAction, getOperatorsAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
 import { OperatorChecklistModal } from '@/components/presence/OperatorChecklistModal';
 import { OperatorFormModal } from '@/components/presence/OperatorFormModal';
 import { Button } from '@/components/ui/Button';
@@ -15,10 +15,11 @@ import { SearchField } from '@/components/ui/SearchField';
 import { Select } from '@/components/ui/Select';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
+import { useActionData } from '@/hooks/useActionData';
 import { useClientSort } from '@/hooks/useClientSort';
 import { useListQuery } from '@/hooks/useListQuery';
-import { EMPTY_VALUE } from '@/lib/format';
-import { EMPLOYEE_CATEGORIES, normalizeReparto } from '@/lib/presence/categories';
+import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
+import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, isLeftCategory, normalizeReparto } from '@/lib/presence/categories';
 import type { OperatorFields } from '@/lib/presence/operatorInput';
 import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
@@ -37,14 +38,21 @@ const SORT_COLUMNS: RowSortColumns<OperatorRow> = {
     BADGE: (row) => row.BADGE,
     NOME: (row) => row.NOME,
     STATO_FISICO: (row) => row.STATO_FISICO,
+    ORA_ST_FISICO: (row) => row.ORA_ST_FISICO?.getTime() ?? null,
 };
 
 /** Chip key of a row: its stato fisico, '' when it has none */
 const statoKey = (row: OperatorRow) => row.STATO_FISICO || '';
 
-/** Category chips, all on by default (operators of no known category are never shown) */
-const CATEGORY_OPTIONS = EMPLOYEE_CATEGORIES.map((c) => ({ key: c.key, label: c.label }));
-const DEFAULT_CATEGORIES: ReadonlySet<string> = new Set(CATEGORY_OPTIONS.map((c) => c.key));
+/**
+ * Category chips: the tracked categories, on by default, then the people who left (OFF HR), off by default.
+ * Operators of no known category are never shown.
+ */
+const CATEGORY_OPTIONS = [...EMPLOYEE_CATEGORIES.map((c) => ({ key: c.key, label: c.label })), { key: LEFT_CATEGORY.reparto, label: LEFT_CATEGORY.label }];
+const DEFAULT_CATEGORIES: ReadonlySet<string> = new Set(EMPLOYEE_CATEGORIES.map((c) => c.key));
+
+/** Chip key of a row's category: a tracked one, the one of the people who left, or 'altro' */
+const categoryKey = (row: OperatorRow) => (isLeftCategory(row.ENTITA) ? LEFT_CATEGORY.reparto : normalizeReparto(row.ENTITA));
 
 /** Editor of a text cell, for EditableCell's renderEditor */
 function textEditor(className?: string) {
@@ -64,14 +72,17 @@ export function OperatorsTable() {
     /** The window: closed, a new operator, or the one being edited */
     const [form, setForm] = useState<{ operator: OperatorRow | null } | null>(null);
 
-    const allStati = list.result?.allStati ?? [];
+    // The stati in use are read when the page opens, so their chips are there before the list is loaded
+    const knownStati = useActionData(getOperatorStatiAction);
+    const loadedStati = list.result?.allStati;
+    const allStati = loadedStati?.length ? loadedStati : (knownStati.data?.data ?? []);
     // null = default: every stato on. Operators without a stato get their own chip, off by default.
     const [chosenStati, setChosenStati] = useState<Set<string> | null>(null);
     const [showChecklist, setShowChecklist] = useState(false);
     const activeStati = chosenStati ?? new Set(allStati);
     const hasNoStato = list.rows.some((row) => statoKey(row) === '');
     const [activeCategories, setActiveCategories] = useState<ReadonlySet<string>>(DEFAULT_CATEGORIES);
-    const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)) && activeCategories.has(normalizeReparto(row.ENTITA)));
+    const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)) && activeCategories.has(categoryKey(row)));
 
     const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
         const fields: OperatorFields = {};
@@ -119,6 +130,13 @@ export function OperatorsTable() {
                         autoFocus
                     />
                 )),
+        },
+        {
+            key: 'ORA_ST_FISICO',
+            header: copy.headers.ultimoMovimento,
+            className: 'w-44',
+            cellClassName: 'font-mono whitespace-nowrap text-fg-secondary',
+            cell: (row) => formatDbDateTime(row.ORA_ST_FISICO),
         },
         ...(canEdit
             ? [
@@ -221,7 +239,7 @@ export function OperatorsTable() {
                 emptyMessage={list.applied ? copy.noResults : APP_COPY.analytics.applyFiltersHint}
             />
 
-            {showChecklist && <OperatorChecklistModal onClose={() => setShowChecklist(false)} />}
+            {showChecklist && <OperatorChecklistModal stati={allStati} onClose={() => setShowChecklist(false)} />}
             {form && <OperatorFormModal operator={form.operator} onSaved={list.reload} onClose={() => setForm(null)} />}
         </div>
     );

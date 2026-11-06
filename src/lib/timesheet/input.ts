@@ -31,6 +31,7 @@ export const EntryInputSchema = z
         const spec = KIND_SPECS[input.kind];
         if (spec.input === 'times') {
             if (!input.timeFrom) ctx.addIssue({ code: 'custom', message: messages.timeFromRequired, path: ['timeFrom'] });
+            if (!input.timeTo) ctx.addIssue({ code: 'custom', message: messages.timeToRequired, path: ['timeTo'] });
             if (input.timeFrom && input.timeTo && input.timeTo <= input.timeFrom) ctx.addIssue({ code: 'custom', message: messages.timeOrder, path: ['timeTo'] });
             if (input.hours !== null) ctx.addIssue({ code: 'custom', path: ['hours'] });
         } else {

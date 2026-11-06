@@ -9,7 +9,7 @@
  * 3. One entry here (label and description in it.ts → admin.pages)
  */
 
-import { CalendarOff, Clock, Database, Euro, FolderTree, KeyRound, Layers, Maximize2, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
+import { CalendarOff, Clock, Database, Euro, FolderTree, KeyRound, Layers, Maximize2, ScrollText, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 
 /** Groups of the Settings area, in display order: the area each setting belongs to */
@@ -26,9 +26,12 @@ export interface SettingsPageConfig {
     editable?: boolean;
     /** Only the superadmin sees it */
     superadminOnly?: boolean;
+    /** Functions given one by one in Gruppi (their links are built in navigation.ts) */
+    functions?: readonly { name: string; label: string; description?: string }[];
 }
 
 const pages = APP_COPY.admin.pages;
+const functions = APP_COPY.nav.functions;
 
 /** All settings pages; the order is the display order within each group */
 export const SETTINGS_PAGES = [
@@ -43,6 +46,7 @@ export const SETTINGS_PAGES = [
     { id: 'users', ...pages.users, icon: KeyRound, category: 'access', superadminOnly: true },
     { id: 'groups', ...pages.groups, icon: UsersRound, category: 'access', superadminOnly: true },
     { id: 'database', ...pages.database, icon: Database, category: 'tools', superadminOnly: true },
+    { id: 'log', ...pages.log, icon: ScrollText, category: 'tools', functions: [{ name: 'tutto', ...functions.logAll }] },
 ] as const satisfies readonly SettingsPageConfig[];
 
 /** The id of a settings page: its folder under /settings, the key of SETTINGS_COMPONENTS and of LINKS.settings */

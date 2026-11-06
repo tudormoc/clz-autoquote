@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { firstInputProblem } from '@/lib/inputProblem';
 import { APP_COPY, fmt } from '@/locales';
-import { TRACKED_REPARTI } from './categories';
+import { TRACKED_REPARTI, isLeftCategory } from './categories';
 
 /** varchar lengths of the OPERATORI columns the app writes */
 export const OPERATOR_COLUMN_SIZES = { OPERATORE: 20, NOME: 30, BADGE: 20, MATRICOLA: 20, FCODE: 20, STATO_FISICO: 4 } as const;
@@ -20,6 +20,8 @@ const text = (max: number) => z.string().trim().max(max);
 /** Empty → null, the way NetPro leaves a field nobody filled */
 const optional = (max: number) => text(max).transform((value) => value || null);
 const CategorySchema = z.string().refine((value) => TRACKED_REPARTI.includes(value), { message: copy.categoryRequired });
+/** A changed category may also be the one of the people who left (OFF HR); a new operator's never is */
+const ChangedCategorySchema = z.string().refine((value) => TRACKED_REPARTI.includes(value) || isLeftCategory(value), { message: copy.categoryRequired });
 
 /** A new operator: code, name, badge and category; the matricola is the code */
 export const NewOperatorSchema = z.object({
@@ -36,7 +38,7 @@ export const OperatorFieldsSchema = z
         NOME: text(OPERATOR_COLUMN_SIZES.NOME).min(1, copy.nameRequired),
         BADGE: optional(OPERATOR_COLUMN_SIZES.BADGE),
         STATO_FISICO: optional(OPERATOR_COLUMN_SIZES.STATO_FISICO),
-        ENTITA: CategorySchema,
+        ENTITA: ChangedCategorySchema,
         MATRICOLA: optional(OPERATOR_COLUMN_SIZES.MATRICOLA),
         FCODE01: optional(OPERATOR_COLUMN_SIZES.FCODE),
         FCODE02: optional(OPERATOR_COLUMN_SIZES.FCODE),

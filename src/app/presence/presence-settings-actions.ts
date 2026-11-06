@@ -2,15 +2,20 @@
 
 /** Presence settings (VALORI_TABELLE, PRESENZE) and their text presets. */
 
+import { APP_COPY, fmt } from '@/locales';
 import { errorMessage } from '@/lib/utils';
 import { queryMSSQL } from '@/lib/mssql';
-import { saveSettingValue } from '@/lib/settingsStore';
+import { readSettingValues, saveSettingValue } from '@/lib/settingsStore';
 import type { PresenceSettingRow } from '@/types';
 import {
     PRESENCE_SETTINGS,
 } from '@/lib/presence';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
+import { logEvent, personOf } from '@/lib/log/log';
+
+/** The lines this file writes in the log (Registro) */
+const log = APP_COPY.log.entries;
 
 /**
  * Rename a preset in NETPRO.VALORI_TABELLE and cascade the update to any existing rows in CLZDWHQANDPROG
@@ -21,7 +26,7 @@ export async function renamePresencePresetAction(
     newTag: string,
     updatedPresetsValue: string
 ) {
-    await authorize('edit', LINKS.settings['presence']);
+    const access = await authorize('edit', LINKS.settings['presence']);
     try {
         const defaultDesc = PRESENCE_SETTINGS.find((s) => s.key === parametro)?.description;
 
@@ -38,6 +43,14 @@ export async function renamePresencePresetAction(
 
         await queryMSSQL(cascadeQuery, { oldTag, newTag }, 'QUOTES');
 
+        await logEvent(personOf(access), {
+            page: LINKS.settings['presence'],
+            action: 'renamed',
+            entityKind: 'presence-preset',
+            entityId: parametro,
+            summary: fmt(log.presetRenamed, { from: oldTag, name: newTag }),
+            details: { before: { tag: oldTag }, after: { tag: newTag } },
+        });
         return { success: true };
     } catch (err) {
         return { success: false, error: errorMessage(err) };
@@ -90,9 +103,18 @@ export async function updatePresenceSettingAction(
     valore: string,
     descrizione?: string
 ) {
-    await authorize('edit', LINKS.settings['presence']);
+    const access = await authorize('edit', LINKS.settings['presence']);
     try {
+        const before = (await readSettingValues('PRESENZE')).get(parametro) ?? null;
         await saveSettingValue('PRESENZE', parametro, valore, descrizione);
+        await logEvent(personOf(access), {
+            page: LINKS.settings['presence'],
+            action: 'changed',
+            entityKind: 'presence-setting',
+            entityId: parametro,
+            summary: fmt(log.presenceSetting, { name: parametro, from: before ?? '-', value: valore }),
+            details: { before: { [parametro]: before }, after: { [parametro]: valore } },
+        });
         return {
             success: true,
         };

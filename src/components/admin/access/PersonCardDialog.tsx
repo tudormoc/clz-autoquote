@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CaseUpper, Check, Sparkles, UserRound } from 'lucide-react';
+import { AlertTriangle, CaseUpper, Check, UserRound } from 'lucide-react';
+import { AlignIcon } from '@/components/ui/AlignIcon';
 import type { UserView } from '@/app/access-actions';
 import { alignEmailAction, alignNameAction, getPersonCardAction, getPersonChoicesAction, setPersonLinksAction, type PersonCard, type PersonChoices } from '@/app/person-actions';
 import { AlignEmailDialog } from '@/components/admin/access/AlignEmailDialog';
@@ -146,7 +147,7 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
                             )}
                             {canAlign(email) && (
                                 <Button variant="warning" size="sm" onClick={() => setConfirming('email')} disabled={busy}>
-                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <AlignIcon className="w-3.5 h-3.5" />
                                     {copy.alignEmail.align}
                                 </Button>
                             )}

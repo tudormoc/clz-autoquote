@@ -56,8 +56,10 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 
 - Everyone logs in with a **name and PIN** (`/login`); the login ends when the browser closes, at the latest after
   `APP_CONFIG.AUTH.SESSION_HOURS`. After 5 wrong PINs a name waits 5 minutes.
-- **Superadmin** (the owner): name + PIN from `.env.local`, not in the database; sees everything and manages
-  Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database.
+- **Superadmin** (the owner): name + PIN from `.env.local`, not in the database; sees everything and alone manages
+  Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database: giving pages and reading PINs cannot be handed
+  to a group (owner, 2026-11-05). The Registro is a page given in Gruppi like any other: who opens it finds the history
+  of the pages they can open.
 - **Users** (`app_users`): name, PIN (stored encrypted, readable by the superadmin), groups, last login, *sospeso*
   (cannot log in, an open login ends at once; PIN and groups stay). A PIN given out from Utenti (new user, "Nuovo PIN a
   caso", a typed one) shows there as *provvisorio* (`must_change_pin`) until the person changes it with "Cambia PIN"
@@ -75,9 +77,11 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
   Nothing else of NetPro or Business is written from here. Where each place is:
   [docs/DATABASE.md](docs/DATABASE.md) → People. **Groups** (`app_groups`): name and, per menu page, *vede* or *modifica*, stored under the page's id (not
   its link, so a page can move to another area and keep its grants). Utenti is one table of all
-  users (a tick column per group); Gruppi is one table of all groups (a column each, a row per area that opens to its
-  pages and functions; each cell is No | Vede | Modifica, with Modifica only where the page changes data; a search box
-  finds a page).
+  users (a tick column per group); Gruppi works on one group at a time, picked from its cards: a row per area that opens to its
+  pages, and on every row the same control, a light that is on or off (Vede, Modifica where the page changes data;
+  a page's function is a named light). An area row and "Tutte le pagine" switch a light for all their
+  pages, Niente / Solo lettura / Tutto set a whole group, "Annulla" takes the last click back, a search box finds a
+  page. How a click becomes grants: `src/lib/auth/lights.ts`.
 - A person sees only their pages: menu, home and overview pages are filtered (`src/lib/auth/permissions.ts`), edit
   buttons and click-to-edit cells hide without *modifica* (`useCanEdit()`). The protection itself is on the server:
   `src/proxy.ts` (logged in?), `requirePage` in each page, `authorize` / `requireSuperadmin` in each server action
@@ -89,11 +93,16 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
   pages of all their groups (tick columns in Utenti). To take the app away from someone: the *attivo* switch in Utenti
   (sospeso) — or delete them. A new page or report added to `NAV_AREAS` is in Gruppi at once, nothing else to do; until
   a group is given it, nobody but the superadmin can open it.
-- **Functions of a page** (today: Riallinea on Avanzamento Lavori, "Crea ed elimina operatori" on Operatori) are given apart, Sì or No, as an indented row under
-  the page in Gruppi; the area and "Tutte le pagine" rows never switch them on. A function counts only together with
-  *modifica* on its page. To add one: `functions: [{ href: functionHref('/page', 'name'), ...APP_COPY.nav.functions.name }]`
+- **Functions of a page** (today: Riallinea on Avanzamento Lavori, "Crea ed elimina operatori" on Operatori, "Tutto il registro" on
+  the Registro) are given apart in Gruppi, each a named light on the page's row, switched one by one, never by an area
+  row or a preset. A function counts only together with the highest level of its page (*modifica*, or *vede* on a page
+  that changes no data, like the Registro): switching it on in Gruppi gives the page that level too, and taking the
+  level away switches it off. To add one: `functions: [{ href: functionHref('/page', 'name'), ...APP_COPY.nav.functions.name }]`
   on the page in `NAV_AREAS`, `await authorize('edit', <that href>)` in its server action after the page check, and
   `useCanUse(<that href>)` to hide its button.
+- **Whose history the Registro shows** (`src/lib/log/areas.ts`; owner, 2026-11-06: one option, no light per page): who
+  can open the Registro page sees there what was done on the pages they can open, nothing else. "Tutto il registro"
+  shows every page a group can be given. Logins and the entries of Utenti, Gruppi and Database are the superadmin's alone.
 
 ## Where things are
 
@@ -117,11 +126,12 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
 | Ore Studio Paghe (a month's hours per person for the pay studio: production from the monthly Excel files, the office from the timesheet) | `src/lib/payroll.ts` (pure, the file's columns), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
 | Timesheet (Le mie ore, Ore Ufficio: the office people's own hours, entrate / uscite and absences, exported for the studio) | `src/lib/timesheet/` (pure) + `src/lib/timesheet/db/` (its SQL), actions `src/app/presence/timesheet-actions.ts`, screens `src/components/timesheet/`, tables `sql/timesheet/` — [docs/TIMESHEET.md](docs/TIMESHEET.md) |
-| Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
+| Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `lights` = how the Gruppi page turns clicks into grants, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
+| Registro (the app-wide log: who did what and when, with the values before and after) | `src/lib/log/` (`log` writes: `logEvent`, never throws; `entries` reads the three logs as one list; `areas` = whose entries a person sees; `describe` turns a record into lines), actions `src/app/log-actions.ts`, screen `src/components/log/`, table `sql/log/` — a server action that writes calls `logEvent(personOf(access), { page: LINKS.…, action, summary, details })` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
-| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro) | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
+| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro), list of the open orders to realign | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs; `differences` = what differs by kind, `syncBlocks` = when a realign is refused for what it would remove, `misaligned` = "Ordini da riallineare"); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
-| Work progress page (order flow, DiBa comparison) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `src/lib/orders/` |
+| Work progress page (order flow, DiBa comparison, orders to realign) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `useMisalignedOrders.ts`, `src/lib/orders/` |
 | Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
 | Agenda (tasks, deadlines, procedures, contacts) | `src/lib/tasks/` (rules, pure) + `src/lib/tasks/db/` (all its SQL), actions `src/app/tasks/*-actions.ts`, screens `src/components/tasks/`, tables `sql/tasks/` — [docs/TASKS.md](docs/TASKS.md) |
 
@@ -152,7 +162,8 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`, `Switch`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
-`fill` inside a `FillPage` = takes the free height, header and totals stay in view), `CardField` (a line of a phone card),
+`fill` inside a `FillPage` = takes the free height, header and totals stay in view; `onRowClick` = a row that opens something,
+`rowDetail` = more about a row unfolded under it, `dense` = lower rows, `scrollResetKey` for a list that replaces a row in place), `CardField` (a line of a phone card),
 `EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar`, `Section` + `RowList`/`Row` (blocks of a settings page),
 `Spinner`, `LoadState` (spinner or load error while a screen's data is not there yet), `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
@@ -166,6 +177,9 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 4. **Small parts**: a component past ~400 lines is split (logic into hooks or `src/lib`, UI into components). One component per file.
 5. **Strict TypeScript**, Zod at data boundaries. Remove unused code, imports and files as you go.
 6. **Before calling it done**: `npm run check` passes and the change is checked in the browser.
+7. **Every write is logged**: a server action that changes data ends with `await logEvent(personOf(access), { page: LINKS.…,
+   action, entityKind, entityId, summary, details: { before, after } })` (`src/lib/log/log.ts`; the line's text in `it.ts` →
+   `log.entries`). The Agenda and the timesheet keep their own logs; the Registro page shows all three. A PIN is never logged.
 
 ## Recipes
 

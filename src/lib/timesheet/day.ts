@@ -18,6 +18,8 @@ export interface DayContext {
     closedReason: string | null;
     /** YYYY-MM-DD: a day before it that is not covered is an alert, today or later only "pending" */
     today: string;
+    /** YYYY-MM-DD, the first day of the timesheet (Regole Presenze): a day before it is shown but expects nothing */
+    startDay: string;
 }
 
 export function emptyHours(): DayHours {
@@ -32,6 +34,23 @@ export function addHours(a: DayHours, b: DayHours): DayHours {
 /** The types of a kind's lines, each once, joined by a comma ("FESTA") */
 function causaleOf(entries: Entry[], kind: EntryKind): string {
     return [...new Set(entries.filter((entry) => entry.kind === kind && entry.causale).map((entry) => entry.causale))].join(', ');
+}
+
+/** The hours one line adds towards the day's coverage (an open work line adds nothing yet) */
+export function entryCoverage(entry: Entry): number {
+    const spec = KIND_SPECS[entry.kind];
+    if (!spec.covers) return 0;
+    if (spec.input === 'times') return entry.timeFrom && entry.timeTo ? spanHours(entry.timeFrom, entry.timeTo) : 0;
+    return entry.hours ?? 0;
+}
+
+/**
+ * The hours still needed to reach the person's workday, whatever the day is — a Saturday or a day ahead counts the
+ * same (owner, 2026-11-06). The line being changed is counted out through `excluding`.
+ */
+export function remainingToWorkday(entries: readonly Entry[], workdayHours: number, excluding: Entry | null = null): number {
+    const covered = entries.reduce((sum, entry) => sum + (entry.id === excluding?.id ? 0 : entryCoverage(entry)), 0);
+    return normalizeHours(Math.max(0, workdayHours - covered));
 }
 
 export function summarizeDay(day: string, entries: Entry[], ctx: DayContext): DaySummary {
@@ -51,7 +70,8 @@ export function summarizeDay(day: string, entries: Entry[], ctx: DayContext): Da
         }
     }
 
-    const workingWeekday = ctx.workingDays.includes(isoWeekday(day));
+    // Before the start of the timesheet a day is shown but expects nothing and takes nothing (owner, 2026-11-05)
+    const workingWeekday = day >= ctx.startDay && ctx.workingDays.includes(isoWeekday(day));
     // The office is closed and nobody wrote anything: the day is ferie, named after the closed day
     const closedByItself = ctx.closedReason !== null && workingWeekday && entries.length === 0;
     let causaleFerie = causaleOf(entries, 'ferie');
@@ -84,6 +104,3 @@ export function summarizeDay(day: string, entries: Entry[], ctx: DayContext): Da
         closedReason: ctx.closedReason,
     };
 }
-
-/** The work line still without an exit, if any (the one Esci closes) */
-export const openEntry = (summary: DaySummary): Entry | undefined => summary.entries.find((entry) => entry.kind === 'work' && !entry.timeTo);

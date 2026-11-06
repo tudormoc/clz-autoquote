@@ -1,17 +1,20 @@
 'use server'
 
 /**
- * Users and groups (Impostazioni → Utenti / Gruppi): superadmin only. New users get a random PIN of the kind chosen
- * on the page, which the superadmin reads here and hands over; a PIN given out here shows as "provvisorio" until the
- * person changes it from the sidebar (must_change_pin), which they may or may not do.
+ * Users and groups (Impostazioni → Utenti / Gruppi): superadmin only, since giving pages and reading PINs cannot be
+ * handed to a group. New users get a random PIN of the kind chosen on the page, which the superadmin reads here and
+ * hands over; a PIN given out here shows as "provvisorio" until the person changes it from the sidebar
+ * (must_change_pin), which they may or may not do. Every change is written in the log (Registro); a PIN never is.
  */
 
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
+import { LINKS } from '@/config/navigation';
 import { requireSuperadmin } from '@/lib/auth/access';
 import {
     deleteAccount,
     deleteGroup,
+    findAccountById,
     insertAccount,
     insertGroup,
     listAccounts,
@@ -28,6 +31,7 @@ import { cleanPermissions } from '@/lib/auth/permissions';
 import { DEFAULT_PIN_KIND, isPinKind, type PinKindId } from '@/lib/auth/pinKinds';
 import { checkPin, decryptPin, encryptPin, randomPin } from '@/lib/auth/secrets';
 import { superadminAccount } from '@/lib/auth/session';
+import { logEvent, personOf, type LogPerson } from '@/lib/log/log';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -52,6 +56,7 @@ export interface UserView {
 }
 
 const copy = APP_COPY.admin.users;
+const log = APP_COPY.log.entries;
 const { MAX_NAME_LENGTH } = APP_CONFIG.AUTH;
 
 const IdSchema = z.number().int().positive();
@@ -64,17 +69,28 @@ const isDuplicate = (error: unknown) => {
     return number === 2627 || number === 2601;
 };
 
-/** Runs a write after the superadmin check, turning failures into an error text */
-async function run<T extends object>(write: () => Promise<T>): Promise<({ success: true } & T) | { success: false; error: string }> {
+/** Runs a write after the superadmin check, turning failures into an error text; `who` is for the log */
+async function run<T extends object>(write: (who: LogPerson) => Promise<T>): Promise<({ success: true } & T) | { success: false; error: string }> {
     try {
-        await requireSuperadmin();
-        return { success: true, ...(await write()) };
+        const access = await requireSuperadmin();
+        return { success: true, ...(await write(personOf(access))) };
     } catch (error) {
         if (isDuplicate(error)) return { success: false, error: copy.nameTaken };
         console.error('Access write failed:', error);
         return { success: false, error: errorMessage(error) };
     }
 }
+
+const logUser = (who: LogPerson, action: string, id: number, summary: string, details?: unknown) =>
+    logEvent(who, { page: LINKS.settings.users, action, entityKind: 'user', entityId: id, summary, details });
+const logGroup = (who: LogPerson, action: string, id: number, summary: string, details?: unknown) =>
+    logEvent(who, { page: LINKS.settings.groups, action, entityKind: 'group', entityId: id, summary, details });
+
+/** The name of a user or group for a log line, the id when it is gone */
+const nameOr = (record: { name: string } | null | undefined, id: number) => record?.name ?? `#${id}`;
+/** Group names for the log, in the given order (the id for one that is gone) */
+const groupNames = (ids: number[], groups: Group[]) => ids.map((id) => nameOr(groups.find((group) => group.id === id), id));
+const findGroup = async (id: number) => (await listGroups()).find((group) => group.id === id);
 
 /** A valid user / group name, or an error text */
 function checkName(name: unknown): { name: string } | { error: string } {
@@ -109,15 +125,21 @@ export async function createUserAction(name: string, kind?: string): Promise<Cre
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     const pin = randomPin(pinKindOf(kind));
-    return run(async () => ({ id: await insertAccount(checked.name, encryptPin(pin)), pin }));
+    return run(async (who) => {
+        const id = await insertAccount(checked.name, encryptPin(pin));
+        await logUser(who, 'created', id, fmt(log.userCreated, { name: checked.name }), { after: { name: checked.name } });
+        return { id, pin };
+    });
 }
 
 export async function renameUserAction(id: number, name: string): Promise<Saved> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const before = await findAccountById(id);
         await updateAccountName(id, checked.name);
+        await logUser(who, 'renamed', id, fmt(log.userRenamed, { from: nameOr(before, id), name: checked.name }), { before: { name: before?.name }, after: { name: checked.name } });
         return {};
     });
 }
@@ -125,8 +147,13 @@ export async function renameUserAction(id: number, name: string): Promise<Saved>
 export async function setUserGroupsAction(id: number, groupIds: number[]): Promise<Saved> {
     const ids = IdsSchema.safeParse(groupIds);
     if (!IdSchema.safeParse(id).success || !ids.success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const [before, groups] = await Promise.all([findAccountById(id), listGroups()]);
         await updateAccountGroups(id, ids.data);
+        await logUser(who, 'groups', id, fmt(log.userGroups, { name: nameOr(before, id) }), {
+            before: { groups: groupNames(before?.groupIds ?? [], groups) },
+            after: { groups: groupNames(ids.data, groups) },
+        });
         return {};
     });
 }
@@ -146,8 +173,10 @@ export async function setUserPinAction(id: number, pin: string): Promise<WithPin
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     const checked = checkPin(pin);
     if ('error' in checked) return { success: false, error: checked.error };
-    return run(async () => {
+    return run(async (who) => {
+        const account = await findAccountById(id);
         await updateAccountPin(id, encryptPin(checked.pin), true);
+        await logUser(who, 'pin-set', id, fmt(log.userPin, { name: nameOr(account, id) }));
         return { pin: checked.pin };
     });
 }
@@ -155,16 +184,26 @@ export async function setUserPinAction(id: number, pin: string): Promise<WithPin
 /** Suspended: the user cannot log in and their open logins end; PIN and groups stay for when they are let back in */
 export async function setUserSuspendedAction(id: number, suspended: boolean): Promise<Saved> {
     if (!IdSchema.safeParse(id).success || !FlagSchema.safeParse(suspended).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const account = await findAccountById(id);
         await updateAccountSuspended(id, suspended);
+        await logUser(who, suspended ? 'suspended' : 'resumed', id, fmt(suspended ? log.userSuspended : log.userResumed, { name: nameOr(account, id) }), {
+            before: { suspended: account?.suspended },
+            after: { suspended },
+        });
         return {};
     });
 }
 
 export async function deleteUserAction(id: number): Promise<Saved> {
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const [account, groups] = await Promise.all([findAccountById(id), listGroups()]);
         await deleteAccount(id);
+        // What is gone, without the PIN
+        await logUser(who, 'deleted', id, fmt(log.userDeleted, { name: nameOr(account, id) }), {
+            before: account && { name: account.name, groups: groupNames(account.groupIds, groups), suspended: account.suspended },
+        });
         return {};
     });
 }
@@ -175,15 +214,22 @@ export async function deleteUserAction(id: number): Promise<Saved> {
 export async function createGroupAction(name: string, pages: Record<string, string> = {}): Promise<{ success: true; id: number } | { success: false; error: string }> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
-    return run(async () => ({ id: await insertGroup(checked.name, cleanPermissions(pages)) }));
+    return run(async (who) => {
+        const clean = cleanPermissions(pages);
+        const id = await insertGroup(checked.name, clean);
+        await logGroup(who, 'created', id, fmt(log.groupCreated, { name: checked.name }), { after: { name: checked.name, pages: clean } });
+        return { id };
+    });
 }
 
 export async function renameGroupAction(id: number, name: string): Promise<Saved> {
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const before = await findGroup(id);
         await updateGroupName(id, checked.name);
+        await logGroup(who, 'renamed', id, fmt(log.groupRenamed, { from: nameOr(before, id), name: checked.name }), { before: { name: before?.name }, after: { name: checked.name } });
         return {};
     });
 }
@@ -191,16 +237,21 @@ export async function renameGroupAction(id: number, name: string): Promise<Saved
 /** The group's pages and levels; unknown pages are dropped and "edit" kept only where a page changes data */
 export async function setGroupPagesAction(id: number, pages: Record<string, string>): Promise<Saved> {
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
-        await updateGroupPages(id, cleanPermissions(pages));
+    return run(async (who) => {
+        const before = await findGroup(id);
+        const clean = cleanPermissions(pages);
+        await updateGroupPages(id, clean);
+        await logGroup(who, 'pages', id, fmt(log.groupPages, { name: nameOr(before, id) }), { before: before?.pages ?? {}, after: clean });
         return {};
     });
 }
 
 export async function deleteGroupAction(id: number): Promise<Saved> {
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
-    return run(async () => {
+    return run(async (who) => {
+        const before = await findGroup(id);
         await deleteGroup(id);
+        await logGroup(who, 'deleted', id, fmt(log.groupDeleted, { name: nameOr(before, id) }), { before: before && { name: before.name, pages: before.pages } });
         return {};
     });
 }

@@ -1,6 +1,6 @@
 /*
  * Registro (the app-wide log) — creates one table in CLZDWHQANDPROG (QUOTES).
- * NOT RUN YET: waits for the owner's yes. All or nothing: one transaction, and it stops at once if app_log already
+ * Run on 2026-11-05 with the owner's yes. All or nothing: one transaction, and it stops at once if app_log already
  * exists. It only ADDS a table; no existing table is read, changed or referenced.
  *
  * One row is one thing a person did in the app: a change of data (with the values before and after), a login, an
