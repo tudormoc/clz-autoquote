@@ -953,6 +953,20 @@ export const APP_COPY = {
       alignName: "Allinea nome di {name}: {value} ({written} righe scritte)",
       autoExit: "Uscita automatica: {count} operatori",
       autoExitFailed: "Uscita automatica non riuscita",
+      /** One line per person the automatic exit closed: the time it used and why */
+      autoExitOperator: "Uscita automatica di {operator} {name} alle {time}: {why}",
+      autoExitNotWritten: "Uscita automatica di {operator} {name} non scritta: {why}",
+      /** Why an exit time was chosen (src/lib/presence/usualExit.ts → ExitReason) */
+      autoExitReasons: {
+        withOthers: "esce di solito con gli altri, che oggi sono usciti alle {time}",
+        lastExits: "le sue ultime {count} uscite sono alle {time}",
+        recentExits: "{agree} delle sue ultime {count} uscite sono alle {time}",
+        othersToday: "nessuna abitudine riconosciuta: orario degli altri oggi ({time})",
+        standard: "nessuna abitudine riconosciuta: orario standard ({time})",
+        now: "gli orari abituali vengono prima della sua entrata o della lavorazione in corso: ora del controllo ({time})",
+        tooEarly: "è entrato o ha avviato una lavorazione da pochi istanti",
+        leftMeanwhile: "ha timbrato l'uscita nel frattempo",
+      },
     },
   },
   database: {
@@ -1669,7 +1683,7 @@ export const APP_COPY = {
       folderNotFound: "Cartella dei file presenze non raggiungibile: {folders}",
       noFiles: "Nessun file Excel trovato per l'anno {year}",
       noRows: "Nessun dato valido nei file Excel",
-      autoExitSunday: "Domenica: nessuna auto-uscita",
+      autoExitSunday: "Giorno non lavorativo: nessuna auto-uscita",
     },
     // Ore Studio Paghe (src/components/analytics/PayrollHoursReport.tsx)
     payroll: {
@@ -1916,9 +1930,11 @@ export const APP_COPY = {
       add: "Aggiungi",
       remove: "Rimuovi",
       autoExitSection: "Auto-Uscita (EXT)",
-      autoExitDesc: "Orari assegnati in caso di mancata timbratura in uscita",
-      autoExitWeekday: "Orario Auto-Uscita Feriale (Lun-Ven)",
-      autoExitSaturday: "Orario Auto-Uscita Sabato",
+      autoExitDesc: "Chi dimentica di timbrare l'uscita la riceve all'orario in cui esce di solito: se esce con gli altri, l'orario degli altri di quel giorno; altrimenti quello delle sue ultime uscite. Gli orari standard valgono solo quando non si riconosce un'abitudine.",
+      autoExitWeekday: "Orario standard feriale",
+      autoExitSaturday: "Orario standard del sabato",
+      autoExitRecent: "Ultime uscite considerate",
+      autoExitRecentValue: "{recent}, a passi di {step} minuti",
       triggerHour: "Ora Esecuzione Controllo (24h)",
     },
     clientSummary: {

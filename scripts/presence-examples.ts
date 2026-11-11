@@ -4,7 +4,23 @@
  *
  *   npm run presence:examples
  */
-import { DEFAULT_PRESENCE_RULES, blockedStamps, eventForStatoChange, nameForCategory, type PresenceStamp } from '@/lib/presence';
+import {
+    DEFAULT_PRESENCE_RULES,
+    blockedStamps,
+    chooseExit,
+    clockToSeconds,
+    eventForStatoChange,
+    exitGuesses,
+    minutesToTime,
+    nameForCategory,
+    othersSlot,
+    realExits,
+    secondsToClock,
+    timeToMinutes,
+    type DayStamp,
+    type PastExit,
+    type PresenceStamp,
+} from '@/lib/presence';
 import { runNoRecordExamples, runOperatorExceptionExamples, runPresenceExamples } from '@/lib/presence/examples';
 
 const results = runPresenceExamples(DEFAULT_PRESENCE_RULES);
@@ -119,6 +135,72 @@ for (const { from, to, last, expect, note } of STATO_EXAMPLES) {
     if (!pass) console.log(`     expected ${String(expect)}`);
 }
 
-const total = results.length + noRecord.length + exceptions.length + NAME_EXAMPLES.length + DELETE_EXAMPLES.length + STATO_EXAMPLES.length;
+console.log('\n--- automatic exit: the time a forgotten exit is dated at (the person\'s usual exit) ---');
+/** A person's past exits, newest first: [own time, the time the others left that day] */
+const pastExits = (...days: [own: string, others: string | null][]): PastExit[] =>
+    days.map(([own, others], index) => ({ day: `2026-11-${String(20 - index).padStart(2, '0')}`, slot: timeToMinutes(own), others: others === null ? null : timeToMinutes(others) }));
+const WITH_OTHERS = pastExits(['16:30', '16:30'], ['16:30', '16:30'], ['16:30', '16:30']);
+const EXIT_EXAMPLES: { past: PastExit[]; others: string | null; after?: string; now?: string; expect: string; note: string }[] = [
+    { past: WITH_OTHERS, others: '16:30', expect: '16:30:00 withOthers', note: 'leaves with the others: the time the others left today' },
+    { past: WITH_OTHERS, others: '15:30', expect: '15:30:00 withOthers', note: 'first day of the summer hours: follows the others at once' },
+    { past: WITH_OTHERS, others: null, expect: '16:30:00 lastExits', note: 'nobody left yet today: the person\'s own last exits' },
+    { past: pastExits(['17:30', '16:30'], ['17:30', '16:30'], ['16:30', '16:30']), others: '16:30', expect: '17:30:00 lastExits', note: 'on the late turn this week (the last two at 17:30): 17:30' },
+    { past: pastExits(['16:30', '16:30'], ['16:30', '16:30'], ['17:30', '16:30'], ['17:30', '16:30']), others: '16:30', expect: '16:30:00 withOthers', note: 'back with the others this week: older days do not count' },
+    { past: pastExits(['14:30', '16:30'], ['16:30', '16:30'], ['16:30', '16:30'], ['16:30', '16:30'], ['15:00', '16:30']), others: '16:30', expect: '16:30:00 recentExits', note: 'the last two differ: three of the last five at 16:30' },
+    { past: pastExits(['12:30', '16:30'], ['17:00', '16:30'], ['16:30', '16:30'], ['15:00', '16:30'], ['17:30', '16:30']), others: '16:30', expect: '16:30:00 othersToday', note: 'no pattern at all: the time the others left today' },
+    { past: pastExits(['12:30', '16:30'], ['17:00', '16:30']), others: null, expect: '16:30:00 standard', note: 'no pattern and nobody left yet: the standard time' },
+    { past: [], others: '16:30', expect: '16:30:00 othersToday', note: 'a new person: the others today' },
+    { past: [], others: null, expect: '16:30:00 standard', note: 'a new person, nobody left yet: the standard time' },
+    { past: pastExits(['16:30', '16:30']), others: '15:30', expect: '15:30:00 othersToday', note: 'one exit is not a pattern yet: the others today' },
+    { past: pastExits(['12:30', '16:30'], ['12:30', '16:30']), others: '16:30', after: '13:20:10', expect: '16:30:00 othersToday', note: 'usually leaves at 12:30 but came back at 13:20 today: the next possible guess' },
+    { past: WITH_OTHERS, others: '16:30', after: '16:45:10', expect: '19:00:00 now', note: 'started work at 16:45: every guess is before it, the moment of the check' },
+    { past: WITH_OTHERS, others: null, now: '11:27:49', expect: '11:27:49 now', note: 'run by hand in the morning: never an exit in the future' },
+    { past: WITH_OTHERS, others: null, after: '11:27:48', now: '11:27:49', expect: 'none', note: 'entered a second ago: no exit yet' },
+];
+for (const { past, others, after, now, expect, note } of EXIT_EXAMPLES) {
+    const guesses = exitGuesses(past, others === null ? null : timeToMinutes(others), timeToMinutes('16:30'));
+    const choice = chooseExit(guesses, clockToSeconds(after ?? '07:25:00'), clockToSeconds(now ?? '19:00:00'));
+    const actual = choice ? `${secondsToClock(choice.second)} ${choice.reason}` : 'none';
+    const pass = actual === expect;
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${actual.padEnd(22)} — ${note}`);
+    if (!pass) console.log(`     expected ${expect}`);
+}
+
+console.log('\n--- automatic exit: which past exits are real, and the time the others left ---');
+const dayStamp = (operator: string, time: string, evento: string, writer = 'SSQ', progressivo = 0): DayStamp => ({ operator, day: '2026-11-10', time, evento, writer, progressivo });
+const REAL_EXIT_EXAMPLES: { stamps: DayStamp[]; expect: string; note: string }[] = [
+    { stamps: [dayStamp('A', '07:25:00', 'ENT'), dayStamp('A', '12:31:50', 'EXT', 'MES'), dayStamp('A', '13:13:58', 'ENT', 'MES'), dayStamp('A', '16:36:00', 'EXT')], expect: 'A 16:30', note: 'the last exit of the day, not the one of lunch' },
+    { stamps: [dayStamp('A', '07:25:00', 'ENT'), dayStamp('A', '16:30:00', 'EXT', 'AUTO')], expect: '', note: 'an automatic exit teaches nothing' },
+    { stamps: [dayStamp('A', '07:25:00', 'ENT'), dayStamp('A', '16:30:35', 'EXT', 'ADMIN')], expect: '', note: 'an exit typed in afterwards teaches nothing' },
+    { stamps: [dayStamp('A', '07:25:00', 'ENT'), dayStamp('A', '12:31:00', 'EXT'), dayStamp('A', '13:20:00', 'ENT')], expect: '', note: 'a day left open: no exit' },
+    { stamps: [dayStamp('A', '07:25:00', 'ENT'), dayStamp('A', '13:22:00', 'ENT', 'SSQ', 0), dayStamp('A', '13:22:00', 'EXT', 'SSQ', 1)], expect: 'A 13:00', note: 'a double stamp of one instant ends with the exit' },
+    { stamps: [dayStamp('A', '16:59:59', 'EXT'), dayStamp('B', '17:00:00', 'EXT', 'DIEGO')], expect: 'A 16:30, B 17:00', note: 'by the half hour, rounded down' },
+];
+for (const { stamps, expect, note } of REAL_EXIT_EXAMPLES) {
+    const actual = realExits(stamps).map((exit) => `${exit.operator} ${minutesToTime(exit.slot)}`).sort().join(', ');
+    const pass = actual === expect;
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${(actual || '(none)').padEnd(18)} — ${note}`);
+    if (!pass) console.log(`     expected ${expect || '(none)'}`);
+}
+const OTHERS_EXAMPLES: { slots: string[]; expect: string | null; note: string }[] = [
+    { slots: ['16:30', '16:30', '16:30', '17:30', '12:30'], expect: '16:30', note: 'most left at 16:30' },
+    { slots: ['16:30', '16:30'], expect: null, note: 'two people are not "the others"' },
+    { slots: ['15:30', '15:30', '16:30', '16:30'], expect: '15:30', note: 'two times just as common: the earlier one' },
+    { slots: ['12:30', '15:30', '16:30', '17:00', '17:30', '18:00', '14:00'], expect: null, note: 'everybody at a different time: no common time' },
+];
+for (const { slots, expect, note } of OTHERS_EXAMPLES) {
+    const slot = othersSlot(slots.map(timeToMinutes));
+    const actual = slot === null ? null : minutesToTime(slot);
+    const pass = actual === expect;
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${String(actual).padEnd(18)} — ${note}`);
+    if (!pass) console.log(`     expected ${String(expect)}`);
+}
+
+const total =
+    results.length + noRecord.length + exceptions.length + NAME_EXAMPLES.length + DELETE_EXAMPLES.length + STATO_EXAMPLES.length +
+    EXIT_EXAMPLES.length + REAL_EXIT_EXAMPLES.length + OTHERS_EXAMPLES.length;
 console.log(`\n${total - failed}/${total} examples pass`);
 process.exit(failed > 0 ? 1 : 0);

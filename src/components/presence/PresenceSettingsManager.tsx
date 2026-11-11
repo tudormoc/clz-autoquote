@@ -8,10 +8,10 @@ import { Row, RowList } from '@/components/ui/RowList';
 import { Section } from '@/components/ui/Section';
 import { APP_CONFIG } from '@/config/constants';
 import { usePresenceSettings } from '@/hooks/usePresenceSettings';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.analytics.presenceSettings;
-const { AUTO_EXIT_TIME_WEEKDAY, AUTO_EXIT_TIME_SATURDAY, TRIGGER_HOUR } = APP_CONFIG.PRESENCE;
+const { AUTO_EXIT_TIME_WEEKDAY, AUTO_EXIT_TIME_SATURDAY, TRIGGER_HOUR, USUAL_EXIT } = APP_CONFIG.PRESENCE;
 
 /** Presence settings page: rule parameters, quick-pick texts, second-shift operators and the automatic exit times. */
 export function PresenceSettingsManager() {
@@ -52,6 +52,9 @@ export function PresenceSettingsManager() {
                 <RowList>
                     <Row label={copy.autoExitWeekday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_WEEKDAY}</span></Row>
                     <Row label={copy.autoExitSaturday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_SATURDAY}</span></Row>
+                    <Row label={copy.autoExitRecent}>
+                        <span className="font-mono font-bold text-primary">{fmt(copy.autoExitRecentValue, { recent: USUAL_EXIT.RECENT_EXITS, step: USUAL_EXIT.STEP_MINUTES })}</span>
+                    </Row>
                     <Row label={copy.triggerHour}><span className="font-mono font-bold text-primary">{TRIGGER_HOUR}:00</span></Row>
                 </RowList>
             </Section>

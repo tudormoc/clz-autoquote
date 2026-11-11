@@ -138,9 +138,26 @@ handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES`
   an **entry** is the row, the operator IN and both "since" times (`ORA_ST_FISICO`, `ORA_ST_LOGICO`) = the entry; an
   **exit** first pauses the work in progress one second before, then the row, the operator OUT and `ORA_ST_FISICO` =
   the exit. Entering again restarts nothing, in NetPro and in the app: the work stays paused until someone starts it.
-- **The automatic exit** (`runAutoExit`, called by the scheduler at 19:00 on the VM): who is still IN (last presence
-  event of the day an entry) gets an exit dated `AUTO_EXIT_TIME_WEEKDAY` / `_SATURDAY` (16:30, 11:00), written as
-  `UTENTE = 'AUTO'`, with the work in progress paused one second before. Not handled: work started after that time.
+- **The automatic exit** (`runAutoExit` in `src/app/presence/auto-exit.ts`, called by the scheduler at 19:00 on the
+  VM through `/api/auto-exit`): who is still IN (last presence event of the day an entry) gets an exit written as
+  `UTENTE = 'AUTO'`, with the work in progress paused one second before. Days that are not worked (the rules'
+  calendar) are skipped.
+- **The time of a forgotten exit** (owner, 2026-11-11; the rule is pure, `src/lib/presence/usualExit.ts`, its numbers
+  in `APP_CONFIG.PRESENCE.USUAL_EXIT`): the person's usual exit time, read from the last *real* exits (the last
+  presence event of a day when it is an exit made at the badge clock, the terminal or NetPro; automatic exits and
+  exits typed in by ADMIN teach nothing), by the half hour rounded down, working days apart from Saturdays. Best
+  guess first: (1) who left with the others the last two times gets the time most others left today, so the summer
+  hours are followed from the first day; (2) else the own pattern: the last two exits at the same time, or the most
+  common time of the last five when at least three agree; (3) else the time the others left today; (4) else the
+  standard time (`AUTO_EXIT_TIME_WEEKDAY` / `_SATURDAY`: 16:30, 11:00). "The last few days decide": on every real
+  weekday exit of May–November 2026 (4,527) this guesses the real half hour 88.5 % of the time, one fixed time 60.7 %,
+  a majority of the last ten exits 82.9 %. A guess is used only when possible: after the person's own entry and the
+  start of the work in progress, and not in the future; when none is, the exit is dated at the moment of the check.
+  "The others today" counts only from the hour of the daily check on (`TRIGGER_HOUR`): earlier the last exit of most
+  people is the one of lunch. Examples in `npm run presence:examples`.
+- **Seeing what it would do**: `/api/auto-exit?preview=1` (superadmin) decides and answers without writing or
+  logging; `&everyone=1` lists everybody with past exits, `&operator=98` one person, `&at=19:00` as if the check ran
+  at that time. A real run writes one Registro line per person: the time used and why.
 - **Work in progress paused at an exit** (`pauseWorkAtExit`): what is in progress is what NetPro's own list says,
   `ATTIVITA` (one row per person working now: NetPro adds it at a start and removes it at a pause), on a task NetPro
   holds in stato EXE whose last event of that person is the start. For each such phase the app writes what NetPro

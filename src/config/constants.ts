@@ -288,12 +288,27 @@ export const APP_CONFIG = {
 
   // Presence / Auto-Exit Configuration
   PRESENCE: {
-    // Time used for auto-generated EXT events on weekdays (Mon–Fri)
+    // The automatic exit dates a forgotten exit at the person's usual exit time (USUAL_EXIT below). These two are
+    // the standard times, used only when nothing can be learned: working days, and extra days (Saturday)
     AUTO_EXIT_TIME_WEEKDAY: '16:30:00',
-    // Time used for auto-generated EXT events on Saturdays
     AUTO_EXIT_TIME_SATURDAY: '11:00:00',
     // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
     TRIGGER_HOUR: 19,
+    // How a person's usual exit time is read from the past real exits (src/lib/presence/usualExit.ts; owner,
+    // 2026-11-11: the last few days decide). Tested against the 4,527 real exits of May–November 2026: these numbers
+    // guess the real exit 88.5 % of the time (one fixed time: 60.7 %); `npm run presence:examples` holds the cases.
+    USUAL_EXIT: {
+      STEP_MINUTES: 30,       // exit times are read by the half hour, rounded down (16:34 → 16:30)
+      LOOKBACK_DAYS: 45,      // how far back the past exits are read
+      WITH_OTHERS_EXITS: 2,   // who left with the others this many last times gets the time the others left today
+      SAME_LAST_EXITS: 2,     // own pattern: this many last exits at the same time …
+      RECENT_EXITS: 5,        // … or, among this many last exits,
+      RECENT_AGREE: 3,        //   at least this many at the same time
+      OTHERS_MIN: 3,          // "the time the others left" needs at least this many exits that day …
+      OTHERS_SHARE: 1 / 3,    // … and this share of them at the same time
+      // Exits that teach nothing: the automatic ones and those typed in afterwards (EVENTI.UTENTE)
+      NOT_REAL_WRITERS: ['AUTO', 'ADMIN'],
+    },
     // Monthly production Excel files ("01 Produzione gennaio 2026.xlsx") read by the Presenze Annuali report:
     // folders tried in order (share, then the mapped drive on the VM), and the 0-based columns used
     EXCEL_FOLDERS: ['\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE', 'Z:\\'],

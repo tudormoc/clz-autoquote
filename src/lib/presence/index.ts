@@ -8,6 +8,7 @@ export * from './calendar';
 export * from './categories';
 export * from './events';
 export * from './eventDelete';
+export * from './usualExit';
 export * from './formulas/rounding';
 export * from './formulas/counted-times';
 export * from './formulas/distribution';
