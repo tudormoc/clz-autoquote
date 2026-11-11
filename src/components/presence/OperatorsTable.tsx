@@ -16,8 +16,10 @@ import { Select } from '@/components/ui/Select';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
 import { useActionData } from '@/hooks/useActionData';
+import { useAddress } from '@/hooks/useAddress';
 import { useClientSort } from '@/hooks/useClientSort';
 import { useListQuery } from '@/hooks/useListQuery';
+import { listParam } from '@/lib/address';
 import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
 import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, isLeftCategory, normalizeReparto } from '@/lib/presence/categories';
 import type { OperatorFields } from '@/lib/presence/operatorInput';
@@ -49,7 +51,11 @@ const statoKey = (row: OperatorRow) => row.STATO_FISICO || '';
  * Operators of no known category are never shown.
  */
 const CATEGORY_OPTIONS = [...EMPLOYEE_CATEGORIES.map((c) => ({ key: c.key, label: c.label })), { key: LEFT_CATEGORY.reparto, label: LEFT_CATEGORY.label }];
-const DEFAULT_CATEGORIES: ReadonlySet<string> = new Set(EMPLOYEE_CATEGORIES.map((c) => c.key));
+const DEFAULT_CATEGORIES = EMPLOYEE_CATEGORIES.map((c) => c.key);
+
+/** The chips switched on, in the address. Stati: null = every stato on; operators without a stato get their own chip, off by default */
+const VIEW = { categories: listParam(DEFAULT_CATEGORIES), stati: listParam(null) };
+const VIEW_NAMES = Object.keys(VIEW);
 
 /** Chip key of a row's category: a tracked one, the one of the people who left, or 'altro' */
 const categoryKey = (row: OperatorRow) => (isLeftCategory(row.ENTITA) ? LEFT_CATEGORY.reparto : normalizeReparto(row.ENTITA));
@@ -65,6 +71,7 @@ export function OperatorsTable() {
     const list = useListQuery({
         initialFilters: () => ({ search: '' }),
         load: (filters: { search: string }) => getOperatorsAction(filters.search || undefined),
+        clears: VIEW_NAMES,
     });
     const { sorted, sort, toggleSort } = useClientSort(list.rows, SORT_COLUMNS, { column: 'OPERATORE', direction: 'asc' });
     const canEdit = useCanEdit();
@@ -76,12 +83,11 @@ export function OperatorsTable() {
     const knownStati = useActionData(getOperatorStatiAction);
     const loadedStati = list.result?.allStati;
     const allStati = loadedStati?.length ? loadedStati : (knownStati.data?.data ?? []);
-    // null = default: every stato on. Operators without a stato get their own chip, off by default.
-    const [chosenStati, setChosenStati] = useState<Set<string> | null>(null);
+    const view = useAddress(VIEW);
     const [showChecklist, setShowChecklist] = useState(false);
-    const activeStati = chosenStati ?? new Set(allStati);
+    const activeStati = new Set(view.values.stati ?? allStati);
     const hasNoStato = list.rows.some((row) => statoKey(row) === '');
-    const [activeCategories, setActiveCategories] = useState<ReadonlySet<string>>(DEFAULT_CATEGORIES);
+    const activeCategories = new Set(view.values.categories);
     const visibleRows = sorted.filter((row) => activeStati.has(statoKey(row)) && activeCategories.has(categoryKey(row)));
 
     const saveField = (operatore: string, column: EditableColumn) => async (value: string) => {
@@ -92,6 +98,8 @@ export function OperatorsTable() {
             notify.failure(result.error);
             return false;
         }
+        // A stato changed between IN and OUT says what it did to the presence events
+        if (result.message) notify.success(result.message);
         await list.reload();
         return true;
     };
@@ -173,11 +181,7 @@ export function OperatorsTable() {
                 columns={3}
                 activeCount={list.activeFilterCount}
                 onApply={list.apply}
-                onClear={() => {
-                    list.clear();
-                    setChosenStati(null);
-                    setActiveCategories(DEFAULT_CATEGORIES);
-                }}
+                onClear={list.clear}
                 actions={
                     <>
                         {canEdit && canCreate && (
@@ -198,14 +202,14 @@ export function OperatorsTable() {
                             label={copy.headers.categoria}
                             options={CATEGORY_OPTIONS}
                             active={activeCategories}
-                            onToggle={(key) => setActiveCategories(toggleInSet(activeCategories, key))}
+                            onToggle={(key) => view.set({ categories: [...toggleInSet(activeCategories, key)] }, 'replace')}
                         />
                         {statoOptions.length > 0 && (
                             <ToggleChips
                                 label={copy.headers.statoFisico}
                                 options={statoOptions}
                                 active={activeStati}
-                                onToggle={(key) => setChosenStati(toggleInSet(activeStati, key))}
+                                onToggle={(key) => view.set({ stati: [...toggleInSet(activeStati, key)] }, 'replace')}
                             />
                         )}
                     </>

@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { getLogEntriesAction } from '@/app/log-actions';
 import { ReportView } from '@/components/analytics/report/ReportView';
 import { LogDetailsDialog } from '@/components/log/LogDetailsDialog';
-import { Button } from '@/components/ui/Button';
+import { buttonClasses } from '@/components/ui/Button';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
 import { SearchField } from '@/components/ui/SearchField';
 import { StatusBadge, type StatusTone } from '@/components/ui/StatusBadge';
+import { ViewLink } from '@/components/ui/ViewLink';
 import { NAV_AREAS } from '@/config/navigation';
+import { useAddress } from '@/hooks/useAddress';
 import { useReportTable } from '@/hooks/useReportTable';
+import { textParam } from '@/lib/address';
 import { menuPages } from '@/lib/auth/permissions';
 import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
@@ -47,6 +49,12 @@ const outcomeLabel = (outcome: string) => OUTCOME_LABELS[outcome] ?? outcome;
 
 const entityText = (row: LogEntryRow) => [row.entity_kind, row.entity_id].filter(Boolean).join(' ') || EMPTY_VALUE;
 
+/** An entry among the three logs */
+const entryKey = (row: LogEntryRow) => `${row.source}-${row.id}`;
+/** The entry whose full record is open ("Vedi"), in the address */
+const VIEW = { entry: textParam() };
+const VIEW_NAMES = Object.keys(VIEW);
+
 const excelColumns: ExcelColumn<LogEntryRow>[] = [
     { header: copy.columns.when, value: (row) => formatDbDateTime(row.logged_at), width: 20 },
     { header: copy.columns.person, value: (row) => row.person_name, width: 22 },
@@ -62,12 +70,15 @@ const excelColumns: ExcelColumn<LogEntryRow>[] = [
  * timesheet's. Loads on "Applica"; "Vedi" opens an entry's full record (rows changed, values before and after).
  */
 export function LogViewer() {
-    const [opened, setOpened] = useState<LogEntryRow | null>(null);
+    const view = useAddress(VIEW);
     const report = useReportTable<Filters, LogEntryRow>({
         initialFilters,
         defaultSort: null,
         fetchPage: ({ filters, page, limit }) => getLogEntriesAction(page, limit, toQuery(filters)),
+        clears: VIEW_NAMES,
     });
+    /** The entry the address names, when it is among the rows on screen */
+    const opened = view.values.entry ? report.rows.find((row) => entryKey(row) === view.values.entry) : undefined;
     const { filters, updateFilters } = report;
 
     // The list is always newest first: no column sorts
@@ -101,9 +112,9 @@ export function LogViewer() {
             compact: true,
             cell: (row) =>
                 row.has_details ? (
-                    <Button variant="secondary" size="sm" onClick={() => setOpened(row)}>
+                    <ViewLink to={view.link({ entry: entryKey(row) })} className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
                         {copy.showDetails}
-                    </Button>
+                    </ViewLink>
                 ) : null,
         },
     ];
@@ -112,7 +123,7 @@ export function LogViewer() {
         <ReportView
             report={report}
             columns={columns}
-            getRowKey={(row) => `${row.source}-${row.id}`}
+            getRowKey={entryKey}
             filterColumns={4}
             filters={
                 <>
@@ -123,7 +134,7 @@ export function LogViewer() {
             }
             excel={{ columns: excelColumns, name: APP_COPY.admin.pages.log.label, fileParts: (f) => [f.dateFrom, f.dateTo] }}
         >
-            {opened && <LogDetailsDialog entry={opened} onClose={() => setOpened(null)} />}
+            {opened && <LogDetailsDialog entry={opened} onClose={() => view.set({ entry: '' })} />}
         </ReportView>
     );
 }

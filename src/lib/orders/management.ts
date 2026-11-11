@@ -9,7 +9,8 @@ import { loadOrderArticle } from '@/lib/orders/articleData';
 import { compareOrder, countDifferences } from '@/lib/orders/differences';
 import { loadDocumentRows, type DocumentRows } from '@/lib/orders/documentRows';
 import { loadOrderQuantities } from '@/lib/orders/quantityData';
-import { findSyncBlocks } from '@/lib/orders/sync';
+import { findSyncLimits } from '@/lib/orders/sync';
+import { NO_KEEPS } from '@/lib/orders/syncBlocks';
 import type {
     BusinessOrderOperationRow,
     DibaMaterialRow,
@@ -247,12 +248,15 @@ export async function loadOrderManagement(
     // The impegno cliente and order rows feed the Quantità and Articolo tabs
     const netproMake = order?.netpid || ordineNetpro;
     const documents: DocumentRows = order ? await loadDocumentRows(order) : {};
-    const [netproMaterials, quantities, articleFacts, blocks] = await Promise.all([
+    const [netproMaterials, quantities, articleFacts, limits] = await Promise.all([
         loadNetproMaterials(ordineNetpro),
         loadOrderQuantities(documents, order, netproMake),
         loadOrderArticle(documents, order, netproMake),
-        // What Riallinea itself asks before it writes, so the list and the order page say it before the button is pressed
-        order && netproMake ? findSyncBlocks(queryMSSQL, { articleFather: article, anno: order.anno, numord: order.numord, rigaPadre: order.riga, netOrdine: netproMake }) : [],
+        // What Riallinea itself asks before it writes (what stops it, what it leaves on the order), so the list and the
+        // order page say what the button will do
+        order && netproMake
+            ? findSyncLimits(queryMSSQL, { articleFather: article, anno: order.anno, numord: order.numord, rigaPadre: order.riga, netOrdine: netproMake })
+            : { blocks: [], keeps: NO_KEEPS },
     ]);
 
     const data: OrderOperationsManagementData = {
@@ -273,10 +277,12 @@ export async function loadOrderManagement(
         netpro_materials: netproMaterials,
         quantities,
         article: articleFacts,
-        sync_blocks: blocks,
+        sync_blocks: limits.blocks,
+        sync_keeps: limits.keeps,
     };
     // Differences: DiBa (truth) vs Business order vs NetPro order, plus the quantities and the article data (impegno
-    // cliente as truth), counted with the comparisons the tabs show, so Riallinea shows up when only one of those differs
+    // cliente as truth), counted with the comparisons the tabs show, so Riallinea shows up when only one of those differs.
+    // A phase or a material that stays on the order because it was used is not a difference
     const discrepancyCount = countDifferences(compareOrder(data));
     return { ...data, has_discrepancies: discrepancyCount > 0, discrepancy_count: discrepancyCount };
 }

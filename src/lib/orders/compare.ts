@@ -23,6 +23,8 @@ export interface OperationComparisonRow {
     /** Fields where the NetPro order differs from DiBa */
     netDiff: OpField[];
     issues: string[];
+    /** No longer in the DiBa but already worked on: Riallinea leaves it on the order, and it is not a difference */
+    kept?: boolean;
 }
 
 export interface MaterialComparisonRow {
@@ -37,6 +39,11 @@ export interface MaterialComparisonRow {
     /** Only on the placeholder's row: whether the DiBa still lists it */
     placeholderInDiba?: boolean;
     issues: string[];
+    /**
+     * The quantity on rows no longer in the DiBa but already withdrawn: Riallinea leaves them on the order, so they are
+     * counted apart from `bus` / `net` and are not a difference
+     */
+    kept?: { bus?: number; net?: number };
 }
 
 const txt = (v: unknown) => String(v ?? '').trim().toLowerCase();
@@ -64,7 +71,10 @@ export function compareOperations(
     diba: DibaOperationRow[],
     bus: BusinessOrderOperationRow[],
     net: OrderProductionOperationRow[],
+    /** The fasi Riallinea leaves on the order although the DiBa no longer has them (syncBlocks.ts) */
+    keptPhases: number[] = [],
 ): OperationComparisonRow[] {
+    const kept = new Set(keptPhases.map(Number));
     const map = new Map<number, OperationComparisonRow>();
     const row = (fase: number) => {
         if (!map.has(fase)) map.set(fase, { fase, busDiff: [], netDiff: [], issues: [] });
@@ -77,6 +87,8 @@ export function compareOperations(
     for (const r of Array.from(map.values())) {
         const d = r.diba;
         if (!d) {
+            // Already worked on: it stays on the order, whatever the DiBa says now
+            if (kept.has(Number(r.fase))) { r.kept = true; continue; }
             if (r.bus) { r.busDiff.push('missing'); r.issues.push('Fase non più in DiBa (presente in Business)'); }
             if (r.net) { r.netDiff.push('missing'); r.issues.push('Fase non più in DiBa (presente in NetPro)'); }
             continue;
@@ -106,7 +118,11 @@ export function compareMaterials(
     bus: OrderMaterialSummaryRow[],
     net: OrderMaterialSummaryRow[],
     orderQty: number,
+    /** The rows (mo_riga = NetPro SEQUENZA) Riallinea leaves on the order although the DiBa no longer has them (syncBlocks.ts) */
+    keptRows: number[] = [],
 ): MaterialComparisonRow[] {
+    const keptRiga = new Set(keptRows.map(Number));
+    const stays = (m: OrderMaterialSummaryRow) => m.riga !== undefined && keptRiga.has(Number(m.riga));
     const map = new Map<string, MaterialComparisonRow>();
     const row = (code: string, description: string, unmis: string) => {
         if (!map.has(code)) map.set(code, { part_number: code, description, unmis, busDiff: false, netDiff: false, issues: [] });
@@ -124,8 +140,17 @@ export function compareMaterials(
     bus = bus.filter(m => !isPlaceholderMaterial(m.part_number));
     net = net.filter(m => !isPlaceholderMaterial(m.part_number));
     diba.forEach(m => { const r = row(m.codfigli, m.description, m.unmis); r.expected = (r.expected || 0) + dibaMaterialQty(orderQty, m.quant, orderQty); });
-    bus.forEach(m => { const r = row(m.part_number, m.description, m.unmis); r.bus = (r.bus || 0) + Number(m.quant); });
-    net.forEach(m => { const r = row(m.part_number, m.description, m.unmis); r.net = (r.net || 0) + Number(m.quant); });
+    // A row that stays because it was withdrawn is counted apart: what is compared with the DiBa is the rest
+    bus.forEach(m => {
+        const r = row(m.part_number, m.description, m.unmis);
+        if (stays(m)) r.kept = { ...r.kept, bus: (r.kept?.bus || 0) + Number(m.quant) };
+        else r.bus = (r.bus || 0) + Number(m.quant);
+    });
+    net.forEach(m => {
+        const r = row(m.part_number, m.description, m.unmis);
+        if (stays(m)) r.kept = { ...r.kept, net: (r.kept?.net || 0) + Number(m.quant) };
+        else r.net = (r.net || 0) + Number(m.quant);
+    });
 
     for (const r of Array.from(map.values())) {
         if (r.expected === undefined) {

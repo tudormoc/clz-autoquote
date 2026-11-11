@@ -59,10 +59,14 @@ export function AgendaSearch({ className = 'sm:w-72' }: { className?: string }) 
     }, [open]);
 
     const shown = searching && open ? hits : null;
-    const go = (hit: SearchHit) => {
+    const close = () => {
         setOpen(false);
         setText('');
         setHits(null);
+    };
+    /** Enter on a hit; a click is the hit's own link, so a new tab works too */
+    const go = (hit: SearchHit) => {
+        close();
         router.push(hrefOf(hit));
     };
 
@@ -109,10 +113,7 @@ export function AgendaSearch({ className = 'sm:w-72' }: { className?: string }) 
                                     href={hrefOf(hit)}
                                     role="option"
                                     aria-selected={index === active}
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        go(hit);
-                                    }}
+                                    onClick={close}
                                     onMouseEnter={() => setActive(index)}
                                     className={cn('flex items-start gap-2.5 px-3 py-1.5 text-sm', index === active && 'bg-muted', hit.inactive && 'opacity-60')}
                                     title={hit.inactive ? copy.inactive : undefined}

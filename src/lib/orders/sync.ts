@@ -17,10 +17,13 @@ import { dibaMaterialQty, isPlaceholderMaterial, PLACEHOLDER_MATERIAL } from '@/
 import { cutToPlace } from '@/lib/orders/documentFacts';
 import { diffSnapshots, snapshotOrder, type RowChange } from '@/lib/orders/snapshot';
 import { hasWorkSql, rowExists, usedInNetproSql, WITHDRAWN_IN_BUSINESS_SQL } from '@/lib/orders/sql';
-import { materialRowsToRemove, phaseStarted, phasesToRemove, syncBlocks, syncBlockText, type DibaMaterialLine, type OrderMaterialFact, type OrderPhaseFact } from '@/lib/orders/syncBlocks';
-import { buildBusinessOverrides, buildNetProOverrides, cloneRowInsert, netOperId, NOW } from '@/lib/orders/syncRows';
+import {
+    materialRowsLeaving, NO_KEEPS, phaseStarted, phasesLeaving, syncBlocks, syncBlockText, syncKeeps,
+    type DibaMaterialLine, type OrderMaterialFact, type OrderPhaseFact,
+} from '@/lib/orders/syncBlocks';
+import { buildBusinessOverrides, buildNetProOverrides, cloneRowInsert, firstMaterialCopies, netOperId, NOW } from '@/lib/orders/syncRows';
 import { APP_COPY, fmt } from '@/locales';
-import type { DibaMaterialRow, DibaOperationRow } from '@/types';
+import type { DibaMaterialRow, DibaOperationRow, KeptMaterial, SyncKeeps } from '@/types';
 
 const copy = APP_COPY.analytics.orderOperations;
 
@@ -80,7 +83,7 @@ interface BusinessMaterialRow {
     descr: string;
     unmis: string;
     disbasriga: number;
-    /** 1 when Business marks the row as withdrawn */
+    /** 1 when the row was already withdrawn: Business marks it, or NetPro holds a picked or used quantity on it */
     withdrawn: number;
 }
 
@@ -94,10 +97,21 @@ interface NetproPhaseRow {
     hasWork: number;
 }
 
-/** Done (with the rows that really changed, for the log; null when they could not be read back) or refused */
+/**
+ * Done (with the rows that really changed, for the log; null when they could not be read back; and what was left on
+ * the order because it was already used) or refused
+ */
 export type SyncResult =
-    | { success: true; commessa: string; numord: number; netOrdine: string; changes: RowChange[] | null }
+    | { success: true; commessa: string; numord: number; netOrdine: string; changes: RowChange[] | null; kept: SyncKeeps }
     | { success: false; error: string };
+
+/** What a realign of an edition would be stopped by, and what it would leave on the order */
+export interface SyncLimits {
+    blocks: string[];
+    keeps: SyncKeeps;
+}
+
+const UNSTARTED = APP_CONFIG.ORDERS.UNSTARTED_OPERATION_STATE;
 
 /**
  * Which production order to realign: an edition of an impegno is an article of its own, with its commessa, its order
@@ -312,26 +326,23 @@ const phaseFact = (op: NetproPhaseRow): OrderPhaseFact => ({ fase: Number(op.SEQ
 const dibaLine = (m: DibaMaterialRow): DibaMaterialLine => ({ riga: Number(m.riga), code: m.codfigli });
 const materialFact = (m: BusinessMaterialRow): OrderMaterialFact => ({ riga: Number(m.mo_riga), dibaRiga: Number(m.disbasriga), code: m.codart, withdrawn: Boolean(m.withdrawn) });
 
-/** Phases: removes those not in the DiBa, adds the missing ones, refreshes the others */
-async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+/**
+ * Phases: adds those missing in the order, then removes those no longer in the DiBa, and refreshes the others. A phase
+ * somebody already worked on is not removed (syncBlocks.ts): the fasi left on the order are given back.
+ */
+async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget): Promise<number[]> {
     const edition = { anno, numord, rigaPadre };
     const dibaOps = await readDibaPhases(run, articleFather);
     const netOps = await readOrderPhases(run, netOrdine);
 
     const netFasi = new Set(netOps.map((o) => o.SEQUENZA));
-    const removed = new Set(phasesToRemove(netOps.map(phaseFact), dibaOps.map((o) => o.fase)).map((phase) => phase.fase));
-
-    // In the order but not in the DiBa: removed from both databases
-    for (const op of netOps.filter((o) => removed.has(Number(o.SEQUENZA)))) {
-        await run(`DELETE FROM JOBSET WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await run(`DELETE FROM TASKS WHERE TASK = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await run(`DELETE FROM OPERAZIONI WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
-        await run(`DELETE FROM assris WHERE ${RESOURCES_OF_EDITION} AND as_fase = @fase`, { ...edition, fase: op.SEQUENZA }, 'BUSINESS');
-        await run(`DELETE FROM attivit WHERE ${PHASES_OF_EDITION} AND at_fase = @fase`, { ...edition, fase: op.SEQUENZA }, 'BUSINESS');
-    }
+    const leaving = phasesLeaving(netOps.map(phaseFact), dibaOps.map((o) => o.fase));
+    const removed = new Set(leaving.removed.map((phase) => phase.fase));
+    const kept = leaving.kept.map((phase) => Number(phase.fase));
 
     // In the DiBa but not in the order: rows cloned from existing rows of this edition (so the copy keeps its order row,
-    // article and NetPro order), unless already there
+    // article and NetPro order), unless already there. Added BEFORE the old ones are removed: when every phase of the
+    // order is replaced, the phases to remove are the only rows left to copy from
     for (const op of dibaOps.filter((o) => !netFasi.has(o.fase))) {
         const ov = buildNetProOverrides(op, netOrdine, orderFatherQuant, NOW);
         const bv = buildBusinessOverrides(op, orderFatherQuant);
@@ -351,6 +362,20 @@ async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, ann
         if (!(await rowExists(run, 'assris', `${RESOURCES_OF_EDITION} AND as_fase = @fase`, { ...edition, fase: op.fase }, 'BUSINESS'))) {
             await cloneRowInsert(run, 'BUSINESS', 'assris', RESOURCES_OF_EDITION, edition, bv.assris);
         }
+    }
+
+    // In the order but not in the DiBa, and never worked on: removed from both databases. The operation goes first,
+    // and only while it is still untouched: one that somebody started since it was read stays, with all its rows
+    for (const op of netOps.filter((o) => removed.has(Number(o.SEQUENZA)))) {
+        const gone = await run(`DELETE FROM OPERAZIONI WHERE ID_OPER = @id_oper AND RTRIM(STATO) = @unstarted`, { id_oper: op.ID_OPER, unstarted: UNSTARTED }, 'NETPRO');
+        if (gone.rowsAffected[0] === 0 && (await rowExists(run, 'OPERAZIONI', 'ID_OPER = @id', { id: op.ID_OPER }, 'NETPRO'))) {
+            kept.push(Number(op.SEQUENZA));
+            continue;
+        }
+        await run(`DELETE FROM JOBSET WHERE ID_OPER = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
+        await run(`DELETE FROM TASKS WHERE TASK = @id_oper`, { id_oper: op.ID_OPER }, 'NETPRO');
+        await run(`DELETE FROM assris WHERE ${RESOURCES_OF_EDITION} AND as_fase = @fase`, { ...edition, fase: op.SEQUENZA }, 'BUSINESS');
+        await run(`DELETE FROM attivit WHERE ${PHASES_OF_EDITION} AND at_fase = @fase`, { ...edition, fase: op.SEQUENZA }, 'BUSINESS');
     }
 
     // In both: every field that can change is taken again from the DiBa
@@ -403,6 +428,7 @@ async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, ann
         await run(`UPDATE JOBSET SET QTA_RICHIESTA = @orderFatherQuant WHERE ID_OPER = @idOper`,
             { orderFatherQuant, idOper }, 'NETPRO');
     }
+    return kept;
 }
 
 /** Phase chain: NetPro CENTRO_SUCCESSIVO and Business at_sufase point to the next phase */
@@ -450,8 +476,11 @@ async function readDibaMaterials(run: SqlRunner, articleFather: string): Promise
     return dibaMatRes.recordset.filter((m) => !isPlaceholderMaterial(m.codfigli));
 }
 
-/** The material rows of the edition in the Business order (movord tipo Y), without the placeholder */
-async function readOrderMaterials(run: SqlRunner, edition: { anno: number; numord: number; rigaPadre: number }): Promise<BusinessMaterialRow[]> {
+/**
+ * The material rows of the edition in the Business order (movord tipo Y), without the placeholder. A row counts as
+ * withdrawn when Business marks it, or when NetPro holds a picked or used quantity on it.
+ */
+async function readOrderMaterials(run: SqlRunner, edition: { anno: number; numord: number; rigaPadre: number }, netOrdine: string): Promise<BusinessMaterialRow[]> {
     const busMatRes = await run<BusinessMaterialRow>(`
             SELECT
                 mo_riga, RTRIM(mo_codart) as codart, mo_quant, RTRIM(mo_descr) as descr, RTRIM(mo_unmis) as unmis,
@@ -460,19 +489,6 @@ async function readOrderMaterials(run: SqlRunner, edition: { anno: number; numor
             WHERE ${MATERIALS_OF_EDITION}
             ORDER BY mo_riga ASC
         `, edition, 'BUSINESS');
-    return busMatRes.recordset.filter((m) => !isPlaceholderMaterial(m.codart));
-}
-
-/**
- * What stops the realign of the edition (syncBlocks.ts), read only, on the rows the realign itself removes by; empty
- * when nothing stops it. The realign asks through its transaction right before the first write; the comparison asks
- * the same (management.ts), so the list and the order page say it before the button is pressed.
- */
-export async function findSyncBlocks(run: SqlRunner, { articleFather, anno, numord, rigaPadre, netOrdine }: SyncEdition): Promise<string[]> {
-    const dibaOps = await readDibaPhases(run, articleFather);
-    const netOps = await readOrderPhases(run, netOrdine);
-    const dibaMat = await readDibaMaterials(run, articleFather);
-    const busMat = await readOrderMaterials(run, { anno, numord, rigaPadre });
     // NetPro keeps the same row number as Business (SEQUENZA = mo_riga)
     const usedRes = await run<{ riga: number }>(`
             SELECT MO.SEQUENZA AS riga
@@ -480,25 +496,41 @@ export async function findSyncBlocks(run: SqlRunner, { articleFather, anno, numo
             WHERE MO.ORDINE = @netOrdine AND ${usedInNetproSql('MO')} = 1
         `, { netOrdine }, 'NETPRO');
     const usedInNetpro = new Set(usedRes.recordset.map((row) => Number(row.riga)));
+    return busMatRes.recordset
+        .filter((m) => !isPlaceholderMaterial(m.codart))
+        .map((m) => ({ ...m, withdrawn: Number(m.withdrawn) || usedInNetpro.has(Number(m.mo_riga)) ? 1 : 0 }));
+}
 
-    return syncBlocks({
+/**
+ * What stops the realign of the edition and what it would leave on the order (syncBlocks.ts), read only, on the rows
+ * the realign itself removes by. The realign asks through its transaction right before the first write; the
+ * comparison asks the same (management.ts), so the list and the order page say what the button will do.
+ */
+export async function findSyncLimits(run: SqlRunner, { articleFather, anno, numord, rigaPadre, netOrdine }: SyncEdition): Promise<SyncLimits> {
+    const dibaOps = await readDibaPhases(run, articleFather);
+    const netOps = await readOrderPhases(run, netOrdine);
+    const dibaMat = await readDibaMaterials(run, articleFather);
+    const busMat = await readOrderMaterials(run, { anno, numord, rigaPadre }, netOrdine);
+    const facts = {
         article: articleFather,
         dibaPhases: dibaOps.map((op) => Number(op.fase)),
         orderPhases: netOps.map(phaseFact),
         dibaMaterials: dibaMat.map(dibaLine),
-        orderMaterials: busMat.map(materialFact).map((row) => ({ ...row, withdrawn: row.withdrawn || usedInNetpro.has(row.riga) })),
-    });
+        orderMaterials: busMat.map(materialFact),
+    };
+    return { blocks: syncBlocks(facts), keeps: syncKeeps(facts) };
 }
 
 /**
  * Materials: rows linked like the official process — Business Y row ↔ DiBa row via mo_disbasriga = md_riga,
  * NetPro row ↔ Business row via MATERIALI_ORDINI.SEQUENZA = mo_riga (a DiBa can list the same code twice).
  * MP_FITTIZIA is never added; once the DiBa has a real material it is removed everywhere (removePlaceholder).
+ * A row already withdrawn is not removed (syncBlocks.ts): the rows left on the order are given back.
  */
-async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget) {
+async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, anno, numord, rigaPadre, netOrdine }: SyncTarget): Promise<KeptMaterial[]> {
     const edition = { anno, numord, rigaPadre };
     const dibaMat = await readDibaMaterials(run, articleFather);
-    const busMat = await readOrderMaterials(run, edition);
+    const busMat = await readOrderMaterials(run, edition, netOrdine);
 
     const busByDibaRiga = new Map<number, BusinessMaterialRow>();
     for (const m of busMat) busByDibaRiga.set(Number(m.disbasriga), m);
@@ -511,30 +543,16 @@ async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, 
         `, { anno, numord }, 'BUSINESS');
     let maxRiga = Number(lastRigaRes.recordset[0]?.riga) || 0;
 
-    // Order rows whose DiBa row is gone or now holds a different code are removed
-    const removed = new Set(materialRowsToRemove(busMat.map(materialFact), dibaMat.map(dibaLine)).map((row) => row.riga));
-    for (const m of busMat) {
-        if (!removed.has(Number(m.mo_riga))) continue;
+    // The order rows with no place in the DiBa any more (its line is gone or now holds another code): told apart on the
+    // rows as they are now, removed at the end; those already withdrawn stay
+    const leaving = materialRowsLeaving(busMat.map(materialFact), dibaMat.map(dibaLine));
+    const removed = new Set(leaving.removed.map((row) => row.riga));
+    // An order can have no material at all, and get its first one now: that row has no row of the edition to copy
+    const firstMaterial = firstMaterialCopies(run, edition, netOrdine);
 
-        await run(`
-                DELETE FROM keyord
-                WHERE codditt = '${BUSINESS_COMPANY}' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
-            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
-
-        await run(`
-                DELETE FROM movord
-                WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
-            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
-
-        await run(`
-                DELETE FROM MATERIALI_ORDINI
-                WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
-            `, { netOrdine, riga: m.mo_riga }, 'NETPRO');
-
-        if (busByDibaRiga.get(Number(m.disbasriga)) === m) busByDibaRiga.delete(Number(m.disbasriga));
-    }
-
-    // DiBa materials: quantity updated when the row exists, new rows added otherwise
+    // DiBa materials: quantity updated when the row exists, new rows added otherwise. Added BEFORE the old rows are
+    // removed: in Business a DiBa line cannot change its code, a material is replaced by deleting its line and adding
+    // a new one (owner, 2026-11-06), and with one material the row to remove is the only one left to copy from
     for (const dm of dibaMat) {
         const expectedQuant = dibaMaterialQty(orderFatherQuant, dm.quant, dm.perpz);
         // NetPro QTA_IMPIEGO = quantity per produced piece (e.g. 1200 / 1358)
@@ -560,26 +578,46 @@ async function syncMaterials(run: SqlRunner, { articleFather, orderFatherQuant, 
             const newRiga = maxRiga;
 
             // Business movord (cloned from a material row of this edition, so the copy keeps its order row, commessa and
-            // NetPro order; price fields not recalculated)
+            // NetPro order; price fields not recalculated). An edition without any material row takes the copy from
+            // another order, with its own order's ids on it (firstMaterial)
             await cloneRowInsert(run, 'BUSINESS', 'movord', MATERIALS_OF_EDITION, edition, {
                 mo_riga: newRiga, mo_codart: dm.codfigli, mo_unmis: dm.unmis || 'Nr', mo_ump: dm.unmis || 'Nr',
-                mo_descr: dm.description, mo_colli: expectedQuant, mo_quant: expectedQuant, mo_coleva: 0, mo_quaeva: 0,
+                mo_descr: dm.description, mo_colli: expectedQuant, mo_quant: expectedQuant,
                 mo_prezzo: 0, mo_valore: 0, mo_valoremm: 0, mo_desint: dm.desint || null, mo_stasino: 'N',
                 mo_disbasriga: dm.riga, mo_ultagg: NOW,
-            });
+            }, firstMaterial.movord);
             // Business keyord (ko_conto, ko_commeca etc. copied from a row of this edition)
             await cloneRowInsert(run, 'BUSINESS', 'keyord',
                 `codditt = '${BUSINESS_COMPANY}' AND ko_tipork = 'Y' AND ko_anno = @anno AND ko_numord = @numord
                  AND ko_riga IN (SELECT mo_riga FROM movord WITH (NOLOCK) WHERE ${MATERIALS_OF_EDITION})`, edition,
-                { ko_riga: newRiga, ko_codart: dm.codfigli });
+                { ko_riga: newRiga, ko_codart: dm.codfigli }, firstMaterial.keyord);
             // NetPro MATERIALI_ORDINI (cloned from an existing row of this order)
             await cloneRowInsert(run, 'NETPRO', 'MATERIALI_ORDINI', 'ORDINE = @netOrdine', { netOrdine }, {
                 SEQUENZA: newRiga, PART_NUMBER: dm.codfigli, QUANTITA: expectedQuant, QTA_IMPIEGO: qtaImpiego,
-            });
+            }, firstMaterial.netpro);
         }
     }
 
+    // Order rows whose DiBa row is gone or now holds a different code are removed, unless already withdrawn
+    for (const m of busMat.filter((row) => removed.has(Number(row.mo_riga)))) {
+        await run(`
+                DELETE FROM keyord
+                WHERE codditt = '${BUSINESS_COMPANY}' AND ko_numord = @numord AND ko_anno = @anno AND ko_tipork = 'Y' AND ko_riga = @riga
+            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
+
+        await run(`
+                DELETE FROM movord
+                WHERE codditt = '${BUSINESS_COMPANY}' AND mo_numord = @numord AND mo_anno = @anno AND mo_tipork = 'Y' AND mo_riga = @riga
+            `, { numord, anno, riga: m.mo_riga }, 'BUSINESS');
+
+        await run(`
+                DELETE FROM MATERIALI_ORDINI
+                WHERE ORDINE = @netOrdine AND SEQUENZA = @riga
+            `, { netOrdine, riga: m.mo_riga }, 'NETPRO');
+    }
+
     if (dibaMat.length > 0) await removePlaceholder(run, { articleFather, anno, numord, rigaPadre, netOrdine });
+    return leaving.kept.map(({ riga, code }) => ({ riga, code }));
 }
 
 /**
@@ -603,8 +641,9 @@ async function removePlaceholder(run: SqlRunner, { articleFather, anno, numord, 
 /**
  * Realigns the production order of one edition to its impegno and its DiBa: quantities, article data, phases, phase chain,
  * materials (in this order). The other editions of the commessa are not touched.
- * Refused, with nothing written, when it would remove something already used: a phase somebody worked on, a material
- * already withdrawn, every phase of an article without DiBa phases (syncBlocks.ts).
+ * What was already used is never removed (syncBlocks.ts): a phase somebody worked on and a material already withdrawn
+ * stay on the order, the rest is realigned, and the result says what stayed. Refused, with nothing written, for an
+ * article without DiBa phases (every phase would go).
  * All the writes run in one transaction per database: if any statement fails, both orders stay as they were.
  */
 export async function syncOrderFromDiba(order: SyncOrderRef): Promise<SyncResult> {
@@ -615,16 +654,16 @@ export async function syncOrderFromDiba(order: SyncOrderRef): Promise<SyncResult
     const commessa = String(target.commessa);
     const before = await snapshotOrder(queryMSSQL, commessa);
 
-    const blocks = await withTransactions(['BUSINESS', 'NETPRO'], async (run) => {
-        // Refused before the first write when the realign would remove something already used
-        const refused = await findSyncBlocks(run, target);
-        if (refused.length > 0) return refused;
+    const { blocks, kept } = await withTransactions(['BUSINESS', 'NETPRO'], async (run) => {
+        // Refused before the first write when the realign would take every phase away
+        const limits = await findSyncLimits(run, target);
+        if (limits.blocks.length > 0) return { blocks: limits.blocks, kept: NO_KEEPS };
         await syncQuantities(run, target);
         await syncArticle(run, target);
-        await syncPhases(run, target);
+        const phases = await syncPhases(run, target);
         await syncPhaseChain(run, target);
-        await syncMaterials(run, target);
-        return [];
+        const materials = await syncMaterials(run, target);
+        return { blocks: [], kept: { phases, materials } };
     });
     if (blocks.length > 0) return { success: false, error: syncBlockText(blocks) };
 
@@ -634,5 +673,5 @@ export async function syncOrderFromDiba(order: SyncOrderRef): Promise<SyncResult
     } catch (error) {
         console.error('Riallinea done, but its rows could not be read back for the log:', error);
     }
-    return { success: true, commessa, numord: target.numord, netOrdine: target.netOrdine, changes };
+    return { success: true, commessa, numord: target.numord, netOrdine: target.netOrdine, changes, kept };
 }

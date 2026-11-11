@@ -70,7 +70,8 @@ export function OperationsComparison({ rows, businessOrderNumber }: { rows: Oper
                     missing(row)
                 ),
         }),
-        top({ key: 'issues', header: t.alignedStatus, className: 'w-56', cell: (row) => <AlignmentCell issues={row.issues} /> }),
+        // A phase that left the DiBa after somebody worked on it stays on the order: said here, not counted as a difference
+        top({ key: 'issues', header: t.alignedStatus, className: 'w-56', cell: (row) => <AlignmentCell issues={row.issues} note={row.kept ? t.keptPhaseNote : undefined} /> }),
     ];
 
     return (

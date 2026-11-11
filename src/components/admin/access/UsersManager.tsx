@@ -21,6 +21,8 @@ import { Input } from '@/components/ui/Input';
 import { LoadState } from '@/components/ui/LoadState';
 import { RecordCount } from '@/components/ui/RecordCount';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useAddress } from '@/hooks/useAddress';
+import { numberParam } from '@/lib/address';
 import { DEFAULT_PIN_KIND, pinKindLabel, type PinKindId } from '@/lib/auth/pinKinds';
 import { confirmDelete } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
@@ -34,11 +36,15 @@ const copy = APP_COPY.admin.users;
  * digits, 8 letters and digits, 16 characters), shown the same way; a PIN can also be typed. Either way their open
  * logins end and the person must choose their own PIN at the next login.
  */
+/** The user whose Scheda persona is open, in the address (?person=<id>) */
+const VIEW = { person: numberParam() };
+
 export function UsersManager() {
     const { users, groups, loading, error, run, reload } = useAccounts();
     const [search, setSearch] = useState('');
+    const view = useAddress(VIEW);
     /** The user whose Scheda persona is open */
-    const [person, setPerson] = useState<UserView | null>(null);
+    const person = users.find((user) => user.id === view.values.person) ?? null;
     /** Per user id, how many facts differ between the programs; read again whenever the list is */
     const [drift, setDrift] = useState<Record<number, number>>({});
 
@@ -124,7 +130,7 @@ export function UsersManager() {
                 onNewPin={rollPin}
                 onSetPin={(user, pin) => run(setUserPinAction(user.id, pin), (res) => fmt(copy.pinReset, { name: user.name, pin: res.pin }))}
                 onDelete={remove}
-                onPerson={setPerson}
+                personLink={(user) => view.link({ person: user.id })}
                 drift={drift}
             />
 
@@ -139,7 +145,7 @@ export function UsersManager() {
                     onClose={() => setNewPin(null)}
                 />
             )}
-            {person && <PersonCardDialog user={person} onSaved={reload} onClose={() => setPerson(null)} />}
+            {person && <PersonCardDialog user={person} onSaved={reload} onClose={() => view.set({ person: null })} />}
         </div>
     );
 }

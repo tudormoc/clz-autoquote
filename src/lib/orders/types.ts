@@ -62,8 +62,10 @@ export interface MisalignedOrder {
     otherOrders: OtherProductionOrder[];
     /** Riallinea takes the order: its article has no other production order on the commessa (the guard of findTarget in sync.ts) */
     canRealign: boolean;
-    /** Why Riallinea would be refused for what it would remove (syncBlocks.ts), in words; none when it would not */
+    /** Why Riallinea would be refused (syncBlocks.ts), in words; none when it would not */
     syncBlocks: string[];
+    /** What Riallinea leaves on the order because it was already used (a worked phase, a withdrawn material), one sentence each */
+    syncKeeps: string[];
     /** What differs, by kind; none when the comparison failed */
     differences: OrderDifference[];
     /** Why the order could not be compared */

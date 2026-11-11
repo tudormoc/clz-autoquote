@@ -1,18 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { getTaskListAction } from '@/app/tasks/task-actions';
 import { LoadState } from '@/components/ui/LoadState';
 import { PriorityBadge, TaskStateBadge } from '@/components/tasks/shared/TaskBadges';
-import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
+import { TaskFilters, matchesFilters } from '@/components/tasks/shared/TaskFilters';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { ExportExcelButton } from '@/components/ui/ExportExcelButton';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
 import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
+import { useAddress } from '@/hooks/useAddress';
 import { useClientSort } from '@/hooks/useClientSort';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { listParam } from '@/lib/address';
 import { getTodayDate } from '@/lib/dateUtils';
 import { reportFileName } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
@@ -25,6 +28,11 @@ import { APP_COPY } from '@/locales';
 const copy = APP_COPY.tasks;
 const columnsCopy = copy.list.columns;
 type Kind = 'once' | 'repeat';
+const KINDS: readonly Kind[] = ['once', 'repeat'];
+const USUAL_STATES: readonly TaskState[] = ['active', 'paused'];
+
+/** The chips switched on, in the address */
+const VIEW = { states: listParam(USUAL_STATES), kinds: listParam(KINDS) };
 
 /** "Ogni mese, il 16" / "Una volta, 16/11/2026" / "Senza data" */
 const whenText = (task: TaskSummary) =>
@@ -56,9 +64,10 @@ const EXCEL_COLUMNS: ExcelColumn<TaskSummary>[] = [
 /** "Attività": every task the person sees, filtered on screen by text, area, person, state and kind; sortable; Excel */
 export function TaskListView() {
     const { data, loading, error } = useActionData(getTaskListAction);
-    const [filters, setFilters] = useState<TaskFilterValues>(EMPTY_FILTERS);
-    const [states, setStates] = useState<ReadonlySet<TaskState>>(new Set<TaskState>(['active', 'paused']));
-    const [kinds, setKinds] = useState<ReadonlySet<Kind>>(new Set<Kind>(['once', 'repeat']));
+    const [filters, setFilters] = useTaskFilters();
+    const view = useAddress(VIEW);
+    const states = useMemo<ReadonlySet<string>>(() => new Set(view.values.states), [view.values.states]);
+    const kinds = useMemo<ReadonlySet<string>>(() => new Set(view.values.kinds), [view.values.kinds]);
 
     const tasks = data?.tasks ?? [];
     const visible = useMemo(
@@ -133,13 +142,13 @@ export function TaskListView() {
                         label={copy.filters.state}
                         options={TASK_STATES.map((state) => ({ key: state, label: copy.states[state], count: tasks.filter((task) => task.state === state).length }))}
                         active={states}
-                        onToggle={(state) => setStates(toggleInSet(states, state))}
+                        onToggle={(state) => view.set({ states: [...toggleInSet(states, state)] }, 'replace')}
                     />
                     <ToggleChips
                         label={copy.filters.kind}
-                        options={(['once', 'repeat'] as const).map((kind) => ({ key: kind, label: copy.kinds[kind] }))}
+                        options={KINDS.map((kind) => ({ key: kind, label: copy.kinds[kind] }))}
                         active={kinds}
-                        onToggle={(kind) => setKinds(toggleInSet(kinds, kind))}
+                        onToggle={(kind) => view.set({ kinds: [...toggleInSet(kinds, kind)] }, 'replace')}
                     />
                 </div>
             </div>

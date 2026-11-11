@@ -6,9 +6,12 @@ import { orderDayAction, postponeOccurrenceAction, quickAddAction, scheduleOccur
 import { getDayLoadsAction, getRangeAction, setTaskPriorityAction } from '@/app/tasks/task-actions';
 import { APP_CONFIG } from '@/config/constants';
 import { LINKS } from '@/config/navigation';
-import { EMPTY_FILTERS, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
+import { matchesFilters } from '@/components/tasks/shared/TaskFilters';
 import { useActionData } from '@/hooks/useActionData';
+import { useAddress } from '@/hooks/useAddress';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { choiceParam, dayParam, flagParam, numberParam } from '@/lib/address';
 import { getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
 import { addDays, maxDate, weekStart } from '@/lib/tasks/dates';
@@ -19,6 +22,17 @@ import { monthGrid, monthKey, shiftMonth } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 
 export type CalendarMode = 'week' | 'month';
+const MODES: CalendarMode[] = ['week', 'month'];
+
+/**
+ * What the calendar shows, in the address: week or month, the day it is around (none = today), the "Senza data" strip,
+ * and what the side panel shows: a card (`card` = its occurrence) or a date a repeating task will have (`task` + `on`).
+ * Week ↔ month, a jump to a day and the side panel are new history steps; back / forward by a period and the strip
+ * stay on the same step. The area / person filters are in the address too (useTaskFilters).
+ */
+const VIEW = { mode: choiceParam(MODES, 'week'), day: dayParam(), undated: flagParam(), card: numberParam(), task: numberParam(), on: dayParam() };
+/** The address values of a closed side panel */
+const NO_SELECTION = { card: null, task: null, on: null };
 
 /** What the side panel shows: a stored occurrence, or a date a repeating task will have */
 export type CalendarSelection = { kind: 'item'; item: AgendaItem } | { kind: 'planned'; entry: PlannedEntry };
@@ -51,15 +65,18 @@ const isTyping = (target: EventTarget | null) =>
 export function useAgendaCalendar() {
     const today = getTodayDate();
     const router = useRouter();
-    const [mode, setMode] = useState<CalendarMode>('week');
-    const [anchor, setAnchor] = useState(today);
-    const [selected, setSelected] = useState<CalendarSelection | null>(null);
+    const { values: view, set: setView } = useAddress(VIEW);
+    const { mode } = view;
+    const anchor = view.day ?? today;
+    /** Today is the calendar's start: left out of the address */
+    const dayValue = useCallback((date: string) => (date === today ? null : date), [today]);
+    /** The last selection found in the data: the side panel keeps it while another period loads */
+    const [kept, setKept] = useState<CalendarSelection | null>(null);
     const [panelVersion, setPanelVersion] = useState(0);
     // Moves and day orders shown before the reload confirms them: id → new day, day → ids first to last
     const [moved, setMoved] = useState<Record<number, string>>({});
     const [ordered, setOrdered] = useState<Record<string, number[]>>({});
-    const [filters, setFilters] = useState<TaskFilterValues>(EMPTY_FILTERS);
-    const [showUndated, setShowUndated] = useState(false);
+    const [filters, setFilters] = useTaskFilters();
 
     const range = useMemo(() => (mode === 'week' ? { start: weekStart(anchor), end: addDays(weekStart(anchor), 6) } : monthGrid(monthKey(anchor))), [mode, anchor]);
     const loadRange = useCallback(() => getRangeAction(range.start, range.end), [range.start, range.end]);
@@ -81,6 +98,32 @@ export function useAgendaCalendar() {
 
     // The data of the range on screen; while another range loads, the old one is not shown on the new days
     const current = rangeData.data && rangeData.data.data.start === range.start ? rangeData.data.data : null;
+
+    // What the side panel shows: named in the address, found in the data on screen (fresh after every reload)
+    const { card, task: plannedTask, on: plannedDate } = view;
+    const found = useMemo<CalendarSelection | null>(() => {
+        if (!current) return null;
+        if (card !== null) {
+            const item = [...current.items, ...current.overdue, ...current.undated].find((each) => each.id === card);
+            return item ? { kind: 'item', item } : null;
+        }
+        const entry = plannedTask !== null && plannedDate !== null ? current.planned.find((each) => each.taskId === plannedTask && each.date === plannedDate) : undefined;
+        return entry ? { kind: 'planned', entry } : null;
+    }, [current, card, plannedTask, plannedDate]);
+    if (found && found !== kept) setKept(found);
+    const keptIsNamed = kept !== null && (kept.kind === 'item' ? kept.item.id === card : card === null && kept.entry.taskId === plannedTask && kept.entry.date === plannedDate);
+    const selected = found ?? (keptIsNamed ? kept : null);
+
+    /** Opens the side panel on a card or a planned date (null closes it): a new history step, so Back returns to the one before */
+    const select = useCallback(
+        (selection: CalendarSelection | null) => {
+            if (!selection) return setView(NO_SELECTION);
+            setKept(selection);
+            if (selection.kind === 'item') setView({ card: selection.item.id, task: null, on: null });
+            else setView({ card: null, task: selection.entry.taskId, on: selection.entry.date });
+        },
+        [setView]
+    );
 
     const days = useMemo(() => {
         const map = new Map<string, DayContent>();
@@ -145,8 +188,8 @@ export function useAgendaCalendar() {
     const shownIds = (date: string) => (shownDays.get(date)?.open ?? []).map((card) => card.id);
 
     const shift = useCallback(
-        (by: number) => setAnchor((date) => (mode === 'week' ? addDays(date, 7 * by) : `${shiftMonth(monthKey(date), by)}-01`)),
-        [mode]
+        (by: number) => setView({ day: dayValue(mode === 'week' ? addDays(anchor, 7 * by) : `${shiftMonth(monthKey(anchor), by)}-01`) }, 'replace'),
+        [mode, anchor, dayValue, setView]
     );
 
     useEffect(() => {
@@ -155,11 +198,11 @@ export function useAgendaCalendar() {
             if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) return;
             if (event.key === 'ArrowLeft') shift(-1);
             else if (event.key === 'ArrowRight') shift(1);
-            else if (event.key === 't' || event.key === 'T') setAnchor(today);
+            else if (event.key === 't' || event.key === 'T') setView({ day: null }, 'replace');
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [shift, today]);
+    }, [shift, setView]);
 
     /** Saves the order of a day's open cards (shown at once) */
     const saveOrder = async (date: string, ids: number[]) => {
@@ -251,7 +294,7 @@ export function useAgendaCalendar() {
 
     /** After a task was deleted: the side panel closes if it showed it, everything reloads */
     const taskDeleted = async (taskId: number) => {
-        setSelected((current) => (current && (current.kind === 'item' ? current.item.taskId : current.entry.taskId) === taskId ? null : current));
+        if (selected && (selected.kind === 'item' ? selected.item.taskId : selected.entry.taskId) === taskId) setView(NO_SELECTION, 'replace');
         await reloadAll();
     };
 
@@ -275,7 +318,7 @@ export function useAgendaCalendar() {
     return {
         today,
         mode,
-        setMode,
+        setMode: (next: CalendarMode) => setView({ mode: next }),
         anchor,
         range,
         data,
@@ -285,16 +328,17 @@ export function useAgendaCalendar() {
         filters,
         setFilters,
         /** The "Senza data" strip is open */
-        showUndated,
-        setShowUndated,
+        showUndated: view.undated,
+        setShowUndated: (shown: boolean) => setView({ undated: shown }, 'replace'),
         /** What the filters choose from (kept from the last period while the next one loads) */
         filterOptions: { areas: rangeData.data?.data.areas ?? [], people: rangeData.data?.data.people ?? [] },
         loads: horizon.data?.loads ?? null,
         horizonStart,
         shift,
-        goTo: setAnchor,
+        /** Jumps to a day, in the week or month view when one is named */
+        goTo: (date: string, next: CalendarMode = mode) => setView({ day: dayValue(date), mode: next }),
         selected,
-        select: setSelected,
+        select,
         panelVersion,
         /** Reloads the calendar, the strip and the side panel (after a change made inside the panel) */
         refresh: reloadAll,

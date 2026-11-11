@@ -2,34 +2,32 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Boxes, Check, Layers, Workflow } from 'lucide-react';
+import { useOrderAddress, type WorkspaceTab } from '@/hooks/useOrderAddress';
 import { OrderManagementPanel } from '@/components/analytics/order-operations/OrderManagementPanel';
 import { OrderMaterialsPanel } from '@/components/analytics/order-operations/OrderMaterialsPanel';
 import { ProductionFlowPanel } from '@/components/analytics/order-operations/ProductionFlowPanel';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
 import type { OrderDetails } from '@/hooks/useOrderSearch';
 import type { buildProductionFlow } from '@/lib/orders/flow';
-import { APP_CONFIG } from '@/config/constants';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
 const t = APP_COPY.analytics.orderOperations;
-
-type WorkspaceTab = 'flow' | 'materials' | 'management';
 
 interface OrderWorkspaceProps {
     order: OrderDetails;
     flow: ReturnType<typeof buildProductionFlow>;
 }
 
-/** The open order: tabs for the production flow, the materials and the DiBa comparison. */
+/** The open order: tabs for the production flow, the materials and the DiBa comparison (the open tab is in the address). */
 export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
-    const [tab, setTab] = useState<WorkspaceTab>('flow');
+    const address = useOrderAddress();
+    const { tab } = address.values;
     // DiBa alignment as reported by the comparison panel (it stays right after a refresh or a realign there)
     const [diba, setDiba] = useState<{ hasDiscrepancies: boolean; count: number } | null>(null);
 
     const hasDiscrepancies = diba ? diba.hasDiscrepancies : !!order.management.has_discrepancies;
     const discrepancyCount = diba ? diba.count : order.management.discrepancy_count || 0;
-    const rootCommessaKey = order.editions[0]?.commessa_full?.slice(0, APP_CONFIG.ORDERS.ROOT_KEY_LENGTH) ?? '';
 
     const tabs: TabItem<WorkspaceTab>[] = [
         { id: 'flow', label: t.operationsTab, icon: <Workflow className="w-4 h-4 text-info-400" />, count: order.operations.length },
@@ -56,7 +54,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
 
     return (
         <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border/80 bg-card/40 overflow-hidden">
-            <TabBar tabs={tabs} active={tab} onChange={setTab} className="flex-shrink-0 px-2 pt-2 border-b border-border/80" />
+            <TabBar tabs={tabs} active={tab} linkOf={(id) => address.link({ tab: id })} className="flex-shrink-0 px-2 pt-2 border-b border-border/80" />
             <div className="lg:flex-1 lg:min-h-0 relative">
                 <div className={panel('flow')}>
                     <ProductionFlowPanel flow={flow} />
@@ -67,7 +65,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
                 <div className={panel('management')}>
                     <OrderManagementPanel
                         initial={order.management}
-                        rootCommessaKey={rootCommessaKey}
+                        rootCommessaKey={order.key}
                         editions={order.editions}
                         onStatusChange={(hasDiscrepancies, count) => setDiba({ hasDiscrepancies, count })}
                     />

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { createGroupAction, deleteGroupAction, renameGroupAction, setGroupPagesAction } from '@/app/access-actions';
 import { GroupCards } from '@/components/admin/access/GroupCards';
 import { GroupEditor } from '@/components/admin/access/GroupEditor';
@@ -8,13 +7,18 @@ import { NewNameForm } from '@/components/admin/access/NewNameForm';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadState } from '@/components/ui/LoadState';
 import { useAccounts } from '@/hooks/useAccounts';
+import { useAddress } from '@/hooks/useAddress';
 import { useGroupDrafts } from '@/hooks/useGroupDrafts';
+import { numberParam } from '@/lib/address';
 import type { Group } from '@/lib/auth/accounts';
 import type { PagePermissions } from '@/lib/auth/permissions';
 import { confirmDelete } from '@/lib/confirm';
 import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.admin.groups;
+
+/** The group being worked on, in the address (?group=<id>) */
+const VIEW = { group: numberParam() };
 
 /**
  * Impostazioni → Gruppi (superadmin): the groups as cards, and the one picked with everything it can do as lights
@@ -25,7 +29,9 @@ export function GroupsManager() {
     const { users, groups, loading, error, run } = useAccounts();
     const drafts = useGroupDrafts((id, pages) => run(setGroupPagesAction(id, pages)));
     /** The group being worked on; none picked yet (or it was deleted) = the first */
-    const [selectedId, setSelectedId] = useState<number | null>(null);
+    const view = useAddress(VIEW);
+    const selectedId = view.values.group;
+    const setSelectedId = (id: number) => view.set({ group: id });
 
     if (loading || error) return <LoadState loading={loading} error={error} />;
 
@@ -52,7 +58,7 @@ export function GroupsManager() {
             <div className="space-y-3">
                 <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={(name) => create(name)} />
                 {selected && (
-                    <GroupCards groups={groups} selectedId={selected.id} pagesOf={drafts.pagesOf} members={members} onSelect={(group) => setSelectedId(group.id)} />
+                    <GroupCards groups={groups} selectedId={selected.id} pagesOf={drafts.pagesOf} members={members} linkOf={(group) => view.link({ group: group.id })} />
                 )}
                 <p className="text-xs text-fg-muted">{copy.hint}</p>
             </div>

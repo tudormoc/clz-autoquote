@@ -8,6 +8,7 @@ import { emptyManagement, fetchOrderManagement } from '@/lib/orders/management';
 import { findMisalignedOrder, findMisalignedOrders } from '@/lib/orders/misaligned';
 import type { RowChange } from '@/lib/orders/snapshot';
 import { syncOrderFromDiba, type SyncOrderRef } from '@/lib/orders/sync';
+import { keepsSomething, syncKeepLines, syncKeepNames } from '@/lib/orders/syncBlocks';
 import type { MasterOrderMatch, MisalignedOrder, MisalignedOrders, OrderDetailsData } from '@/lib/orders/types';
 import { logEvent, personOf } from '@/lib/log/log';
 import { errorMessage } from '@/lib/utils';
@@ -90,9 +91,10 @@ export async function refreshMisalignedOrderAction(netproOrder: string): Promise
  * "Riallinea": rewrites the Business and NetPro order of one edition from its impegno and its DiBa (WRITES to both
  * databases; the other editions of the commessa are not touched).
  * Needs "modifica" on the page and the Riallinea function, given apart in Gruppi. Every run is written in the log
- * (Registro) with the rows it changed, also when it is refused or fails.
+ * (Registro) with the rows it changed, also when it is refused or fails. Gives back, one sentence each, what was left
+ * on the order because it was already used.
  */
-export async function syncOrderFromDibaAction(order: SyncOrderRef): Promise<{ success: true } | Failure> {
+export async function syncOrderFromDibaAction(order: SyncOrderRef): Promise<{ success: true; kept: string[] } | Failure> {
     const access = await authorize('edit', LINKS.workProgress);
     await authorize('edit', WORK_PROGRESS_FUNCTIONS.riallinea);
     const who = personOf(access);
@@ -109,13 +111,16 @@ export async function syncOrderFromDibaAction(order: SyncOrderRef): Promise<{ su
             return result;
         }
         const count = (change: RowChange['change']) => result.changes?.filter((row) => row.change === change).length ?? 0;
+        const summary = fmt(log.riallinea, { commessa: result.commessa, order: result.numord, changed: count('changed'), added: count('added'), removed: count('removed') });
+        // What was left on the order because it was already used (a worked phase, a withdrawn material) is told too
+        const somethingKept = keepsSomething(result.kept);
         await logEvent(who, {
             ...entry,
             entityId: result.commessa,
-            summary: fmt(log.riallinea, { commessa: result.commessa, order: result.numord, changed: count('changed'), added: count('added'), removed: count('removed') }),
-            details: { order: result.numord, netpro: result.netOrdine, rows: result.changes },
+            summary: somethingKept ? fmt(log.riallineaKept, { summary, kept: syncKeepNames(result.kept) }) : summary,
+            details: { order: result.numord, netpro: result.netOrdine, ...(somethingKept ? { kept: result.kept } : {}), rows: result.changes },
         });
-        return { success: true };
+        return { success: true, kept: syncKeepLines(result.kept) };
     } catch (err) {
         console.error('Error in syncOrderFromDibaAction:', err);
         await failed('error', errorMessage(err));

@@ -2,10 +2,11 @@
 
 import { Fragment, useEffect, useRef } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { DataCards, rowClickProps } from '@/components/ui/DataCards';
+import { DataCards, rowLinkProps } from '@/components/ui/DataCards';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import type { ViewTarget } from '@/hooks/useAddress';
 import type { SortState } from '@/hooks/useReportTable';
 
 type Align = 'left' | 'right' | 'center';
@@ -39,8 +40,12 @@ interface DataTableProps<R> {
     rows: R[];
     getRowKey?: (row: R, index: number) => React.Key;
     getRowClassName?: (row: R) => string | undefined;
-    /** A click on a row (or Enter on it); buttons inside a cell stop the click themselves */
-    onRowClick?: (row: R) => void;
+    /**
+     * A row that opens a view (`link(...)` of useAddress): a click anywhere on it follows the link, the middle button or
+     * Ctrl + click opens it in a new tab; links and buttons inside a cell act for themselves. Show the same link in the
+     * row's main cell as a ViewLink, so it can also be copied.
+     */
+    rowLink?: (row: R) => ViewTarget;
     /** More about a row, shown under it over the whole width (nothing = no extra line) */
     rowDetail?: (row: R) => React.ReactNode;
     sort?: SortState | null;
@@ -88,7 +93,7 @@ export function DataTable<R>({
     rows,
     getRowKey = (_row, index) => index,
     getRowClassName,
-    onRowClick,
+    rowLink,
     rowDetail,
     sort,
     onSort,
@@ -131,7 +136,7 @@ export function DataTable<R>({
                         rows={rows}
                         getRowKey={getRowKey}
                         getRowClassName={getRowClassName}
-                        onRowClick={onRowClick}
+                        rowLink={rowLink}
                         rowDetail={rowDetail}
                         sort={sort}
                         onSort={onSort}
@@ -189,7 +194,7 @@ export function DataTable<R>({
                             const detail = rowDetail?.(row);
                             return (
                                 <Fragment key={getRowKey(row, index)}>
-                                    <TableRow className={cn(onRowClick && 'cursor-pointer', getRowClassName?.(row))} {...rowClickProps(row, onRowClick)}>
+                                    <TableRow className={cn(rowLink && 'cursor-pointer', getRowClassName?.(row))} {...rowLinkProps(rowLink?.(row))}>
                                         {columns.map((column) => (
                                             <TableCell
                                                 key={column.key}

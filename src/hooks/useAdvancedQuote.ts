@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
+import { useAddress } from './useAddress';
 import { usePricingRules } from './usePricingRules';
 import { calculateDetailedQuote } from '@/lib/pricing/engine';
 import { calculateCoverProductionType } from '@/lib/pricing/formulas';
@@ -9,9 +10,13 @@ import { QuoteBreakdown, QuoteInput } from '@/lib/pricing/types';
 import { processQuoteAction, getQuoteHistoryAction, deleteQuoteAction } from '@/app/actions';
 import { Quote } from '@/types';
 import { APP_CONFIG } from '@/config/constants';
+import { textParam } from '@/lib/address';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.form;
+
+/** The saved quote the form shows, in the address (?quote=<id>); none = a new quote */
+const VIEW = { quote: textParam() };
 
 const DEFAULT_VALUES: QuoteInput = {
     project_title: copy.defaultProjectTitle,
@@ -51,7 +56,11 @@ export const useAdvancedQuote = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [history, setHistory] = useState<Quote[]>([]);
-    const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+    const view = useAddress(VIEW);
+    // Only a quote that exists counts as open: a link to a deleted one shows a new quote, and saving never updates nothing
+    const selectedQuoteId = history.some((quote) => quote.id === view.values.quote) ? view.values.quote : null;
+    /** The quote the form was last filled from ('' = the empty form), so reloading the list never overwrites what is being typed */
+    const filledFrom = useRef('');
 
     useEffect(() => {
         getQuoteHistoryAction().then(setHistory);
@@ -120,7 +129,8 @@ export const useAdvancedQuote = () => {
 
     const resetToDefault = () => {
         form.reset(DEFAULT_VALUES);
-        setSelectedQuoteId(null);
+        filledFrom.current = '';
+        view.set({ quote: '' });
     };
 
     const handleDeleteQuote = async (id: string) => {
@@ -140,8 +150,8 @@ export const useAdvancedQuote = () => {
         }
     };
 
-    const selectQuote = (quote: Quote) => {
-        setSelectedQuoteId(quote.id);
+    const fillForm = (quote: Quote) => {
+        filledFrom.current = quote.id;
         if (quote.specifications) {
             const specs = quote.specifications as QuoteInput;
             form.reset({
@@ -177,6 +187,32 @@ export const useAdvancedQuote = () => {
         }
     };
 
+    /** A real link to a saved quote: a plain click fills the form with it (again too, dropping what was typed) */
+    const quoteLink = (quote: Quote) => {
+        const target = view.link({ quote: quote.id });
+        return {
+            href: target.href,
+            onOpen: () => {
+                fillForm(quote);
+                target.onOpen();
+            },
+        };
+    };
+
+    // The address names another quote (a link, Back, Forward): the form follows it once the saved quotes are there
+    const addressQuote = view.values.quote;
+    useEffect(() => {
+        if (filledFrom.current === addressQuote) return;
+        if (!addressQuote) {
+            form.reset(DEFAULT_VALUES);
+            filledFrom.current = '';
+            return;
+        }
+        const quote = history.find((each) => each.id === addressQuote);
+        if (quote) fillForm(quote);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [addressQuote, history]);
+
     return {
         form,
         estimate,
@@ -188,7 +224,7 @@ export const useAdvancedQuote = () => {
         selectedQuoteId,
         resetToDefault,
         handleDeleteQuote,
-        selectQuote,
+        quoteLink,
         handleSave: form.handleSubmit(onSubmit)
     };
 };

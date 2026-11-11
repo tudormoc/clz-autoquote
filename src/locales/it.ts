@@ -909,6 +909,7 @@ export const APP_COPY = {
     /** One line per entry the app writes */
     entries: {
       riallinea: "Riallinea commessa {commessa} (ordine {order}): {changed} righe cambiate, {added} aggiunte, {removed} rimosse",
+      riallineaKept: "{summary} · lasciate perché già usate: {kept}",
       riallineaFailed: "Riallinea commessa {commessa} non eseguito",
       login: "Accesso",
       loginFailed: "PIN errato",
@@ -938,6 +939,7 @@ export const APP_COPY = {
       labourRate: "Costo del lavoro, {name}: {from} → {value}",
       eventUpdated: "Evento presenza di {operator}: {column} → {value}",
       eventCreated: "Evento presenza creato: {operator}, {event} alle {time}",
+      eventDeleted: "Evento presenza eliminato: {operator}, {event} del {time}",
       hoursUpdated: "Ore di {operator} del {date}: {field} {from} → {value}",
       prefill: "Precompilazione assenze {from} – {to}: {count} giorni compilati",
       presenceSetting: "Regola presenze {name}: {from} → {value}",
@@ -1399,9 +1401,21 @@ export const APP_COPY = {
       syncArticleDiffers: "Riallineamento non disponibile: l'articolo dell'ordine è diverso (Business {business}, NetPro {netpro}). Da correggere a mano.",
       syncRowsOfAnotherOrder: "Riallineamento non eseguito: sotto la riga dell'ordine ci sono fasi ({phases}) o materiali ({materials}) con un altro articolo, un'altra commessa o un altro ordine NetPro.",
       syncNoDibaPhases: "Riallineamento bloccato: l'articolo {article} non ha fasi in DiBa, l'ordine perderebbe tutte le sue fasi.",
-      syncPhaseStarted: "Riallineamento bloccato: fasi non più in DiBa ma già lavorate in NetPro ({phases}).",
-      syncMaterialWithdrawn: "Riallineamento bloccato: materiali non più in DiBa ma già prelevati ({materials}).",
+      syncNoSharedPhase: "Riallineamento bloccato: nessuna fase dell'ordine è nella DiBa dell'articolo e ci sono ore già registrate (fase {phases}). Da controllare a mano.",
       syncBlocked: "Bloccato",
+      // What a realign leaves on the order because it was already used (src/lib/orders/syncBlocks.ts)
+      syncKeepsTitle: "Resta sull'ordine",
+      syncKeepsHint: "Ciò che è già stato usato non viene rimosso: tutto il resto viene allineato.",
+      syncKeepsPhase: "Fase {fase}: resta sull'ordine, ha ore registrate in NetPro (non è più in DiBa).",
+      syncKeepsMaterial: "Materiale {code}: resta sull'ordine, è già stato prelevato (non è più in DiBa).",
+      syncKeptPhaseName: "fase {fase}",
+      syncKeptMaterialName: "materiale {code}",
+      syncKept: "Resta",
+      syncKeptBadge: "Resta: {kept}",
+      keptPhaseNote: "Resta: ha ore registrate",
+      keptMaterialNote: "Resta: già prelevato",
+      syncNoTemplateRow: "Nessuna riga modello in {table} da cui copiare la nuova riga.",
+      syncUnknownColumn: "Colonna {column} non trovata in {table}.",
       syncConfirmTitle: "Riallineamento Ordine da DiBa",
       syncConfirmDescription: "Verranno aggiornati in-place quantità, dati articolo, lavorazioni e materiali sia in Business che in NetPro mantenendo inalterati gli ID ordine esistenti.",
       syncConfirmButton: "Conferma e Riallinea",
@@ -1694,6 +1708,12 @@ export const APP_COPY = {
       noResults: "Nessun operatore trovato.",
       loading: "Caricamento operatori...",
       editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli; la matita apre tutti i campi",
+      // A stato fisico changed by hand into IN or out of IN: what happened to the presence events (src/lib/presence/events.ts)
+      stato: {
+        eventCreated: "Stato {stato}: creato l'evento {event} delle {time}",
+        onlyStato: "Stato {stato}: nessun evento creato, l'ultimo evento è già {event}",
+        noEntry: "Stato {stato}: nessun evento creato, non c'è un'entrata da chiudere",
+      },
       // "Nuovo operatore" / "Modifica operatore" window (OperatorFormModal, rules in src/lib/presence/operatorInput.ts)
       form: {
         newButton: "Nuovo operatore",
@@ -1712,7 +1732,7 @@ export const APP_COPY = {
         badgePlaceholder: "numero della tessera, o vuoto",
         category: "Categoria",
         /** Under the category when the one of the people who left is chosen ({category}: its name, {stato}: the stato it gives) */
-        leaving: "Con {category} esce dalle presenze; in Operatori si vede solo con il filtro {category}. Stato fisico {stato}, il nome resta com'è.",
+        leaving: "Con {category} esce dalle presenze; in Operatori si vede solo con il filtro {category}. Stato fisico {stato} (se è dentro viene scritta anche l'uscita), il nome resta com'è.",
         matricola: "Matricola",
         matricolaHint: "Uguale al codice operatore",
         freeFields: "Campi liberi di NetPro",
@@ -1771,6 +1791,18 @@ export const APP_COPY = {
         event: "Evento",
         date: "Data",
         time: "Ora",
+      },
+      // Tick boxes of the list and "Elimina": only the event rows go, like in NetPro (src/lib/presence/eventDelete.ts)
+      delete: {
+        select: "Seleziona",
+        selectEvent: "Seleziona {event}",
+        button: "Elimina ({count})",
+        confirm: "Eliminare gli eventi selezionati ({count})? {list}",
+        done: "Eventi eliminati: {count}",
+        /** One event in a list: operator, ENT / EXT, date and time */
+        event: "{operator} {event} {time}",
+        blocked: "Nessun evento eliminato: tra l'entrata e l'uscita l'operatore ha altre registrazioni (lavorazioni). Eventi bloccati: {list}",
+        gone: "Nessun evento eliminato: {event} non c'è più. Ricarica la lista.",
       },
     },
     monthlySummary: {

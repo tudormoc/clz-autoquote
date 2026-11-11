@@ -4,12 +4,14 @@ import { useMemo } from 'react';
 import { Dices, Trash2, UserRound } from 'lucide-react';
 import type { UserView } from '@/app/access-actions';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
+import { ViewLink } from '@/components/ui/ViewLink';
+import type { ViewTarget } from '@/hooks/useAddress';
 import { useClientSort } from '@/hooks/useClientSort';
 import type { Group } from '@/lib/auth/accounts';
 import { PIN_KIND_OPTIONS, type PinKindId } from '@/lib/auth/pinKinds';
@@ -49,8 +51,8 @@ interface UsersTableProps {
     /** Saves a PIN typed by the superadmin; true when saved */
     onSetPin: (user: UserView, pin: string) => Promise<boolean>;
     onDelete: (user: UserView) => void;
-    /** Opens the Scheda persona */
-    onPerson: (user: UserView) => void;
+    /** The link that opens the Scheda persona */
+    personLink: (user: UserView) => ViewTarget;
     /** Per user id, how many facts differ between the programs (the "≠"); missing = none or not linked */
     drift: Record<number, number>;
 }
@@ -60,7 +62,7 @@ interface UsersTableProps {
  * "≠" when their data differ between the programs), active switch, a tick per group, how many pages their groups open,
  * last login, PIN (click to type one; the dice rolls a random one of the chosen kind), delete. On phones one card per user.
  */
-export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete, onPerson, drift }: UsersTableProps) {
+export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete, personLink, drift }: UsersTableProps) {
     const pagesOf = useMemo(
         () => new Map(users.map((user) => [user.id, mergePermissions(groups.filter((group) => user.groupIds.includes(group.id)).map((group) => group.pages))])),
         [users, groups]
@@ -101,10 +103,14 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
     const personButton = (user: UserView) => {
         const count = drift[user.id] ?? 0;
         return (
-            <Button variant="ghost" size="sm" title={count > 0 ? fmt(APP_COPY.admin.person.driftBadge, { count }) : APP_COPY.admin.person.open} onClick={() => onPerson(user)}>
+            <ViewLink
+                to={personLink(user)}
+                title={count > 0 ? fmt(APP_COPY.admin.person.driftBadge, { count }) : APP_COPY.admin.person.open}
+                className={buttonClasses({ variant: 'ghost', size: 'sm' })}
+            >
                 <UserRound size={16} className={count > 0 ? 'text-warning-400' : undefined} />
                 {count > 0 && <span className="text-2xs font-medium text-warning-400">≠ {count}</span>}
-            </Button>
+            </ViewLink>
         );
     };
 

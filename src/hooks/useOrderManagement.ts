@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { refreshOrderOperationsManagementAction, syncOrderFromDibaAction } from '@/app/analytics/queries/order-operations-queries';
 import { notify } from '@/lib/notify';
 import { errorMessage } from '@/lib/utils';
@@ -11,11 +11,13 @@ const t = APP_COPY.analytics.orderOperations;
 
 /**
  * Comparison of an order with its DiBa (Business and NetPro): the data shown, reloading it (also for another edition) and
- * the realign from DiBa. `onStatusChange` reports whether the order is aligned whenever the data changes.
+ * the realign from DiBa. `edition` is the commessa of the edition to compare, as the address names it: another one is
+ * read when it is not the one shown. `onStatusChange` reports whether the order is aligned whenever the data changes.
  */
 export function useOrderManagement(
     initial: OrderOperationsManagementData,
     rootCommessaKey: string,
+    edition: string,
     onStatusChange?: (hasDiscrepancies: boolean, count: number) => void
 ) {
     const [data, setData] = useState(initial);
@@ -32,31 +34,47 @@ export function useOrderManagement(
         statusCallback.current?.(hasDiscrepancies, discrepancyCount);
     }, [hasDiscrepancies, discrepancyCount]);
 
+    // Only the latest read may update the screen (two editions asked for one after the other)
+    const reads = useRef(0);
+
     /** Loads the data again from the databases, for one edition if given; true when it worked */
-    const reload = async (articleFather?: string, commessaFull?: string) => {
-        if (!rootCommessaKey) return false;
-        setRefreshing(true);
-        try {
-            const res = await refreshOrderOperationsManagementAction(rootCommessaKey, articleFather, commessaFull);
-            if (res.success) {
-                setData(res.operationsManagement);
-                return true;
+    const reload = useCallback(
+        async (articleFather?: string, commessaFull?: string) => {
+            if (!rootCommessaKey) return false;
+            const id = ++reads.current;
+            setRefreshing(true);
+            try {
+                const res = await refreshOrderOperationsManagementAction(rootCommessaKey, articleFather, commessaFull);
+                if (id !== reads.current) return false;
+                if (res.success) {
+                    setData(res.operationsManagement);
+                    return true;
+                }
+                notify.error(res.error || t.errorSaving);
+            } catch (err) {
+                if (id === reads.current) notify.error(errorMessage(err) || t.errorSaving);
+            } finally {
+                if (id === reads.current) setRefreshing(false);
             }
-            notify.error(res.error || t.errorSaving);
-        } catch (err) {
-            notify.error(errorMessage(err) || t.errorSaving);
-        } finally {
-            setRefreshing(false);
-        }
-        return false;
-    };
+            return false;
+        },
+        [rootCommessaKey]
+    );
+
+    // The edition the address names (another one picked, Back, a link) is read when it is not the one on screen
+    const shownEdition = useRef(data.commessa_full);
+    useEffect(() => {
+        shownEdition.current = data.commessa_full;
+    });
+    useEffect(() => {
+        if (edition && edition !== shownEdition.current) void reload(undefined, edition);
+    }, [edition, reload]);
 
     return {
         data,
         refreshing,
         syncing,
         refresh: () => reload(data.article_father, data.commessa_full),
-        selectEdition: (commessaFull: string) => (commessaFull === data.commessa_full ? undefined : reload(undefined, commessaFull)),
         /** Rewrites the Business and NetPro order of the edition shown from its DiBa, then reloads; true when it worked */
         sync: async () => {
             if (!data.commessa_full) {
@@ -71,6 +89,8 @@ export function useOrderManagement(
                     return false;
                 }
                 notify.success(t.syncSuccess);
+                // What stayed on the order because it was already used
+                if (res.kept.length > 0) notify.info(res.kept.join(' '));
                 await reload(data.article_father, data.commessa_full);
                 return true;
             } catch (err) {

@@ -164,6 +164,8 @@ export interface PresenceEventRow {
     EVENTO: string;
     /** Stored wall-clock time (server actions keep Dates) */
     ORA_EVENTO: Date;
+    /** NetPro's counter of the events of one instant: with operator, event and time it names the row */
+    PROGRESSIVO: number;
 }
 
 /** Columns of presence_hours_distribution the monthly table may change (the server refuses any other) */
@@ -258,6 +260,23 @@ export interface OrderEdition {
     part_number?: string;
 }
 
+/** A material row that stays on an order: its row in the order (mo_riga = NetPro SEQUENZA) and its code */
+export interface KeptMaterial {
+    riga: number;
+    code: string;
+}
+
+/**
+ * What Riallinea leaves on an order although the DiBa no longer has it, because it was already used
+ * (src/lib/orders/syncBlocks.ts)
+ */
+export interface SyncKeeps {
+    /** The phases somebody already worked on (fase numbers) */
+    phases: number[];
+    /** The material rows already withdrawn */
+    materials: KeptMaterial[];
+}
+
 export interface OrderOperationsManagementData {
     article_father: string;
     ordine_netpro: string;
@@ -284,6 +303,8 @@ export interface OrderOperationsManagementData {
     discrepancy_count?: number;
     /** Why Riallinea would be refused as the order is now, in words (src/lib/orders/syncBlocks.ts); none when it would not */
     sync_blocks?: string[];
+    /** What Riallinea leaves on the order although the DiBa no longer has it: phases already worked on, materials already withdrawn */
+    sync_keeps?: SyncKeeps;
     /** The quantities of the edition in the impegno cliente, the Business order and the NetPro order (the "Quantità" tab) */
     quantities?: OrderQuantities;
     /** The title of the article in the same documents and the article masters (the "Articolo" tab) */

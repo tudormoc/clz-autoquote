@@ -12,8 +12,15 @@ export const hasWorkSql = (idOper: string) => `CASE WHEN EXISTS (
         SELECT 1 FROM JOBSET WRK_J WITH (NOLOCK) JOIN SITUAZIONI WRK_S WITH (NOLOCK) ON WRK_S.TASK = WRK_J.TASK
         WHERE WRK_J.ID_OPER = ${idOper}) THEN 1 ELSE 0 END`;
 
+/** How Business stores a date that is not set: 1 January 1900 */
+export const BUSINESS_EMPTY_DATE = '19000101';
+
+/** Business's "evaso" flag of an order row or a phase (mo_flevas, at_flevas): S once it is withdrawn / done, C until then */
+export const EVASO = 'S';
+export const NOT_EVASO = 'C';
+
 /** 1 when Business marks a material row of a production order (movord tipo Y) as withdrawn ("evaso"), in part or in full; else 0 */
-export const WITHDRAWN_IN_BUSINESS_SQL = `CASE WHEN ISNULL(mo_quaeva, 0) <> 0 OR mo_flevas = 'S' THEN 1 ELSE 0 END`;
+export const WITHDRAWN_IN_BUSINESS_SQL = `CASE WHEN ISNULL(mo_quaeva, 0) <> 0 OR mo_flevas = '${EVASO}' THEN 1 ELSE 0 END`;
 
 /** 1 when NetPro holds a picked or used quantity on a material row of an order (MATERIALI_ORDINI, named by `alias`); else 0 */
 export const usedInNetproSql = (alias: string) => `CASE WHEN ISNULL(${alias}.QTA_PRELEVATA, 0) <> 0 OR ISNULL(${alias}.QTA_USATA, 0) <> 0 THEN 1 ELSE 0 END`;

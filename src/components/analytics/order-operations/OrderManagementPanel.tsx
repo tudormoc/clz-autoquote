@@ -10,17 +10,17 @@ import { ProductionOperationsTable } from '@/components/analytics/order-operatio
 import { DocumentFactsComparison } from '@/components/analytics/order-operations/DocumentFactsComparison';
 import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
+import { useOrderAddress, type ManagementTab } from '@/hooks/useOrderAddress';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
 import { ARTICLE_RULES, titleText } from '@/lib/orders/article';
 import { compareOrder } from '@/lib/orders/differences';
 import { QUANTITY_RULES, quantityText } from '@/lib/orders/quantities';
+import { syncKeepLines } from '@/lib/orders/syncBlocks';
 import { previewSync } from '@/lib/orders/syncPreview';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
 const t = APP_COPY.analytics.orderOperations;
-
-type ManagementTab = 'comparison' | 'materials' | 'quantity' | 'article' | 'diba' | 'order';
 
 interface OrderManagementPanelProps {
     /** What was loaded with the order; the panel reloads it by itself afterwards */
@@ -34,11 +34,15 @@ interface OrderManagementPanelProps {
 /**
  * Compares an order with its DiBa (Distinta Base, the truth): phases and materials of the Business order and the NetPro
  * order side by side, the quantity in every place, the DiBa and the production order lists, and the realign of the
- * order from the DiBa.
+ * order from the DiBa. The open tab and the edition compared are in the address.
  */
 export function OrderManagementPanel({ initial, rootCommessaKey, editions, onStatusChange }: OrderManagementPanelProps) {
-    const { data, refreshing, syncing, refresh, selectEdition, sync } = useOrderManagement(initial, rootCommessaKey, onStatusChange);
-    const [tab, setTab] = useState<ManagementTab>('comparison');
+    const address = useOrderAddress();
+    const { view: tab, edition } = address.values;
+    // The edition compared: the one the address names when the order has it, or the first (which the address leaves out)
+    const first = editions[0]?.commessa_full ?? '';
+    const wanted = editions.some((each) => each.commessa_full === edition) ? edition : first;
+    const { data, refreshing, syncing, refresh, sync } = useOrderManagement(initial, rootCommessaKey, wanted, onStatusChange);
     const [confirmingSync, setConfirmingSync] = useState(false);
 
     const dibaOperations = data.diba_operations;
@@ -66,12 +70,12 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
                 editions={editions}
                 refreshing={refreshing}
                 syncing={syncing}
-                onSelectEdition={selectEdition}
+                editionLink={(commessaFull) => address.link({ edition: commessaFull === first ? '' : commessaFull })}
                 onRefresh={refresh}
                 onSync={() => setConfirmingSync(true)}
             />
 
-            <TabBar tabs={tabs} active={tab} onChange={setTab} className="border-b border-border" />
+            <TabBar tabs={tabs} active={tab} linkOf={(id) => address.link({ view: id })} className="border-b border-border" />
 
             {tab === 'comparison' && <OperationsComparison rows={phases} businessOrderNumber={data.order_bus_numord} />}
             {tab === 'materials' && <MaterialsComparison rows={materials} />}
@@ -89,6 +93,7 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
                     commessa={data.commessa_full ?? rootCommessaKey}
                     article={data.article_father}
                     changes={changes}
+                    kept={syncKeepLines(data.sync_keeps)}
                     syncing={syncing}
                     onConfirm={async () => {
                         if (await sync()) setConfirmingSync(false);

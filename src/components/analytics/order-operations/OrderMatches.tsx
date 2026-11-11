@@ -1,4 +1,6 @@
 import { ArrowRight } from 'lucide-react';
+import { ViewLink } from '@/components/ui/ViewLink';
+import type { ViewTarget } from '@/hooks/useAddress';
 import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
 
@@ -6,11 +8,12 @@ const t = APP_COPY.analytics.orderOperations;
 
 interface OrderMatchesProps {
     matches: MasterOrderMatch[];
-    onSelect: (rootCommessaKey: string) => void;
+    /** The link that opens an order (the first characters of its commessa) */
+    linkOf: (rootCommessaKey: string) => ViewTarget;
 }
 
-/** Orders found by a search that matched several: click one to open it. */
-export function OrderMatches({ matches, onSelect }: OrderMatchesProps) {
+/** Orders found by a search that matched several: each one is the link that opens it. */
+export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
     return (
         <div className="space-y-2">
             <p className="text-xs font-semibold text-fg-muted px-1">
@@ -19,10 +22,9 @@ export function OrderMatches({ matches, onSelect }: OrderMatchesProps) {
 
             <div className="divide-y divide-border/80 rounded-xl border border-border bg-card/40 overflow-hidden">
                 {matches.map((match) => (
-                    <button
+                    <ViewLink
                         key={match.root_commessa_key}
-                        type="button"
-                        onClick={() => onSelect(match.root_commessa_key)}
+                        to={linkOf(match.root_commessa_key)}
                         className="group w-full flex items-center justify-between gap-4 py-2 px-4 text-left hover:bg-muted/50 transition-colors"
                     >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -47,7 +49,7 @@ export function OrderMatches({ matches, onSelect }: OrderMatchesProps) {
                             <span className="hidden sm:inline">{t.openOrder}</span>
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
-                    </button>
+                    </ViewLink>
                 ))}
             </div>
         </div>

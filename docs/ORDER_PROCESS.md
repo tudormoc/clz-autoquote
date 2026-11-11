@@ -171,8 +171,9 @@ is pressed; a new search puts the list away. The list itself only reads; each ro
   panel, the badge and the list use these, so the counts of a row add up to the badge of that order.
 - **Marks**, as icons right after the buttons of a row (owner, 2026-11-06: not a column of words at the end, so the
   kind of row is seen at once; `MisalignedOrderMarks.tsx`). Three places, each kind always in the same one: what stops
-  or settles the realign (comparison failed, "Articolo ≠", "Bloccato" — see "What Riallinea refuses to remove" —, or
-  "Allineato"), then "Doppio", then "Più edizioni". The sentence is the icon's tooltip; on phones the name stands next
+  or settles the realign (comparison failed, "Articolo ≠", "Bloccato" — see "What Riallinea leaves on the order, and
+  what it refuses" —, or "Allineato"), then "Resta" (a pin: the realign will leave something on the order because it
+  was already used), then "Doppio", then "Più edizioni". The sentence is the icon's tooltip; on phones the name stands next
   to the icon. "Doppio": the article has other production orders (same `PART_NUMBER` in NetPro or same `mo_codart` in
   Business, any state), listed under the row with their state. An article should have one production order, so this is
   usually a duplicate (owner); for now it is only shown, how to fix it is to be decided. 19 articles on 2026-11-05, most
@@ -265,64 +266,222 @@ H/674/15/<fase>, the NetPro operations, tasks and jobset `H26 0000006740015<fase
 `keyord` row and NetPro material 30; the chain closed over the gaps (30 → 40, 40 → 60, 80 → 100) in both programs.
 Edition 1: "every row is the same". Change, add and remove have now each run on an order with two editions.
 
-### What Riallinea refuses to remove (2026-11-06)
+### What Riallinea leaves on the order, and what it refuses (2026-11-06)
 
-A realign takes away from the order what is no longer in the DiBa. The owner asked (2026-11-06: "make them refuse for
-now until we fix them definitively") that it stops, and writes nothing, when that would take away something already
-used. The rules are in `src/lib/orders/syncBlocks.ts` (pure); `findSyncBlocks` in `sync.ts` reads the facts on the rows
-the realign itself removes by, and is asked twice: by the realign through its transaction, right before the first
-write, and by the comparison (`loadOrderManagement` → `sync_blocks`), so the list (the "Bloccato" icon, the sync button
-off with the reason, the reason under the row) and the order page ("Bloccato" next to a Riallinea that is off) say it
-before the button is pressed. What the row says and what the server does is the same function.
+A realign takes away from the order what is no longer in the DiBa, but never something already used. In the morning it
+was refused instead ("make them refuse for now until we fix them definitively"); after seeing it on the test order the
+owner decided (2026-11-06): "sync the rest, give alert, keep the phase in netpro, count it as aligned, and keep a mark
+or a note for next time when i open this". The rules are in `src/lib/orders/syncBlocks.ts` (pure); `findSyncLimits`
+in `sync.ts` reads the facts on the rows the realign itself removes by, and is asked twice: by the realign through its
+transaction, right before the first write, and by the comparison (`loadOrderManagement` → `sync_blocks`,
+`sync_keeps`), so the list and the order page say what the server will do. It is the same function.
+
+**What stays on the order**
+
+- **A phase that left the DiBa after somebody worked on it**: work is recorded on it in NetPro (`SITUAZIONI` rows,
+  reached through `JOBSET`), or its operation has left the state of one nobody touched (`REL`,
+  `APP_CONFIG.ORDERS.UNSTARTED_OPERATION_STATE`; on the open orders: 2.410 `REL`, 593 `SUS`, 116 `COM`, 25 `EXE`).
+  It stays as it is in both programs (Business `attivit` / `assris`, NetPro `OPERAZIONI` / `TASKS` / `JOBSET`) and
+  in the chain of the phases, which is rebuilt from the phases the order has. Removing it would leave its hours in
+  `SITUAZIONI` without an order (NetPro has no foreign key and no trigger on these tables), and for work of the same
+  day nobody knows what NetPro's night job does with a task that is gone.
+- **A material row that left the DiBa after it was withdrawn**: "evaso" in Business (`mo_quaeva`, `mo_flevas`; 65 of
+  the 723 material rows of the open orders) or with a picked or used quantity in NetPro (`QTA_PRELEVATA`,
+  `QTA_USATA`). It stays in `movord`, `keyord` and `MATERIALI_ORDINI`.
+- Everything else is realigned as usual: values, new phases and materials, and what left the DiBa unused is removed.
+- **A phase started while the realign runs**: the operation is deleted first and only while it is still `REL`
+  (`DELETE … AND RTRIM(STATO) = 'REL'`); when that removes nothing and the operation is still there, the phase is kept
+  with all its rows.
+
+**How it is told**
+
+- *Before*: the confirm window lists it in an amber block, "Resta sull'ordine", above the changes (order page and
+  list); the row of the list has the pin and the sentence under it.
+- *After*: a second message after "Ordine riallineato"; the Registro entry ends with "· lasciate perché già usate:
+  fase 100" and holds `kept` in its details.
+- *Next time the order is opened*: a "Resta: fase 100" badge next to the alignment badge, and on the row itself, in
+  the Confronto and Materiali DiBa tabs, "Resta: ha ore registrate" / "Resta: già prelevato" in place of "Allineato".
+- **It counts as aligned**: `compareOperations` and `compareMaterials` (`compare.ts`) take the kept phases and rows
+  and give them no difference (a kept material row is counted apart from the quantity compared with the DiBa), so an
+  order whose only leftover is a kept row is "Allineato alla DiBa", has no Riallinea button and leaves the list.
+
+**What is still refused, with nothing written**: an order whose DiBa is not the one it is being worked by.
 
 - **An article with no phases in the DiBa**: every phase of the order would go. These are the internal orders of 2023
   where indirect hours are booked (`9999PULIZIA`, `9998MANUTENZIONE`, `9997MAGAZZINO`, `9996QUALITÀ`,
   `RESPPRODUZIONE`, `USCITAMACCFURG`). The list leaves them out (above); the refusal still guards the Riallinea of
   their order page.
-- **A phase to remove that somebody already worked on**: work is recorded on it in NetPro (`SITUAZIONI` rows, reached
-  through `JOBSET`), or its operation has left the state of one nobody touched (`REL`,
-  `APP_CONFIG.ORDERS.UNSTARTED_OPERATION_STATE`; on the open orders: 2.410 `REL`, 593 `SUS`, 116 `COM`, 25 `EXE`).
-  Removing it would leave its hours without an order: NetPro has no foreign key and no trigger on these tables.
-- **A material row to remove that was already withdrawn**: "evaso" in Business (`mo_quaeva`, `mo_flevas`; 65 of the
-  723 material rows of the open orders) or with a picked or used quantity in NetPro (`QTA_PRELEVATA`, `QTA_USATA`).
+- **None of the order's phases is in the DiBa, and somebody already worked on some** (`syncNoSharedPhase`): the
+  worked phases would stay next to a whole new set. On the open orders: the two internal orders with a DiBa of their
+  own, RESPFINISSAGGIO (commessa 230999010, fase 1) and 9995CAMPIONATURA (220999900, fase 0), and LCDQ9226
+  (260922605: the order has fase 94 only, worked on; the DiBa has 20 others; a double as well). An order whose
+  phases were all replaced before anybody worked on it is realigned as usual (the new ones are added first).
 
-On the open orders that day: 9 rows blocked — the six internal orders whose sync button was on, plus 9999PULIZIA,
-9995CAMPIONATURA and LCDQ9226 (commessa 260922605, fase 94 with 6 work rows), which are doubles as well; no order is
-blocked for a material; 221 of 245 rows can be realigned; the list takes the same 3 to 4 seconds. With the articles
-without DiBa left out (later that day, four orders closed meanwhile): 250 articles, 235 listed, 217 to realign, 3
-blocked (LCDQ9226, RESPFINISSAGGIO, 9995CAMPIONATURA). Read only:
-`npx tsx --tsconfig tsconfig.json tmp/risk-check-list.ts`. The refusal inside a real Riallinea has not run yet (it
-needs an order in one of the three cases: on the test order, work clocked on a phase that is then taken out of the DiBa).
+On the open orders (2026-11-06, afternoon; `npx tsx --tsconfig tsconfig.json tmp/keeps-check.ts`, read only): 248
+articles compared, 233 listed, the same 3 refused as in the morning, none that keeps something right now. Test edition
+1 with its worked phase 100 dropped from the DiBa in memory: 0 differences, phase 100 kept; with the untouched phase 85
+dropped too: one change, "Fase 85: rimossa da Business, NetPro", phase 100 kept. The screens with something kept were
+rendered to text from the same components (`tmp/keeps-render.tsx`), since no open order shows them today.
+
+**The owner's realigns on edition 1 with the new code (2026-11-06, 16:01, 16:02, 16:04; "tested and it worked all
+good")**, read back from the Registro and the snapshots (`tmp/log-keeps.ts`, `before-keep-test` → `after-keep-test`):
+the untouched phase 85 was removed from both programs (its five rows; the operation first, by the new conditional
+delete) and the chain closed over it (phase 80 → 100); the worked phase 100, still in the DiBa, took its new note in
+both programs and kept its state `SUS` and its time; phase 80 changed lavorazione and centre twice; edition 2: every
+row the same. In all three phase 100 was in the DiBa, so each entry says "kept: nothing".
+
+**Run for real by the owner at 16:10** (snapshot `after-keep-sync`): phase 100 deleted from the DiBa of 9999NEWDB
+and left out, phase 80 changed (lavorazione 13, centre 164), one realign. The Registro entry: "5 righe cambiate, 0
+aggiunte, 0 rimosse · lasciate perché già usate: fase 100", with `kept: { phases: [100] }` in its details. Phase 80
+changed in both programs; phase 100 has every row it had in Business (`attivit`, `assris`) and NetPro
+(`OPERAZIONI`, `JOBSET`, `TASKS`), none of them touched, state `SUS`; edition 2: every row the same. The order
+page afterwards: "Resta: fase 100" next to "Allineato alla DiBa", no Riallinea button, and on the row of phase 100
+"Non in DiBa" with "Resta: ha ore registrate". Not run for real: a withdrawn material that stays, and the phase
+started while the realign runs.
+
+Known and left as it is:
+
+- A material deleted from the DiBa and typed again on a new line while its old order row is withdrawn: the old row
+  stays and a new one is added (the two are not joined).
+- MP_FITTIZIA is removed by a realign as soon as the DiBa has a real material, also when NetPro holds a used quantity
+  on it (`removePlaceholder` does not look): 3 open orders today (LCDT8450, LCDT8450A, LCDT8450B, commesse 250845005 /
+  10 / 15, `QTA_USATA` −2000). The owner's to say.
+- A kept phase stays open on the order: whether it has to be closed in NetPro for the order to end is the owner's to say.
+
+The morning's numbers, when the two cases above were refusals: 9 rows blocked on the open orders — the six internal
+orders whose sync button was on, plus 9999PULIZIA, 9995CAMPIONATURA and LCDQ9226; no order blocked for a material;
+221 of 245 rows could be realigned.
+
+**Seen by the owner on the test order (2026-11-06, edition 1, commessa 260999910):** phase 100 was started and stopped
+on a terminal (15:16–15:17: operation and task `REL` → `SUS`, 83 seconds of worked time, the order `EMI` → `EXE`),
+then taken out of the DiBa: the order page said "Bloccato" and Riallinea was off; with the phase back in the DiBa (as
+line 27, it was line 25) the block is gone. Nothing was written. That test is what the owner's decision above came
+from: the same case now keeps the phase and realigns the rest.
+
+**The work of the day is not in `SITUAZIONI` until the night.** NetPro writes the day's work rows there at about
+22:00 (`FINSDATE`, `EXPORTDATE`; `STO_SITUAZIONI` is empty): right after the owner's start and stop, phase 100 had
+its time on `OPERAZIONI` / `TASKS` / `JOBSET` and no `SITUAZIONI` row. So work done today is seen through the state
+of the operation, older work through both; that is why the rule asks the two. Checked on every operation
+(`tmp/clockings-now.ts`, read only): of the 2.335 in `REL` none has worked time, a completed quantity or a start date,
+and one has work rows (caught by the first sign); the phases with time and no work row yet are those worked today.
 
 Still open:
 
 - **Two databases, two commits.** Business commits, then NetPro (`withTransactions`): a cut exactly between the two
   leaves Business written and NetPro not. The order then still shows as different and a second Riallinea finishes it
   (every statement writes only where the value differs).
-- **No row to copy from.** A new phase or material is a copy of an existing row of the same edition (so it gets every
-  column Business and NetPro expect), and the realign removes before it adds: when the only material of the order is
-  replaced (or every phase), nothing is left to copy, the Riallinea stops with an error and nothing is written. In
-  Business a DiBa material line cannot change its code (owner, 2026-11-06): a material is replaced by deleting its
-  line and adding a new one, so with one material this is the normal way. The placeholder row counts as a row to copy:
-  of the open orders 127 hold only MP_FITTIZIA, 17 one material plus the placeholder, and only the two test editions
-  one material without it — but Riallinea removes the placeholder once the DiBa has a real material, so every order
-  realigned with one material ends up there (`tmp/material-count.ts`, read only). 11 internal orders have no material
-  row at all: a first material cannot be added to them either way. The fix (add first, remove after) is proposed, not
-  built.
-- **A copy carries the "already done" values of the row it copies.** `cloneRowInsert` takes the first row of the
-  edition (no order asked: in practice its first phase or material) and overrides only the columns of `syncRows.ts` /
-  `syncMaterials`. Read on 2026-11-06 (`tmp/copy-inherits.ts`, `tmp/copy-inherits-2.ts`, read only), these are filled on
-  worked or withdrawn rows, empty on untouched ones, and not overridden: NetPro `OPERAZIONI` `DATA_INIZIO`,
-  `TEFF_LAVORO_MAC`, `TEFF_LAVORO_MAN`, `QTA_COMPLETATA`, `MODIFICATA`; `TASKS` `DATA_INIZIO`, `CRITICO`,
-  `TEFF_LAVORO_MAC` / `_MAN`; `JOBSET` `TEFF_LAVORO_MAC` / `_MAN`, `QTA_COMPLETATA`; `MATERIALI_ORDINI` `QTA_USATA`
-  (and `QTA_PRELEVATA`); Business `attivit` `at_flevas`, `at_operattees`, `at_operesees`; `movord` Y `mo_flevas`
-  (`at_qtaes`, `mo_quaeva`, `mo_coleva` are reset). On an order nobody started there is nothing to carry (the tests on
-  order 674); on an order in work a new phase or material could be born looking already done. It has not happened: no
-  operation in state `REL` carries a start date, worked time or completed quantity (0 of 2.358). The fix (copy an
-  untouched row when there is one, and clear these columns on the copy) is proposed with the add-before-remove one,
-  not built.
-- The definitive answer for the refusals (what to do with a worked phase or a withdrawn material that left the DiBa)
-  is the owner's to decide: "we will fix and implement these exceptions later, one by one" (2026-11-06).
+- The two refusals left (an article without DiBa phases, an order none of whose phases is in the DiBa) stand for
+  "internal order": how to tell one for sure is the owner's to say.
+
+### New rows: added before the old ones go, and a copy carries nothing of the row it copies (2026-11-06)
+
+A new phase or material is a copy of an existing row of the same edition (`cloneRowInsert` in `syncRows.ts`), so it
+gets every column Business and NetPro expect. Two things were wrong with that, both fixed on the owner's yes ("Yes, do
+both"); built and dry-run on real orders.
+
+**Add first was run by the owner on 2026-11-06** ("removed in diba, and added a new one in same row, and it worked"):
+on edition 2 the only material line of the DiBa was deleted and another typed in its place, then one realign (14:26,
+Registro: 1 row changed, 3 added, 3 removed). The new material row Y/674/30 was written as a copy of row 25, then row
+25 went, each with its `keyord` row and NetPro material. Row 30 equals the old row 25 in all 216 columns but the
+material's own (row number, code, description, internal description, quantity); in NetPro only `SEQUENZA`,
+`PART_NUMBER`, `QUANTITA` and `QTA_IMPIEGO` differ. Edition 1: every row the same (snapshot `after-replacement`).
+A replaced material takes the next free row number of the order (25 → 30), since both rows stand for a moment. The
+clean copy on an order with work has **not yet run in a real Riallinea**.
+
+- **Add first, then remove** (`syncPhases`, `syncMaterials`). The realign used to remove what left the DiBa before it
+  added what is new, so when the only material of an order was replaced (or every phase), nothing was left to copy and
+  it stopped with an error. In Business a DiBa material line cannot change its code (owner): a material is replaced by
+  deleting its line and adding a new one, so with one material that is the normal way. Which rows go is decided on the
+  rows as they were read, before anything is added (`materialRowsToRemove`, `phasesToRemove`). No unique index stands in
+  the way of the old and the new row sitting side by side inside the transaction (every one is the row's own key).
+  The placeholder row counts as a row to copy: of the open orders 127 hold only MP_FITTIZIA, 17 one material plus the
+  placeholder, and only the two test editions one material without it — but Riallinea removes the placeholder once the
+  DiBa has a real material, so every order realigned with one material ends up there (`tmp/material-count.ts`).
+- **The copy is clean** (`UNTOUCHED` in `syncRows.ts`, applied by `copyOfRow` to every copy). The row copied may already
+  be worked on or withdrawn, and only some columns were overridden. Now the copy is taken from an untouched row when the
+  edition has one (unstarted operation, material not withdrawn; then the lowest row), and it always gets what an
+  untouched row holds in the columns NetPro and Business fill as the work goes on. These were read on the open orders
+  and on the rows of 2026 (`tmp/copy-inherits-3.ts`, `-4.ts`: never filled on an untouched row, filled on at least 1% of
+  the used ones):
+
+  | Table | Column → value of an untouched row |
+  |---|---|
+  | NetPro `OPERAZIONI` | `DATA_INIZIO`, `DATA_FINE`, `MODIFICATA` → NULL; `TEFF_LAVORO_MAC`, `TEFF_LAVORO_MAN`, `QTA_COMPLETATA`, `QUANTITA1` → 0 |
+  | NetPro `TASKS` | `DATA_INIZIO`, `DATA_FINE`, `CRITICO` → NULL; `TEFF_LAVORO_MAC`, `TEFF_LAVORO_MAN`, `CICLI_CONTATI` → 0 |
+  | NetPro `JOBSET` | `TEFF_LAVORO_MAC`, `TEFF_LAVORO_MAN`, `QTA_COMPLETATA`, `QUANTITA1` → 0 |
+  | NetPro `MATERIALI_ORDINI` | `QTA_USATA`, `QTA_PRELEVATA` → 0; `DATA_PRELIEVO` → NULL |
+  | Business `attivit` | `at_qtaes`, `at_tempesees`, `at_operattees`, `at_operesees` → 0; `at_flevas` → `C` (`S` = evaso) |
+  | Business `movord` (Y) | `mo_coleva`, `mo_quaeva` → 0; `mo_flevas` → `C` |
+
+  `assris` and `keyord` have no such column. It had never happened on real data: no operation in state `REL` carried a
+  start date, worked time or completed quantity (0 of 2.358), and the tests on order 674 were clean because nobody had
+  started it. A column is named whatever its capitals, and one the table does not have stops the copy.
+- **Dry run, read only** (`npx tsx --tsconfig tsconfig.json tmp/copy-dry-run.ts`): `copyOfRow`, the function whose
+  result `cloneRowInsert` inserts, asked without inserting, with the conditions and overrides of `sync.ts`, on real
+  orders in work — one with every phase started (LCDQ9324: 18 `COM`, 1 `SUS`), one half done, one with a material
+  withdrawn in Business, one with a material used in NetPro, and test edition 2. Every copy came out untouched in all
+  eight tables, with the edition's commessa, order row and NetPro order.
+### The first material of an order (2026-11-06)
+
+An order can have no material at all, and get one later. The owner tried it on edition 2 of the test order: they
+deleted the only material line of its DiBa and realigned (12:26; the realign removed material row Y/674/25 with its
+`keyord` row and NetPro material, nothing else — "it kept the materials none", which is what they wanted; no
+placeholder is put back), then added a material to the DiBa and realigned again: "Nessuna riga modello in movord da
+cui copiare la nuova riga" (three times, nothing written). A new row is a copy of a row of the same edition, and there
+was none. Of the 968 production orders of 2026 with DiBa phases this was the only one without any material line in
+the DiBa (281 hold only MP_FITTIZIA, 683 real materials), which is why it had never come up.
+
+Now the first row is copied from **another order** and gets its own order's identity (`firstMaterialCopies` in
+`syncRows.ts`, asked by `copyOfRow` only when the edition has no row; the second new material of the same realign
+copies the first). Built on the owner's report and **run by the owner on edition 2 the same day** ("looks like its
+working"; snapshot `after-first-material`): `md_perpz` 1 → 3000 on DiBa line 1, a new material row Y/674/25 under
+order row 15 (commessa 260999915, NetPro `H26 0000006740015`, DiBa line 1, not withdrawn, 5 for the 3.000 pieces)
+with its `keyord` row and its NetPro material `H26 0000006740015`/25; edition 1: every row the same. Nothing is
+written to the order the row is copied from: it is only read.
+
+- **What ties a material row to its order** was read on the 3.565 material rows of 2026 (`tmp/first-material.ts`):
+  apart from the material's own columns (the overrides of `syncMaterials`) only these change from one order to
+  another, and each always equals a column of the order row above it (H):
+
+  | Table | Column ← where it is read |
+  |---|---|
+  | `movord` (Y) | `mo_numord`, `mo_numordor` ← `mo_numord` · `mo_rigaor` ← `mo_riga` · `mo_commeca` · `mo_netpid` · `mo_datcons`, `mo_datconsor` ← `mo_datcons` · `mo_datini`, `mo_datfin` ← `mo_datini` · `mo_disbasp` ← `mo_codart` · `mo_codcfam` |
+  | `keyord` (Y) | `ko_numord` · `ko_commeca` · `ko_datcons` ← the same of the order row · `ko_conto` ← `td_conto` of the order's header (`testord`) |
+  | NetPro `MATERIALI_ORDINI` | `ORDINE` |
+
+- **Which row is copied**: in Business a material row of the same year and series — another edition of the same order
+  first, then the newest order — not withdrawn, and as Business makes it (planning dates not set); in NetPro a row of a
+  production order of the same year, not used. The copy is cleaned like every copy (`UNTOUCHED`).
+- **Proof, read only** (`npx tsx --tsconfig tsconfig.json tmp/first-material-proof.ts`, nothing is inserted): for each
+  of the 967 orders of 2026 with material rows, the first row was built as if the order had none (the copy taken from
+  another order, the material's own values from a row the order really has) and compared with that real row, column by
+  column. `keyord`: every column equal on 967 of 967. NetPro: every column equal on 784 of 784. `movord`: equal but
+  for the withdrawn marks (`mo_coleva`, `mo_quaeva`, `mo_flevas`: 78% of the real rows are withdrawn, a new row is
+  not) and for what Business sets on a row later (`mo_dtpianini` / `fin`, `mo_dtrichini` / `fin` = the delivery date
+  instead of "not set", the `mo_fl…mod` flags N instead of S, `mo_descalcprz` / `scn` empty: about 36% of the real
+  rows; my reading: rows of an order somebody opened and saved again in Business — the new row is born like a row
+  Business has just generated). For test edition 2 the row built now equals the row it had before in all 216 columns,
+  and so do its `keyord` row and its NetPro material.
+- Known and left as it was: `mo_codiva` (the VAT code, two values) comes from the row copied, in every copy.
+- An order whose material rows are all removed is left without the placeholder (the owner's test: wanted).
+- **Does NetPro need a material on an order?** The owner (2026-11-06): MP_FITTIZIA was put in because "they said in
+  netpro it might not work as on order if have no material", not sure of it; they would like to stop using it, how is
+  still to be decided. What NetPro holds (`tmp/netpro-no-material.ts`, read only; "worked" = rows in `SITUAZIONI`):
+
+  | Production orders in NetPro | Orders | Worked |
+  |---|---|---|
+  | no material at all | 314 | 110 |
+  | only MP_FITTIZIA | 1.538 | 1.039 |
+  | real materials | 10.268 | 5.067 |
+
+  The 314 are all of 2021–2024: in 2025 and 2026 every order holds the placeholder or real materials, so nothing recent
+  tried it. Of the 110 worked, 99 are closed with their phases done (`H24 0000003800005`, LCDQ7669, 9 phases of 9;
+  `H24 0000001480020`, 19 of 19) and 11 are the internal orders people clock on every day (9999PULIZIA,
+  9998MANUTENZIONE, 9997MAGAZZINO, 9996QUALITÀ, 9995CAMPIONATURA: in EXE since 2023). Of the newest 15, 14 have no
+  material row in Business either, so the order reached NetPro without one. So clocking work and closing an order do
+  not need a material. Not shown by the data: whether today's transfer Business → NetPro still takes a new order
+  without one, and what NetPro's planning makes of it; one new test order would say. Open orders holding only the
+  placeholder on 2026-11-06: 127 (H26: 37 EMI, 84 EXE; H25: 2 EMI, 4 EXE).
 
 ## Production flow on the Avanzamento Lavori page (`/work-progress`)
 

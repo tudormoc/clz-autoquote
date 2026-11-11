@@ -21,7 +21,7 @@ interface MonthGridProps {
 
 /** The month as a grid of whole weeks; cards drag onto another day; "+N" opens that week. Phones: the days that have something. */
 export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
-    const { range, today, anchor, data, dayContent, goTo, setMode } = calendar;
+    const { range, today, anchor, data, dayContent, goTo } = calendar;
     const days: string[] = [];
     for (let day = range.start; day <= range.end; day = addDays(day, 1)) days.push(day);
     const inMonth = (day: string) => monthKey(day) === monthKey(anchor);
@@ -30,10 +30,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
         const content = dayContent(day);
         return inMonth(day) && content.open.length + content.done.length + content.planned.length > 0;
     });
-    const openWeek = (day: string) => {
-        goTo(day);
-        setMode('week');
-    };
+    const openWeek = (day: string) => goTo(day, 'week');
 
     return (
         <div className="lg:flex-1 lg:min-h-0 flex flex-col">

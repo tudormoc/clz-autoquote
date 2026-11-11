@@ -1,20 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { getGuidesAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ReviewBadge } from '@/components/tasks/guides/ReviewBadge';
 import { LoadState } from '@/components/ui/LoadState';
-import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
+import { TaskFilters, matchesFilters } from '@/components/tasks/shared/TaskFilters';
 import { buttonClasses } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { MissingValue } from '@/components/ui/TableCells';
 import { LINKS } from '@/config/navigation';
 import { useActionData } from '@/hooks/useActionData';
+import { useAddress } from '@/hooks/useAddress';
 import { useClientSort } from '@/hooks/useClientSort';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
+import { flagParam } from '@/lib/address';
 import type { RowSortColumns } from '@/lib/sort';
 import { formatMoment } from '@/lib/tasks/describe';
 import type { GuideSummary } from '@/lib/tasks/types';
@@ -30,12 +33,16 @@ const SORT_COLUMNS: RowSortColumns<GuideSummary> = {
     tasks: (guide) => guide.taskCount,
 };
 
+/** "Mostra archiviate" switched on, in the address */
+const VIEW = { archived: flagParam() };
+
 /** "Procedure": the library of how things are done, filtered on screen; "Nuova procedura" */
 export function GuidesListView() {
     const { data, loading, error } = useActionData(getGuidesAction);
     const canEdit = useCanEdit();
-    const [filters, setFilters] = useState<TaskFilterValues>(EMPTY_FILTERS);
-    const [showArchived, setShowArchived] = useState(false);
+    const [filters, setFilters] = useTaskFilters();
+    const view = useAddress(VIEW);
+    const showArchived = view.values.archived;
     const visible = useMemo(
         () =>
             data
@@ -69,7 +76,7 @@ export function GuidesListView() {
             <div className="bg-card border border-border rounded-lg p-4">
                 <TaskFilters values={filters} onChange={setFilters} areas={data.areas} people={[]}>
                     <div className="pb-2">
-                        <Checkbox id="guides-archived" label={copy.showArchived} checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+                        <Checkbox id="guides-archived" label={copy.showArchived} checked={showArchived} onChange={(e) => view.set({ archived: e.target.checked }, 'replace')} />
                     </div>
                     {canEdit && (
                         <Link href={`${LINKS.tasks.guides}/new`} className={buttonClasses({ className: 'sm:ml-auto' })}>

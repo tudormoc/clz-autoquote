@@ -27,7 +27,7 @@ export function AdvancedQuoteForm() {
         resetToDefault,
         handleSave,
         handleDeleteQuote,
-        selectQuote
+        quoteLink
     } = useAdvancedQuote();
 
     const blueprintWindowRef = useRef<Window | null>(null);
@@ -151,7 +151,7 @@ export function AdvancedQuoteForm() {
             <div className="lg:col-span-7 pt-8 border-t border-border">
                 <QuoteHistoryList
                     history={history}
-                    onSelectQuote={selectQuote}
+                    linkOf={quoteLink}
                     onDeleteQuote={canEdit ? handleDeleteQuote : undefined}
                 />
             </div>

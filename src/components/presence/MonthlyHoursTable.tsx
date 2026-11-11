@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { TableCell, TableRow } from '@/components/ui/Table';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips } from '@/components/ui/ToggleChips';
+import { useAddress } from '@/hooks/useAddress';
 import { useClientSort } from '@/hooks/useClientSort';
 import { useListQuery } from '@/hooks/useListQuery';
 import { usePrefillAbsences } from '@/hooks/usePrefillAbsences';
@@ -37,6 +38,7 @@ import {
     toHours,
     type PresenceRulesConfig,
 } from '@/lib/presence';
+import { listParam } from '@/lib/address';
 import { defaultReportPeriod, getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
 import { toggleInSet } from '@/lib/utils';
@@ -53,6 +55,10 @@ interface Filters {
 /** Row status filter: anomaly = past working day not fully covered; ok = everything else */
 type RowStatusKey = 'anomaly' | 'ok';
 const ALL_STATUSES: readonly RowStatusKey[] = ['anomaly', 'ok'];
+
+/** The chips switched on, in the address */
+const VIEW = { categories: listParam(DEFAULT_ACTIVE_CATEGORY_KEYS), statuses: listParam(ALL_STATUSES) };
+const VIEW_NAMES = Object.keys(VIEW);
 
 const copy = APP_COPY.analytics.monthlySummary;
 
@@ -80,8 +86,9 @@ const LABEL_COLUMNS = 7;
 export function MonthlyHoursTable() {
     const todayStr = useMemo(() => getTodayDate(), []);
     const [rules, setRules] = useState<PresenceRulesConfig>(DEFAULT_PRESENCE_RULES);
-    const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(DEFAULT_ACTIVE_CATEGORY_KEYS));
-    const [activeStatuses, setActiveStatuses] = useState<Set<RowStatusKey>>(new Set(ALL_STATUSES));
+    const view = useAddress(VIEW);
+    const activeCategories = useMemo(() => new Set(view.values.categories), [view.values.categories]);
+    const activeStatuses = useMemo(() => new Set(view.values.statuses), [view.values.statuses]);
 
     useEffect(() => {
         getPresenceRulesAction().then((res) => {
@@ -92,6 +99,7 @@ export function MonthlyHoursTable() {
     const list = useListQuery({
         initialFilters: (): Filters => ({ ...defaultReportPeriod(), operator: '' }),
         load: (f: Filters) => getMonthlyHoursAction(f.dateFrom, f.dateTo, f.operator || undefined),
+        clears: VIEW_NAMES,
     });
     const { rows, setRows } = list;
     const canEdit = useCanEdit();
@@ -191,11 +199,7 @@ export function MonthlyHoursTable() {
                 columns={3}
                 activeCount={list.activeFilterCount}
                 onApply={list.apply}
-                onClear={() => {
-                    list.clear();
-                    setActiveCategories(new Set(DEFAULT_ACTIVE_CATEGORY_KEYS));
-                    setActiveStatuses(new Set(ALL_STATUSES));
-                }}
+                onClear={list.clear}
                 buttons={
                     canEdit && <>
                         <Button
@@ -221,7 +225,7 @@ export function MonthlyHoursTable() {
                                 count: hasData ? rows.filter((row) => normalizeReparto(row.reparto) === cat.key).length : null,
                             }))}
                             active={activeCategories}
-                            onToggle={(key) => setActiveCategories((prev) => toggleInSet(prev, key))}
+                            onToggle={(key) => view.set({ categories: [...toggleInSet(activeCategories, key)] }, 'replace')}
                         />
                         <ToggleChips
                             label={copy.statusFilter.label}
@@ -232,7 +236,7 @@ export function MonthlyHoursTable() {
                                 tone: key === 'anomaly' ? 'warning' : 'success',
                             }))}
                             active={activeStatuses}
-                            onToggle={(key) => setActiveStatuses((prev) => toggleInSet(prev, key))}
+                            onToggle={(key) => view.set({ statuses: [...toggleInSet(activeStatuses, key)] }, 'replace')}
                         />
                     </>
                 }

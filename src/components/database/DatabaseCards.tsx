@@ -1,7 +1,9 @@
 import { CheckCircle, Database, XCircle } from 'lucide-react';
 import type { DbConnectionStatus } from '@/app/db-actions';
 import { Spinner } from '@/components/ui/Spinner';
+import { ViewLink } from '@/components/ui/ViewLink';
 import { APP_CONFIG } from '@/config/constants';
+import type { ViewTarget } from '@/hooks/useAddress';
 import type { MSSQL_DB } from '@/lib/mssql';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
@@ -10,24 +12,25 @@ const copy = APP_COPY.database;
 
 interface DatabaseCardsProps {
     selected: MSSQL_DB;
-    onSelect: (db: MSSQL_DB) => void;
+    /** The link that shows a database's tables */
+    linkOf: (db: MSSQL_DB) => ViewTarget;
     /** Null until the connection checks have answered */
     connections: Record<MSSQL_DB, DbConnectionStatus> | null;
 }
 
 /** One card per database: whether it answers, and a click opens its tables. */
-export function DatabaseCards({ selected, onSelect, connections }: DatabaseCardsProps) {
+export function DatabaseCards({ selected, linkOf, connections }: DatabaseCardsProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {APP_CONFIG.DATABASES.map((db) => {
                 const status = connections?.[db];
                 return (
-                    <button
+                    <ViewLink
                         key={db}
-                        type="button"
-                        onClick={() => onSelect(db)}
+                        to={linkOf(db)}
+                        aria-current={db === selected ? 'page' : undefined}
                         className={cn(
-                            'bg-card border rounded-lg p-4 text-left transition-colors hover:bg-muted',
+                            'block bg-card border rounded-lg p-4 text-left transition-colors hover:bg-muted',
                             db === selected ? 'border-primary' : 'border-border'
                         )}
                     >
@@ -49,7 +52,7 @@ export function DatabaseCards({ selected, onSelect, connections }: DatabaseCards
                                 {status.ok ? copy.connected : status.error}
                             </p>
                         )}
-                    </button>
+                    </ViewLink>
                 );
             })}
         </div>

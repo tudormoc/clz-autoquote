@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight, CalendarRange, ChevronsUpDown } from 'lucide-react';
 import { BankMatrixRowGroup, type BankDrilldown } from '@/components/cashflow/BankMatrixRowGroup';
 import { ExpandableMatrixCategory } from '@/components/cashflow/ExpandableMatrixCategory';
@@ -8,6 +8,8 @@ import { MatrixRow } from '@/components/cashflow/MatrixRow';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
+import { useAddress } from '@/hooks/useAddress';
+import { choiceParam, listParam, numberParam } from '@/lib/address';
 import { firstOpeningBalance, lastClosingBalance, monthValues } from '@/lib/cashflow/matrix';
 import type { CashflowDataResult } from '@/lib/cashflow/types';
 import { formatCurrencyRounded } from '@/lib/format';
@@ -19,6 +21,15 @@ const macro = APP_COPY.cashflow.macro;
 
 /** Rows that open and close; the extra-expense categories add their own keys */
 const SECTION_KEYS = ['opening', 'incomes', 'clients', 'expenses', 'suppliers', 'payroll', 'closing'];
+
+const SIDES = ['opening', 'closing'] as const;
+/**
+ * What is opened in the table, in the address: the rows unfolded, and the bank account whose operations are shown
+ * (its code, under which balance, the month clicked). Unfolding stays on the same history step.
+ */
+const VIEW = { open: listParam([]), bank: numberParam(), side: choiceParam(SIDES, 'opening'), month: numberParam() };
+/** For "Pulisci" of the page, which folds everything back */
+export const MATRIX_VIEW_NAMES = Object.keys(VIEW);
 
 const signed = (value: number) => (value > 0 ? `+${formatCurrencyRounded(value)}` : formatCurrencyRounded(value));
 
@@ -45,22 +56,25 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
         net: data?.grandNetCashflow ?? 0,
     };
 
-    const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-    const [drilldown, setDrilldown] = useState<BankDrilldown | null>(null);
+    const view = useAddress(VIEW);
+    const { open, bank: openBank, side, month: openMonth } = view.values;
+    const expanded = useMemo(() => new Set(open), [open]);
+    const setExpanded = (keys: ReadonlySet<string>) => view.set({ open: [...keys] }, 'replace');
 
     const allKeys = [...SECTION_KEYS, ...extraCategories.map((category) => category.key)];
     const allExpanded = allKeys.every((key) => expanded.has(key));
     const expandable = (key: string) => ({ expanded: expanded.has(key), onToggle: () => setExpanded(toggleInSet(expanded, key)) });
 
-    const toggleDrilldown = (accountCode: number, name: string, section: 'opening' | 'closing', month: number | null = null) =>
-        setDrilldown((current) =>
-            current?.accountCode === accountCode && current.section === section && (month === null || current.month === month)
-                ? null
-                : { accountCode, name, section, month }
-        );
-
     // The accounts are listed from the first month that has a bank breakdown
     const banks = monthly.find((item) => item.bankBreakdown?.length)?.bankBreakdown ?? [];
+    const drilldownBank = banks.find((bank) => bank.accountCode === openBank);
+    const drilldown: BankDrilldown | null = drilldownBank ? { accountCode: drilldownBank.accountCode, name: drilldownBank.name, section: side, month: openMonth } : null;
+    const closeDrilldown = () => view.set({ bank: null, side: 'opening', month: null }, 'replace');
+
+    const toggleDrilldown = (accountCode: number, _name: string, section: 'opening' | 'closing', month: number | null = null) => {
+        if (drilldown?.accountCode === accountCode && drilldown.section === section && (month === null || drilldown.month === month)) closeDrilldown();
+        else view.set({ bank: accountCode, side: section, month }, 'replace');
+    };
     const assets = banks.filter((bank) => CASHFLOW_CONFIG.isAttivo(bank.accountCode));
     const liabilities = banks.filter((bank) => !CASHFLOW_CONFIG.isAttivo(bank.accountCode));
     const bankGroups = (section: 'opening' | 'closing') =>
@@ -76,7 +90,7 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
                 loading={loading}
                 drilldown={drilldown}
                 onToggleDrilldown={toggleDrilldown}
-                onCloseDrilldown={() => setDrilldown(null)}
+                onCloseDrilldown={closeDrilldown}
             />
         ));
 

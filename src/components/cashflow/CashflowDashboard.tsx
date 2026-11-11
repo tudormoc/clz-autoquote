@@ -1,58 +1,43 @@
 'use client';
 
-import { useState, useTransition } from 'react';
 import { Wallet } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { CashflowMonthlyMatrix } from '@/components/cashflow/CashflowMonthlyMatrix';
+import { CashflowMonthlyMatrix, MATRIX_VIEW_NAMES } from '@/components/cashflow/CashflowMonthlyMatrix';
 import { CashflowKpiCards } from '@/components/cashflow/CashflowKpiCards';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { YearField } from '@/components/ui/YearField';
 import { getCashflowMonthlyDataAction } from '@/app/cashflow/cashflow-actions';
+import { useAppliedQuery } from '@/hooks/useAppliedQuery';
 import { recentYears } from '@/lib/dateUtils';
-import type { CashflowDataResult } from '@/lib/cashflow/types';
 
 const thisYear = () => recentYears(1)[0];
 
-/** Flusso Monetario: the year's KPI cards and month-by-month table, loaded for the chosen year on "Applica". */
+/**
+ * Flusso Monetario: the year's KPI cards and month-by-month table, loaded for the chosen year on "Applica" or from a
+ * link that names the year (a page opened bare loads nothing).
+ */
 export function CashflowDashboard() {
     const copy = APP_COPY.cashflow;
-    const [year, setYear] = useState(thisYear);
-    /** The year on screen; null before "Applica" (nothing loads on its own) */
-    const [applied, setApplied] = useState<number | null>(null);
-    const [isPending, startTransition] = useTransition();
-    const [cashflowData, setCashflowData] = useState<CashflowDataResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    const load = (chosen: number) => {
-        setApplied(chosen);
-        setError(null);
-        startTransition(async () => {
-            const res = await getCashflowMonthlyDataAction(chosen);
-            if (res.success) {
-                setCashflowData(res);
-            } else {
-                setCashflowData(null);
-                setError(res.error || APP_COPY.common.loadError);
-            }
-        });
-    };
-
-    const clear = () => {
-        setYear(thisYear());
-        setApplied(null);
-        setCashflowData(null);
-        setError(null);
-    };
+    const query = useAppliedQuery({
+        initialFilters: () => ({ year: thisYear() }),
+        load: (filters: { year: number }) => getCashflowMonthlyDataAction(filters.year),
+        clears: MATRIX_VIEW_NAMES,
+    });
+    const { error, loading: isPending } = query;
+    /** The year on screen; null before "Applica" */
+    const applied = query.applied?.year ?? null;
+    // The numbers belong to the year on screen: while another year loads, or after an error, none are shown
+    const cashflowData = !error && query.result?.year === applied ? query.result : null;
 
     return (
         <>
             <PageHeader icon={Wallet} title={copy.title} subtitle={copy.subtitle} />
 
             <div className="space-y-4">
-                <FilterPanel onApply={() => load(year)} onClear={clear} activeCount={applied !== null && applied !== thisYear() ? 1 : 0}>
-                    <YearField value={year} onChange={setYear} />
+                <FilterPanel onApply={query.apply} onClear={query.clear} activeCount={query.activeFilterCount}>
+                    <YearField value={query.filters.year} onChange={(year) => query.updateFilters({ year })} />
                 </FilterPanel>
 
                 {applied === null ? (

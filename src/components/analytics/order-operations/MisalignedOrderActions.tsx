@@ -18,8 +18,8 @@ export const articleDiffersText = (order: MisalignedOrder) => fmt(copy.articleDi
 
 /**
  * Why the order cannot be realigned from the list, or null when it can: the article has to have one production order
- * only and the same name in both programs, the realign must not remove anything already used, and there has to be
- * something to write. An edition is realigned on its own.
+ * only and the same name in both programs, the realign must not be one that is refused (syncBlocks.ts), and there has
+ * to be something to write. An edition is realigned on its own.
  */
 export function whyNotRealign(order: MisalignedOrder): string | null {
     if (!order.canRealign) return copy.syncNeedsSingleOrder;

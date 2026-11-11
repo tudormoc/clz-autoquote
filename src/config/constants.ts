@@ -129,7 +129,7 @@ export const APP_CONFIG = {
     OPEN_STATES: ['EMI', 'EXE'],
     ALIGNMENT_CHECKS_AT_ONCE: 6,
     // The state of a NetPro operation nobody has worked on yet (the one Riallinea gives a new phase). Any other state,
-    // or work recorded on it, means the phase was started: Riallinea refuses to remove it (src/lib/orders/syncBlocks.ts)
+    // or work recorded on it, means the phase was started: Riallinea leaves it on the order (src/lib/orders/syncBlocks.ts)
     UNSTARTED_OPERATION_STATE: 'REL',
   },
 
@@ -305,6 +305,8 @@ export const APP_CONFIG = {
     NEW_EVENT_DEFAULTS: { operator: '98', event: 'EXT', time: '17:35:00' },
     // Event types the form can add
     NEW_EVENT_TYPES: ['ENT', 'EXT'],
+    // Most presence events one "Elimina" of Daily Events may remove (guards against a wrong selection)
+    MAX_EVENTS_DELETED: 50,
     // What "Nuovo operatore" (Operatori) writes besides the typed code, name, badge and category: the same fixed
     // values NetPro's own screen puts in every new row of OPERATORI (stato logico IDLE, cost centre, level, flags).
     // The stato fisico comes from the category (PRESENCE_RULES.CATEGORIES → newStato), not from here.

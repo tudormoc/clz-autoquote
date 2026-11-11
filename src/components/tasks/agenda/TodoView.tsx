@@ -1,16 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { getAgendaAction } from '@/app/tasks/agenda-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { AgendaRow } from '@/components/tasks/agenda/AgendaRow';
 import { AgendaSection, type SectionTone } from '@/components/tasks/agenda/AgendaSection';
 import { QuickAdd } from '@/components/tasks/agenda/QuickAdd';
 import { OccurrenceDialog } from '@/components/tasks/occurrence/OccurrenceDialog';
-import { EMPTY_FILTERS, TaskFilters, matchesFilters, type TaskFilterValues } from '@/components/tasks/shared/TaskFilters';
+import { TaskFilters, matchesFilters } from '@/components/tasks/shared/TaskFilters';
 import { LoadState } from '@/components/ui/LoadState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useActionData } from '@/hooks/useActionData';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useOccurrenceActions } from '@/hooks/useOccurrenceActions';
 import { AGENDA_GROUPS, agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
 import { compareByDate } from '@/lib/tasks/dayOrder';
@@ -34,7 +35,7 @@ export function TodoView() {
     const { data, loading, error, reload } = useActionData(getAgendaAction);
     const agenda = data?.data;
     const canEdit = useCanEdit();
-    const [filters, setFilters] = useState<TaskFilterValues>(EMPTY_FILTERS);
+    const [filters, setFilters] = useTaskFilters();
     const actions = useOccurrenceActions(reload, agenda?.today ?? '');
 
     const groups = useMemo(() => {

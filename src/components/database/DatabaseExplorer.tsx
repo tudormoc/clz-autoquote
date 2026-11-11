@@ -14,9 +14,9 @@ export function DatabaseExplorer() {
 
     return (
         <div className="space-y-4">
-            <DatabaseCards selected={explorer.db} onSelect={explorer.setDb} connections={explorer.connections} />
+            <DatabaseCards selected={explorer.db} linkOf={explorer.dbLink} connections={explorer.connections} />
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <TableList tables={explorer.tables} selected={explorer.table} onSelect={(table) => explorer.openTable(table)} />
+                <TableList tables={explorer.tables} selected={explorer.table} linkOf={explorer.tableLink} />
                 <Card className="lg:col-span-3 p-4 h-[70vh] flex flex-col">
                     {explorer.table ? (
                         <TableViewer explorer={explorer} table={explorer.table} />

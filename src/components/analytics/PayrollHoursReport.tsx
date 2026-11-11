@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { getPayrollHoursAction } from '@/app/analytics/analytics-actions';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { ExportExcelButton } from '@/components/ui/ExportExcelButton';
@@ -8,11 +8,13 @@ import { FilterPanel } from '@/components/ui/FilterPanel';
 import { MonthField } from '@/components/ui/MonthField';
 import { TabBar } from '@/components/ui/TabBar';
 import { YearField } from '@/components/ui/YearField';
-import { sameMonthPeriod, thisMonthPeriod, type MonthPeriod } from '@/lib/dateUtils';
+import { useAddress } from '@/hooks/useAddress';
+import { useAppliedQuery } from '@/hooks/useAppliedQuery';
+import { choiceParam } from '@/lib/address';
+import { thisMonthPeriod, type MonthPeriod } from '@/lib/dateUtils';
 import type { ExcelSheet } from '@/lib/excel';
 import { formatNumber, formatWeekdayDate } from '@/lib/format';
-import { PAYROLL_COLUMNS, dayOf, isPayrollNote, payrollExcelColumns, payrollRows, type PayrollData, type PayrollRow, type PayrollValue } from '@/lib/payroll';
-import { errorMessage } from '@/lib/utils';
+import { PAYROLL_COLUMNS, dayOf, isPayrollNote, payrollExcelColumns, payrollRows, type PayrollRow, type PayrollValue } from '@/lib/payroll';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.analytics.payroll;
@@ -20,6 +22,8 @@ const copy = APP_COPY.analytics.payroll;
 /** The two tabs on screen, the two sheets of the file */
 type SheetId = 'clz' | 'interinali';
 const SHEETS: SheetId[] = ['clz', 'interinali'];
+/** The open tab, in the address */
+const VIEW = { sheet: choiceParam(SHEETS, 'clz') };
 
 /** On screen: the hours, a typed note, or nothing */
 const showValue = (value: PayrollValue) => (typeof value === 'number' ? formatNumber(value, 2) : (value ?? ''));
@@ -52,44 +56,20 @@ const COLUMNS: DataTableColumn<PayrollRow>[] = [
 const EXCEL_COLUMNS = payrollExcelColumns();
 
 /**
- * Ore Studio Paghe: a month's hours per person, read on "Applica" (production from the file, office from the
- * timesheet); two tabs (Clz e Ufficio, Interinali) that become the two sheets of one Excel named like the file.
+ * Ore Studio Paghe: a month's hours per person, read on "Applica" or from a link that names the month (production
+ * from the file, office from the timesheet; the file takes a while to read, so a page opened bare loads nothing);
+ * two tabs (Clz e Ufficio, Interinali) that become the two sheets of one Excel named like the file.
  */
 export function PayrollHoursReport() {
-    const [period, setPeriod] = useState<MonthPeriod>(thisMonthPeriod);
-    /** The period the table shows; null before "Applica" (the file takes a while to read, so nothing loads on its own) */
-    const [applied, setApplied] = useState<MonthPeriod | null>(null);
-    const [data, setData] = useState<PayrollData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [sheet, setSheet] = useState<SheetId>('clz');
-
-    const load = async () => {
-        setApplied(period);
-        setLoading(true);
-        setError(null);
-        try {
-            const result = await getPayrollHoursAction(period.year, period.month);
-            if (result.success) {
-                setData(result.data);
-            } else {
-                setData(null);
-                setError(result.error);
-            }
-        } catch (err) {
-            setData(null);
-            setError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const clear = () => {
-        setPeriod(thisMonthPeriod());
-        setApplied(null);
-        setData(null);
-        setError(null);
-    };
+    const query = useAppliedQuery({
+        initialFilters: (): MonthPeriod => thisMonthPeriod(),
+        load: (period: MonthPeriod) => getPayrollHoursAction(period.year, period.month),
+    });
+    const { filters: period, updateFilters, applied, loading, error } = query;
+    const view = useAddress(VIEW);
+    const { sheet } = view.values;
+    // A month that could not be read shows its error, not the month read before it
+    const data = !error && query.result?.success ? query.result.data : null;
 
     const rows = useMemo(() => (data ? payrollRows(data[sheet]) : []), [data, sheet]);
 
@@ -99,18 +79,18 @@ export function PayrollHoursReport() {
     return (
         <div className="flex flex-col gap-4 lg:h-full">
             <FilterPanel
-                onApply={load}
-                onClear={clear}
-                activeCount={applied && !sameMonthPeriod(applied, thisMonthPeriod()) ? 1 : 0}
+                onApply={query.apply}
+                onClear={query.clear}
+                activeCount={query.activeFilterCount}
                 actions={<ExportExcelButton fileName={data?.fileName ?? ''} getSheets={excelSheets} disabled={!data} />}
             >
-                <MonthField value={period.month} onChange={(month) => setPeriod({ ...period, month })} />
-                <YearField value={period.year} onChange={(year) => setPeriod({ ...period, year })} />
+                <MonthField value={period.month} onChange={(month) => updateFilters({ month })} />
+                <YearField value={period.year} onChange={(year) => updateFilters({ year })} />
             </FilterPanel>
 
             {data && (
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                    <TabBar tabs={SHEETS.map((id) => ({ id, label: copy.sheets[id], count: data[id].length }))} active={sheet} onChange={setSheet} />
+                    <TabBar tabs={SHEETS.map((id) => ({ id, label: copy.sheets[id], count: data[id].length }))} active={sheet} linkOf={(id) => view.link({ sheet: id })} />
                     <p className="text-sm text-fg-muted">
                         {copy.file}: <span className="font-mono text-fg-strong">{data.fileName}</span>
                     </p>

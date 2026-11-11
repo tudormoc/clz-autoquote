@@ -1,11 +1,14 @@
-import { AlertTriangle, Check, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, Pin, RefreshCw } from 'lucide-react';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
-import { ChoiceButton } from '@/components/ui/ChoiceButton';
+import { choiceClasses } from '@/components/ui/ChoiceButton';
 import { Spinner } from '@/components/ui/Spinner';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ViewLink } from '@/components/ui/ViewLink';
+import type { ViewTarget } from '@/hooks/useAddress';
 import { useCanRiallinea } from '@/hooks/useCanRiallinea';
-import { syncBlockText } from '@/lib/orders/syncBlocks';
+import { keepsSomething, syncBlockText, syncKeepLines, syncKeepNames } from '@/lib/orders/syncBlocks';
+import { cn } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
@@ -16,13 +19,17 @@ interface ManagementToolbarProps {
     editions: OrderEdition[];
     refreshing: boolean;
     syncing: boolean;
-    onSelectEdition: (commessaFull: string) => void;
+    /** The link that compares another edition (its commessa) */
+    editionLink: (commessaFull: string) => ViewTarget;
     onRefresh: () => void;
     onSync: () => void;
 }
 
-/** Edition picker, the ids of the orders, whether the order is aligned to the DiBa, and the realign and reload buttons. */
-export function ManagementToolbar({ data, editions, refreshing, syncing, onSelectEdition, onRefresh, onSync }: ManagementToolbarProps) {
+/**
+ * Edition picker, the ids of the orders, what stays on the order although the DiBa no longer has it (already used),
+ * whether the order is aligned to the DiBa, and the realign and reload buttons.
+ */
+export function ManagementToolbar({ data, editions, refreshing, syncing, editionLink, onRefresh, onSync }: ManagementToolbarProps) {
     const canSync = useCanRiallinea();
     const multiEdition = editions.length > 1;
     const hasDiscrepancies = data.has_discrepancies ?? false;
@@ -34,19 +41,21 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, onSelec
             {multiEdition && (
                 <div className="flex items-center gap-1">
                     <span className="text-3xs text-fg-subtle font-semibold mr-1">{t.editions}</span>
-                    {editions.map((edition, index) => (
-                        <ChoiceButton
-                            key={edition.commessa_full}
-                            size="sm"
-                            selected={data.commessa_full === edition.commessa_full}
-                            onClick={() => onSelectEdition(edition.commessa_full)}
-                            disabled={refreshing}
-                            title={edition.order_description}
-                            className="px-2 font-mono"
-                        >
-                            {index + 1} · {edition.commessa_full}
-                        </ChoiceButton>
-                    ))}
+                    {editions.map((edition, index) => {
+                        const selected = data.commessa_full === edition.commessa_full;
+                        return (
+                            <ViewLink
+                                key={edition.commessa_full}
+                                to={editionLink(edition.commessa_full)}
+                                aria-current={selected ? 'page' : undefined}
+                                aria-disabled={refreshing}
+                                title={edition.order_description}
+                                className={choiceClasses({ selected, size: 'sm', className: cn('px-2 font-mono', refreshing && 'pointer-events-none opacity-50') })}
+                            >
+                                {index + 1} · {edition.commessa_full}
+                            </ViewLink>
+                        );
+                    })}
                 </div>
             )}
 
@@ -63,6 +72,13 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, onSelec
             </div>
 
             <div className="ml-auto flex items-center gap-2">
+                {/* A phase already worked on or a material already withdrawn that left the DiBa: Riallinea leaves it */}
+                {keepsSomething(data.sync_keeps) && (
+                    <StatusBadge tone="info" size="md" title={syncKeepLines(data.sync_keeps).join('\n')}>
+                        <Pin className="w-3.5 h-3.5" />
+                        {fmt(t.syncKeptBadge, { kept: syncKeepNames(data.sync_keeps) })}
+                    </StatusBadge>
+                )}
                 {hasDiscrepancies ? (
                     <StatusBadge tone="warning" size="md">
                         <AlertTriangle className="w-3.5 h-3.5" />
@@ -76,7 +92,7 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, onSelec
                 )}
 
                 {/* Realigns the edition shown: each edition is an article of its own, with its own orders. Not when it
-                    would remove something already used: the badge says what */}
+                    would take every phase away (an article without DiBa phases): the badge says so */}
                 {hasDiscrepancies && canSync && blocked && (
                     <StatusBadge tone="danger" size="md" title={syncBlockText(blocks)}>
                         {t.syncBlocked}

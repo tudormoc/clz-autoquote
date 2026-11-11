@@ -40,8 +40,9 @@ export function compareOrder(data: OrderOperationsManagementData): SyncPreviewIn
     return {
         quantities: compareFacts(data.quantities?.rows ?? [], QUANTITY_RULES),
         article: compareFacts(data.article?.rows ?? [], ARTICLE_RULES),
-        phases: compareOperations(data.diba_operations, data.business_operations ?? [], data.order_operations),
-        materials: compareMaterials(data.diba_materials ?? [], data.order_materials ?? [], data.netpro_materials ?? [], quantity),
+        // What Riallinea leaves on the order because it was already used is not a difference (syncBlocks.ts)
+        phases: compareOperations(data.diba_operations, data.business_operations ?? [], data.order_operations, data.sync_keeps?.phases),
+        materials: compareMaterials(data.diba_materials ?? [], data.order_materials ?? [], data.netpro_materials ?? [], quantity, data.sync_keeps?.materials.map((row) => row.riga)),
     };
 }
 

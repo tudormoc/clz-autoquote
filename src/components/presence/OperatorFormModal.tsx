@@ -91,6 +91,8 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
                 return;
             }
             notify.success(operator ? copy.saved : fmt(copy.created, { code }));
+            // Who is moved out while inside (to OFF HR) also gets the exit: the message says so
+            if ('message' in result && result.message) notify.success(result.message);
             await onSaved();
             onClose();
         } catch (err) {

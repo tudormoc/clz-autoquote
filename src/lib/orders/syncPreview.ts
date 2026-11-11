@@ -57,12 +57,15 @@ function factChanges<K extends string, V>(
     return lines;
 }
 
-/** Phases: added where the DiBa has one the order lacks, removed where the DiBa has none, else the fields taken again from the DiBa */
+/**
+ * Phases: added where the DiBa has one the order lacks, removed where the DiBa has none (unless already worked on: it
+ * stays), else the fields taken again from the DiBa
+ */
 function phaseChanges(rows: OperationComparisonRow[]): string[] {
     const lines: string[] = [];
-    for (const { fase, diba, bus, net, busDiff, netDiff } of rows) {
+    for (const { fase, diba, bus, net, busDiff, netDiff, kept } of rows) {
         if (!diba) {
-            if (bus || net) lines.push(fmt(copy.phaseRemove, { fase, where: places(!!bus, !!net) }));
+            if (!kept && (bus || net)) lines.push(fmt(copy.phaseRemove, { fase, where: places(!!bus, !!net) }));
             continue;
         }
         if (!bus || !net) lines.push(fmt(copy.phaseAdd, { fase, where: places(!bus, !net), name: text(diba.descr_lavor), centro: diba.codcent }));

@@ -1,4 +1,4 @@
-import { Ban, Check, CircleAlert, Copy, EqualNot, Layers, type LucideIcon } from 'lucide-react';
+import { Ban, Check, CircleAlert, Copy, EqualNot, Layers, Pin, type LucideIcon } from 'lucide-react';
 import { articleDiffersText } from '@/components/analytics/order-operations/MisalignedOrderActions';
 import { syncBlockText } from '@/lib/orders/syncBlocks';
 import type { MisalignedOrder } from '@/lib/orders/types';
@@ -36,13 +36,15 @@ function stateMarks(order: MisalignedOrder): Mark[] {
 /**
  * What kind of row this is, as icons right after its buttons, each kind always in the same place so a look down the
  * list tells the rows apart: what stops the realign (comparison failed, another article in NetPro, blocked) or
- * "aligned", then the article with several production orders, then the commessa with several editions. The sentence is
- * the icon's tooltip; on phones, where nothing hovers, the name stands next to the icon.
+ * "aligned", then what a realign leaves on the order because it was already used, then the article with several
+ * production orders, then the commessa with several editions. The sentence is the icon's tooltip; on phones, where
+ * nothing hovers, the name stands next to the icon.
  */
 export function MisalignedOrderMarks({ order }: { order: MisalignedOrder }) {
     const state = stateMarks(order);
     const places: (Mark | null)[] = [
         state.length > 0 ? { ...state[0], title: state.map((mark) => mark.title).join('\n') } : null,
+        order.syncKeeps.length > 0 ? { icon: Pin, label: t.syncKept, title: order.syncKeeps.join('\n'), tone: 'warning' } : null,
         order.otherOrders.length > 0 ? { icon: Copy, label: copy.duplicate, title: copy.duplicateTitle, tone: 'warning' } : null,
         order.multiEdition ? { icon: Layers, label: copy.multiEdition, title: copy.multiEditionTitle, tone: 'muted' } : null,
     ];

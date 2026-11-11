@@ -8,8 +8,9 @@ import type { Result } from '@/lib/appTables';
 import { APP_COPY, fmt } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { authorize } from '@/lib/auth/access';
-import { buildOperatorSearch } from './presence-db';
+import { addPresenceEvent, buildOperatorSearch, lastPresenceEvent, type PausedWork } from './presence-db';
 import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, categoryOf, isLeftCategory, nameForCategory } from '@/lib/presence/categories';
+import { eventForStatoChange, isPresenceStatoChange } from '@/lib/presence/events';
 import {
     NewOperatorSchema,
     OPERATOR_COLUMN_SIZES,
@@ -156,6 +157,8 @@ export async function generateOperatorChecklistPDFAction(categoryKeys: string[],
 }
 
 const formCopy = APP_COPY.analytics.operators.form;
+/** What a stato fisico changed by hand tells the user about the events */
+const statoCopy = APP_COPY.analytics.operators.stato;
 const NEW_VALUES = APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES;
 
 /** The message when another operator has this badge, null when it is free (NetPro does not keep badges unique: the app does) */
@@ -230,6 +233,9 @@ export async function createOperatorAction(input: NewOperatorInput) {
  * OperatorFieldsSchema, trimmed, empty → NULL. When the name and the category come together the name takes the
  * category's mark. Who moves to the category of the people who left (OFF HR) also gets its stato fisico (OFF).
  * A badge must not be another operator's; the check and the update are one transaction.
+ * A stato fisico changed into IN or out of IN (to OUT, to OFF) also writes the entry or exit the events lack, as of
+ * now, the way "Aggiungi Evento" does (an exit suspends the work in execution); none when the operator's last
+ * presence event already says so (src/lib/presence/events.ts). `message` tells the user what happened to the events.
  */
 export async function saveOperatorAction(operatore: string, fields: OperatorFields) {
     const access = await authorize('edit', LINKS.presence.operators);
@@ -241,28 +247,55 @@ export async function saveOperatorAction(operatore: string, fields: OperatorFiel
     if ((changes.NOME?.length ?? 0) > OPERATOR_COLUMN_SIZES.NOME) return { success: false as const, error: fmt(formCopy.invalid, { field: formCopy.name }) };
     const columns = OPERATOR_FIELDS.filter((column) => changes[column] !== undefined);
     if (columns.length === 0) return { success: true as const };
-    // What the changed columns held, for the log
-    let previous: Record<string, unknown> | null = null;
     try {
-        const problem = await withTransactions(['NETPRO'], async (run) => {
+        const saved = await withTransactions(['NETPRO'], async (run) => {
             const taken = changes.BADGE ? await badgeProblem(run, changes.BADGE, operatore) : null;
-            if (taken) return taken;
-            previous = (await run<Record<string, unknown>>(`SELECT ${columns.join(', ')} FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @operatore`, { operatore }, 'NETPRO')).recordset[0] ?? null;
+            if (taken) return { problem: taken };
+            // What the changed columns held, for the log
+            const previous = (await run<Record<string, string | null>>(`SELECT ${columns.join(', ')} FROM OPERATORI WITH (NOLOCK) WHERE OPERATORE = @operatore`, { operatore }, 'NETPRO')).recordset[0] ?? null;
+
+            // Into or out of IN by hand: the events must say the same. The event goes first (it sets IN or OUT with
+            // its time), then the columns, so the stato asked for is the one that stays (OFF after the exit)
+            let stato: { event: string | null; lastEvent: string | null; time: string; paused: PausedWork[] } | null = null;
+            if (previous && isPresenceStatoChange(previous.STATO_FISICO, changes.STATO_FISICO)) {
+                const lastEvent = await lastPresenceEvent(run, operatore);
+                const event = eventForStatoChange(previous.STATO_FISICO, changes.STATO_FISICO, lastEvent);
+                const time = toLocalDateTime(new Date());
+                const written = event ? await addPresenceEvent(run, operatore, event, time) : null;
+                stato = { event, lastEvent, time, paused: written?.paused ?? [] };
+            }
+
             const params: SqlParams = { operatore };
             for (const column of columns) params[column] = changes[column] ?? null;
             await run(`UPDATE OPERATORI SET ${columns.map((column) => `${column} = @${column}`).join(', ')} WHERE OPERATORE = @operatore`, params, 'NETPRO');
-            return null;
+            return { problem: null, previous, stato };
         });
-        if (problem) return { success: false as const, error: problem };
+        if (saved.problem !== null) return { success: false as const, error: saved.problem };
         await logEvent(personOf(access), {
             page: LINKS.presence.operators,
             action: 'changed',
             entityKind: 'operator',
             entityId: operatore,
             summary: fmt(log.operatorChanged, { code: operatore, columns: columns.join(', ') }),
-            details: { before: previous, after: Object.fromEntries(columns.map((column) => [column, changes[column] ?? null])) },
+            details: { before: saved.previous, after: Object.fromEntries(columns.map((column) => [column, changes[column] ?? null])) },
         });
-        return { success: true as const };
+        if (!saved.stato) return { success: true as const };
+
+        const { event, lastEvent, time, paused } = saved.stato;
+        const stato = changes.STATO_FISICO ?? '';
+        if (!event) {
+            const message = lastEvent ? fmt(statoCopy.onlyStato, { stato, event: lastEvent }) : fmt(statoCopy.noEntry, { stato });
+            return { success: true as const, message };
+        }
+        await logEvent(personOf(access), {
+            page: LINKS.presence.operators,
+            action: 'created',
+            entityKind: 'presence-event',
+            entityId: operatore,
+            summary: fmt(log.eventCreated, { operator: operatore, event, time }),
+            details: { after: { operator: operatore, event, at: time, statoFisico: stato, workPaused: paused, from: 'stato fisico changed on Operatori' } },
+        });
+        return { success: true as const, message: fmt(statoCopy.eventCreated, { stato, event, time: time.split(' ')[1] }) };
     } catch (err) {
         return { success: false as const, error: errorMessage(err) };
     }

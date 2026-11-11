@@ -1,14 +1,12 @@
 'use client'
 
-import { errorMessage } from '@/lib/utils';
-import { useState } from 'react';
 import { getPresenceDataAction } from '@/app/analytics/analytics-actions';
 import { APP_COPY, fmt } from '@/locales';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { YearField } from '@/components/ui/YearField';
-import { PresenceData } from '@/types';
+import { useAppliedQuery } from '@/hooks/useAppliedQuery';
 import { Copy } from 'lucide-react';
 import { copyToClipboard } from '@/lib/clipboard';
 import { recentYears } from '@/lib/dateUtils';
@@ -17,43 +15,22 @@ import { formatDayMonth } from '@/lib/format';
 const copy = APP_COPY.analytics.presence;
 const thisYear = () => recentYears(1)[0];
 
-/** Presenze Annuali: the hours per group of every week of a year, read from the presence Excel files on "Applica". */
+/**
+ * Presenze Annuali: the hours per group of every week of a year, read from the presence Excel files on "Applica" or
+ * from a link that names the year (the files take a while to read, so a page opened bare loads nothing).
+ */
 export function AnnualPresenceReport() {
-    const [year, setYear] = useState(thisYear);
-    /** The year the tables show; null before "Applica" (the files take a while to read, so nothing loads on its own) */
-    const [applied, setApplied] = useState<number | null>(null);
-    const [data, setData] = useState<PresenceData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [filesProcessed, setFilesProcessed] = useState(0);
-
-    const load = async (chosen: number) => {
-        setApplied(chosen);
-        setLoading(true);
-        setError(null);
-        try {
-            const result = await getPresenceDataAction(chosen);
-            if (result.success && result.data) {
-                setData(result.data);
-                setFilesProcessed(result.filesProcessed || 0);
-            } else {
-                setData(null);
-                setError(result.error || APP_COPY.common.loadError);
-            }
-        } catch (err) {
-            setError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const clear = () => {
-        setYear(thisYear());
-        setApplied(null);
-        setData(null);
-        setError(null);
-        setFilesProcessed(0);
-    };
+    const query = useAppliedQuery({
+        initialFilters: () => ({ year: thisYear() }),
+        load: (filters: { year: number }) => getPresenceDataAction(filters.year),
+    });
+    const { loading, error } = query;
+    /** The year the tables show; null before "Applica" */
+    const applied = query.applied?.year ?? null;
+    // A year that could not be read shows its error, not the year read before it
+    const result = error ? null : query.result;
+    const data = result?.data ?? null;
+    const filesProcessed = result?.filesProcessed ?? 0;
 
     // Plain whole hours (no thousands separator): also pasted into spreadsheets via the copy button
     const toWholeHours = (hours: number) => Math.round(hours).toString();
@@ -97,8 +74,8 @@ export function AnnualPresenceReport() {
 
     return (
         <div className="space-y-4">
-            <FilterPanel onApply={() => load(year)} onClear={clear} activeCount={applied !== null && applied !== thisYear() ? 1 : 0}>
-                <YearField value={year} onChange={setYear} />
+            <FilterPanel onApply={query.apply} onClear={query.clear} activeCount={query.activeFilterCount}>
+                <YearField value={query.filters.year} onChange={(year) => query.updateFilters({ year })} />
             </FilterPanel>
 
             {/* The year shown and how many files were read */}

@@ -8,12 +8,16 @@ import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
 import { getTodayDate } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
-import { suspendActiveExecutionIfAny } from './presence-db';
+import { PRESENCE_EXIT } from '@/lib/presence';
+import { addPresenceEvent, type PausedWork } from './presence-db';
+
+/** Who NetPro shows as the writer of an automatic exit */
+const AUTO_EXIT_USER = 'AUTO';
 
 /**
  * Auto-exit: find all operators with an ENT event today but no EXT event,
  * then create an EXT event at the configured time based on the day of the week.
- * Sunday is always skipped. Each operator's writes (EXT event, stato fisico, suspended task) are one transaction.
+ * Sunday is always skipped. Each operator's writes (work in progress paused, EXT event, stato fisico) are one transaction.
  *
  * @param testOperator - Optional: limit to a single operator code (for testing)
  */
@@ -60,21 +64,13 @@ export async function runAutoExit(testOperator?: string) {
             return { success: true, skipped: false, processed: 0, operators: [] };
         }
 
-        // Build the full datetime string for the EXT event: YYYY-MM-DD HH:MM:SS.000
-        const oraEvento = `${todayStr} ${exitTime}.000`;
-
-        // Create EXT event and update STATO_FISICO for each operator
+        // The exit of each operator, written like an exit made in NetPro: the work in progress paused one second
+        // before, the EXT row, the operator OUT since the exit (addPresenceEvent). One transaction per operator.
+        const exitAt = `${todayStr} ${exitTime}`;
+        const paused: Record<string, PausedWork[]> = {};
         for (const oggetto of operators) {
-            await withTransactions(['NETPRO'], async (run) => {
-                await run(
-                    `INSERT INTO EVENTI (OGGETTO, EVENTO, ORA_EVENTO, TASK, TIPO_OGGETTO, SOURCE, UTENTE, OPERATORE)
-                     VALUES (@oggetto, 'EXT', @oraEvento, 'presenza', 'OPE', 'WS', 'AUTO', @oggetto)`,
-                    { oggetto, oraEvento },
-                    'NETPRO'
-                );
-                await run(`UPDATE OPERATORI SET STATO_FISICO = 'OUT' WHERE OPERATORE = @oggetto`, { oggetto }, 'NETPRO');
-                await suspendActiveExecutionIfAny(run, oggetto, oraEvento);
-            });
+            const written = await withTransactions(['NETPRO'], (run) => addPresenceEvent(run, oggetto, PRESENCE_EXIT, exitAt, AUTO_EXIT_USER));
+            if (written.paused.length > 0) paused[oggetto] = written.paused;
         }
 
         return {
@@ -84,6 +80,8 @@ export async function runAutoExit(testOperator?: string) {
             operators,
             exitTime,
             date: todayStr,
+            /** The phases paused, by operator (only who had work in progress) */
+            paused,
         };
     } catch (err) {
         return {

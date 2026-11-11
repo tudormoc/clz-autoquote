@@ -11,6 +11,7 @@ import { compareOrder, orderDifferences } from '@/lib/orders/differences';
 import { docRef } from '@/lib/orders/documentRows';
 import { loadOrderManagement } from '@/lib/orders/management';
 import { businessDb } from '@/lib/orders/sql';
+import { syncKeepLines } from '@/lib/orders/syncBlocks';
 import type { MisalignedOrder, MisalignedOrders, OtherProductionOrder } from '@/lib/orders/types';
 import { errorMessage, mapAtOnce } from '@/lib/utils';
 
@@ -182,11 +183,12 @@ async function compareOpenOrder(open: OpenOrder, marks: OrderMarks): Promise<Mis
             businessOrder: data.order_bus_numord,
             ...marked(otherOrders(open, article, marks)),
             syncBlocks: data.sync_blocks ?? [],
+            syncKeeps: syncKeepLines(data.sync_keeps),
             differences: orderDifferences(compareOrder(data)),
         };
     } catch (err) {
         console.error(`Error comparing the production order ${open.ordine}:`, err);
-        return { ...row, article: open.article, ...marked(otherOrders(open, open.article, marks)), syncBlocks: [], differences: [], error: errorMessage(err) };
+        return { ...row, article: open.article, ...marked(otherOrders(open, open.article, marks)), syncBlocks: [], syncKeeps: [], differences: [], error: errorMessage(err) };
     }
 }
 

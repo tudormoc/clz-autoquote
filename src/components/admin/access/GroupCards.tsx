@@ -1,3 +1,5 @@
+import { ViewLink } from '@/components/ui/ViewLink';
+import type { ViewTarget } from '@/hooks/useAddress';
 import type { Group } from '@/lib/auth/accounts';
 import { lightCounts } from '@/lib/auth/lights';
 import { GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
@@ -16,14 +18,15 @@ interface GroupCardsProps {
     pagesOf: (group: Group) => PagePermissions;
     /** Users' names per group id */
     members: Map<number, string[]>;
-    onSelect: (group: Group) => void;
+    /** The link that shows a group */
+    linkOf: (group: Group) => ViewTarget;
 }
 
 /**
  * Gruppi: one card per group, the one being worked on marked. Each says how many users and pages it has; the bar
  * shows how much of the app it opens: the part it modifies, then the part it only sees.
  */
-export function GroupCards({ groups, selectedId, pagesOf, members, onSelect }: GroupCardsProps) {
+export function GroupCards({ groups, selectedId, pagesOf, members, linkOf }: GroupCardsProps) {
     return (
         <div className="flex flex-wrap gap-2 xl:flex-col xl:flex-nowrap">
             {groups.map((group) => {
@@ -31,14 +34,13 @@ export function GroupCards({ groups, selectedId, pagesOf, members, onSelect }: G
                 const names = members.get(group.id) ?? [];
                 const selected = group.id === selectedId;
                 return (
-                    <button
+                    <ViewLink
                         key={group.id}
-                        type="button"
-                        onClick={() => onSelect(group)}
-                        aria-pressed={selected}
+                        to={linkOf(group)}
+                        aria-current={selected ? 'page' : undefined}
                         title={names.length > 0 ? names.join(', ') : copy.noMembers}
                         className={cn(
-                            'min-w-40 flex-1 rounded-lg border px-3 py-2 text-left transition-colors xl:flex-none',
+                            'block min-w-40 flex-1 rounded-lg border px-3 py-2 text-left transition-colors xl:flex-none',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                             selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted'
                         )}
@@ -51,7 +53,7 @@ export function GroupCards({ groups, selectedId, pagesOf, members, onSelect }: G
                             <span className="bg-warning-500" style={{ width: `${share(counts.modify)}%` }} />
                             <span className="bg-primary" style={{ width: `${share(counts.see - counts.modify)}%` }} />
                         </span>
-                    </button>
+                    </ViewLink>
                 );
             })}
         </div>

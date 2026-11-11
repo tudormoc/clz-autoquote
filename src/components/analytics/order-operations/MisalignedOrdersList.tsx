@@ -9,8 +9,11 @@ import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { MissingValue } from '@/components/ui/TableCells';
 import { ToggleChips, type ChipOption } from '@/components/ui/ToggleChips';
+import { ViewLink } from '@/components/ui/ViewLink';
+import type { ViewTarget } from '@/hooks/useAddress';
 import { useCanRiallinea } from '@/hooks/useCanRiallinea';
 import { useClientSort } from '@/hooks/useClientSort';
+import { useOrderAddress } from '@/hooks/useOrderAddress';
 import { EMPTY_VALUE } from '@/lib/format';
 import { DIFFERENCE_KINDS, differenceLines } from '@/lib/orders/differences';
 import type { SyncChangeGroupKey } from '@/lib/orders/syncPreview';
@@ -25,6 +28,8 @@ const kindNames = t.syncPreview.groups;
 
 /** What a chip keeps: the orders with a kind of difference, or those whose article has other production orders */
 type Filter = SyncChangeGroupKey | 'duplicates';
+const FILTERS: readonly Filter[] = [...DIFFERENCE_KINDS, 'duplicates'];
+const isFilter = (text: string): text is Filter => FILTERS.some((filter) => filter === text);
 
 const countOf = (order: MisalignedOrder, kind: SyncChangeGroupKey) => order.differences.find((difference) => difference.kind === kind)?.count ?? 0;
 const hasFilter = (order: MisalignedOrder, filter: Filter) => (filter === 'duplicates' ? order.otherOrders.length > 0 : countOf(order, filter) > 0);
@@ -51,7 +56,8 @@ interface MisalignedOrdersListProps {
     busyOrders: ReadonlySet<string>;
     /** Kept in place but out of sight while an order is open, so the filters and the open rows are there on the way back */
     hidden: boolean;
-    onSelect: (rootCommessaKey: string) => void;
+    /** The link that opens an order (the first characters of its commessa) */
+    linkOf: (rootCommessaKey: string) => ViewTarget;
     /** Reads a row again and gives it back (null: no longer open, undefined: the read failed) */
     onRefresh: (order: MisalignedOrder) => Promise<MisalignedOrder | null | undefined>;
     /** Realigns the order of a row (writes to Business and NetPro); true when it worked */
@@ -60,14 +66,16 @@ interface MisalignedOrdersListProps {
 
 /**
  * "Ordini da riallineare": the open production orders that differ from their impegno cliente or their DiBa, one row per
- * order with the number of differences of each kind. A click opens the order; the chips keep the orders with a kind
- * of difference. The buttons at the start of a row show the lines of the Riallinea preview under it, read it again
- * and realign it (after the same confirm window as on the order's page); the icons after them say what kind of row it
- * is (MisalignedOrderMarks).
+ * order with the number of differences of each kind. A row is the link to its order (a click opens it, the middle
+ * button in another tab); the chips keep the orders with a kind of difference and are in the address. The buttons at
+ * the start of a row show the lines of the Riallinea preview under it, read it again and realign it (after the same
+ * confirm window as on the order's page); the icons after them say what kind of row it is (MisalignedOrderMarks).
  */
-export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect, onRefresh, onSync }: MisalignedOrdersListProps) {
+export function MisalignedOrdersList({ data, busy, busyOrders, hidden, linkOf, onRefresh, onSync }: MisalignedOrdersListProps) {
     const canRiallinea = useCanRiallinea();
-    const [filters, setFilters] = useState<ReadonlySet<Filter>>(new Set());
+    const address = useOrderAddress();
+    const { kinds } = address.values;
+    const filters = useMemo<ReadonlySet<Filter>>(() => new Set(kinds.filter(isFilter)), [kinds]);
     const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
     /** The order whose realign waits for a yes in the confirm window */
     const [confirming, setConfirming] = useState<MisalignedOrder | null>(null);
@@ -112,7 +120,18 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect,
         // Right after the buttons: what kind of row it is (blocked, double, several editions …), told by icons
         { key: 'marks', header: '', headerTitle: copy.columns.notes, sortable: false, compact: true, mobileLabel: copy.columns.notes, cell: (order) => <MisalignedOrderMarks order={order} /> },
         { key: 'impegno', header: copy.columns.impegno, compact: true, cell: (order) => (order.impegno ? <span className="font-mono text-fg-soft">{order.impegno}</span> : <MissingValue />) },
-        { key: 'commessa', header: copy.columns.commessa, compact: true, mobileHidden: true, cell: (order) => <span className="font-mono font-semibold text-primary">{order.commessa}</span> },
+        // The row's link as a real one: it can be copied, and reached with the keyboard
+        {
+            key: 'commessa',
+            header: copy.columns.commessa,
+            compact: true,
+            mobileHidden: true,
+            cell: (order) => (
+                <ViewLink to={linkOf(order.rootCommessaKey)} className="font-mono font-semibold text-primary hover:underline">
+                    {order.commessa}
+                </ViewLink>
+            ),
+        },
         // The title takes the width the other columns leave, and is cut there
         { key: 'title', header: copy.columns.title, compact: true, mobileHidden: true, className: 'w-full max-w-0 min-w-40', cell: (order) => <span className="block truncate font-medium text-fg" title={order.title}>{order.title || EMPTY_VALUE}</span> },
         { key: 'client', header: copy.columns.client, compact: true, mobileHidden: true, cell: (order) => <span className="block max-w-36 truncate text-fg-muted" title={order.client}>{order.client || EMPTY_VALUE}</span> },
@@ -130,7 +149,7 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect,
     return (
         <div className={cn('flex-1 min-h-0 flex flex-col gap-3', hidden && 'hidden')}>
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 flex-shrink-0">
-                <ToggleChips label={copy.filterLabel} options={chips} active={filters} onToggle={(filter) => setFilters((previous) => toggleInSet(previous, filter))} />
+                <ToggleChips label={copy.filterLabel} options={chips} active={filters} onToggle={(filter) => address.set({ kinds: [...toggleInSet(filters, filter)] }, 'replace')} />
                 <p className="text-sm text-fg-muted">
                     {fmt(copy.summary, { checked: data.checked, listed: data.orders.filter((order) => order.differences.length > 0 || order.error).length, duplicates: amount('duplicates') })}
                 </p>
@@ -139,12 +158,13 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect,
                 columns={columns}
                 rows={sorted}
                 getRowKey={(order) => order.netproOrder}
-                onRowClick={(order) => onSelect(order.rootCommessaKey)}
+                rowLink={(order) => linkOf(order.rootCommessaKey)}
                 rowDetail={(order) =>
                     open.has(order.netproOrder) && (
                         <div className="space-y-2 pl-8 text-xs leading-relaxed">
                             {order.error && <p className="text-danger">{copy.failed}: {order.error}</p>}
                             {order.syncBlocks.map((block) => <p key={block} className="text-danger">{block}</p>)}
+                            {order.syncKeeps.map((line) => <p key={line} className="text-warning-300">{line}</p>)}
                             {order.differences.map((difference) => (
                                 <ChangeLines key={difference.kind} title={kindNames[difference.kind]} count={difference.count} lines={differenceLines(difference)} />
                             ))}
@@ -158,7 +178,9 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect,
                 emptyMessage={data.orders.length === 0 ? copy.allAligned : copy.noMatch}
                 mobileTitle={(order) => (
                     <>
-                        <span className="font-mono font-semibold text-primary">{order.commessa}</span>
+                        <ViewLink to={linkOf(order.rootCommessaKey)} className="font-mono font-semibold text-primary">
+                            {order.commessa}
+                        </ViewLink>
                         <span className="block font-medium text-fg">{order.title}</span>
                     </>
                 )}
@@ -172,6 +194,7 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, onSelect,
                     commessa={confirming.commessa}
                     article={confirming.article}
                     changes={confirming.differences.filter((difference) => difference.changes.length > 0).map((difference) => ({ key: difference.kind, changes: difference.changes }))}
+                    kept={confirming.syncKeeps}
                     syncing={busyOrders.has(confirming.netproOrder)}
                     onConfirm={async () => {
                         if (await onSync(confirming)) setConfirming(null);

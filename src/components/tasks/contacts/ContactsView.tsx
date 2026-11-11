@@ -14,7 +14,10 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { MissingValue } from '@/components/ui/TableCells';
 import { useActionData } from '@/hooks/useActionData';
+import { useAddress } from '@/hooks/useAddress';
+import { useAddressText } from '@/hooks/useAddressText';
 import { useClientSort } from '@/hooks/useClientSort';
+import { flagParam, textParam } from '@/lib/address';
 import { askConfirm } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
 import type { RowSortColumns } from '@/lib/sort';
@@ -33,12 +36,16 @@ const SORT_COLUMNS: RowSortColumns<Contact> = {
     used: (contact) => contact.taskCount + contact.guideCount,
 };
 
+/** The text searched (also a name picked in the search bar on top) and "Mostra archiviati", in the address */
+const VIEW = { q: textParam(), archived: flagParam() };
+
 /** "Contatti": people and companies to call or write, shared by tasks and procedures; new / change in a window */
-export function ContactsView({ initialSearch = '' }: { initialSearch?: string }) {
+export function ContactsView() {
     const { data, loading, error, reload } = useActionData(getContactsAction);
     const canEdit = useCanEdit();
-    const [search, setSearch] = useState(initialSearch);
-    const [showArchived, setShowArchived] = useState(false);
+    const view = useAddress(VIEW);
+    const [search, setSearch] = useAddressText(view.values.q, (text) => view.set({ q: text }, 'replace'));
+    const showArchived = view.values.archived;
     const [editing, setEditing] = useState<Contact | 'new' | null>(null);
 
     const visible = useMemo(() => {
@@ -124,7 +131,7 @@ export function ContactsView({ initialSearch = '' }: { initialSearch?: string })
                     <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={APP_COPY.common.search} />
                 </Field>
                 <div className="pb-2">
-                    <Checkbox id="contacts-archived" label={APP_COPY.tasks.guides.showArchived} checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+                    <Checkbox id="contacts-archived" label={APP_COPY.tasks.guides.showArchived} checked={showArchived} onChange={(e) => view.set({ archived: e.target.checked }, 'replace')} />
                 </div>
                 {canEdit && (
                     <Button className="sm:ml-auto" onClick={() => setEditing('new')}>

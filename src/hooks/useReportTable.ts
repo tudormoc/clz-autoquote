@@ -3,8 +3,10 @@
 import { errorMessage } from '@/lib/utils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_CONFIG } from '@/config/constants';
+import { useAddress } from '@/hooks/useAddress';
+import { useAppliedFilters } from '@/hooks/useAppliedFilters';
+import { pageParam, sortParam } from '@/lib/address';
 import { nextSort, type SortState } from '@/lib/sort';
-import { countChangedFilters, readUrlFilters, writeUrlFilters } from '@/lib/urlFilters';
 
 export type { SortState };
 
@@ -34,17 +36,25 @@ interface UseReportTableOptions<F, R, S> {
     /** Optional summary panel data, loaded on demand for the applied filters */
     fetchSummary?: (filters: F) => Promise<{ success: boolean; data?: S | null }>;
     pageSize?: number;
+    /** Other view values of the report that "Applica" and "Pulisci" take back (a window opened on a row): their names in the address */
+    clears?: readonly string[];
 }
 
 /** Row limit when every row is fetched (exports, summaries): no paging */
 export const EXPORT_LIMIT = APP_CONFIG.ANALYTICS.ALL_ROWS_LIMIT;
 const DEFAULT_PAGE_SIZE = 100;
 
+/** "Applica" goes back to page 1 and keeps the order; "Pulisci" takes both back */
+const APPLY_RESETS = ['page'];
+const CLEAR_RESETS = ['page', 'sort'];
+const NOTHING: readonly string[] = [];
+
 /**
- * State and loading logic shared by every paginated report:
- * filters (edited vs applied, kept in the address bar), paging, server-side sorting, stale-response protection,
- * export of all rows and the optional summary panel. Nothing loads until "Applica": the address bar (a refresh,
- * a shared link) only fills the filters in.
+ * State and loading logic shared by every paginated report: filters (typed vs applied), paging, server-side sorting,
+ * stale-response protection, export of all rows and the optional summary panel.
+ * The applied filters, the order and the page live in the address (useAppliedFilters, useAddress): a page opened
+ * without filters loads nothing until "Applica"; an address with filters (a link, a refresh, Back) loads at once.
+ * "Applica" is a new history step; sorting and paging stay on the same step.
  */
 export function useReportTable<F, R, S = never>({
     initialFilters,
@@ -52,11 +62,14 @@ export function useReportTable<F, R, S = never>({
     fetchPage,
     fetchSummary,
     pageSize = DEFAULT_PAGE_SIZE,
+    clears = NOTHING,
 }: UseReportTableOptions<F, R, S>) {
-    const [filters, setFilters] = useState<F>(initialFilters);
-    const [applied, setApplied] = useState<F | null>(null);
-    const [sort, setSort] = useState<SortState | null>(defaultSort);
-    const [page, setPage] = useState(1);
+    const [shape] = useState(() => ({ sort: sortParam(defaultSort), page: pageParam() }));
+    const view = useAddress(shape);
+    const { sort, page } = view.values;
+    const resets = useMemo(() => ({ onApply: [...APPLY_RESETS, ...clears], onClear: [...CLEAR_RESETS, ...clears] }), [clears]);
+    const form = useAppliedFilters(initialFilters, { atStart: page === 1, ...resets });
+    const { applied, run } = form;
 
     const [rows, setRows] = useState<R[]>([]);
     const [total, setTotal] = useState(0);
@@ -74,23 +87,21 @@ export function useReportTable<F, R, S = never>({
     // The latest callbacks, so the loading effect does not re-run when a report passes inline functions
     const fetchPageRef = useRef(fetchPage);
     const fetchSummaryRef = useRef(fetchSummary);
-    const initialFiltersRef = useRef(initialFilters);
     useEffect(() => {
         fetchPageRef.current = fetchPage;
         fetchSummaryRef.current = fetchSummary;
-        initialFiltersRef.current = initialFilters;
     });
 
-    // Filters in the address bar (a refresh, a shared link) are filled in, ready for "Applica"
     useEffect(() => {
-        const defaults = initialFiltersRef.current();
-        const fromUrl = readUrlFilters(defaults, window.location.search);
-        if (fromUrl) setFilters({ ...defaults, ...fromUrl });
-    }, []);
-
-    useEffect(() => {
-        if (applied === null) return;
         const id = ++requestId.current;
+        if (applied === null) {
+            setRows([]);
+            setTotal(0);
+            setTotalPages(1);
+            setError(null);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         fetchPageRef.current({ filters: applied, page, limit: pageSize, sort })
             .then((result) => {
@@ -110,45 +121,18 @@ export function useReportTable<F, R, S = never>({
             .finally(() => {
                 if (id === requestId.current) setLoading(false);
             });
-    }, [applied, page, sort, pageSize]);
+    }, [applied, run, page, sort, pageSize]);
 
-    const updateFilters = useCallback((patch: Partial<F>) => {
-        setFilters((prev) => ({ ...prev, ...patch }));
-    }, []);
-
-    const resetSummary = () => {
+    // The summary belongs to the applied filters: other filters (or "Applica" again) start it over
+    useEffect(() => {
         summaryRequestId.current++;
         setSummaryData(null);
         setSummaryStatus('idle');
-    };
+    }, [applied, run]);
 
-    const apply = () => {
-        setApplied({ ...filters });
-        writeUrlFilters(filters);
-        setPage(1);
-        resetSummary();
-    };
+    const toggleSort = (column: string) => view.set({ sort: nextSort(sort, column), page: 1 }, 'replace');
 
-    const clear = () => {
-        const fresh = initialFilters();
-        requestId.current++;
-        writeUrlFilters(null);
-        setFilters(fresh);
-        setApplied(null);
-        setRows([]);
-        setTotal(0);
-        setTotalPages(1);
-        setError(null);
-        setLoading(false);
-        setSort(defaultSort);
-        setPage(1);
-        resetSummary();
-    };
-
-    const toggleSort = (column: string) => {
-        setSort((prev) => nextSort(prev, column));
-        setPage(1);
-    };
+    const setPage = (next: number) => view.set({ page: next }, 'replace');
 
     /** Every row for the applied filters and current order (used by exports) */
     const fetchAll = async (): Promise<R[]> => {
@@ -173,16 +157,13 @@ export function useReportTable<F, R, S = never>({
         }
     }, [applied]);
 
-    // Filters applied apart from the defaults, for the folded filter bar on phones
-    const activeFilterCount = useMemo(() => countChangedFilters(applied, initialFiltersRef.current()), [applied]);
-
     return {
-        filters,
-        updateFilters,
+        filters: form.filters,
+        updateFilters: form.updateFilters,
         applied,
-        activeFilterCount,
-        apply,
-        clear,
+        activeFilterCount: form.activeFilterCount,
+        apply: form.apply,
+        clear: form.clear,
         rows,
         total,
         totalPages,

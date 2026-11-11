@@ -27,6 +27,8 @@ formulas/*   ← server actions + MonthlyHoursTable
 | `src/lib/presence/calendar.ts` | Working days, date ranges, local today |
 | `src/lib/presence/categories.ts` | ENTITA → category, tracked reparti, the name mark of a category (`nameForCategory`) |
 | `src/lib/presence/operatorInput.ts` | What the Operatori window may write: column sizes, Zod schemas, the message of a wrong field |
+| `src/lib/presence/events.ts` | Presence events and the stato fisico: NetPro's codes, the event a stato changed by hand needs (`eventForStatoChange`) |
+| `src/lib/presence/eventDelete.ts` | Which presence events may be deleted: refused when the operator did something else during that presence |
 | `src/lib/presence/config.ts` | Setting definitions (DB key ↔ config field), parser, defaults |
 | `src/lib/presence/examples.ts` | Validated example table — run with `npm run presence:examples` |
 
@@ -100,6 +102,15 @@ the badge terminal finds the person through `BADGE` in that row). The Operatori 
   default; from there the pencil can move someone back.
 - **Chips**: Categoria and Stato Fisico only hide rows on screen. The stati in use are read when the page opens
   (`getOperatorStatiAction`), so their chips are there before "Applica Filtri"; the list itself loads only on Applica.
+- **Stato fisico changed by hand** (the cell of the list, or a move to OFF HR; NetPro's own screen only changes the
+  stato): the events always say the same as the stato (owner, 2026-11-06). IN is the only stato of who is inside, so
+  a change **into IN** (from OUT, from OFF) also writes an entry and a change **out of IN** (to OUT, to OFF) an exit,
+  as of that moment, the way "Aggiungi Evento" does (`addPresenceEvent` in `src/app/presence/presence-db.ts`: the
+  row, the stato fisico with the event's time, and for an exit the work in progress paused); the stato asked for
+  is the one that stays (OFF after the exit). No event when the operator's last presence event already says so: no
+  second entry after an entry, no exit when there is no entry to close (the stato was only left wrong, for example
+  after a deleted event). OUT ↔ OFF writes none. The rule is `eventForStatoChange` in `src/lib/presence/events.ts`
+  (examples in `npm run presence:examples`); a message on the page says what was done.
 - **The name mark**: by habit the names of the interinali end with ` *lb` (`nameMark` of the category in
   `PRESENCE_RULES.CATEGORIES`). `nameForCategory()` adds it when the category is Interinali and takes it off when the
   person moves to another category (not to OFF HR), so nobody types it; the window shows the name it will save.
@@ -109,6 +120,53 @@ the badge terminal finds the person through `BADGE` in that row). The Operatori 
   (`HISTORY_TABLES`): nothing in the database would otherwise stop those rows from losing their person. A person
   with history is kept, and the message says to move the person to OFF HR instead. Checks and delete are one
   transaction.
+
+## Presence events (Eventi Giornalieri)
+
+A presence event (ENT entry, EXT exit) is one row of `NETPRO.EVENTI` with `TASK = 'presenza'`; with the operator,
+the event, its time and NetPro's `PROGRESSIVO` it is the row's key (a double badge stamp is an entry 0 and an exit 1
+of the same instant). `UTENTE` says who wrote it: `SSQ` the badge clock (whole minutes; its stamps are marked as
+handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES` the shop-floor terminal, a NetPro user
+(`ADMIN`, `DIEGO` …) NetPro's own screen, `ADMIN` also this app by hand, `AUTO` the daily auto-exit.
+
+- **Clock rows**: the hours pages read `SITUAZIONI` (`TIPO = 'CLCK'`, one row per entry → exit). Only NetPro's night
+  job writes them, from the events: today's events have none until the night, and an event changed or deleted later is
+  followed there (in six months every clock row matched its entry and exit). The app never writes `SITUAZIONI`.
+- **Aggiungi Evento** (`createEventAction`), a stato fisico changed by hand on Operatori (see Operators above) and
+  the daily automatic exit all write a presence event through `addPresenceEvent` (`src/app/presence/presence-db.ts`),
+  the way NetPro's own screen does (compared with NetPro on 2026-11-11, a picture of the database before and after):
+  an **entry** is the row, the operator IN and both "since" times (`ORA_ST_FISICO`, `ORA_ST_LOGICO`) = the entry; an
+  **exit** first pauses the work in progress one second before, then the row, the operator OUT and `ORA_ST_FISICO` =
+  the exit. Entering again restarts nothing, in NetPro and in the app: the work stays paused until someone starts it.
+- **The automatic exit** (`runAutoExit`, called by the scheduler at 19:00 on the VM): who is still IN (last presence
+  event of the day an entry) gets an exit dated `AUTO_EXIT_TIME_WEEKDAY` / `_SATURDAY` (16:30, 11:00), written as
+  `UTENTE = 'AUTO'`, with the work in progress paused one second before. Not handled: work started after that time.
+- **Work in progress paused at an exit** (`pauseWorkAtExit`): what is in progress is what NetPro's own list says,
+  `ATTIVITA` (one row per person working now: NetPro adds it at a start and removes it at a pause), on a task NetPro
+  holds in stato EXE whose last event of that person is the start. For each such phase the app writes what NetPro
+  writes: the person's pause row (`OPE` `SUS`, the quantities at 0) and the person off `ATTIVITA`; when no colleague
+  is still on the phase, also the machine's pause row (`MAC` `SUS`) if the machine is open on it, `TASKS` and
+  `OPERAZIONI` in stato SUS with `OPERAZIONI.DATA_UPD` = the pause and, unless the machine is still open on another
+  phase in execution, the machine's state row (`TASK = 'stato'`, `IDLE`) and `MACCHINE` idle; when colleagues go on,
+  nothing else (NetPro's rule in 99 % of 1,385 of its own pauses; the state row rule in all 898 machine pauses).
+  At the end the operator is idle since the exit. Two things are left to NetPro: the hours it keeps on the phase
+  (`TEFF_LAVORO_MAC` / `_MAN` in `TASKS`, `OPERAZIONI`, `JOBSET`), which it counts again at its own next pause of the
+  phase (its machine hours could not be reproduced exactly; the app's reports read `SITUAZIONI`), and `SITUAZIONI`.
+  History: until 2026-11-06 old events decided what was "in execution" and a close was looked for as `CLO`, which
+  NetPro never writes, so an exit of someone with nothing open set a phase closed long before back to SUS (the
+  phases hit were closed again by the owner); until 2026-11-11 the person stayed on `ATTIVITA`, so NetPro refused them a new job the
+  same day (`OPERATORE ATTIVO`), and the state row was not written.
+- **The time** (a click on it, `updateEventAction`): changes `ORA_EVENTO` of that row, nothing else.
+- **Elimina** (tick boxes at the start of the rows, with *modifica*; the ticks drop at every new search;
+  `deleteEventsAction`): removes the ticked rows and
+  nothing else, which is exactly what NetPro's own screen does (compared on 2026-11-06 with a snapshot before and after
+  each step): the stato fisico stays as it is, also when the deleted event was the person's last one. Refused when the
+  operator did anything else during that presence (`src/lib/presence/eventDelete.ts`, examples in
+  `npm run presence:examples`): any other event that names the operator (work started or suspended, machine and stato
+  rows) between an entry and its exit, both ends included, keeps the entry and the exit; an entry with no exit yet is
+  kept when anything follows it; an exit with no entry before it stands alone. All or nothing, one transaction: one
+  refused event, or one that is no longer there, and nothing is deleted. Every deleted row goes to the Registro with
+  all its columns, so it can be put back by hand.
 
 ## Invariant
 

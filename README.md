@@ -37,6 +37,7 @@ npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
 npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do groups)
 npm run persons:examples    # Scheda persona name rules (same name, capitals, cognome / nome split)
+npm run address:examples    # what a screen keeps in the address bar (tab, sort, page, chips, applied filters)
 npm run order:snapshot -- 260999910 before   # read-only snapshot of one commessa in Business and NetPro, diffed with the previous one
 ```
 
@@ -120,8 +121,9 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 | Shared UI parts | `src/components/ui/` |
 | Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`; every filter opens on today, `defaultReportPeriod`) `src/lib/dateUtils.ts` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
-| Report state (filters, paging, sorting, export; loads only on "Applica", filters remembered in the address bar via `src/lib/urlFilters.ts`) | `src/hooks/useReportTable.ts` |
-| List state for lists that load all rows (presence pages) / on-screen sorting | `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
+| What a screen shows, kept in the address bar (rule 8): view values (tab, sort, page, chips, the record, month or day shown) / the applied filters of a list | `src/lib/address.ts` (pure: one `…Param` per kind of value, `readFilters` / `writeFilters`) + `src/hooks/useAddress.ts` (`useAddress(shape)` → `values`, `set`, `link`) / `src/hooks/useAppliedFilters.ts`; real links to another view of the same page: `src/components/ui/ViewLink.tsx` |
+| Report state (filters, paging, sorting, export; a page opened bare loads only on "Applica", an address with filters loads at once) | `src/hooks/useReportTable.ts` |
+| State of a screen that reads everything in one go for its applied filters (a year, a month) / of a list of rows (presence pages) / on-screen sorting | `src/hooks/useAppliedQuery.ts` / `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing / saved quotes | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) / `src/lib/quotes/db.ts` |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
 | Ore Studio Paghe (a month's hours per person for the pay studio: production from the monthly Excel files, the office from the timesheet) | `src/lib/payroll.ts` (pure, the file's columns), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
@@ -129,9 +131,9 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 | Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `lights` = how the Gruppi page turns clicks into grants, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | Registro (the app-wide log: who did what and when, with the values before and after) | `src/lib/log/` (`log` writes: `logEvent`, never throws; `entries` reads the three logs as one list; `areas` = whose entries a person sees; `describe` turns a record into lines), actions `src/app/log-actions.ts`, screen `src/components/log/`, table `sql/log/` — a server action that writes calls `logEvent(personOf(access), { page: LINKS.…, action, summary, details })` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
-| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro), list of the open orders to realign | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs; `differences` = what differs by kind, `syncBlocks` = when a realign is refused for what it would remove, `misaligned` = "Ordini da riallineare"); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
+| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro), list of the open orders to realign | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs; `differences` = what differs by kind, `syncBlocks` = what a realign leaves on the order because it was already used, and when it is refused, `misaligned` = "Ordini da riallineare"); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
-| Work progress page (order flow, DiBa comparison, orders to realign) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `useMisalignedOrders.ts`, `src/lib/orders/` |
+| Work progress page (order flow, DiBa comparison, orders to realign) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `useMisalignedOrders.ts`, `src/lib/orders/`; what is on screen (search, list, the open order, its tabs and edition) is in the address: `src/hooks/useOrderAddress.ts`, e.g. `/work-progress?order=2609537&tab=management&view=quantity` |
 | Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |
 | Agenda (tasks, deadlines, procedures, contacts) | `src/lib/tasks/` (rules, pure) + `src/lib/tasks/db/` (all its SQL), actions `src/app/tasks/*-actions.ts`, screens `src/components/tasks/`, tables `sql/tasks/` — [docs/TASKS.md](docs/TASKS.md) |
 
@@ -162,9 +164,9 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
 Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`, `Switch`,
 `DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
-`fill` inside a `FillPage` = takes the free height, header and totals stay in view; `onRowClick` = a row that opens something,
+`fill` inside a `FillPage` = takes the free height, header and totals stay in view; `rowLink` = a row that is the link to a view (a click anywhere on it, the middle button for a new tab),
 `rowDetail` = more about a row unfolded under it, `dense` = lower rows, `scrollResetKey` for a list that replaces a row in place), `CardField` (a line of a phone card),
-`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar`, `Section` + `RowList`/`Row` (blocks of a settings page),
+`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar` (tabs as links with `linkOf`), `ViewLink` (a link to another view of the same page), `Section` + `RowList`/`Row` (blocks of a settings page),
 `Spinner`, `LoadState` (spinner or load error while a screen's data is not there yet), `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
 (`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any`.
@@ -180,6 +182,24 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 7. **Every write is logged**: a server action that changes data ends with `await logEvent(personOf(access), { page: LINKS.…,
    action, entityKind, entityId, summary, details: { before, after } })` (`src/lib/log/log.ts`; the line's text in `it.ts` →
    `log.entries`). The Agenda and the timesheet keep their own logs; the Registro page shows all three. A PIN is never logged.
+8. **The address bar says what the screen shows** (owner, 2026-11-06), so a link, a refresh, Back / Forward, a new tab
+   (middle-click, Ctrl+click) and "copy link" all work as on any website:
+   - *In the address*: everything that says WHAT is looked at — which order, quote, group, person, database table, day
+     or month; which tab; the applied filters, sort and page; the chips switched on; the text of a search box that
+     filters as one types. *Not in the address*: what is not applied or not saved yet (a form, filters before "Applica").
+   - *History*: opening something, another tab and "Applica" add a step (Back returns to the view before); sorting,
+     paging, chips and unfolding a row in place stay on the same step.
+   - *Links*: whatever opens a view is a real link — a Next `<Link>` to another page, a `ViewLink` (or `TabBar` with
+     `linkOf`) to another view of the same page — never a click handler that navigates. `buttonClasses()` gives a link
+     the look of a button, `choiceClasses()` that of a `ChoiceButton`. A table row that opens something: `rowLink` of
+     `DataTable`, with the same link as a `ViewLink` in its main cell. Something that opens in another tab (a PDF):
+     `<a href target="_blank">`, not `window.open`.
+   - *Loading*: a list opened bare still waits for "Applica"; an address that carries filters loads at once.
+   - *Opening a link only shows*: it never writes or runs an action (Riallinea, a save, a delete stay a deliberate click).
+   - *How*: `useAddress(SHAPE)` with one `…Param` per value (`src/lib/address.ts`), or `useReportTable` / `useListQuery` /
+     `useAppliedQuery` for filters; a search box that filters as one types goes through `useAddressText` (the Agenda's
+     text / area / person filters: `useTaskFilters`); never `useState` for such a value, never `history.pushState` by
+     hand. A new kind of value gets its `…Param` and an example in `scripts/address-examples.ts`.
 
 ## Recipes
 
@@ -188,7 +208,10 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 `metadata = { title }` for the browser tab. Its server actions start with `await authorize(...)`; a page that changes
 data gets `editable: true` in the menu config, so groups can be given *modifica* on it. A page that
 fills the height uses `h-full`. Add the link to `NAV_AREAS` in `src/config/navigation.ts` (a new area, or a page in an
-area's `groups`); the sidebar, the phone menu and the overview cards follow.
+area's `groups`); the sidebar, the phone menu and the overview cards follow. What the page shows (the record open, the
+tab, the filters) goes in its address, rule 8: `const view = useAddress(VIEW)` with `VIEW = { tab: choiceParam(TABS, 'first') }`
+as a module constant, `view.values.tab` to read, `view.link({ tab })` for a `ViewLink` / `TabBar`, `view.set({ … }, 'replace')`
+for what stays on the same history step.
 
 **Move or rename a page**: move its folder under `src/app`, change its link in `LINKS` (and its area in `NAV_AREAS`);
 every check and link follows, since nothing names a page by a literal link. Keep the page's `id`: the groups' grants are
@@ -201,7 +224,8 @@ link stored by an old group still counts, and a redirect to `next.config.mjs` fo
    paging, sorting and `failedPage`); re-export it from `analytics-actions.ts`.
 2. Entry in `src/config/analyticsSections.ts`, label and description in `it.ts`.
 3. Component built with `useReportTable` + `ReportView`: copy `src/components/analytics/ClientDeliveriesReport.tsx` and
-   change the row type, filters, columns and Excel columns. Register it in `reportComponents.ts`.
+   change the row type, filters, columns and Excel columns. Register it in `reportComponents.ts`. Filters, sort and
+   page are kept in the address by `useReportTable` itself: a filter is text, a number, yes / no or a list of texts.
 
 **New settings table**: a config in `src/components/admin/recordTables.tsx` (columns, how each value is typed and shown, what a
 new row starts with; the editor, saving through `src/app/admin-actions.ts`, comes from `RecordTableEditor`), then one entry in
