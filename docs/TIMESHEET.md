@@ -83,11 +83,15 @@ in one transaction (`insertDayEntries`). *Vede* looks, *modifica*
 writes; the server checks that the lines are the person's own. Past and future days can be changed; everything is
 logged.
 
-**The giornata normale** (`src/lib/timesheet/normalDay.ts`): the spans of the person's own last day whose closed work
-lines add up to **at least** their workday, looked for over the last `NORMAL_DAY_LOOKBACK_DAYS` — a day shortened by
-permesso or ferie never becomes the suggestion, and a 4- or 6-hour person gets their own workday. It is only ever
-learned, never invented (owner, 2026-11-05): until the person has entered at least one full day by hand, the chip
-does not appear, and a new work line prefills from `DEFAULT_TIME_FROM`.
+**The giornata normale** (`src/lib/timesheet/normalDay.ts`): the shape the person's own full days take **most often**
+over the last `NORMAL_DAY_LOOKBACK_DAYS`, a full day being closed work lines that add up to **exactly** their workday
+(owner, 2026-11-11). One odd day does not take over, since the usual day outvotes it (two shapes seen equally often:
+the most recent). A longer day, say 8,5 h, never becomes the suggestion however often it happens: extra time is an
+exception the person corrects by hand each time. A day shortened by permesso or ferie does not count either, and a
+4- or 6-hour person gets their own workday. It is only ever learned, never invented (owner, 2026-11-05): until the
+person has entered at least one full day by hand, the chip does not appear, and a new work line prefills from
+`DEFAULT_TIME_FROM`. The times need no setting; the workday itself (8, 6, 4) stays a setting of Regole Presenze
+(`ORE_GIORNATA`, `ORE_GIORNATA_OPERATORE`): it is a contract fact that reaches the pay studio, so it is not guessed.
 
 The states stay quiet: a covered day is a small green check, "Mancano N h" is red only when the day holds nothing
 at all (amber when something is already there), free days and days to come show nothing. Weekends and days before

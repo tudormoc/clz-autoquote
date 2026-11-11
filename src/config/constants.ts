@@ -360,7 +360,7 @@ export const APP_CONFIG = {
     STEP_MINUTES: 30,          // times and hours move in half-hour steps: 08:00, 08:30; 8, 8.5
     DEFAULT_TIME_FROM: '08:00', // what a new work line starts with until the giornata normale is learned
     NEXT_LINE_BREAK_MINUTES: 60,   // the break proposed between a work line and the next (new Dalle = last exit + this)
-    NORMAL_DAY_LOOKBACK_DAYS: 60,  // how far back a person's last full workday is looked for to learn their giornata normale
+    NORMAL_DAY_LOOKBACK_DAYS: 60,  // the days looked back to learn a person's giornata normale (their most frequent full day)
     MAX_HOURS: 24,             // the most hours one line may hold
     MAX_CAUSALE_LENGTH: 100,   // timesheet_entries.causale
     MAX_NOTE_LENGTH: 200,      // timesheet_entries.note

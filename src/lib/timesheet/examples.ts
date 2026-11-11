@@ -179,14 +179,43 @@ export function runNormalDayExamples(): (NormalDayExample & { pass: boolean })[]
         { note: 'nothing entered yet: no suggestion (never invented)', actual: normalOf([]), expect: 'none' },
         { note: 'only a short day so far: still no suggestion', actual: normalOf([work(MONDAY, '09:00', '12:00')]), expect: 'none' },
         {
-            note: 'learned from the last day that reaches the workday (the 7 h day is skipped)',
+            note: 'learned from a day of exactly the workday (the 7 h day is skipped)',
             actual: normalOf([work(MONDAY, '08:00', '12:30'), work(MONDAY, '13:30', '17:00'), work(YESTERDAY, '09:00', '13:00'), work(YESTERDAY, '14:00', '17:00')]),
             expect: '08:00-12:30 13:30-17:00',
         },
         {
-            note: 'a longer day teaches too: at least the workday counts',
-            actual: normalOf([work(MONDAY, '08:00', '12:00'), work(MONDAY, '13:00', '18:00')]),
-            expect: '08:00-12:00 13:00-18:00',
+            note: 'a longer day never becomes the suggestion: 8,5 h is corrected by hand each time (owner, 2026-11-11)',
+            actual: normalOf([work(MONDAY, '08:30', '12:30'), work(MONDAY, '13:30', '18:00')]),
+            expect: 'none',
+        },
+        {
+            note: 'someone who often ends later keeps the 8 h day as their suggestion',
+            actual: normalOf([
+                work(MONDAY, '08:30', '12:30'),
+                work(MONDAY, '13:30', '17:30'),
+                work(YESTERDAY, '08:30', '12:30'),
+                work(YESTERDAY, '13:30', '18:00'),
+                work(TODAY, '08:30', '12:30'),
+                work(TODAY, '13:30', '18:00'),
+            ]),
+            expect: '08:30-12:30 13:30-17:30',
+        },
+        {
+            note: 'the most frequent full day wins: one odd day does not take over',
+            actual: normalOf([
+                work(MONDAY, '08:30', '12:30'),
+                work(MONDAY, '13:30', '17:30'),
+                work(YESTERDAY, '08:30', '12:30'),
+                work(YESTERDAY, '13:30', '17:30'),
+                work(TODAY, '07:00', '12:00'),
+                work(TODAY, '13:00', '16:00'),
+            ]),
+            expect: '08:30-12:30 13:30-17:30',
+        },
+        {
+            note: 'two shapes seen equally often: the most recent one',
+            actual: normalOf([work(MONDAY, '08:30', '12:30'), work(MONDAY, '13:30', '17:30'), work(YESTERDAY, '08:00', '12:00'), work(YESTERDAY, '13:00', '17:00')]),
+            expect: '08:00-12:00 13:00-17:00',
         },
         {
             note: 'a day with an open line is skipped',
