@@ -21,6 +21,18 @@
         "3005"
       ],
       "port": 3005
+    },
+    {
+      "name": "start-3010",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start",
+        "--",
+        "-p",
+        "3010"
+      ],
+      "port": 3010
     }
   ]
 }
