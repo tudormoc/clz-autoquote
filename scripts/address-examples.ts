@@ -66,6 +66,7 @@ const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'a tab, an order and a page are read', expected: { sheet: 'interinali', sort: { column: 'client', direction: 'asc' }, page: 3 }, actual: () => { const { sheet, sort, page } = read('sheet=interinali&sort=client.asc&page=3'); return { sheet, sort, page }; } },
     { name: 'an unknown tab is the default one', expected: 'clz', actual: () => read('sheet=altro').sheet },
     { name: 'a page that is not a whole number from 1 is page 1', expected: [1, 1, 1, 1], actual: () => ['0', '-2', '1.5', 'x'].map((page) => read(`page=${page}`).page) },
+    { name: 'a page too large to be exact is page 1, an infinite number is no number', expected: [1, 1, null, null], actual: () => [read('page=9007199254740993').page, read('page=Infinity').page, read('group=Infinity').group, read('group=1e400').group] },
     { name: 'an order without a direction is the default one', expected: { column: 'value', direction: 'desc' }, actual: () => read('sort=client').sort },
     { name: 'a column with a dot in its name keeps it', expected: { column: 'a.b', direction: 'asc' }, actual: () => read('sort=a.b.asc').sort },
     { name: 'a default value is left out of the address', expected: '', actual: () => patched('sheet=interinali&page=4', { sheet: 'clz', page: 1 }) },

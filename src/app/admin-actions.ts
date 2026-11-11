@@ -3,7 +3,8 @@
 /**
  * Writes of the settings tables (Impostazioni). The browser names a table of EDITABLE_TABLES, a row id and values;
  * anything outside that list is refused, so table and column names in the SQL always come from the server.
- * Each write needs "modifica" on the table's settings page.
+ * Each write needs "modifica" on the table's settings page: once the table is known, that check comes before
+ * anything else that was sent is looked at.
  */
 
 import { z } from 'zod';
@@ -24,6 +25,9 @@ const ValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const ValuesSchema = z.record(z.string(), ValueSchema);
 
 const refused: Saved = { success: false, error: APP_COPY.common.notAllowed };
+
+/** More fields than `most` (or a list): told before the values themselves are looked at, however many there are */
+const tooManyFields = (values: unknown, most: number) => Array.isArray(values) || (typeof values === 'object' && values !== null && Object.keys(values).length > most);
 
 /** Runs one write and turns a failure into `{ success: false, error }` */
 async function write(what: string, table: string, query: string, params: SqlParams): Promise<Saved> {
@@ -48,10 +52,11 @@ async function currentRow(table: string, id: string | number, columns = '*'): Pr
 /** Changes one value of one row */
 export async function updateSettingAction(table: EditableTableName, id: string | number, column: string, value: unknown): Promise<Saved> {
     const config = editableTable(table);
+    if (!config) return refused;
+    const access = await authorize('edit', config.page);
     const parsedId = IdSchema.safeParse(id);
     const parsedValue = ValueSchema.safeParse(value);
-    if (!config || !config.update.includes(column) || !parsedId.success || !parsedValue.success) return refused;
-    const access = await authorize('edit', config.page);
+    if (!config.update.includes(column) || !parsedId.success || !parsedValue.success) return refused;
 
     const before = await currentRow(table, parsedId.data, `[${column}]`);
     const saved = await write('Update', table, `UPDATE [${table}] SET [${column}] = @value WHERE id = @id`, { id: parsedId.data, value: parsedValue.data });
@@ -71,9 +76,10 @@ export async function updateSettingAction(table: EditableTableName, id: string |
 /** Deletes one row of a table whose rows may be deleted */
 export async function deleteSettingAction(table: EditableTableName, id: string | number): Promise<Saved> {
     const config = editableTable(table);
-    const parsedId = IdSchema.safeParse(id);
-    if (!config?.deletable || !parsedId.success) return refused;
+    if (!config?.deletable) return refused;
     const access = await authorize('edit', config.page);
+    const parsedId = IdSchema.safeParse(id);
+    if (!parsedId.success) return refused;
 
     const before = await currentRow(table, parsedId.data);
     const saved = await write('Delete', table, `DELETE FROM [${table}] WHERE id = @id`, { id: parsedId.data });
@@ -86,11 +92,14 @@ export async function deleteSettingAction(table: EditableTableName, id: string |
 /** Adds one row with the given columns */
 export async function insertSettingAction(table: EditableTableName, values: Record<string, unknown>): Promise<Saved> {
     const config = editableTable(table);
+    if (!config) return refused;
+    const access = await authorize('edit', config.page);
+    // Never more fields than the table has columns for a new row
+    if (tooManyFields(values, config.insert.length)) return refused;
     const parsed = ValuesSchema.safeParse(values);
-    if (!config || !parsed.success) return refused;
+    if (!parsed.success) return refused;
     const columns = Object.keys(parsed.data);
     if (columns.length === 0 || columns.some((column) => !config.insert.includes(column))) return refused;
-    const access = await authorize('edit', config.page);
 
     // Parameters are numbered (@p0, @p1 ...), so column names never become parameter names
     const params: SqlParams = Object.fromEntries(columns.map((column, i) => [`p${i}`, parsed.data[column]]));

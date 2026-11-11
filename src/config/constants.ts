@@ -46,6 +46,7 @@ export const APP_CONFIG = {
     MIN_PIN_LENGTH: 4,          // shortest PIN a user may choose
     MAX_PIN_LENGTH: 100,        // longest
     MAX_NAME_LENGTH: 100,       // app_users.name / app_groups.name
+    MAX_USER_GROUPS: 200,       // most groups one save of a user's groups may list (far more than there are)
   },
 
   // Agenda (src/lib/tasks, docs/TASKS.md): tasks, deadlines and procedures in the QUOTES tables tsk_* (sql/tasks/)

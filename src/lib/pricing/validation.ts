@@ -11,7 +11,7 @@ const CoverDetailsSchema = z.object({
     board_thickness: z.number().min(0.1, "Required"),
     headbands_enabled: z.boolean(),
     headbands_type: z.enum(['politi', 'g&w']).optional(),
-    finishings: z.array(z.string()).optional(),
+    finishings: z.array(z.string()).max(50).optional(), // a list always has a maximum: a longer one is refused at once
     cover_production_type: z.enum(['standard', 'fast', 'manual']).optional(),
 });
 
@@ -38,7 +38,7 @@ const InternalDetailsSchema = z.object({
         amount: z.number().min(1),
         signature_type_id: z.string().optional(),
         size: z.number().min(1).optional() // Keep as optional for calculation cache/fallback
-    })).optional()
+    })).max(100).optional()
 });
 
 const PackagingSchema = z.object({

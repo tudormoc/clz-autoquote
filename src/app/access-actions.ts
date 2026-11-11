@@ -10,7 +10,7 @@
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
 import { LINKS } from '@/config/navigation';
-import { requireSuperadmin } from '@/lib/auth/access';
+import { requireSuperadmin, superadminRefusal } from '@/lib/auth/access';
 import {
     deleteAccount,
     deleteGroup,
@@ -57,10 +57,10 @@ export interface UserView {
 
 const copy = APP_COPY.admin.users;
 const log = APP_COPY.log.entries;
-const { MAX_NAME_LENGTH } = APP_CONFIG.AUTH;
+const { MAX_NAME_LENGTH, MAX_USER_GROUPS } = APP_CONFIG.AUTH;
 
 const IdSchema = z.number().int().positive();
-const IdsSchema = z.array(IdSchema);
+const IdsSchema = z.array(IdSchema).max(MAX_USER_GROUPS);
 const FlagSchema = z.boolean();
 
 /** SQL Server: duplicate key on a UNIQUE column */
@@ -69,7 +69,10 @@ const isDuplicate = (error: unknown) => {
     return number === 2627 || number === 2601;
 };
 
-/** Runs a write after the superadmin check, turning failures into an error text; `who` is for the log */
+/**
+ * Runs a write after the superadmin check, turning failures into an error text; `who` is for the log. An action that
+ * looks at what was sent before calling this starts with superadminRefusal(), so the check always comes first.
+ */
 async function run<T extends object>(write: (who: LogPerson) => Promise<T>): Promise<({ success: true } & T) | { success: false; error: string }> {
     try {
         const access = await requireSuperadmin();
@@ -122,6 +125,8 @@ export async function getAccountsAction(): Promise<{ users: UserView[]; groups: 
 
 /** New user without groups (ticked afterwards) and a random PIN of the kind; answers its id and PIN */
 export async function createUserAction(name: string, kind?: string): Promise<Created> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     const pin = randomPin(pinKindOf(kind));
@@ -133,6 +138,8 @@ export async function createUserAction(name: string, kind?: string): Promise<Cre
 }
 
 export async function renameUserAction(id: number, name: string): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
@@ -145,6 +152,8 @@ export async function renameUserAction(id: number, name: string): Promise<Saved>
 }
 
 export async function setUserGroupsAction(id: number, groupIds: number[]): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const ids = IdsSchema.safeParse(groupIds);
     if (!IdSchema.safeParse(id).success || !ids.success) return { success: false, error: APP_COPY.common.notAllowed };
     return run(async (who) => {
@@ -170,6 +179,8 @@ export async function draftPinAction(kind?: string): Promise<WithPin> {
 
 /** A PIN chosen or accepted by the superadmin (same length rule as "Cambia PIN"); the user's open logins end */
 export async function setUserPinAction(id: number, pin: string): Promise<WithPin> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     const checked = checkPin(pin);
     if ('error' in checked) return { success: false, error: checked.error };
@@ -183,6 +194,8 @@ export async function setUserPinAction(id: number, pin: string): Promise<WithPin
 
 /** Suspended: the user cannot log in and their open logins end; PIN and groups stay for when they are let back in */
 export async function setUserSuspendedAction(id: number, suspended: boolean): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success || !FlagSchema.safeParse(suspended).success) return { success: false, error: APP_COPY.common.notAllowed };
     return run(async (who) => {
         const account = await findAccountById(id);
@@ -196,6 +209,8 @@ export async function setUserSuspendedAction(id: number, suspended: boolean): Pr
 }
 
 export async function deleteUserAction(id: number): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     return run(async (who) => {
         const [account, groups] = await Promise.all([findAccountById(id), listGroups()]);
@@ -212,6 +227,8 @@ export async function deleteUserAction(id: number): Promise<Saved> {
 
 /** New group, empty or with the pages of the group it copies; answers its id */
 export async function createGroupAction(name: string, pages: Record<string, string> = {}): Promise<{ success: true; id: number } | { success: false; error: string }> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     return run(async (who) => {
@@ -223,6 +240,8 @@ export async function createGroupAction(name: string, pages: Record<string, stri
 }
 
 export async function renameGroupAction(id: number, name: string): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const checked = checkName(name);
     if ('error' in checked) return { success: false, error: checked.error };
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
@@ -236,6 +255,8 @@ export async function renameGroupAction(id: number, name: string): Promise<Saved
 
 /** The group's pages and levels; unknown pages are dropped and "edit" kept only where a page changes data */
 export async function setGroupPagesAction(id: number, pages: Record<string, string>): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     return run(async (who) => {
         const before = await findGroup(id);
@@ -247,6 +268,8 @@ export async function setGroupPagesAction(id: number, pages: Record<string, stri
 }
 
 export async function deleteGroupAction(id: number): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
     return run(async (who) => {
         const before = await findGroup(id);

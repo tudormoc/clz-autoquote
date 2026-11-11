@@ -37,6 +37,7 @@ npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
 npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do groups)
 npm run persons:examples    # Scheda persona name rules (same name, capitals, cognome / nome split)
+npm run inputs:examples     # what the forms accept and refuse (Agenda, Operatori, quote): run before and after a Zod update
 npm run address:examples    # what a screen keeps in the address bar (tab, sort, page, chips, applied filters)
 npm run order:snapshot -- 260999910 before   # read-only snapshot of one commessa in Business and NetPro, diffed with the previous one
 ```

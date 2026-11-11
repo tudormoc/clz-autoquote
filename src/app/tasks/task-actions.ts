@@ -204,7 +204,7 @@ export async function getDayLoadsAction(start: string, end: string): Promise<Res
 /** Closed occurrences between two dates, with these outcomes */
 export async function getHistoryAction(from: string, to: string, statuses: string[]): Promise<Result<{ rows: HistoryRow[] }>> {
     const access = await authorize('view', LINKS.tasks.history);
-    const parsed = z.array(z.enum(OCCURRENCE_STATUSES)).min(1).safeParse(statuses);
+    const parsed = z.array(z.enum(OCCURRENCE_STATUSES)).min(1).max(OCCURRENCE_STATUSES.length).safeParse(statuses);
     if (!isIsoDate(from) || !isIsoDate(to) || from > to || !parsed.success) return refused();
     return attempt('history', async () => ({ rows: await getHistory(access, from, to, parsed.data, await loadPeople()) }));
 }

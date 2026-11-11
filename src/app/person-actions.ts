@@ -10,7 +10,7 @@
  */
 
 import { z } from 'zod';
-import { requireSuperadmin } from '@/lib/auth/access';
+import { requireSuperadmin, superadminRefusal } from '@/lib/auth/access';
 import { findAccountById, listAccounts, updateAccountLinks, type Account } from '@/lib/auth/accounts';
 import { queryMSSQL, withTransactions, type SqlParams } from '@/lib/mssql';
 import { EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, NamePartsSchema, buildFacts, driftCount, hasLinks, joinNameParts, type Fact, type NameParts, type PersonLinks, type PersonRecords } from '@/lib/persons/places';
@@ -50,7 +50,10 @@ const LinksSchema = z.object({ operatorCode: LinkSchema, netproUser: LinkSchema,
 const IdSchema = z.number().int().positive();
 const EmailSchema = z.string().trim().email().max(EMAIL_MAX_LENGTH);
 
-/** Runs the work after the superadmin check, turning failures into an error text */
+/**
+ * Runs the work after the superadmin check, turning failures into an error text. An action that looks at what was
+ * sent before calling this starts with superadminRefusal(), so the check always comes first.
+ */
 async function guarded<T extends object>(work: (who: LogPerson) => Promise<T>): Promise<Result<T>> {
     try {
         const access = await requireSuperadmin();
@@ -159,6 +162,8 @@ async function readRecords(all: PersonLinks[]): Promise<(links: PersonLinks) => 
 
 /** The card of one login: its links, the records they open and the facts side by side */
 export async function getPersonCardAction(id: number): Promise<Result<{ card: PersonCard }>> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.invalidData };
     return guarded(async () => {
         const account = await findAccountById(id);
@@ -185,6 +190,8 @@ export async function getPersonDriftAction(): Promise<Result<{ drift: Record<num
 
 /** Stores which records of the other programs this login is (our table only) */
 export async function setPersonLinksAction(id: number, links: PersonLinks): Promise<Result<object>> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const parsed = LinksSchema.safeParse(links);
     if (!IdSchema.safeParse(id).success || !parsed.success) return { success: false, error: APP_COPY.common.invalidData };
     return guarded(async (who) => {
@@ -208,6 +215,8 @@ export async function setPersonLinksAction(id: number, links: PersonLinks): Prom
  * Business; the mailbox (emailconf) is never touched. Answers how many rows changed.
  */
 export async function alignEmailAction(id: number, email: string): Promise<Result<{ written: number }>> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const parsedEmail = EmailSchema.safeParse(email);
     if (!IdSchema.safeParse(id).success || !parsedEmail.success) return { success: false, error: copy.alignEmail.invalid };
     const value = parsedEmail.data;
@@ -243,6 +252,8 @@ export async function alignEmailAction(id: number, email: string): Promise<Resul
  * NetPro and Business; the login name of this app is not a person's name and stays. Answers how many rows changed.
  */
 export async function alignNameAction(id: number, parts: NameParts): Promise<Result<{ written: number }>> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
     const parsed = NamePartsSchema.safeParse(parts);
     if (!IdSchema.safeParse(id).success || !parsed.success) return { success: false, error: copy.alignName.invalid };
     const { surname, firstName } = parsed.data;

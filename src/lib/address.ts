@@ -23,7 +23,7 @@ export type AddressShape = Record<string, AddressParam<any>>;
 export type AddressValues<S extends AddressShape> = { [K in keyof S]: S[K] extends AddressParam<infer T> ? T : never };
 
 /** A value checked by `schema`: anything else in the address counts as the default */
-function checkedParam<T extends string | number>(schema: z.ZodType<T, any, any>, fallback: T): AddressParam<T> {
+function checkedParam<T extends string | number>(schema: z.ZodType<T>, fallback: T): AddressParam<T> {
     return {
         read: (text) => {
             const parsed = text === null ? null : schema.safeParse(text);
@@ -33,7 +33,8 @@ function checkedParam<T extends string | number>(schema: z.ZodType<T, any, any>,
     };
 }
 
-const NUMBER = z.string().trim().min(1).pipe(z.coerce.number().finite());
+/** A number written as text; Zod's number is never infinite ("Infinity", "1e400") */
+const NUMBER = z.string().trim().min(1).pipe(z.coerce.number<string>());
 const toNumber = (text: string | null): number | null => {
     const parsed = NUMBER.safeParse(text);
     return parsed.success ? parsed.data : null;

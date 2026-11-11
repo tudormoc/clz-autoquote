@@ -14,6 +14,7 @@ import { loadAccountAccess } from '@/lib/auth/accounts';
 import { GRANTABLE_FUNCTIONS, canOpen, canOpenPath, menuPages, type AccessLevel, type UserAccess } from '@/lib/auth/permissions';
 import { pinFingerprint } from '@/lib/auth/secrets';
 import { SESSION_COOKIE, SUPERADMIN, parseSession, superadminAccount, superadminFingerprint } from '@/lib/auth/session';
+import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.auth;
@@ -80,4 +81,17 @@ export async function requireSuperadmin(): Promise<UserAccess> {
     if (!access) throw new Error(copy.sessionExpired);
     if (!access.superadmin) throw new Error(copy.notAllowed);
     return access;
+}
+
+/**
+ * The superadmin check for a server action that answers `{ success: false, error }` instead of failing: that answer,
+ * or null for the superadmin. The first line of such an action, so nothing that was sent is looked at before it.
+ */
+export async function superadminRefusal(): Promise<{ success: false; error: string } | null> {
+    try {
+        await requireSuperadmin();
+        return null;
+    } catch (error) {
+        return { success: false, error: errorMessage(error) };
+    }
 }

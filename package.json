@@ -12,6 +12,7 @@
     "excel:examples": "tsx --tsconfig tsconfig.json scripts/excel-examples.ts",
     "tasks:examples": "tsx --tsconfig tsconfig.json scripts/tasks-examples.ts",
     "timesheet:examples": "tsx --tsconfig tsconfig.json scripts/timesheet-examples.ts",
+    "inputs:examples": "tsx --tsconfig tsconfig.json scripts/inputs-examples.ts",
     "access:check": "tsx --tsconfig tsconfig.json scripts/access-check.ts",
     "permissions:examples": "tsx --tsconfig tsconfig.json scripts/permissions-examples.ts",
     "persons:examples": "tsx --tsconfig tsconfig.json scripts/persons-examples.ts",
@@ -19,7 +20,7 @@
     "address:examples": "tsx --tsconfig tsconfig.json scripts/address-examples.ts",
     "order:snapshot": "tsx --tsconfig tsconfig.json scripts/order-snapshot.ts",
     "typecheck": "tsc --noEmit --incremental false",
-    "check": "npm run typecheck && npm run lint && npm run access:check && npm run permissions:examples && npm run persons:examples && npm run dates:examples && npm run address:examples && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run timesheet:examples && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run access:check && npm run permissions:examples && npm run persons:examples && npm run dates:examples && npm run address:examples && npm run presence:examples && npm run format:examples && npm run excel:examples && npm run tasks:examples && npm run timesheet:examples && npm run inputs:examples && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -39,7 +40,7 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.25.7"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/mssql": "^9.1.9",
