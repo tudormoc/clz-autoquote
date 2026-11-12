@@ -6,6 +6,7 @@ import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
 import { isWithin, type NavArea } from '@/config/navigation';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface SidebarAreaProps {
     area: NavArea;
@@ -47,15 +48,15 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
                     <span className="truncate collapsed:hidden">{label}</span>
                 </Link>
                 {groups && (
-                    <button
+                    <IconButton
                         type="button"
                         onClick={onToggle}
                         aria-expanded={open}
                         aria-label={fmt(APP_COPY.nav.showPages, { area: label })}
-                        className="collapsed:hidden shrink-0 mr-1 p-1.5 rounded text-fg-subtle hover:text-fg hover:bg-muted-strong transition-colors"
+                        className="collapsed:hidden shrink-0 mr-1 text-fg-subtle hover:text-fg hover:bg-muted-strong"
                     >
                         <ChevronDown size={16} className={cn('transition-transform', !open && '-rotate-90')} />
-                    </button>
+                    </IconButton>
                 )}
             </div>
 

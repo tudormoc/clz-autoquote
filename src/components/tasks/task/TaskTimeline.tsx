@@ -7,6 +7,7 @@ import { TabBar } from '@/components/ui/TabBar';
 import type { OccurrenceActions, TitledOccurrence } from '@/hooks/useOccurrenceActions';
 import type { ChecklistItem, LogEntry } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.detail;
 
@@ -21,7 +22,7 @@ interface TaskTimelineProps {
 export function TaskTimeline({ closed, log, checklist, actions }: TaskTimelineProps) {
     const [tab, setTab] = useState<'closed' | 'log'>('closed');
     return (
-        <section className="bg-card border border-border rounded-lg">
+        <section className={surfaceClasses('panel')}>
             <TabBar
                 className="px-3 pt-2 border-b border-border"
                 tabs={[

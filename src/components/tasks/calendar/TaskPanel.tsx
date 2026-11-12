@@ -19,7 +19,8 @@ import type { AgendaCalendar, CalendarSelection } from '@/hooks/useAgendaCalenda
 import { describeRepeat, formatShortDay } from '@/lib/tasks/describe';
 import { isOpenStatus } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
-import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { IconButton } from '@/components/ui/IconButton';
 
 const copy = APP_COPY.tasks;
 
@@ -76,8 +77,8 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
         <aside
             ref={panel}
             aria-label={task?.title ?? copy.pages.list.label}
-            className={cn(
-                'fixed inset-y-0 right-0 z-40 w-full sm:w-panel flex flex-col bg-card border-l border-border-strong shadow-xl transition-transform duration-200 ease-out',
+            className={surfaceClasses(
+                'chrome', 'fixed inset-y-0 right-0 z-40 w-full sm:w-panel flex flex-col border-l border-border-strong shadow-xl transition-transform duration-slide ease-out',
                 shown ? 'translate-x-0' : 'translate-x-full'
             )}
         >
@@ -98,15 +99,14 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
                         <p className="text-base font-semibold text-fg-strong break-words">{selection.kind === 'item' ? selection.item.title : selection.entry.title}</p>
                     )}
                 </div>
-                <button
+                <IconButton size="sm"
                     type="button"
                     onClick={() => select(null)}
                     title={copy.calendar.closePanel}
                     aria-label={copy.calendar.closePanel}
-                    className="p-1 rounded text-fg-muted hover:text-fg-strong hover:bg-muted"
                 >
                     <X size={18} />
-                </button>
+                </IconButton>
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-5">

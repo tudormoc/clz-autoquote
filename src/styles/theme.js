@@ -146,6 +146,39 @@ const SHADOWS = {
     'shadow-divider-top': 'inset 0 1px 0 0 rgb(var(--border-strong))',
 };
 
+// ─── 4. Skin: what a look is made of besides its colours ───────────────────────
+/**
+ * A skin is this set of values: change them here and every screen follows, no component is touched (owner, 2026-11-12:
+ * a whole new look must be one file). Today there is one skin, the app's own. What it holds, and what comes next
+ * (docs/BACKLOG.md → Skins):
+ *   radius   every rounded-* class: `rounded` (xs), -sm / -md / -lg (from RADIUS above), -xl / -2xl / -3xl, -full (pill)
+ *   motion   how long a change of state takes and on which curve: every transition-* class; `duration-slide` for
+ *            what slides across the screen (the menu, a side panel), `ease-out` for what arrives and settles;
+ *            `enter` = the animation of whatever opens over the page (a menu, a popup, a window, a notice: every
+ *            floating Surface), none today; `press` = how much a thing shrinks while it is pressed (every Pressable),
+ *            1 = not at all. Who asks the computer for less motion gets CALM_MOTION instead, whatever the skin
+ *   page     an image or gradient behind every page (none: the background colour alone)
+ *   next     the borders and textures of surfaces, the icon set, a font for titles
+ * Tables and numbers are not a skin's to dress up: they keep the number font (FONT_FAMILY.mono) and plain surfaces,
+ * so a long list stays easy to read whatever the look (owner, 2026-11-12).
+ */
+const SKIN = {
+    radius: { xs: '0.25rem', xl: '0.75rem', '2xl': '1rem', '3xl': '1.5rem', pill: '9999px' },
+    motion: {
+        duration: '150ms',
+        ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        slide: '200ms',
+        'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
+        enter: 'none',
+        press: '1',
+    },
+    page: { image: 'none' },
+};
+
+// The motion of who set "reduce motion" on their computer: changes land at once, nothing animates in or shrinks.
+// The spinner still turns (it says "wait"); a pulse stops where it is used (motion-reduce:animate-none).
+const CALM_MOTION = { duration: '0.01ms', slide: '0.01ms', enter: 'none', press: '1' };
+
 // ─── Build: CSS variables + Tailwind colour map (no edits needed below) ────────
 
 /** '#a1a1aa' → '161 161 170' (channels, so Tailwind opacity modifiers like /50 work) */
@@ -170,9 +203,18 @@ function variablesOf(neutral, shadeOf) {
 
 const sameShade = Object.fromEntries(SHADES.map((shade) => [shade, shade]));
 
-/** Light look, on :root (with the shared radius and shadows) */
+/** The skin as CSS variables: --radius-xl, --motion-duration, --page-image … */
+const skinVariables = Object.fromEntries(
+    Object.entries(SKIN).flatMap(([group, values]) => Object.entries(values).map(([name, value]) => [`--${group}-${name}`, value]))
+);
+
+/** CALM_MOTION as CSS variables, for @media (prefers-reduced-motion: reduce) */
+const calmMotionVariables = Object.fromEntries(Object.entries(CALM_MOTION).map(([name, value]) => [`--motion-${name}`, value]));
+
+/** Light look, on :root (with what both looks share: radius, shadows, the skin) */
 const cssVariables = {
     '--radius': RADIUS,
+    ...skinVariables,
     ...Object.fromEntries(Object.entries(SHADOWS).map(([name, value]) => [`--${name}`, value])),
     ...variablesOf(NEUTRAL, (role) => (role === 'primary' ? LIGHT_PRIMARY_SHADE : LIGHT_SHADE)),
 };
@@ -215,7 +257,9 @@ module.exports = {
     FONT_SIZE,
     LAYOUT,
     SHADOWS,
+    SKIN,
     cssVariables,
+    calmMotionVariables,
     darkCssVariables,
     tailwindColors,
 };

@@ -6,6 +6,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { SortState } from '@/lib/sort';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface DataCardsProps<R> {
     columns: DataTableColumn<R>[];
@@ -99,14 +100,14 @@ export function DataCards<R>({ columns, rows, getRowKey, getRowClassName, rowLin
                         ))}
                     </select>
                     {sort && (
-                        <button
+                        <IconButton size="lg"
                             type="button"
                             onClick={() => onSort(sort.column)}
                             aria-label={sort.direction === 'asc' ? copy.sortDescending : copy.sortAscending}
-                            className="p-2 -m-1 rounded text-fg-muted hover:text-fg hover:bg-muted transition-colors"
+                            className="-m-1 hover:text-fg"
                         >
                             {sort.direction === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                        </button>
+                        </IconButton>
                     )}
                 </div>
             )}

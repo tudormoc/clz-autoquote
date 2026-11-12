@@ -9,6 +9,8 @@ import { getBankAccountTransactionsAction } from '@/app/cashflow/cashflow-action
 import type { BankAccountDetailsResult } from '@/lib/cashflow/types';
 import { formatCurrency } from '@/lib/format';
 import { errorMessage } from '@/lib/utils';
+import { Surface } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 /** The frame of the panel */
 const PANEL = 'bg-background/95 border border-border-strong/80 rounded-xl p-4 my-2 text-fg shadow-xl space-y-4';
@@ -117,14 +119,14 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button
+                    <Pressable
                         onClick={onClose}
                         className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted-strong text-fg-secondary hover:text-fg-strong transition-colors text-xs flex items-center gap-1.5 border border-border-strong/60"
                         title={t.close}
                     >
                         <X size={14} />
                         <span>{t.close}</span>
-                    </button>
+                    </Pressable>
                 </div>
             </div>
     );
@@ -145,7 +147,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
             {/* Month Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
-                <button
+                <Pressable
                     onClick={() => setSelectedMonth('all')}
                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                         selectedMonth === 'all'
@@ -159,7 +161,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                             {data.transactions.length}
                         </span>
                     )}
-                </button>
+                </Pressable>
 
                 {shortMonths.map((mName, idx) => {
                     const mNum = idx + 1;
@@ -168,7 +170,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     const isSelected = selectedMonth === mNum;
 
                     return (
-                        <button
+                        <Pressable
                             key={mNum}
                             onClick={() => setSelectedMonth(mNum)}
                             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
@@ -186,21 +188,21 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                                     ({txCount})
                                 </span>
                             )}
-                        </button>
+                        </Pressable>
                     );
                 })}
             </div>
 
             {/* Summary KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 font-mono text-xs">
-                <div className="bg-card/80 border border-border rounded-lg p-2.5">
+                <Surface kind="soft" className="bg-card/80 p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.openingBalance} ({selectedMonth === 'all' ? `01/01/${year}` : `01/${String(selectedMonth).padStart(2, '0')}/${year}`})
                     </span>
                     <span className="text-sm font-bold text-info-300">
                         {formatCurrency(currentOpening)}
                     </span>
-                </div>
+                </Surface>
 
                 <div className="bg-success-950/20 border border-success-900/40 rounded-lg p-2.5">
                     <span className="text-3xs font-sans text-success-400 flex items-center gap-1 mb-0.5">
@@ -222,14 +224,14 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                <div className="bg-card/80 border border-border rounded-lg p-2.5">
+                <Surface kind="soft" className="bg-card/80 p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.netVariation}
                     </span>
                     <span className={`text-sm font-bold ${currentNet >= 0 ? 'text-success-400' : 'text-danger-400'}`}>
                         {currentNet >= 0 ? `+${formatCurrency(currentNet)}` : formatCurrency(currentNet)}
                     </span>
-                </div>
+                </Surface>
 
                 <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-warning-950/30 to-card border border-warning-500/50 rounded-lg p-2.5 relative">
                     <div className="flex items-center justify-between mb-0.5">

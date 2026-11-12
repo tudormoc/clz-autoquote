@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Surface } from '@/components/ui/Surface';
 
 export type KpiTone = 'info' | 'success' | 'danger';
 
@@ -25,7 +26,7 @@ interface KpiCardProps {
 export function KpiCard({ label, icon: Icon, tone, value, note, noteAsBadge = false }: KpiCardProps) {
     const style = TONES[tone];
     return (
-        <div className="bg-card border border-border hover:border-border-strong/80 transition-all rounded-xl p-4 shadow-sm relative overflow-hidden group">
+        <Surface className="hover:border-border-strong/80 transition-all rounded-xl p-4 shadow-sm relative overflow-hidden group">
             <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-fg-muted">{label}</span>
                 <div className={cn('p-2 rounded-lg group-hover:scale-105 transition-transform', style.icon)}>
@@ -38,6 +39,6 @@ export function KpiCard({ label, icon: Icon, tone, value, note, noteAsBadge = fa
             <div className="flex items-center justify-end text-2xs text-fg-subtle mt-2 pt-2 border-t border-border/80">
                 <span className={cn('text-3xs', noteAsBadge ? ['px-1.5 py-0.5 rounded font-bold', style.icon] : ['font-mono', style.note])}>{note}</span>
             </div>
-        </div>
+        </Surface>
     );
 }

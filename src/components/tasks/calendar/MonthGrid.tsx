@@ -10,6 +10,8 @@ import { formatShortDay } from '@/lib/tasks/describe';
 import { monthKey } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -36,7 +38,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
         <div className="lg:flex-1 lg:min-h-0 flex flex-col">
             {/* Desktop: whole weeks share the free height; a full day shows "+N" rather than growing */}
             <div
-                className={cn('hidden md:grid grid-cols-7 rounded-lg border border-border overflow-hidden bg-card lg:flex-1 lg:min-h-0', !data && 'opacity-50')}
+                className={surfaceClasses('panel', 'hidden md:grid grid-cols-7 overflow-hidden lg:flex-1 lg:min-h-0', !data && 'opacity-50')}
                 style={{ gridTemplateRows: `auto repeat(${days.length / 7}, minmax(0, 1fr))` }}
             >
                 {APP_COPY.weekdays.short.map((name) => (
@@ -66,7 +68,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                             )}
                         >
                             <div className="flex items-center justify-between gap-1">
-                                <button
+                                <Pressable
                                     type="button"
                                     onClick={() => openWeek(day)}
                                     className={cn(
@@ -75,16 +77,16 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                                     )}
                                 >
                                     {dayOf(day)}
-                                </button>
+                                </Pressable>
                                 {closed && closed !== APP_COPY.tasks.holidays.weekend && <span className="truncate text-3xs text-warning-300">{closed}</span>}
                             </div>
                             {chips.slice(0, max).map((chip) => (
                                 <MonthChip key={chip.key} calendar={calendar} drag={drag} canEdit={canEdit} item={'item' in chip ? chip.item : undefined} entry={'entry' in chip ? chip.entry : undefined} />
                             ))}
                             {chips.length > max && (
-                                <button type="button" onClick={() => openWeek(day)} className="px-1 text-3xs text-fg-subtle hover:text-primary">
+                                <Pressable type="button" onClick={() => openWeek(day)} className="px-1 text-3xs text-fg-subtle hover:text-primary">
                                     {fmt(copy.more, { n: chips.length - max })}
-                                </button>
+                                </Pressable>
                             )}
                         </div>
                     );
@@ -98,7 +100,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                     daysWithEntries.map((day) => {
                         const content = dayContent(day);
                         return (
-                            <section key={day} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+                            <section key={day} className={surfaceClasses('panel', 'p-3 space-y-1.5')}>
                                 <h3 className={cn('text-sm font-semibold', day === today ? 'text-primary' : 'text-fg-soft')}>{formatShortDay(day)}</h3>
                                 {content.open.map((item) => (
                                     <MonthChip key={item.id} calendar={calendar} drag={drag} canEdit={false} item={item} />

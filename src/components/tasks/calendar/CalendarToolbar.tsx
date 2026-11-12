@@ -11,6 +11,7 @@ import { weekTitle } from '@/lib/tasks/describe';
 import { isoWeekNumber } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 const MODES: CalendarMode[] = ['week', 'month'];
@@ -78,7 +79,7 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                 </div>
                 <div role="tablist" className="flex rounded-md border border-border-strong p-0.5 bg-background">
                     {MODES.map((option) => (
-                        <button
+                        <Pressable
                             key={option}
                             type="button"
                             role="tab"
@@ -90,7 +91,7 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                             )}
                         >
                             {copy.views[option]}
-                        </button>
+                        </Pressable>
                     ))}
                 </div>
                 <NewTaskButton />

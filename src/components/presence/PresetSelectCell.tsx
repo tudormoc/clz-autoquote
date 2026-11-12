@@ -7,6 +7,7 @@ import { useInlineEditor } from '@/hooks/useInlineEditor';
 import { EMPTY_VALUE } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface PresetSelectCellProps {
     value: string | null;
@@ -54,7 +55,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                 />
                 <PresetPopup presets={presets} openAbove={editor.openAbove} onPick={(preset) => editor.save(toCausale(preset))}>
                     {value && (
-                        <button
+                        <Pressable
                             type="button"
                             onMouseDown={(e) => {
                                 e.preventDefault();
@@ -65,7 +66,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                         >
                             <X size={10} />
                             <span>{copy.remove}</span>
-                        </button>
+                        </Pressable>
                     )}
                 </PresetPopup>
             </div>

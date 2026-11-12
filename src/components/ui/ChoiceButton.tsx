@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const SIZES = {
     sm: 'py-1.5 text-xs',
@@ -12,7 +13,7 @@ interface ChoiceButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
 
 /** One option of a pick-one or pick-many group (year, month, format …), filled when selected. */
 export function ChoiceButton({ selected, size = 'md', className, ...props }: ChoiceButtonProps) {
-    return <button type="button" className={choiceClasses({ selected, size, className })} {...props} />;
+    return <Pressable type="button" className={choiceClasses({ selected, size, className })} {...props} />;
 }
 
 /** The look of an option, also for a link that picks one: <ViewLink className={choiceClasses({ selected })}> */

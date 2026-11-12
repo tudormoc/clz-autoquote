@@ -12,6 +12,8 @@ import { LIGHTS, functionOn, lightState, withFunction, withLight, type LightKind
 import { ACCESS_AREAS, GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
 import { cn, foldText, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.admin.groups;
 
@@ -108,7 +110,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
         const isOpen = text !== '' || open.has(areaId);
         const Chevron = isOpen ? ChevronDown : ChevronRight;
         return (
-            <button
+            <Pressable
                 type="button"
                 onClick={() => setOpen((prev) => toggleInSet(prev, areaId))}
                 aria-expanded={isOpen}
@@ -117,7 +119,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
             >
                 <Chevron size={14} className="text-fg-muted" />
                 {row.label}
-            </button>
+            </Pressable>
         );
     };
 
@@ -152,7 +154,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
                     {allOpen ? copy.closeAll : copy.openAll}
                 </Button>
             </div>
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <Surface className="overflow-hidden">
                 <Table containerClassName="lg:max-h-panel lg:overflow-y-auto">
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
@@ -221,7 +223,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
                         })}
                     </TableBody>
                 </Table>
-            </div>
+            </Surface>
         </div>
     );
 }

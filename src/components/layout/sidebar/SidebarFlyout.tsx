@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Surface } from '@/components/ui/Surface';
 
 interface SidebarFlyoutProps {
     /** Line the panel up with the top of its row, or with its bottom (rows low on the screen) */
@@ -18,7 +19,7 @@ export function SidebarFlyout({ align, children }: SidebarFlyoutProps) {
                 align === 'top' ? 'top-0' : 'bottom-0'
             )}
         >
-            <div className="min-w-52 p-1.5 rounded-lg border border-border-strong bg-card shadow-lg">{children}</div>
+            <Surface kind="floating" className="min-w-52 p-1.5">{children}</Surface>
         </div>
     );
 }

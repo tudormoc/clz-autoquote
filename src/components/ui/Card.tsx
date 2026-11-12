@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { surfaceClasses } from "@/components/ui/Surface"
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -7,10 +8,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-lg border border-border bg-card text-fg",
-      className
-    )}
+    className={surfaceClasses("panel", "text-fg", className)}
     {...props}
   />
 ))

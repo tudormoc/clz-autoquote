@@ -11,6 +11,8 @@ import { useRecordTable } from '@/hooks/useRecordTable';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { useCanEdit } from '@/components/auth/AccessProvider';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 /**
  * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete
@@ -104,15 +106,15 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
                     const open = expanded.has(section.value);
                     return (
                         <div key={section.value} className="space-y-2">
-                            <button
+                            <Pressable
                                 type="button"
                                 onClick={() => setExpanded(toggleInSet(expanded, section.value))}
-                                className="w-full px-4 py-2 flex items-center gap-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors"
+                                className={surfaceClasses('panel', 'w-full px-4 py-2 flex items-center gap-2 hover:bg-muted transition-colors')}
                             >
                                 {open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                                 <span className="font-semibold text-fg">{section.label}</span>
                                 <span className="text-xs text-fg-muted">({section.rows.length})</span>
-                            </button>
+                            </Pressable>
                             {open && table(section.rows)}
                         </div>
                     );

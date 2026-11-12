@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { NavGroup } from '@/config/navigation';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 /** One link card per page (icon, name) under the group headings: home page and area overview pages. */
 export function NavCards({ groups }: { groups: NavGroup[] }) {
@@ -13,7 +14,7 @@ export function NavCards({ groups }: { groups: NavGroup[] }) {
                             <Link
                                 key={id}
                                 href={href}
-                                className="group flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                                className={surfaceClasses('panel', 'group flex items-center gap-3 p-4 hover:border-primary/50 hover:bg-muted/50 transition-colors')}
                             >
                                 <span className="shrink-0 p-2 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                                     <Icon size={20} />

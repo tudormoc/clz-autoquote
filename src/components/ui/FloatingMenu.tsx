@@ -4,6 +4,8 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 export interface MenuAction {
     label: string;
@@ -95,12 +97,12 @@ export function FloatingMenu({ actions, anchor, onClose }: FloatingMenuProps) {
                 event.preventDefault();
                 event.stopPropagation();
             }}
-            className={cn('z-[60] min-w-52 max-h-[calc(100vh-0.5rem)] overflow-y-auto py-1 rounded-lg border border-border-strong bg-card shadow-lg', !position && 'invisible')}
+            className={surfaceClasses('floating', 'z-[60] min-w-52 max-h-[calc(100vh-0.5rem)] overflow-y-auto py-1', !position && 'invisible')}
         >
             {actions.map(({ label, icon: Icon, onSelect, tone, divider }) => (
                 <Fragment key={label}>
                     {divider && <div role="separator" className="my-1 border-t border-border" />}
-                    <button
+                    <Pressable
                         type="button"
                         role="menuitem"
                         onClick={(event) => {
@@ -115,7 +117,7 @@ export function FloatingMenu({ actions, anchor, onClose }: FloatingMenuProps) {
                     >
                         {Icon && <Icon size={15} className="shrink-0 opacity-80" />}
                         {label}
-                    </button>
+                    </Pressable>
                 </Fragment>
             ))}
         </div>,

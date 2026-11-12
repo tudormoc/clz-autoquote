@@ -11,6 +11,7 @@ import { SidebarUser } from '@/components/layout/sidebar/SidebarUser';
 import { isWithin, type NavArea, type NavAreaId } from '@/config/navigation';
 import { visibleAreas } from '@/lib/auth/permissions';
 import { APP_COPY } from '@/locales';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface SidebarProps {
     /** Phone menu: closes it (its close button, and after following a link). Without it: the desktop sidebar. */
@@ -51,14 +52,14 @@ export function Sidebar({ onClose }: SidebarProps) {
                     <span className="font-bold text-lg tracking-tight text-fg-strong truncate collapsed:hidden">{APP_COPY.header.title}</span>
                 </Link>
                 {onClose && (
-                    <button
+                    <IconButton size="lg"
                         type="button"
                         onClick={onClose}
                         aria-label={APP_COPY.nav.closeMenu}
-                        className="ml-auto p-2 rounded-md text-fg-muted hover:text-fg hover:bg-muted transition-colors"
+                        className="ml-auto rounded-md hover:text-fg"
                     >
                         <X size={20} />
-                    </button>
+                    </IconButton>
                 )}
             </div>
 

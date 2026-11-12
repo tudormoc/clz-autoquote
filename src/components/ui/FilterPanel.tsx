@@ -5,6 +5,8 @@ import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 export type FilterColumns = 1 | 2 | 3 | 4 | 5;
 
@@ -42,14 +44,14 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
 
     return (
         <form
-            className="bg-card border border-border rounded-lg"
+            className={surfaceClasses('panel')}
             onSubmit={(e) => {
                 e.preventDefault();
                 onApply();
                 setOpen(false);
             }}
         >
-            <button
+            <Pressable
                 type="button"
                 onClick={() => setOpen(!open)}
                 aria-expanded={open}
@@ -61,7 +63,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                     <span className="min-w-5 px-1.5 rounded-full bg-primary/15 text-primary text-xs font-semibold font-mono">{activeCount}</span>
                 )}
                 <ChevronDown size={16} className={cn('ml-auto text-fg-muted transition-transform', open && 'rotate-180')} />
-            </button>
+            </Pressable>
 
             <div className={cn('p-4 lg:block', open ? 'block border-t border-border lg:border-t-0' : 'hidden')}>
                 <div className={cn('grid grid-cols-1 gap-4', GRID[columns])}>{children}</div>

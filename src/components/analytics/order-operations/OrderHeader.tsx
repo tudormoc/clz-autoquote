@@ -5,6 +5,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { buildProductionFlow } from '@/lib/orders/flow';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition } from '@/types';
+import { Surface, surfaceClasses } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -28,12 +29,12 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
     const printable = editions.map((edition) => edition.ordine).filter((id): id is string => !!id);
 
     return (
-        <div className="flex-shrink-0 rounded-xl border border-border bg-card/60 px-4 py-2.5">
+        <Surface kind="soft" className="flex-shrink-0 rounded-xl bg-card/60 px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 {backTo && (
                     <ViewLink
                         to={backTo}
-                        className="flex items-center gap-1 text-xs text-fg-secondary hover:text-fg-strong px-2 py-1 rounded-lg border border-border bg-card/60 hover:bg-muted"
+                        className={surfaceClasses('soft', 'flex items-center gap-1 text-xs text-fg-secondary hover:text-fg-strong px-2 py-1 bg-card/60 hover:bg-muted')}
                         title={t.backToResults}
                     >
                         <ChevronLeft className="w-4 h-4 text-primary" />
@@ -77,7 +78,7 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
 
                 <div className="ml-auto flex items-center gap-2 flex-wrap">
                     {editions.map((edition, index) => (
-                        <div key={edition.commessa_full} className="flex items-center gap-1.5 pl-2 rounded-lg bg-card/70 border border-border" title={edition.order_description}>
+                        <Surface kind="soft" key={edition.commessa_full} className="flex items-center gap-1.5 pl-2 bg-card/70" title={edition.order_description}>
                             {editions.length > 1 && <span className="text-3xs font-bold text-primary">{t.editionSingle} {index + 1}</span>}
                             <span className="font-mono text-xs text-fg-secondary">{edition.commessa_full}</span>
                             {edition.ordine && (
@@ -91,7 +92,7 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                                     <Printer className="w-3.5 h-3.5" />
                                 </a>
                             )}
-                        </div>
+                        </Surface>
                     ))}
                     {editions.length > 1 && printable.length > 0 && (
                         <a href={printUrl('netproIds', printable.join(','))} target="_blank" rel="noopener" className={buttonClasses({ size: 'sm' })}>
@@ -101,6 +102,6 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                     )}
                 </div>
             </div>
-        </div>
+        </Surface>
     );
 }

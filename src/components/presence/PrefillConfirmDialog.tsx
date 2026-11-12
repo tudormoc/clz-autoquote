@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import type { PrefillSummary } from '@/hooks/usePrefillAbsences';
 import { PREFILL_CATEGORIES, type PresenceRulesConfig } from '@/lib/presence';
 import { APP_COPY, fmt } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 interface PrefillConfirmDialogProps {
     summary: PrefillSummary;
@@ -26,13 +27,13 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
     const standardCategoriesLabel = PREFILL_CATEGORIES.filter((c) => c.profile === 'standard').map((c) => c.label).join(', ');
 
     const card = (title: string, detail: React.ReactNode, count: number) => (
-        <div className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80 border border-border">
+        <Surface kind="soft" className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80">
             <div>
                 <div className="font-semibold text-xs text-fg-soft">{title}</div>
                 <div className="text-2xs text-fg-muted">{detail}</div>
             </div>
             <span className="font-mono font-bold text-fg text-sm bg-muted px-2 py-0.5 rounded">{count}</span>
-        </div>
+        </Surface>
     );
 
     return (

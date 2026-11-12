@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Pressable } from '@/components/ui/Pressable';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -39,7 +40,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
-    <button className={buttonClasses({ variant, size, className })} ref={ref} {...props} />
+    <Pressable className={buttonClasses({ variant, size, className })} ref={ref} {...props} />
   )
 )
 Button.displayName = "Button"

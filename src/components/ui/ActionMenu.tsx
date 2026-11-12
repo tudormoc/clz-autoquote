@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { FloatingMenu, type MenuAction } from '@/components/ui/FloatingMenu';
 import { APP_COPY } from '@/locales';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface ActionMenuProps {
     actions: MenuAction[];
@@ -26,7 +27,7 @@ export function ActionMenu({ actions, label = APP_COPY.common.moreActions, icon:
 
     return (
         <>
-            <button
+            <IconButton
                 ref={button}
                 type="button"
                 onClick={(event) => {
@@ -37,10 +38,9 @@ export function ActionMenu({ actions, label = APP_COPY.common.moreActions, icon:
                 aria-expanded={open}
                 aria-label={label}
                 title={label}
-                className="p-1.5 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors"
             >
                 <Icon size={18} />
-            </button>
+            </IconButton>
             {open && <FloatingMenu actions={actions} anchor={{ button }} onClose={close} />}
         </>
     );

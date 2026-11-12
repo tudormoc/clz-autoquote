@@ -11,6 +11,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.analytics.dailyEvents.add;
 const DEFAULTS = APP_CONFIG.PRESENCE.NEW_EVENT_DEFAULTS;
@@ -42,7 +43,7 @@ export function AddEventForm({ onCreated, onCancel }: AddEventFormProps) {
     };
 
     return (
-        <div className="bg-card border border-border rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+        <Surface className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
             <Field label={copy.operator}>
                 <Input type="text" value={operator} onChange={(e) => setOperator(e.target.value)} placeholder={DEFAULTS.operator} />
             </Field>
@@ -63,6 +64,6 @@ export function AddEventForm({ onCreated, onCancel }: AddEventFormProps) {
                     {APP_COPY.common.cancel}
                 </Button>
             </div>
-        </div>
+        </Surface>
     );
 }

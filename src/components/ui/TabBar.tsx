@@ -1,6 +1,7 @@
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 export interface TabItem<K extends string> {
     id: K;
@@ -52,9 +53,9 @@ export function TabBar<K extends string>({ tabs, active, onChange, linkOf, class
                         {content}
                     </ViewLink>
                 ) : (
-                    <button key={tab.id} type="button" onClick={() => onChange?.(tab.id)} className={tabClassName}>
+                    <Pressable key={tab.id} type="button" onClick={() => onChange?.(tab.id)} className={tabClassName}>
                         {content}
-                    </button>
+                    </Pressable>
                 );
             })}
         </div>

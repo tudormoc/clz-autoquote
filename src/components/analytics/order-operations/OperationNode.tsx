@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 const STATUS_STYLES: Record<FlowStatus, { box: string; icon: string }> = {
     COM: { box: 'bg-success-600/10 border-success-600/50 text-success-500', icon: 'bg-success-600/20 text-success-500' },
-    EXE: { box: 'bg-info/10 border-info/50 text-info-400 ring-1 ring-info/30', icon: 'bg-info/20 text-info-400 animate-pulse' },
+    EXE: { box: 'bg-info/10 border-info/50 text-info-400 ring-1 ring-info/30', icon: 'bg-info/20 text-info-400 animate-pulse motion-reduce:animate-none' },
     SUS: { box: 'bg-warning/10 border-warning/50 text-warning-300', icon: 'bg-warning/20 text-warning-300' },
     PENDING: { box: 'bg-card border-border text-fg-subtle', icon: 'bg-muted/60 text-fg-subtle' },
 };

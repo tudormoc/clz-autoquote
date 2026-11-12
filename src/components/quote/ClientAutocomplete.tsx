@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/Input';
 import { searchMSSQLClientsAction } from '@/app/client-search-actions';
 import { Search } from 'lucide-react';
+import { Surface } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface Props {
     value: string | undefined;
@@ -97,9 +99,9 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                 </div>
 
                 {isOpen && suggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-card border border-border-strong rounded shadow-lg max-h-60 overflow-y-auto">
+                    <Surface kind="floating" className="absolute z-20 w-full mt-1 rounded max-h-60 overflow-y-auto">
                         {suggestions.map((suggestion, index) => (
-                            <button
+                            <Pressable
                                 key={index}
                                 type="button"
                                 className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors border-b last:border-b-0 border-border flex items-center justify-between group"
@@ -108,9 +110,9 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                                 <span className="font-medium text-fg-soft group-hover:text-primary truncate">
                                     {suggestion.name}
                                 </span>
-                            </button>
+                            </Pressable>
                         ))}
-                    </div>
+                    </Surface>
                 )}
             </div>
         );

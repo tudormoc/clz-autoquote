@@ -35,7 +35,7 @@
 .rdp-custom .rdp-button_previous,
 .rdp-custom .rdp-button_next {
   border-radius: var(--radius);
-  transition: background-color 150ms;
+  transition: background-color var(--motion-duration);
 }
 
 .rdp-custom .rdp-chevron {
@@ -55,7 +55,7 @@
 }
 
 .rdp-custom .rdp-day_button {
-  transition: background-color 150ms, color 150ms;
+  transition: background-color var(--motion-duration), color var(--motion-duration);
 }
 
 .rdp-custom .rdp-day:not(.rdp-selected):not(.rdp-disabled) .rdp-day_button:hover {

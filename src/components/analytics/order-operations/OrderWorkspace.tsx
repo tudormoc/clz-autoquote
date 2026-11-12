@@ -11,6 +11,7 @@ import type { OrderDetails } from '@/hooks/useOrderSearch';
 import type { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -59,7 +60,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
     const panel = (id: WorkspaceTab) => cn('p-3 overflow-x-auto lg:absolute lg:inset-0 lg:overflow-auto', tab !== id && 'hidden');
 
     return (
-        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border/80 bg-card/40 overflow-hidden">
+        <Surface kind="soft" className="flex-1 min-h-0 flex flex-col rounded-xl border-border/80 overflow-hidden">
             <TabBar tabs={tabs} active={tab} linkOf={(id) => address.link({ tab: id })} className="flex-shrink-0 px-2 pt-2 border-b border-border/80" />
             <div className="lg:flex-1 lg:min-h-0 relative">
                 <div className={panel('flow')}>
@@ -77,6 +78,6 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
                     />
                 </div>
             </div>
-        </div>
+        </Surface>
     );
 }

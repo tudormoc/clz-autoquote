@@ -11,6 +11,7 @@ import type { CalendarDrag } from '@/hooks/useCalendarDrag';
 import { dayOf, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -126,7 +127,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
 
                 {content.done.length > 0 && (
                     <div className="mt-auto pt-1">
-                        <button
+                        <Pressable
                             type="button"
                             onClick={() => setShowDone(!showDone)}
                             aria-expanded={showDone}
@@ -134,7 +135,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                         >
                             <ChevronDown size={12} className={cn('transition-transform', !showDone && '-rotate-90')} />
                             {content.done.length === 1 ? copy.done.one : fmt(copy.done.many, { n: content.done.length })}
-                        </button>
+                        </Pressable>
                         {showDone &&
                             content.done.map((item) => (
                                 <WeekCard

@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 interface FormCardProps {
     title: string;
@@ -9,7 +10,7 @@ interface FormCardProps {
 /** One block of an Agenda form or page (Cosa, Quando, Come si fa …) */
 export function FormCard({ title, icon: Icon, children }: FormCardProps) {
     return (
-        <section className="bg-card border border-border rounded-lg p-4 sm:p-5 space-y-4">
+        <section className={surfaceClasses('panel', 'p-4 sm:p-5 space-y-4')}>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-fg-soft">
                 {Icon && <Icon size={16} className="text-primary" />}
                 {title}

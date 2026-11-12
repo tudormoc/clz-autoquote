@@ -6,6 +6,7 @@ import { OccurrenceStatusBadge } from '@/components/tasks/shared/TaskBadges';
 import { formatMoment, formatShortDay } from '@/lib/tasks/describe';
 import type { OccurrenceActions, TitledOccurrence } from '@/hooks/useOccurrenceActions';
 import { APP_COPY, fmt } from '@/locales';
+import { IconButton } from '@/components/ui/IconButton';
 
 const copy = APP_COPY.tasks;
 
@@ -31,16 +32,16 @@ export function ClosedOccurrences({ occurrences, actions }: { occurrences: Title
                         )}
                     </div>
                     {canEdit && (
-                        <button
+                        <IconButton
                             type="button"
                             onClick={() => actions.reopen(occurrence)}
                             disabled={actions.busy}
                             title={copy.actions.reopen}
                             aria-label={copy.actions.reopen}
-                            className="p-1.5 rounded text-fg-muted hover:text-fg-strong hover:bg-muted disabled:opacity-50"
+                            className="disabled:opacity-50"
                         >
                             <RotateCcw size={14} />
-                        </button>
+                        </IconButton>
                     )}
                 </li>
             ))}

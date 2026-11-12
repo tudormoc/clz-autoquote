@@ -3,6 +3,7 @@ import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -20,7 +21,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                 {t.multipleResultsFound}: <span className="text-fg-strong font-bold">{matches.length}</span> — {t.selectOrderToView}
             </p>
 
-            <div className="divide-y divide-border/80 rounded-xl border border-border bg-card/40 overflow-hidden">
+            <Surface kind="soft" className="divide-y divide-border/80 rounded-xl overflow-hidden">
                 {matches.map((match) => (
                     <ViewLink
                         key={match.root_commessa_key}
@@ -51,7 +52,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                         </div>
                     </ViewLink>
                 ))}
-            </div>
+            </Surface>
         </div>
     );
 }

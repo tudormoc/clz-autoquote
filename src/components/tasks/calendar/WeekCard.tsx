@@ -10,6 +10,8 @@ import { formatShortDay, relativeDay } from '@/lib/tasks/describe';
 import { isOpenStatus, type AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks;
 
@@ -74,8 +76,9 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
             data-calendar-card
             tabIndex={0}
             title={open && canEdit ? copy.calendar.dragHint : undefined}
-            className={cn(
-                'group relative overflow-hidden rounded-md border bg-card pl-2.5 pr-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            className={surfaceClasses(
+                'panel',
+                'group relative overflow-hidden rounded-md pl-2.5 pr-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 // Touch screens: holding a finger opens the menu, not the phone's own text selection
                 '[@media(hover:none)]:select-none [@media(hover:none)]:[-webkit-touch-callout:none]',
                 compact ? 'py-1.5' : 'py-2',
@@ -87,7 +90,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
         >
             {open && item.priority > 0 && <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', EDGE[item.priority])} />}
             <div className="flex items-start gap-2">
-                <button
+                <Pressable
                     type="button"
                     disabled={!canEdit || busy || !open}
                     onClick={(event) => {
@@ -102,7 +105,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
                     )}
                 >
                     <Check size={10} strokeWidth={3} />
-                </button>
+                </Pressable>
                 <span
                     className={cn(
                         'min-w-0 text-sm leading-snug',

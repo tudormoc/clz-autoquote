@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, BarChart3, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import type { SummaryStatus } from '@/hooks/useReportTable';
+import { Surface } from '@/components/ui/Surface';
 
 export interface SummaryItem {
     label: string | React.ReactNode;
@@ -50,7 +51,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
             </div>
 
             {open && (
-                <div className="bg-card border border-border rounded-lg p-4">
+                <Surface className="p-4">
                     {status === 'error' ? (
                         <div className="text-center py-4 text-danger">{copy.loadError}</div>
                     ) : status !== 'ready' ? (
@@ -91,7 +92,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
                             ))}
                         </div>
                     )}
-                </div>
+                </Surface>
             )}
         </div>
     );

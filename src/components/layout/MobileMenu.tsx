@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 interface MobileMenuProps {
     open: boolean;
@@ -23,17 +24,17 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
 
     return (
         // Stays mounted so it can slide out; `invisible` waits for the slide to end, `inert` keeps the keyboard out while closed
-        <div className={cn('lg:hidden fixed inset-0 z-40 transition-[visibility] duration-200', open ? 'visible' : 'invisible')} inert={!open}>
+        <div className={cn('lg:hidden fixed inset-0 z-40 transition-[visibility] duration-slide', open ? 'visible' : 'invisible')} inert={!open}>
             <div
-                className={cn('absolute inset-0 bg-overlay/60 touch-none transition-opacity duration-200', open ? 'opacity-100' : 'opacity-0')}
+                className={cn('absolute inset-0 bg-overlay/60 touch-none transition-opacity duration-slide', open ? 'opacity-100' : 'opacity-0')}
                 onClick={onClose}
             />
             <aside
                 role="dialog"
                 aria-modal="true"
                 aria-label={APP_COPY.nav.menu}
-                className={cn(
-                    'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] bg-card border-r border-border shadow-xl transition-transform duration-200',
+                className={surfaceClasses(
+                    'chrome', 'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] border-r shadow-xl transition-transform duration-slide',
                     open ? 'translate-x-0' : '-translate-x-full'
                 )}
             >

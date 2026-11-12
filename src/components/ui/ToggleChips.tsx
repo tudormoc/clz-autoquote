@@ -1,5 +1,6 @@
 import { Field } from '@/components/ui/Field';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 export type ChipTone = 'primary' | 'warning' | 'success';
 
@@ -32,7 +33,7 @@ export function ToggleChips<K>({ label, options, active, onToggle }: ToggleChips
         <Field label={label}>
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => (
-                    <button
+                    <Pressable
                         key={String(option.key)}
                         type="button"
                         onClick={() => onToggle(option.key)}
@@ -45,7 +46,7 @@ export function ToggleChips<K>({ label, options, active, onToggle }: ToggleChips
                         {option.count !== undefined && option.count !== null && (
                             <span className="ml-1.5 opacity-70">({option.count})</span>
                         )}
-                    </button>
+                    </Pressable>
                 ))}
             </div>
         </Field>

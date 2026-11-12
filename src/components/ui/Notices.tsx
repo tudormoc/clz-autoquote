@@ -4,7 +4,8 @@ import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { dismissNotice, noticeStore, type Notice, type NoticeTone } from '@/lib/notify';
 import { useStore } from '@/lib/store';
 import { APP_COPY } from '@/locales';
-import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const TONES: Record<NoticeTone, { icon: typeof Info; className: string }> = {
     success: { icon: CheckCircle2, className: 'border-success-600/50 text-success-300' },
@@ -27,18 +28,18 @@ export function Notices() {
                     <div
                         key={id}
                         role={tone === 'error' ? 'alert' : 'status'}
-                        className={cn('flex items-start gap-2 rounded-lg border bg-card p-3 text-sm shadow-xl', className)}
+                        className={surfaceClasses('floating', 'flex items-start gap-2 p-3 text-sm shadow-xl', className)}
                     >
                         <Icon size={16} className="mt-0.5 shrink-0" />
                         <p className="flex-1 text-fg-soft break-words">{message}</p>
-                        <button
+                        <Pressable
                             type="button"
                             onClick={() => dismissNotice(id)}
                             title={APP_COPY.common.close}
                             className="text-fg-muted hover:text-fg-strong transition-colors"
                         >
                             <X size={14} />
-                        </button>
+                        </Pressable>
                     </div>
                 );
             })}

@@ -29,6 +29,7 @@ import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
 import { useCanEdit, useCanUse } from '@/components/auth/AccessProvider';
 import { PRESENCE_FUNCTIONS } from '@/config/navigation';
+import { IconButton } from '@/components/ui/IconButton';
 
 /** The cells of the list that edit in place; the window (pencil) has every field */
 type EditableColumn = 'BADGE' | 'NOME' | 'STATO_FISICO';
@@ -156,14 +157,13 @@ export function OperatorsTable() {
                       className: 'w-10',
                       mobileLabel: copy.form.edit,
                       cell: (row: OperatorRow) => (
-                          <button
+                          <IconButton size="sm"
                               type="button"
                               title={copy.form.edit}
                               onClick={() => setForm({ operator: row })}
-                              className="p-1 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors"
                           >
                               <Pencil size={14} />
-                          </button>
+                          </IconButton>
                       ),
                   },
               ]

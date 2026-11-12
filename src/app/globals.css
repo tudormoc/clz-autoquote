@@ -10,6 +10,8 @@
 @layer base {
   body {
     background-color: rgb(var(--background));
+    /* The skin's picture or gradient behind every page (theme.js → SKIN.page): none today */
+    background-image: var(--page-image);
     color: rgb(var(--fg));
     font-family: theme('fontFamily.sans');
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -60,7 +62,7 @@
 
   ::-webkit-scrollbar-thumb {
     background: transparent;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   *:hover::-webkit-scrollbar-thumb {
@@ -79,15 +81,5 @@
   ::selection {
     background-color: rgb(var(--primary-500) / 0.3);
     color: rgb(var(--fg));
-  }
-
-  /* Animations */
-  @keyframes shimmer {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(300%);
-    }
   }
 }

@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { DayStatusBadge } from './DayStatusBadge';
 import { entryText, hoursText } from './labels';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 /** "mer 4": the weekday's first letters and the day of the month */
 function dayLabel(day: string): string {
@@ -31,7 +33,7 @@ interface DayListProps {
 /** The days of the month one under the other: what each holds, its hours and its state; a click opens the day in place */
 export function DayList({ days, today, startDay, expanded, onToggle, panel }: DayListProps) {
     return (
-        <ul className="bg-card border border-border rounded-lg divide-y divide-border/60 lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
+        <ul className={surfaceClasses('panel', 'divide-y divide-border/60 lg:flex-1 lg:min-h-0 lg:overflow-y-auto')}>
             {days.map((summary) => {
                 const isToday = summary.day === today;
                 const isOpen = summary.day === expanded;
@@ -40,7 +42,7 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                 const locked = summary.day < startDay;
                 return (
                     <li key={summary.day}>
-                        <button
+                        <Pressable
                             type="button"
                             disabled={locked}
                             onClick={() => onToggle(summary.day)}
@@ -83,7 +85,7 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                                 <DayStatusBadge summary={summary} today={today} />
                             </span>
                             <ChevronDown size={14} className={cn('shrink-0 text-fg-faint transition-transform', isOpen && 'rotate-180', (locked || (quiet && !isOpen)) && 'invisible')} />
-                        </button>
+                        </Pressable>
                         {isOpen && <div className="border-t border-border/60 bg-muted/20 px-3 py-3 sm:pl-20">{panel}</div>}
                     </li>
                 );

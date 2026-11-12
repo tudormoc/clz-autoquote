@@ -2,11 +2,12 @@ import { Repeat } from 'lucide-react';
 import type { PlannedEntry } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 /** A date a repeating task will have (not a deadline yet): dashed, quiet, opens the side panel */
 export function PlannedCard({ entry, selected, onOpen }: { entry: PlannedEntry; selected: boolean; onOpen: () => void }) {
     return (
-        <button
+        <Pressable
             type="button"
             onClick={onOpen}
             data-calendar-card
@@ -21,6 +22,6 @@ export function PlannedCard({ entry, selected, onOpen }: { entry: PlannedEntry; 
                 {entry.time && <span className="font-mono mr-1">{entry.time}</span>}
                 {entry.title}
             </span>
-        </button>
+        </Pressable>
     );
 }

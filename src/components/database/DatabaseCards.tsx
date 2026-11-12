@@ -7,6 +7,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { MSSQL_DB } from '@/lib/mssql';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.database;
 
@@ -29,8 +30,8 @@ export function DatabaseCards({ selected, linkOf, connections }: DatabaseCardsPr
                         key={db}
                         to={linkOf(db)}
                         aria-current={db === selected ? 'page' : undefined}
-                        className={cn(
-                            'block bg-card border rounded-lg p-4 text-left transition-colors hover:bg-muted',
+                        className={surfaceClasses(
+                            'panel', 'block p-4 text-left transition-colors hover:bg-muted',
                             db === selected ? 'border-primary' : 'border-border'
                         )}
                     >

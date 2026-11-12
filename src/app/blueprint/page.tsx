@@ -8,6 +8,8 @@ import { buttonClasses } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.blueprint;
 
@@ -77,7 +79,7 @@ export default function BlueprintPage() {
             `}</style>
 
             <div className="h-screen bg-background text-fg flex overflow-hidden">
-                <aside className="w-64 border-r border-border bg-card/50 p-4 flex flex-col gap-4 overflow-y-auto no-print">
+                <aside className={surfaceClasses('chrome', 'w-64 border-r bg-card/50 p-4 flex flex-col gap-4 overflow-y-auto no-print')}>
                     <div className="space-y-3">
                         <h2 className="text-sm font-semibold text-fg-strong">{copy.settings}</h2>
                         {ADJUSTABLE.map(({ key, label }) => (
@@ -106,13 +108,13 @@ export default function BlueprintPage() {
                         </div>
                     </div>
 
-                    <button onClick={() => window.print()} className={buttonClasses({ variant: 'outline', size: 'sm', className: 'mt-auto' })}>
+                    <Pressable onClick={() => window.print()} className={buttonClasses({ variant: 'outline', size: 'sm', className: 'mt-auto' })}>
                         {copy.print}
-                    </button>
+                    </Pressable>
                 </aside>
 
                 <main className="flex-1 overflow-hidden print-full">
-                    <header className="border-b border-border bg-card/50 backdrop-blur-md no-print">
+                    <header className={surfaceClasses('chrome', 'border-b bg-card/50 backdrop-blur-md no-print')}>
                         <div className="px-4 h-14 flex items-center gap-3">
                             <div className="bg-primary p-1 rounded text-primary-foreground">
                                 <Layers size={20} strokeWidth={2.5} />

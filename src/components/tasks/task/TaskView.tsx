@@ -27,6 +27,7 @@ import { askConfirm } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
 import { isOpenStatus, type TaskState } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks;
 
@@ -126,7 +127,7 @@ export function TaskView({ id }: { id: number }) {
                         )}
                     </FormCard>
 
-                    <div className="bg-card border border-border rounded-lg p-4 sm:p-5">
+                    <Surface className="p-4 sm:p-5">
                         <QuickNotes taskId={task.id} version={task.version} notes={task.notes} onSaved={reload}>
                             {guides.length > 0 && (
                             <ul className="space-y-1">
@@ -141,7 +142,7 @@ export function TaskView({ id }: { id: number }) {
                             </ul>
                         )}
                         </QuickNotes>
-                    </div>
+                    </Surface>
 
 
                 </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -22,7 +23,7 @@ export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
 
     if (!writing) {
         return (
-            <button
+            <Pressable
                 type="button"
                 onClick={() => setWriting(true)}
                 className={cn(
@@ -32,7 +33,7 @@ export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
             >
                 <Plus size={13} />
                 {copy.add}
-            </button>
+            </Pressable>
         );
     }
 

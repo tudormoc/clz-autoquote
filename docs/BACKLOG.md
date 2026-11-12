@@ -31,3 +31,59 @@
 - No keyboard shortcuts for now (Ctrl+B / Ctrl+I can be added on top later).
 - Tables and `- [ ]` checklists already show in the preview and wherever the text is displayed (`remark-gfm` in
   `src/components/ui/Markdown.tsx`): the toolbar only has to type them.
+
+## Skins: a whole new look from one file
+
+*Noted 2026-11-12, measured that day.*
+
+**Goal (owner):** restyle everything, in every part, by writing one file: a pixel / block-game look one day, a liquid
+glass look another, with their own textures, borders, animations, fonts and icons.
+
+**Today:** `src/styles/theme.js` already decides colours (light and dark), fonts, text sizes, shadows and the main
+corner radius. The rest of a look is written inside the screens:
+- panels: 79 written by hand (`bg-card` + `border` …) in 64 files, 16 through `Card`; most in the Agenda (18 files) and
+  in `src/components/ui` itself (11);
+- buttons: 104 through `Button`, 52 raw `<button>` in 46 files (icon buttons, chips, row toggles, tabs);
+- corners: 94 use the token sizes (`rounded-lg / md / sm` → `--radius`), about 96 a fixed one (`rounded`, `-xl`, `-full`);
+- motion: 92 `transition-*` written in place, no named animation;
+- textures, border styles, blur: no token at all; icons: 141 files import from `lucide-react` directly.
+
+**Plan:** a skin is a set of values in `theme.js`, chosen like light / dark (`<html data-skin="…">`, a cookie, a row in
+the sidebar). Every step leaves the app looking exactly as it does now; only the last one adds a second look.
+1. **Done 2026-11-12.** `theme.js` → `SKIN`: every corner size (all `rounded-*` classes), the pace and curve of every
+   transition, and a picture behind the page are now variables with today's values (the same as Tailwind's own, checked),
+   read by `tailwind.config.js` and `globals.css`. No component was touched. Tables and numbers stay plain and keep the
+   number font in every skin (owner's choice).
+2. **Done 2026-11-12.** The last fixed values take the variables: the menu, the sidebar and the Agenda's side panel
+   slide with `duration-slide` (and `ease-out`), the scrollbar and the date picker read the skin's radius and pace;
+   ESLint refuses `rounded-[…]`, `duration-<number>`, `ease-[…]`. Two leftovers that did nothing were removed (the
+   classes of an animation plugin the app does not have, an unused `shimmer` animation). Border width and style come
+   with the surfaces (step 3).
+3. **Done 2026-11-12.** `src/components/ui/Surface.tsx`: `Surface` and `surfaceClasses()` with four kinds (panel, soft,
+   floating, chrome); 58 hand-made boxes and `Card` use them. A script rewrote each one only after checking that the
+   classes the browser gets are the same set as before, so the look is unchanged. Left for a skin to decide (a small
+   visible change, owner to say): 14 soft / chrome boxes still name their own transparency (`bg-card/30 … /95`) and a
+   few their own corner or border shade; one value per kind would let a skin own them fully. What is still written by
+   hand is not a box: tiles that change with their state, buttons, a field, table heads (steps 4 and the tables).
+4. **Done 2026-11-12.** `Pressable` is the one `<button>` of the app, under `Button`, `ChoiceButton`, the chips, tabs and
+   switches and the 42 one-off things to press; `IconButton` is the 10 icon-only buttons (3 of them gained the hover fade
+   the others had: the Agenda's side panel close, copy path, reopen). ESLint refuses a raw `<button>` and a hand-made box
+   (`bg-card` + `border` + `rounded` in one class list; fields and the floor plan folder are let off, the floor plan
+   until it is next worked on). Still each its own drawing, for the second skin to show whether they need a shared
+   kind: the selectable tiles (calendar week, group cards, month filter), the small grey chips, the menu rows.
+5. **Done 2026-11-12.** The in-place transitions already follow the skin since steps 1 and 2. Added: `enter`, the
+   animation of whatever opens over the page (`animate-enter` on every floating `Surface`; none today), and `press`,
+   how much a `Pressable` shrinks while pressed (1 = not at all). With "reduce motion" set on the computer the motion
+   variables become `CALM_MOTION` (changes land at once; the spinner still turns, the two pulses stop). For step 7: a
+   skin that animates brings its `@keyframes` with it, and its selector must not outrank the reduce-motion rule.
+   Not done, it needs the markup changed: an animation for what unfolds in place (sidebar areas, filters).
+6. **Icons**: one module names the icons the app uses; the 141 files import from it, so a skin can bring its own set.
+7. **The switch and the proof**: the skin choice, a page that shows every shared part side by side (superadmin, Strumenti),
+   and one real second skin built from one file plus its images and font. What still needs a hand there is the list
+   of what steps 1–6 missed.
+
+**Not part of it:** the printed PDFs (their own colours, `src/lib/pdf/theme.ts`), Excel exports, what the app does.
+**Limit:** dense tables of numbers stay readable only with a plain number font and calm effects; a skin may keep its
+show for titles, panels and buttons.
+**Size:** steps 2–6 are mechanical, about one sitting each with a before / after look at the main pages (the owner logs
+in once in the browser pane); steps 1 and 7 need his choices.

@@ -7,6 +7,7 @@ import type { DayLoad } from '@/lib/tasks/types';
 import { isoWeekNumber, weekDays } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -36,7 +37,7 @@ export function WeekHorizon({ start, shown, today, loads, onPick }: WeekHorizonP
                 const critical = days.reduce((sum, day) => sum + (loads?.[day]?.critical ?? 0), 0);
                 const label = fmt(copy.horizonWeek, { n: isoWeekNumber(monday), count: total }) + (critical > 0 ? ` · ${fmt(copy.horizonCritical, { n: critical })}` : '');
                 return (
-                    <button
+                    <Pressable
                         key={monday}
                         type="button"
                         onClick={() => onPick(monday)}
@@ -68,7 +69,7 @@ export function WeekHorizon({ start, shown, today, loads, onPick }: WeekHorizonP
                                 );
                             })}
                         </span>
-                    </button>
+                    </Pressable>
                 );
             })}
         </nav>

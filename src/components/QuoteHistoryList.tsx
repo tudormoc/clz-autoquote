@@ -8,6 +8,8 @@ import { confirmDelete } from '@/lib/confirm';
 import { APP_COPY, fmt } from '@/locales';
 import type { Quote } from '@/types';
 import { formatDate } from '@/lib/format';
+import { Surface } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface QuoteHistoryListProps {
     history: Quote[];
@@ -26,9 +28,9 @@ export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistor
             {history.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3">
                     {history.slice(0, 5).map((quote) => (
-                        <div
+                        <Surface
                             key={quote.id}
-                            className="relative bg-card border border-border p-3 rounded-lg flex items-center justify-between group hover:border-primary transition-colors"
+                            className="relative p-3 flex items-center justify-between group hover:border-primary transition-colors"
                         >
                             {/* The link covers the whole card (after:inset-0); the delete button sits above it */}
                             <ViewLink to={linkOf(quote)} className="after:absolute after:inset-0 after:content-['']">
@@ -43,7 +45,7 @@ export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistor
                                     {formatDate(quote.created_at)}
                                 </p>
                                 {onDeleteQuote && (
-                                    <button
+                                    <Pressable
                                         type="button"
                                         onClick={async () => {
                                             if (await confirmDelete(APP_COPY.history.deleteConfirm)) {
@@ -54,10 +56,10 @@ export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistor
                                         title={APP_COPY.common.delete}
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    </Pressable>
                                 )}
                             </div>
-                        </div>
+                        </Surface>
                     ))}
                 </div>
             ) : (

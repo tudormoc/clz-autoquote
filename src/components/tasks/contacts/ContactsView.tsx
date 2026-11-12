@@ -24,6 +24,7 @@ import type { RowSortColumns } from '@/lib/sort';
 import { linkHref } from '@/lib/tasks/links';
 import type { Contact } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.contacts;
 
@@ -126,7 +127,7 @@ export function ContactsView() {
 
     return (
         <div className="flex flex-col gap-4 lg:h-full">
-            <div className="bg-card border border-border rounded-lg p-4 flex flex-wrap items-end gap-3">
+            <Surface className="p-4 flex flex-wrap items-end gap-3">
                 <Field label={APP_COPY.tasks.filters.search} className="w-full sm:w-64">
                     <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={APP_COPY.common.search} />
                 </Field>
@@ -139,7 +140,7 @@ export function ContactsView() {
                         {copy.new}
                     </Button>
                 )}
-            </div>
+            </Surface>
             <DataTable
                 fill
                 columns={columns}

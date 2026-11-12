@@ -24,6 +24,7 @@ import { TASK_STATES, type TaskState, type TaskSummary } from '@/lib/tasks/types
 import type { RowSortColumns } from '@/lib/sort';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks;
 const columnsCopy = copy.list.columns;
@@ -125,7 +126,7 @@ export function TaskListView() {
 
     return (
         <div className="flex flex-col gap-4 lg:h-full">
-            <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+            <Surface className="p-4 space-y-4">
                 <TaskFilters values={filters} onChange={setFilters} areas={data.areas} people={people}>
                     <div className="sm:ml-auto">
                         <ExportExcelButton
@@ -151,7 +152,7 @@ export function TaskListView() {
                         onToggle={(kind) => view.set({ kinds: [...toggleInSet(kinds, kind)] }, 'replace')}
                     />
                 </div>
-            </div>
+            </Surface>
             <DataTable
                 fill
                 columns={columns}

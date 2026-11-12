@@ -2,6 +2,7 @@ import { Minus, type LucideIcon } from 'lucide-react';
 import { CHIP_ACTIVE, CHIP_INACTIVE, type ChipTone } from '@/components/ui/ToggleChips';
 import type { LightState } from '@/lib/auth/lights';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface LightProps {
     state: LightState;
@@ -24,7 +25,7 @@ interface LightProps {
 export function Light({ state, tone, icon: Icon, label, name, hint, onToggle }: LightProps) {
     const Glyph = state === 'some' ? Minus : Icon;
     return (
-        <button
+        <Pressable
             type="button"
             onClick={onToggle}
             aria-pressed={state === 'on' ? true : state === 'some' ? 'mixed' : false}
@@ -38,6 +39,6 @@ export function Light({ state, tone, icon: Icon, label, name, hint, onToggle }: 
             )}
         >
             {label ?? (Glyph && <Glyph size={16} />)}
-        </button>
+        </Pressable>
     );
 }

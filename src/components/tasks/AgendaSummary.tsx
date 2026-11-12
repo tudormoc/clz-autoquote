@@ -6,6 +6,7 @@ import { loadPeople } from '@/lib/tasks/db/shared';
 import { agendaCounts } from '@/lib/tasks/db/views';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.home;
 
@@ -24,8 +25,8 @@ export async function AgendaSummary({ access }: { access: UserAccess }) {
     return (
         <Link
             href={LINKS.tasks.todo}
-            className={cn(
-                'mb-6 flex items-center gap-3 p-4 rounded-lg border bg-card transition-colors hover:bg-muted/50',
+            className={surfaceClasses(
+                'panel', 'mb-6 flex items-center gap-3 p-4 transition-colors hover:bg-muted/50',
                 urgent ? 'border-danger-500/40 hover:border-danger-500/70' : 'border-border hover:border-primary/50'
             )}
         >

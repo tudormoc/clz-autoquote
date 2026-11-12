@@ -29,12 +29,17 @@ Short answers in plain words. Read the existing code first and follow its patter
 before a big change; ask when something is unclear instead of guessing; one topic at a time. Suggest improvements,
 but don't implement them without a yes.
 
+**The full check (`npm run check`) takes minutes: never start it on your own** (owner, 2026-11-12). After a change run
+only the quick checks that concern it (`npx tsc --noEmit`, the lint, the examples of what was touched). After a big
+change, or when the work of the session is done, ask the owner whether to run the full check, the way a commit is asked
+for, and run it on his yes. `gitsync.bat` still runs it before every push, so nothing reaches production without it.
+
 ## Commands
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000 (live databases!)
-npm run check      # typecheck + lint + access check + example checks + production build — run before every deploy
+npm run check      # typecheck + lint + access check + example checks + production build — minutes: only on the owner's yes; gitsync.bat runs it before every push
 npm run access:check        # every page and server action checks access, an action first of all; every list of a schema has a maximum (scripts/access-check.ts)
 npm run presence:examples   # presence rules on made-up data
 npm run orders:examples     # order rules on made-up orders: comparison with the DiBa, what Riallinea changes, leaves or refuses
@@ -161,6 +166,18 @@ The whole look is defined in `src/styles/theme.js`; `tailwind.config.js` turns i
 Restyle the app by editing that file only. Tailwind's own palette is switched off, and ESLint fails on raw colour
 classes and `text-[Npx]`, so a component can only use tokens.
 
+**The skin** (`SKIN` in `theme.js`) is what a look is made of besides its colours: every corner size (`rounded`,
+`rounded-lg`, `rounded-full` …), the pace and curve of every transition, the picture behind the page. A component uses
+the classes and never a number: a plain `transition-*`, `duration-slide` for what slides across the screen, `ease-out`
+for what arrives; ESLint fails on `rounded-[7px]`, `duration-300`, `ease-[…]`. A box of a screen is a `Surface` of a
+kind (`panel`, `soft`, `floating`, `chrome`), never a hand-written `bg-card border …`: how each kind is drawn is in
+`src/components/ui/Surface.tsx` alone. What one presses is a `Button`, an `IconButton`, a chip or a tab, or a `Pressable`
+for a one-off, never a raw `<button>`; ESLint fails on both. Motion is the skin's too: what opens over the page comes in
+with its `enter` animation (every floating `Surface`) and a press shrinks by its `press` (every `Pressable`), both off
+today; who set "reduce motion" on their computer gets `CALM_MOTION` instead (a pulse adds `motion-reduce:animate-none`).
+Tables and numbers keep the number font and plain surfaces whatever the skin. What comes next (surfaces, buttons, animations, icons, a second skin):
+[docs/BACKLOG.md](docs/BACKLOG.md) → Skins.
+
 **Two looks, light (default) and dark.** The light values sit on `:root`, the dark ones under `<html data-theme="dark">`;
 the choice is the `clz_theme` cookie (`src/lib/theme.ts`), read by the root layout so the first paint is already right, and
 switched by the Sun / Moon row at the foot of the sidebar (`ThemeProvider`). A component never knows which look is on:
@@ -179,8 +196,8 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
   `FilterPanel` folds into a "Filtri" bar after "Applica". Form fields are 16px on phones (globals.css), so tapping one does not zoom.
 - Exports are named after the report's menu label (`APP_COPY.analytics.reports`): `reportFileName()` in `src/lib/download.ts`.
 
-Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `Input`, `Select`, `Checkbox`, `Switch`,
-`DatePicker`, `Card`, `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
+Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `IconButton` (a button that is only an icon), `Pressable` (the one `<button>` of the app, for a one-off thing to press), `Input`, `Select`, `Checkbox`, `Switch`,
+`DatePicker`, `Card`, `Surface` (+ `surfaceClasses()` for a link, a list, a form), `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
 `Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
 `fill` inside a `FillPage` = takes the free height, header and totals stay in view; `rowLink` = a row that is the link to a view (a click anywhere on it, the middle button for a new tab),
 `rowDetail` = more about a row unfolded under it, `dense` = lower rows, `scrollResetKey` for a list that replaces a row in place), `CardField` (a line of a phone card),
@@ -201,7 +218,8 @@ sentence of `it.ts` → `errors.faults` and its cause goes to the log. For a log
 5. **Strict TypeScript**, Zod at data boundaries. Every list of a schema has a maximum (`z.array(…).max(n)`): a longer
    one is then refused at once instead of being checked element by element; `npm run access:check` fails without it.
    Remove unused code, imports and files as you go.
-6. **Before calling it done**: `npm run check` passes and the change is checked in the browser.
+6. **Before calling it done**: the quick checks that concern the change pass (types, lint, its examples) and the change is
+   checked in the browser. The full `npm run check` is asked of the owner, never started unasked (Working with the owner).
 7. **Every write is logged**: a server action that changes data ends with `await logEvent(personOf(access), { page: LINKS.…,
    action, entityKind, entityId, summary, details: { before, after } })` (`src/lib/log/log.ts`; the line's text in `it.ts` →
    `log.entries`). The Agenda and the timesheet keep their own logs; the Registro page shows all three. A PIN is never logged.
@@ -239,7 +257,8 @@ for what stays on the same history step.
 **Move or rename a page**: move its folder under `src/app`, change its link in `LINKS` (and its area in `NAV_AREAS`);
 every check and link follows, since nothing names a page by a literal link. Keep the page's `id`: the groups' grants are
 stored under it. If the link itself changes, add the old link to `RENAMED_LINKS` in `src/lib/auth/permissions.ts` so a
-link stored by an old group still counts, and a redirect to `next.config.mjs` for bookmarks. Run `npm run check`.
+link stored by an old group still counts, and a redirect to `next.config.mjs` for bookmarks. Then ask the owner for the
+full check (`npm run check`).
 
 **New analytics report**:
 1. Query in its own file `src/app/analytics/queries/<report>-queries.ts`, using the shared parts in `queries/shared/`

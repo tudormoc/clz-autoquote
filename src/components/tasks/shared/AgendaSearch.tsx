@@ -11,6 +11,7 @@ import { LINKS } from '@/config/navigation';
 import type { SearchHit, SearchKind } from '@/lib/tasks/db/search';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.search;
 const ICONS: Record<SearchKind, LucideIcon> = { task: ListChecks, guide: BookOpen, contact: Contact };
@@ -101,7 +102,7 @@ export function AgendaSearch({ className = 'sm:w-72' }: { className?: string }) 
                 maxLength={APP_CONFIG.TASKS.MAX_TITLE_LENGTH}
             />
             {shown && (
-                <div role="listbox" className="absolute right-0 top-full z-50 mt-1 w-full sm:w-96 max-h-96 overflow-y-auto rounded-lg border border-border-strong bg-card py-1 shadow-lg">
+                <Surface kind="floating" role="listbox" className="absolute right-0 top-full z-50 mt-1 w-full sm:w-96 max-h-96 overflow-y-auto py-1">
                     {shown.length === 0 && <p className="px-3 py-2 text-sm text-fg-subtle">{copy.empty}</p>}
                     {shown.map((hit, index) => {
                         const Icon = ICONS[hit.kind];
@@ -127,7 +128,7 @@ export function AgendaSearch({ className = 'sm:w-72' }: { className?: string }) 
                             </div>
                         );
                     })}
-                </div>
+                </Surface>
             )}
         </div>
     );

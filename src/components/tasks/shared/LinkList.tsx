@@ -7,6 +7,8 @@ import { notify } from '@/lib/notify';
 import { linkHref } from '@/lib/tasks/links';
 import type { LinkKind, TaskLink } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { IconButton } from '@/components/ui/IconButton';
 
 const copy = APP_COPY.tasks;
 
@@ -50,9 +52,9 @@ function LinkRow({ link }: { link: TaskLink }) {
                 <span className="flex-1 min-w-0">{body}</span>
             )}
             {link.kind === 'path' && (
-                <button type="button" onClick={copyPath} title={copy.pathHint} aria-label={copy.copyPath} className="shrink-0 p-1 rounded text-fg-muted hover:text-primary hover:bg-muted">
+                <IconButton size="sm" type="button" onClick={copyPath} title={copy.pathHint} aria-label={copy.copyPath} className="shrink-0 hover:text-primary">
                     <Copy size={14} />
-                </button>
+                </IconButton>
             )}
         </li>
     );
@@ -62,7 +64,7 @@ function LinkRow({ link }: { link: TaskLink }) {
 export function LinkList({ links }: { links: TaskLink[] }) {
     if (links.length === 0) return null;
     return (
-        <ul className="rounded-lg border border-border divide-y divide-border/60 bg-card/40">
+        <ul className={surfaceClasses('soft', 'divide-y divide-border/60')}>
             {links.map((link, index) => (
                 <LinkRow key={`${link.kind}:${link.value}:${index}`} link={link} />
             ))}

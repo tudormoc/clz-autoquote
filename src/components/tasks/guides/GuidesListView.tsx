@@ -22,6 +22,7 @@ import type { RowSortColumns } from '@/lib/sort';
 import { formatMoment } from '@/lib/tasks/describe';
 import type { GuideSummary } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.guides;
 
@@ -73,7 +74,7 @@ export function GuidesListView() {
 
     return (
         <div className="flex flex-col gap-4 lg:h-full">
-            <div className="bg-card border border-border rounded-lg p-4">
+            <Surface className="p-4">
                 <TaskFilters values={filters} onChange={setFilters} areas={data.areas} people={[]}>
                     <div className="pb-2">
                         <Checkbox id="guides-archived" label={copy.showArchived} checked={showArchived} onChange={(e) => view.set({ archived: e.target.checked }, 'replace')} />
@@ -85,7 +86,7 @@ export function GuidesListView() {
                         </Link>
                     )}
                 </TaskFilters>
-            </div>
+            </Surface>
             <DataTable
                 fill
                 columns={columns}

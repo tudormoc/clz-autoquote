@@ -4,6 +4,8 @@ import { useEffect, useId } from 'react';
 import { X, type LucideIcon } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { IconButton } from '@/components/ui/IconButton';
 
 const SIZES = {
     sm: 'max-w-sm',
@@ -53,7 +55,7 @@ export function Modal({ title, subtitle, icon: Icon, iconTone = 'primary', size 
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                className={cn('w-full max-h-full flex flex-col overflow-hidden rounded-lg border border-border-strong bg-card shadow-2xl', SIZES[size])}
+                className={surfaceClasses('floating', 'w-full max-h-full flex flex-col overflow-hidden shadow-2xl', SIZES[size])}
             >
                 <div className="flex items-start justify-between gap-3 p-4 border-b border-border">
                     <div className="flex items-center gap-3 min-w-0">
@@ -69,15 +71,15 @@ export function Modal({ title, subtitle, icon: Icon, iconTone = 'primary', size 
                             {subtitle && <p className="text-xs text-fg-muted mt-0.5">{subtitle}</p>}
                         </div>
                     </div>
-                    <button
+                    <IconButton size="sm"
                         type="button"
                         onClick={onClose}
                         disabled={busy}
                         title={APP_COPY.common.close}
-                        className="p-1 rounded text-fg-muted hover:text-fg-strong hover:bg-muted transition-colors disabled:opacity-50"
+                        className="disabled:opacity-50"
                     >
                         <X size={18} />
-                    </button>
+                    </IconButton>
                 </div>
                 <div className="p-4 overflow-y-auto flex-1 min-h-0 text-sm">{children}</div>
                 {footer && <div className="flex justify-end gap-2 p-4 border-t border-border">{footer}</div>}

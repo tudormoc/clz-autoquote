@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { APP_COPY, fmt } from '@/locales';
 import { useCanEdit } from '@/components/auth/AccessProvider';
+import { Surface } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.analytics.presenceSettings;
 
@@ -61,7 +63,7 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
     };
 
     return (
-        <div className="p-4 rounded-lg bg-card/50 border border-border space-y-3">
+        <Surface kind="soft" className="p-4 bg-card/50 space-y-3">
             <h4 className="text-xs font-semibold text-fg-soft">{title}</h4>
 
             <div className="flex flex-wrap gap-1.5 min-h-8 items-center">
@@ -79,7 +81,7 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
                             onSave={(draft) => rename(tag, draft)}
                         />
                         {canEdit && (
-                            <button
+                            <Pressable
                                 type="button"
                                 onClick={() => remove(tag)}
                                 disabled={saving}
@@ -87,7 +89,7 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
                                 className="p-0.5 rounded text-warning-400/60 hover:text-danger-400 transition-colors disabled:opacity-50"
                             >
                                 <X size={11} />
-                            </button>
+                            </Pressable>
                         )}
                     </span>
                 ))}
@@ -116,6 +118,6 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
                     </Button>
                 </form>
             )}
-        </div>
+        </Surface>
     );
 }

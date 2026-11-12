@@ -8,6 +8,8 @@ import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import type { ViewTarget } from '@/hooks/useAddress';
 import type { SortState } from '@/hooks/useReportTable';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 type Align = 'left' | 'right' | 'center';
 
@@ -127,7 +129,7 @@ export function DataTable<R>({
 
     return (
         <div
-            className={cn('bg-card border border-border rounded-lg overflow-hidden', fill && 'lg:flex-1 lg:min-h-80 lg:flex lg:flex-col')}
+            className={surfaceClasses('panel', 'overflow-hidden', fill && 'lg:flex-1 lg:min-h-80 lg:flex lg:flex-col')}
         >
             {cards && (
                 <div className="md:hidden">
@@ -166,14 +168,14 @@ export function DataTable<R>({
                                     className={cn(TEXT_ALIGN[align], column.compact && 'px-2', column.className)}
                                 >
                                     {sortable ? (
-                                        <button
+                                        <Pressable
                                             type="button"
                                             onClick={() => onSort(column.key)}
                                             className={cn('w-full flex items-center gap-2 font-semibold hover:text-primary transition-colors', JUSTIFY[align])}
                                         >
                                             {column.header}
                                             <SortIcon active={sorted} direction={sort?.direction} />
-                                        </button>
+                                        </Pressable>
                                     ) : (
                                         <div className={cn('flex items-center gap-2', JUSTIFY[align])}>{column.header}</div>
                                     )}

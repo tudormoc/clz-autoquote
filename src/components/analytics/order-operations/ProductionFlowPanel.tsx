@@ -3,12 +3,13 @@ import type { FlowOperation } from '@/lib/orders/flow';
 import { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
 const LEGEND = [
     { label: t.statusCompleted, dot: 'bg-success-600' },
-    { label: t.statusActive, dot: 'bg-info animate-pulse' },
+    { label: t.statusActive, dot: 'bg-info animate-pulse motion-reduce:animate-none' },
     { label: t.statusPaused, dot: 'bg-warning' },
     { label: t.statusScheduled, dot: 'bg-muted-strong' },
 ];
@@ -26,7 +27,7 @@ interface FlowColumnProps {
 function FlowColumn({ title, operations, accent, emptyText, numbered }: FlowColumnProps) {
     const done = operations.filter((op) => op.status === 'COM').length;
     return (
-        <div className="flex flex-col min-h-0 rounded-xl border border-border/70 bg-card/30">
+        <Surface kind="soft" className="flex flex-col min-h-0 rounded-xl border-border/70 bg-card/30">
             <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/70">
                 <h3 className={cn('text-xs font-bold flex items-center gap-1.5', accent)}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -41,7 +42,7 @@ function FlowColumn({ title, operations, accent, emptyText, numbered }: FlowColu
                     <div className="py-4 text-center italic text-fg-subtle text-xs">{emptyText || '-'}</div>
                 )}
             </div>
-        </div>
+        </Surface>
     );
 }
 

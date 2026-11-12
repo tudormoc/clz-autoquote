@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { APP_CONFIG } from '@/config/constants';
 import { monthName, monthShortName } from '@/lib/format';
 import { APP_COPY, fmt } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 type PageFormat = 'A4' | 'A3';
 type PeriodMode = 'months' | 'weeks';
@@ -172,7 +173,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                 )}
 
                 {!hideSeparateToggle && (
-                    <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer group">
+                    <label className={surfaceClasses('soft', 'flex items-center gap-3 p-3 bg-card/50 cursor-pointer group')}>
                         <input
                             type="checkbox"
                             checked={separateByArea}

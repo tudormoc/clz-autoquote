@@ -8,6 +8,8 @@ import { it } from 'date-fns/locale';
 import { Calendar } from 'lucide-react';
 import { APP_COPY } from '@/locales';
 import 'react-day-picker/dist/style.css';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface DatePickerProps {
     value: string;
@@ -145,7 +147,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     autoFocus={autoFocus}
                     className="w-full px-3 py-2 pr-10 bg-card border border-border rounded-md text-sm text-fg-strong placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
-                <button
+                <Pressable
                     type="button"
                     onClick={() => {
                         setPosition(null);
@@ -156,7 +158,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-fg-muted hover:text-primary transition-colors"
                 >
                     <Calendar size={16} />
-                </button>
+                </Pressable>
             </div>
 
             {isOpen &&
@@ -164,7 +166,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     <div
                         ref={popupRef}
                         style={{ position: 'fixed', ...(position ?? { top: 0, left: 0, visibility: 'hidden' }) }}
-                        className="z-[60] bg-card border border-border rounded-lg shadow-lg p-3"
+                        className={surfaceClasses('floating', 'z-[60] border-border p-3')}
                     >
                         <DayPicker
                             mode="single"
@@ -176,14 +178,14 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                             className="rdp-custom"
                         />
                         <div className="border-t border-border pt-2 mt-2">
-                            <button
+                            <Pressable
                                 type="button"
                                 onClick={() => choose(new Date())}
                                 disabled={!inRange(todayIso)}
                                 className="w-full px-3 py-2 text-sm text-fg-secondary hover:text-fg-strong hover:bg-muted rounded transition-colors disabled:opacity-40 disabled:pointer-events-none"
                             >
                                 {APP_COPY.common.today}
-                            </button>
+                            </Pressable>
                         </div>
                     </div>,
                     document.body

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { InfoBadge } from '@/components/ui/InfoBadge';
 import { calculateBlockThickness } from '@/lib/pricing/formulas';
 import { APP_COPY } from '@/locales';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface Props {
     control: Control<QuoteInput>;
@@ -292,7 +293,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                     </div>
 
 
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-4">
                         <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-3">
                             <div className="flex justify-between items-center text-xs font-medium text-fg-subtle">
                                 <span className="w-24">{APP_COPY.form.amountLabel}</span>
@@ -351,13 +352,13 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     <div className="w-16 h-9 flex items-center justify-end text-sm font-mono text-fg-subtle">
                                         {((watchCustomSignatures?.[index]?.amount || 0) * (watchCustomSignatures?.[index]?.size || 0))} p
                                     </div>
-                                    <button
+                                    <Pressable
                                         type="button"
                                         onClick={() => remove(index)}
                                         className="w-8 h-9 flex items-center justify-center text-fg-subtle hover:text-danger transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                                    </button>
+                                    </Pressable>
                                 </div>
                             ))}
 

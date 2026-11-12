@@ -29,11 +29,21 @@ module.exports = {
         }),
         ringOffsetColor: ({ theme: t }) => ({ ...t('colors'), DEFAULT: withOpacity(t('colors.background')) }),
         extend: {
+            // Every size of corner and the pace of every transition are the skin's (theme.js → SKIN), read as variables
             borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
+                DEFAULT: 'var(--radius-xs)',
                 sm: 'calc(var(--radius) - 4px)',
+                md: 'calc(var(--radius) - 2px)',
+                lg: 'var(--radius)',
+                xl: 'var(--radius-xl)',
+                '2xl': 'var(--radius-2xl)',
+                '3xl': 'var(--radius-3xl)',
+                full: 'var(--radius-pill)',
             },
+            transitionDuration: { DEFAULT: 'var(--motion-duration)', slide: 'var(--motion-slide)' },
+            transitionTimingFunction: { DEFAULT: 'var(--motion-ease)', out: 'var(--motion-ease-out)' },
+            // animate-enter: how what opens over the page comes in (none until a skin names an animation)
+            animation: { enter: 'var(--motion-enter)' },
             fontFamily: theme.FONT_FAMILY,
             fontSize: theme.FONT_SIZE,
             width: theme.LAYOUT.width,
@@ -58,6 +68,8 @@ module.exports = {
             addBase({
                 ':root': { ...theme.cssVariables, colorScheme: 'light' },
                 ':root[data-theme="dark"]': { ...theme.darkCssVariables, colorScheme: 'dark' },
+                // Who asked their computer for less motion: the skin's motion gives way to the calm one
+                '@media (prefers-reduced-motion: reduce)': { ':root': theme.calmMotionVariables },
             })
         ),
         // `collapsed:` — applies while the desktop sidebar is folded to icons (from lg up). The state is the

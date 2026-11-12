@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 /** Shown instead of a page that crashed while rendering. "Riprova" renders the page again. */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -16,7 +17,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
 
     return (
         <div className="flex justify-center py-12">
-            <div className="w-full max-w-md bg-card border border-danger/40 rounded-lg p-6 space-y-4">
+            <Surface className="w-full max-w-md border-danger/40 p-6 space-y-4">
                 <div className="flex items-center gap-3 text-danger">
                     <AlertTriangle size={20} />
                     <h1 className="text-lg font-semibold">{copy.title}</h1>
@@ -32,7 +33,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
                         {copy.goHome}
                     </Link>
                 </div>
-            </div>
+            </Surface>
         </div>
     );
 }

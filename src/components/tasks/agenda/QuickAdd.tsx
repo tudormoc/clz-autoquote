@@ -10,6 +10,7 @@ import { notify } from '@/lib/notify';
 import { describeRepeat, formatShortDay } from '@/lib/tasks/describe';
 import { parseQuickEntry } from '@/lib/tasks/quickParse';
 import { APP_COPY, fmt } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks;
 
@@ -58,7 +59,7 @@ export function QuickAdd({ onAdded }: { onAdded: () => Promise<void> }) {
             {understood && (
                 <p
                     role="status"
-                    className="absolute left-0 top-full z-10 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-border-strong bg-card px-2.5 py-1.5 text-xs text-fg-secondary shadow-lg"
+                    className={surfaceClasses('floating', 'absolute left-0 top-full z-10 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-2.5 py-1.5 text-xs text-fg-secondary')}
                 >
                     <span className="text-fg-subtle">{copy.quickPreview}</span>
                     <span className="font-medium text-fg-strong">{entry.title}</span>

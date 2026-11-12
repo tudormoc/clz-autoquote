@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { sameMonthPeriod, shiftMonthPeriod, thisMonthPeriod, type MonthPeriod } from '@/lib/dateUtils';
 import { monthName } from '@/lib/format';
 import { APP_COPY } from '@/locales';
+import { Surface } from '@/components/ui/Surface';
 
 const copy = APP_COPY.timesheet.month;
 
@@ -19,7 +20,7 @@ interface MonthBarProps {
 export function MonthBar({ period, onChange, children }: MonthBarProps) {
     const current = sameMonthPeriod(period, thisMonthPeriod());
     return (
-        <div className="bg-card border border-border rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+        <Surface className="px-3 py-2 flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => onChange(shiftMonthPeriod(period, -1))} title={copy.previous} aria-label={copy.previous}>
                 <ChevronLeft size={16} />
             </Button>
@@ -35,6 +36,6 @@ export function MonthBar({ period, onChange, children }: MonthBarProps) {
                 </Button>
             )}
             {children && <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-fg-secondary">{children}</div>}
-        </div>
+        </Surface>
     );
 }

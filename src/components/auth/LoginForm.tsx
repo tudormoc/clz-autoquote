@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.auth;
 
@@ -37,7 +38,7 @@ export function LoginForm({ next }: { next?: string }) {
 
     return (
         <form
-            className="w-full max-w-sm bg-card border border-border rounded-lg p-6 space-y-5"
+            className={surfaceClasses('panel', 'w-full max-w-sm p-6 space-y-5')}
             onSubmit={(event) => {
                 event.preventDefault();
                 submit();

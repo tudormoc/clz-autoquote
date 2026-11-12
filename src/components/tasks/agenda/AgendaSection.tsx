@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { Pressable } from '@/components/ui/Pressable';
 
 export type SectionTone = 'danger' | 'warning' | 'primary' | 'muted' | 'success';
 
@@ -29,12 +31,12 @@ export function AgendaSection({ title, count, tone, folded = false, children }: 
 
     return (
         <section className="space-y-2">
-            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-2 group">
+            <Pressable type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-2 group">
                 <ChevronDown size={16} className={cn('text-fg-muted transition-transform', !open && '-rotate-90')} />
                 <h2 className={cn('text-sm font-semibold', TONES[tone])}>{title}</h2>
                 <span className="text-3xs px-1.5 rounded-full bg-muted text-fg-secondary font-mono">{count}</span>
-            </button>
-            {open && <ul className="rounded-lg border border-border bg-card divide-y divide-border/60">{children}</ul>}
+            </Pressable>
+            {open && <ul className={surfaceClasses('panel', 'divide-y divide-border/60')}>{children}</ul>}
         </section>
     );
 }

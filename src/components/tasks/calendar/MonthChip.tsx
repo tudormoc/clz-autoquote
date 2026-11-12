@@ -9,6 +9,7 @@ import { useContextMenu } from '@/hooks/useContextMenu';
 import { isOpenStatus, type AgendaItem, type PlannedEntry } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -18,7 +19,7 @@ export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: 
     const contextMenu = useContextMenu();
     if (entry) {
         return (
-            <button
+            <Pressable
                 type="button"
                 onClick={() => select({ kind: 'planned', entry })}
                 data-calendar-card
@@ -27,7 +28,7 @@ export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: 
             >
                 <Repeat size={10} className="shrink-0" />
                 <span className="truncate">{entry.title}</span>
-            </button>
+            </Pressable>
         );
     }
     if (!item) return null;
@@ -37,7 +38,7 @@ export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: 
     const menu = canEdit ? cardMenu(item, calendar) : [];
     return (
         <>
-            <button
+            <Pressable
                 type="button"
                 {...(canEdit ? drag.cardProps(item) : {})}
                 onClick={() => select({ kind: 'item', item })}
@@ -53,7 +54,7 @@ export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: 
                 {open && item.priority > 0 && <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', item.priority === 2 ? 'bg-danger-400' : 'bg-warning-400')} />}
                 {item.dueTime && <span className="font-mono shrink-0">{item.dueTime}</span>}
                 <span className="truncate">{item.title}</span>
-            </button>
+            </Pressable>
             {contextMenu.at && <FloatingMenu actions={menu} anchor={contextMenu.at} onClose={contextMenu.close} />}
         </>
     );

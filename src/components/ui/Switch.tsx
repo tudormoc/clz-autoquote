@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface SwitchProps {
     checked: boolean;
@@ -11,7 +12,7 @@ interface SwitchProps {
 /** On / off switch, green when on (e.g. a user who may log in). */
 export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
     return (
-        <button
+        <Pressable
             type="button"
             role="switch"
             aria-checked={checked}
@@ -25,6 +26,6 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
             )}
         >
             <span className={cn('size-4 rounded-full bg-bright shadow-sm transition-transform', checked && 'translate-x-4')} />
-        </button>
+        </Pressable>
     );
 }

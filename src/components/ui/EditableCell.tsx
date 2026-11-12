@@ -5,6 +5,7 @@ import { Save, X } from 'lucide-react';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
+import { Pressable } from '@/components/ui/Pressable';
 
 interface EditableCellProps<T> {
     /** What the cell shows when it is not being edited */
@@ -30,14 +31,14 @@ export function EditableCell<T>({ display, startValue, renderEditor, onSave }: E
 
     if (draft === null) {
         return (
-            <button
+            <Pressable
                 type="button"
                 onClick={() => setDraft({ value: startValue() })}
                 title={APP_COPY.common.clickToEdit}
                 className="-mx-2 px-2 py-1 rounded text-left transition-colors hover:bg-muted"
             >
                 {display}
-            </button>
+            </Pressable>
         );
     }
 

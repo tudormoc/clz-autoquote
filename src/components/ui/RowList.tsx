@@ -1,6 +1,8 @@
+import { Surface } from '@/components/ui/Surface';
+
 /** Bordered list of label / value rows (settings, operators). */
 export function RowList({ children }: { children: React.ReactNode }) {
-    return <div className="border border-border rounded-lg overflow-hidden divide-y divide-border/60 bg-card/40">{children}</div>;
+    return <Surface kind="soft" className="overflow-hidden divide-y divide-border/60">{children}</Surface>;
 }
 
 interface RowProps {
