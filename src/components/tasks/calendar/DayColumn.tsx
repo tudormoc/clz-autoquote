@@ -8,7 +8,7 @@ import { cardMenu } from '@/components/tasks/calendar/cardMenu';
 import { WeekCard } from '@/components/tasks/calendar/WeekCard';
 import type { AgendaCalendar, DayContent } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
-import { dayOf, weekdayOf } from '@/lib/tasks/dates';
+import { dayOf, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 

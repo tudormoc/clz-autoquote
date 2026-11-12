@@ -8,6 +8,7 @@ import {
 } from '@/app/presence/presence-settings-actions';
 import { getPresenceSettingDefinition } from '@/lib/presence';
 import { notify } from '@/lib/notify';
+import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import type { PresenceSettingRow } from '@/types';
 
@@ -20,13 +21,17 @@ const PRESET_DESCRIPTIONS: Record<PresetKey, string> = { FERIE_PRESETS: copy.fer
 export function usePresenceSettings() {
     const [settings, setSettings] = useState<PresenceSettingRow[]>([]);
     const [loading, setLoading] = useState(true);
+    // Why the stored values could not be read. Until they are read nothing is shown as a value and nothing can be
+    // saved: a list shown from the defaults would be saved, with one change, over the stored one
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         getAllPresenceSettingsAction()
             .then((res) => {
                 if (res.success) setSettings(res.data);
+                else setError(res.error ?? APP_COPY.common.loadError);
             })
-            .catch(notify.failure)
+            .catch((err: unknown) => setError(errorMessage(err)))
             .finally(() => setLoading(false));
     }, []);
 
@@ -58,6 +63,7 @@ export function usePresenceSettings() {
     return {
         settings,
         loading,
+        error,
         /** Stored (or default) value of a parameter */
         valueOf: (parametro: string) => settings.find((row) => row.PARAMETRO === parametro)?.VALORE ?? getPresenceSettingDefinition(parametro)?.defaultValue ?? '',
         saveSetting: async (row: PresenceSettingRow, input: string) => {

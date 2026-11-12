@@ -8,6 +8,7 @@
  */
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import type { MSSQL_DB, SqlParams, SqlRunner } from '@/lib/mssql';
+import { NETPRO_NOTE_LEN } from '@/lib/orders/compare';
 import { BUSINESS_EMPTY_DATE, EVASO, NOT_EVASO, usedInNetproSql, WITHDRAWN_IN_BUSINESS_SQL } from '@/lib/orders/sql';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -78,7 +79,7 @@ export function buildNetProOverrides(op: SyncDibaOp, netOrdine: string, qty: num
         OPERAZIONI: {
             ORDINE: netOrdine, OPERAZIONE: String(op.fase).padStart(2, '0'), ID_OPER: idOper, SEQUENZA: op.fase,
             DESCRIZIONE: op.descr_lavor, CENTRO_ASSEGNATO: centro, CENTRO_REALE: centro,
-            DESCRIZIONE01: op.note ? op.note.slice(0, 100) : null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: NEW_STATE,
+            DESCRIZIONE01: op.note ? op.note.slice(0, NETPRO_NOTE_LEN) : null, CENTRO_SUCCESSIVO: null, QTA_BASE: qty, QTA_IMPIEGO: 1, QTA_RICHIESTA: qty, STATO: NEW_STATE,
             DATA_INS: now, DATA_UPD: now,
         },
         TASKS: {

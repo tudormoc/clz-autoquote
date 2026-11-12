@@ -1,10 +1,11 @@
-// This file serves as a placeholder for global application constants.
-//
-// NOTE:
-// Most business logic (pricing, discounts, volumes) is NOT hardcoded here.
-// Instead, it is fetched dynamically from our 3 local MSSQL databases.
-//
-// Use this file ONLY for true static configuration (e.g., UI timeouts, pagination limits).
+// Every number and setting of the app that is not kept in a database (README rule 3, "nothing hardcoded"):
+//   APP_CONFIG          timings, limits, sizes, and the settings of each area (orders, analytics, presence, payroll,
+//                       timesheet, login …), with the layout of the files the app reads
+//   PRICING_FORMULAS    the numbers of the quote formulas (docs/PRICING.md); PRICING_OPERATIONS, OPERATION_CATEGORIES
+//   PRESENCE_RULES      the DEFAULTS of the presence rules: the owner changes the real ones in Impostazioni → Regole
+//                       Presenze (kept in NETPRO.VALORI_TABELLE), and the same holds for the labour rates
+// Texts are in src/locales/it.ts, the look in src/styles/theme.js. Prices, materials and volumes of a quote are read
+// from the databases, not from here.
 
 // When the daily automatic exit runs and how it is tried again. A file of its own because the scheduler
 // (scripts/scheduler.js, plain Node outside the app) reads it too: these numbers are written there and nowhere else.
@@ -172,7 +173,7 @@ export const APP_CONFIG = {
 
     // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
     // Add client codes here to hide them from exported PDF reports
-    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010383', '9010389', '9010013', '9010013', '9010377', '9010365', '9010382', '9010179', '9010035', '9010356'] as string[],
+    EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010389', '9010013', '9010377', '9010365', '9010382', '9010179', '9010035', '9010356'] as string[],
 
     // Production Flow Configuration
     // Defines the 3-phase production flow: Parallel flows A & B → Assembly → Finishing
@@ -327,6 +328,11 @@ export const APP_CONFIG = {
     EXCEL_FOLDERS: ['\\\\SERVER2019\\Office\\Preventivi LeZana\\COOPERATIVA\\PRODUZIONE', 'Z:\\'],
     EXCEL_FILE_MARK: 'Produzione',
     EXCEL_COLUMNS: { WEEK: 38 /* AM */, HOURS: 39 /* AN */, GROUP: 40 /* AO */ },
+    // What the header row of a file shows at those columns: a file where it does not is refused, not read wrong
+    // (someone added or moved a column). The same in all 11 files of 2026, read on 2026-11-12
+    EXCEL_HEADERS: { WEEK: 'Settimana', HOURS: 'Totale', GROUP: 'Clz?' },
+    // How many misplaced columns the refusal names (one added column moves all the ones after it)
+    EXCEL_MISPLACED_SHOWN: 3,
     // GRUPPO value of the operators on the special second shift (their own start times and rules)
     TURNO2_GROUP: 'TURNO2',
     // Starting values of the "Aggiungi Evento" form in Daily Events
@@ -351,6 +357,13 @@ export const APP_CONFIG = {
       ID: 14 /* O */, SARP: 15 /* P */, NAME: 17 /* R */, DATE: 18 /* S */,
       FERIE: 20 /* U */, PERMESSO: 21 /* V */, MALATTIA: 22 /* W */, ORDINARIE: 23 /* X */, STRAORDINARIE: 24 /* Y */,
       BANCA_ORE: 25 /* Z */, BANCA_ORE_N1: 26 /* AA */, BANCA_ORE_N: 27 /* AB */, GROUP: 40 /* AO */,
+    },
+    // What the file's header row shows at those columns (see PRESENCE.EXCEL_HEADERS): a file where it does not is
+    // refused, so the studio never gets hours taken from a column that moved
+    EXCEL_HEADERS: {
+      ID: 'ID Operatore', SARP: 'Codice SARP net', NAME: 'Cognome Nome', DATE: 'Data',
+      FERIE: 'Ore Ferie', PERMESSO: 'Ore Permesso', MALATTIA: 'Ore Malattia', ORDINARIE: 'Ore Ordinarie', STRAORDINARIE: 'Ore Straordinarie',
+      BANCA_ORE: 'Banca ore', BANCA_ORE_N1: 'Banca ore mese n-1', BANCA_ORE_N: 'Banca ore mese n', GROUP: 'Clz?',
     },
     // "Clz?" value of the agency workers: their own sheet (a name ending with the Interinali mark counts too)
     INTERINALI_GROUP: 'Interinali',

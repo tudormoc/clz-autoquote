@@ -21,20 +21,37 @@ interface UseAppliedQueryOptions<F, Res> {
 
 const NOTHING: readonly string[] = [];
 
+/** Something read for certain applied filters: the filters, and which "Applica" press, it belongs to */
+interface ReadFor<F, T> {
+    value: T;
+    applied: F;
+    run: number;
+}
+
 /**
  * Filters and loading of a screen that reads everything it shows in one go for the applied filters (a list, a month,
  * a year): filters typed vs applied (the applied ones live in the address, see useAppliedFilters), loading, errors,
  * stale-response protection and reload after an edit. A page opened without filters in its address loads nothing
  * until "Applica"; an address with filters (a link, a refresh, Back) loads at once.
+ *
+ * `result` and `error` are always those of the applied filters, or null: an answer to the filters before is never
+ * shown, or exported, under the new ones, not while the new ones are read and not when that read fails. Only a
+ * `reload` of the same filters (after a save) keeps what is on screen until the new answer is there.
  * Lists of rows use useListQuery (built on this), paged reports useReportTable.
  */
 export function useAppliedQuery<F, Res extends QueryAnswer>({ initialFilters, load, clears = NOTHING }: UseAppliedQueryOptions<F, Res>) {
     const form = useAppliedFilters(initialFilters, { atStart: true, onApply: NOTHING, onClear: clears });
     const { applied, run } = form;
-    /** The last successful answer */
-    const [result, setResult] = useState<Res | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    /** The last answer and the last failure, each with the filters it is for */
+    const [answer, setAnswer] = useState<ReadFor<F, Res> | null>(null);
+    const [failure, setFailure] = useState<ReadFor<F, string> | null>(null);
+    const [reading, setReading] = useState(false);
+
+    // Decided while drawing, not a moment later in an effect: what was read for other filters is not on screen at all
+    const isCurrent = (read: ReadFor<F, unknown> | null) => read !== null && read.applied === applied && read.run === run;
+    const result = answer !== null && isCurrent(answer) ? answer.value : null;
+    const error = failure !== null && isCurrent(failure) ? failure.value : null;
+    const loading = reading || (applied !== null && result === null && error === null);
 
     // Only the latest request may update the screen (a slow old response must not win)
     const requestId = useRef(0);
@@ -43,40 +60,49 @@ export function useAppliedQuery<F, Res extends QueryAnswer>({ initialFilters, lo
         loadRef.current = load;
     });
 
-    const read = useCallback(async (query: F) => {
+    const read = useCallback(async (query: F, press: number) => {
         const id = ++requestId.current;
-        setLoading(true);
+        setReading(true);
+        const failed = (message: string) => setFailure({ value: message, applied: query, run: press });
         try {
-            const answer = await loadRef.current(query);
+            const value = await loadRef.current(query);
             if (id !== requestId.current) return;
-            if (answer.success) {
-                setResult(answer);
-                setError(null);
+            if (value.success) {
+                setAnswer({ value, applied: query, run: press });
+                setFailure(null);
             } else {
-                setError(answer.error ?? APP_COPY.common.loadError);
+                failed(value.error ?? APP_COPY.common.loadError);
             }
         } catch (err) {
-            if (id === requestId.current) setError(errorMessage(err));
+            if (id === requestId.current) failed(errorMessage(err));
         } finally {
-            if (id === requestId.current) setLoading(false);
+            if (id === requestId.current) setReading(false);
         }
     }, []);
 
     useEffect(() => {
         if (applied !== null) {
-            void read(applied);
+            void read(applied, run);
             return;
         }
+        // "Pulisci": an answer still on its way is for filters that were taken back
         requestId.current++;
-        setResult(null);
-        setError(null);
-        setLoading(false);
+        setReading(false);
     }, [applied, run, read]);
 
-    /** Loads the applied filters again (after a save) */
+    /** Loads the applied filters again (after a save): what is on screen stays until the new answer is there */
     const reload = async () => {
-        if (applied !== null) await read(applied);
+        if (applied !== null) await read(applied, run);
     };
+
+    /** Changes the answer on screen in place (a row saved on its own), without reading again */
+    const setResult = useCallback((update: (current: Res | null) => Res | null) => {
+        setAnswer((held) => {
+            if (held === null) return held;
+            const value = update(held.value);
+            return value === null ? null : { ...held, value };
+        });
+    }, []);
 
     return {
         filters: form.filters,

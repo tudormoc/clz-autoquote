@@ -19,7 +19,7 @@ const minutesOf = (spans: readonly WorkSpan[]) => spans.reduce((sum, span) => su
 const shapeKey = (spans: readonly WorkSpan[]) => spans.map((span) => `${span.from}-${span.to}`).join(' ');
 
 /** The closed work spans of a day's lines, in time order */
-export const workSpans = (entries: readonly Entry[]): WorkSpan[] =>
+const workSpans = (entries: readonly Entry[]): WorkSpan[] =>
     entries
         .flatMap((entry) => (entry.kind === 'work' && entry.timeFrom && entry.timeTo ? [{ from: entry.timeFrom, to: entry.timeTo }] : []))
         .sort((a, b) => a.from.localeCompare(b.from));

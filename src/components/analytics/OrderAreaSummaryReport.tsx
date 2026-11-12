@@ -17,9 +17,10 @@ import { EXPORT_LIMIT, useReportTable, type PageResult } from '@/hooks/useReport
 import { defaultReportPeriod } from '@/lib/dateUtils';
 import { DOWNLOAD_GAP_MS, downloadBase64File, wait } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
-import { calcExpectedHours, hasExpectedVelocity } from '@/lib/expectedHours';
+import { calcExpectedHours } from '@/lib/expectedHours';
 import { EMPTY_VALUE, formatHours, formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
+import { sumOrderHours, type OrderHours } from '@/lib/orderAreaHours';
 import { APP_COPY } from '@/locales';
 
 interface Filters {
@@ -28,16 +29,6 @@ interface Filters {
     dateFrom: string;
     dateTo: string;
     complexOnly: boolean;
-}
-
-/** Summary: one entry per commessa with worked vs expected hours, total and per area */
-interface CommessaSummary {
-    display: string;
-    description: string;
-    client: string;
-    total_time: number;
-    total_expected: number;
-    areas: { label: string; time: number; expected: number | null }[];
 }
 
 const copy = APP_COPY.analytics.orderAreaSummary;
@@ -65,29 +56,11 @@ const expectedHours = (row: OrderAreaRow) => calcExpectedHours(row.area_name, ro
 const hoursLine = (time: number, expected: number | null) =>
     `${copy.stats.timeWorked}: ${formatHours(time)} | ${copy.stats.timeExpected}: ${expected != null ? formatHours(expected) : EMPTY_VALUE}`;
 
-function summarizeByCommessa(rows: OrderAreaRow[]): CommessaSummary[] {
-    const groups = new Map<string, CommessaSummary>();
-    for (const row of rows) {
-        if (!hasExpectedVelocity(row.area_name)) continue;
-        let group = groups.get(row.commessa_display);
-        if (!group) {
-            group = {
-                display: row.commessa_display,
-                description: row.order_description ?? '',
-                client: row.client_name ?? '',
-                total_time: 0,
-                total_expected: 0,
-                areas: [],
-            };
-            groups.set(row.commessa_display, group);
-        }
-        const expected = expectedHours(row);
-        group.total_time += row.work_time;
-        if (expected != null) group.total_expected += expected;
-        group.areas.push({ label: row.area_name, time: row.work_time, expected });
-    }
-    return Array.from(groups.values()).sort((a, b) => a.display.localeCompare(b.display));
-}
+/**
+ * The summary: one entry per order with its hours worked and expected, in total and per area. The same sum as the PDF
+ * (src/lib/orderAreaHours.ts; owner, 2026-11-12): every area counts, the expected hours of an area once. By order number.
+ */
+const summarizeByCommessa = (rows: OrderAreaRow[]): OrderHours[] => sumOrderHours(rows).sort((a, b) => a.display.localeCompare(b.display));
 
 const columns: DataTableColumn<OrderAreaRow>[] = [
     {
@@ -147,7 +120,7 @@ export function OrderAreaSummaryReport() {
     const [showPdfModal, setShowPdfModal] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
 
-    const report = useReportTable<Filters, OrderAreaRow, CommessaSummary[]>({
+    const report = useReportTable<Filters, OrderAreaRow, OrderHours[]>({
         initialFilters,
         // No order until the user picks a column: the query then uses its own default order
         defaultSort: null,
@@ -234,8 +207,8 @@ export function OrderAreaSummaryReport() {
                                 </span>
                             </div>
                         ),
-                        value: hoursLine(group.total_time, group.total_expected),
-                        subItems: group.areas.map((area) => ({ label: area.label, value: hoursLine(area.time, area.expected) })),
+                        value: hoursLine(group.worked, group.expected),
+                        subItems: group.areas.map((area) => ({ label: area.label, value: hoursLine(area.worked, area.expected) })),
                     })),
                 copyText: (groups) =>
                     `${copy.stats.summary}\n\n` +
@@ -243,8 +216,8 @@ export function OrderAreaSummaryReport() {
                         .map((group) =>
                             [
                                 `${group.display}${group.client ? ` - ${group.client}` : ''} - ${group.description}`,
-                                hoursLine(group.total_time, group.total_expected),
-                                ...group.areas.map((area) => `  - ${area.label}:\t${hoursLine(area.time, area.expected)}`),
+                                hoursLine(group.worked, group.expected),
+                                ...group.areas.map((area) => `  - ${area.label}:\t${hoursLine(area.worked, area.expected)}`),
                                 '',
                             ].join('\n')
                         )

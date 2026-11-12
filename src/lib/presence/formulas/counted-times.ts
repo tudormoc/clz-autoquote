@@ -79,7 +79,7 @@ function floorTo(value: number, step: number): number {
 }
 
 /** Apply the entry rule. Returns counted start (minutes) and the matched shift start, if any. */
-export function countEntry(
+function countEntry(
     clockInMinutes: number,
     rules: PresenceRulesConfig
 ): { countedStart: number; shiftStart: number | null } {
@@ -94,12 +94,12 @@ export function countEntry(
 }
 
 /** Apply the exit rule. Returns counted end (minutes). */
-export function countExit(clockOutMinutes: number, rules: PresenceRulesConfig): number {
+function countExit(clockOutMinutes: number, rules: PresenceRulesConfig): number {
     return floorTo(clockOutMinutes, rules.exitRoundingMinutes);
 }
 
 /** Pause rule: deducted only when the counted span covers the whole pause window. */
-export function pauseApplies(countedStartMin: number, countedEndMin: number, rules: PresenceRulesConfig): boolean {
+function pauseApplies(countedStartMin: number, countedEndMin: number, rules: PresenceRulesConfig): boolean {
     return countedStartMin <= timeToMinutes(rules.pauseWindowStart) && countedEndMin >= timeToMinutes(rules.pauseWindowEnd);
 }
 
@@ -109,7 +109,7 @@ const EMPTY_DAY: CountedDay = { shiftStart: null, countedStart: null, countedEnd
  * Compensation rule: returns the worked minutes to use, forgiving a minor
  * shortfall when the real clocked minutes reach the workday.
  */
-export function compensateMinorShortfall(
+function compensateMinorShortfall(
     workedMinutes: number,
     clock: ClockDay,
     pauseDeducted: boolean,

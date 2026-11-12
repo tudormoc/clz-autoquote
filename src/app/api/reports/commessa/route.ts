@@ -4,8 +4,11 @@ import { PDFDocument } from 'pdf-lib';
 import { APP_CONFIG } from '@/config/constants';
 import { netproAuthenticatedGet } from '@/lib/netproSession';
 import { authorize } from '@/lib/auth/access';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import { LINKS } from '@/config/navigation';
+
+/** Why a print could not be made, in words (it.ts) */
+const errors = APP_COPY.analytics.orderOperations.printErrors;
 
 /**
  * Fetch a single commessa PDF from NetPro Crystal Reports service
@@ -63,15 +66,15 @@ async function fetchNetProPDF(netproId: string): Promise<ArrayBuffer> {
     const head = new TextDecoder().decode(buffer.slice(0, 600));
     if (!head.startsWith('%PDF')) {
         if (/Account\/Login/i.test(head)) {
-            throw new Error('Il servizio report di NetPro richiede il login (risposta: redirect a QualitasWebClient/Account/Login). Nessun PDF ricevuto.');
+            throw new Error(errors.loginRedirect);
         }
-        throw new Error(`Il servizio report di NetPro non ha restituito un PDF per ${netproId}.`);
+        throw new Error(fmt(errors.noPdf, { order: netproId }));
     }
 
     if (buffer.byteLength < 500) {
         const text = new TextDecoder().decode(buffer);
         if (text.includes('Error') || text.includes('no found')) {
-            throw new Error(`Report generation failed for ${netproId}: ${text}`);
+            throw new Error(fmt(errors.failed, { order: netproId, text }));
         }
     }
 
@@ -144,7 +147,7 @@ export async function GET(request: NextRequest) {
     } catch (err) {
         console.error('Error generating commessa PDF:', err);
         return NextResponse.json(
-            { error: errorMessage(err) || 'Internal Server Error' },
+            { error: errorMessage(err) || errors.unknown },
             { status: 500 }
         );
     }

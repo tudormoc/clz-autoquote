@@ -67,7 +67,7 @@ export const SNAPSHOT_TABLES: SnapshotTable[] = [
 ];
 
 /** A value as compared and shown: dates as ISO text, binary as hex, text without trailing spaces, nothing for NULL */
-export function normalizeValue(value: unknown): string {
+function normalizeValue(value: unknown): string {
     if (value === null || value === undefined) return '';
     if (value instanceof Date) return value.toISOString();
     if (Buffer.isBuffer(value)) return value.toString('hex');

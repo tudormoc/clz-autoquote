@@ -11,7 +11,7 @@ touched); they can come into the same tables later.
 |---|---|---|
 | Riga | entry (`timesheet_entries`) | One piece of a person's day: a span of work (dalle → alle), or a number of hours of another kind. |
 | Tipo | kind (`ENTRY_KINDS`, `KIND_SPECS`) | `work`, `ferie`, `permesso`, `malattia`, `straordinarie`, `banca_ore`. A new kind is one line of config, no table change. |
-| Causale | `causale` | The type of a ferie or permesso line, picked from the quick texts of Impostazioni → Regole Presenze (`FERIE_PRESETS`, `PERMESSO_PRESETS`). It goes to the studio's file as the note of the column. |
+| Causale | `causale` | The type of a ferie or permesso line, picked from the quick texts of Impostazioni → Regole Presenze (`FERIE_PRESETS`, `PERMESSO_PRESETS`). It goes to the studio's file as the note of the column. A quick text renamed there is renamed in every line that carries it, each with its log line (`renameCausale`, owner 2026-11-12), in the same transaction as the list and the hours of Calcolo Ore Mensile (`renamePresencePresetAction`): all of it, or none. A quick text removed from the list stays on the lines that have it. |
 | Nota | `note` | A free word of the person ("visita medica"); shown in Ore Ufficio, not exported. |
 | Giorno | day summary (`DaySummary`) | What the day adds up to: the hours per column, the causali, what is missing, its state. Always computed from the lines, never stored. |
 | Registro | log (`timesheet_log`) | Every insert, change and delete, who and when, with the line before and after (JSON). Kept forever. There is no month lock: this is the record. |
@@ -36,7 +36,7 @@ server too.
 **The timesheet starts on the day set in Regole Presenze** (`FOGLIO_ORE_INIZIO`, default 1 November 2026): earlier
 days are shown but locked — nothing expected, no alerts, no editing anywhere, and the server refuses a write before
 it. These three timesheet settings live in NETPRO.VALORI_TABELLE like every other presence rule, edited in
-Impostazioni → Regole Presenze; `APP_CONFIG.PRESENCE_RULES` holds only their defaults.
+Impostazioni → Regole Presenze; `PRESENCE_RULES` (its own constant in `src/config/constants.ts`) holds only their defaults.
 
 The one number read from the presence rules is the person's **workday** (`ORE_GIORNATA`, or their exception in
 `ORE_GIORNATA_OPERATORE`), used only to say whether the day is covered:

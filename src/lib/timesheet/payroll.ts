@@ -14,7 +14,7 @@ const { STUDIO_IDS } = APP_CONFIG.PAYROLL;
 /** A column's hours, or nothing when the day has none */
 const hoursOrNull = (hours: number) => (hours > 0 ? hours : null);
 
-export function toPayrollDay(summary: DaySummary): PayrollDay {
+function toPayrollDay(summary: DaySummary): PayrollDay {
     const { hours } = summary;
     return {
         date: summary.day,

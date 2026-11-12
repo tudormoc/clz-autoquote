@@ -49,18 +49,18 @@ export function distributeDay(
     return profile === 'fixed' ? distributeFixedDay(rules) : distributeWorkedHours(worked, rules);
 }
 
-export function distributeFixedDay(rules: PresenceRulesConfig): DistributionProposal {
+function distributeFixedDay(rules: PresenceRulesConfig): DistributionProposal {
     return { category: 'fixed', values: { ore_ordinarie: rules.workdayHours } };
 }
 
-export function distributeExtraDayHours(worked: number, rules: PresenceRulesConfig): DistributionProposal | null {
+function distributeExtraDayHours(worked: number, rules: PresenceRulesConfig): DistributionProposal | null {
     if (!(worked > 0)) return null;
     const hours = Math.min(rules.extraMaxHours, roundHours(worked, rules.extraRounding));
     if (!(hours > 0)) return null;
     return { category: 'extra', values: { [rules.extraField]: hours } };
 }
 
-export function distributeWorkedHours(worked: number, rules: PresenceRulesConfig): DistributionProposal {
+function distributeWorkedHours(worked: number, rules: PresenceRulesConfig): DistributionProposal {
     const W = rules.workdayHours;
 
     if (!(worked > 0)) {

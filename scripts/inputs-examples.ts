@@ -8,8 +8,8 @@
  *   npm run inputs:examples
  */
 import { APP_CONFIG } from '@/config/constants';
-import { LEFT_CATEGORY, TRACKED_REPARTI } from '@/lib/presence/categories';
-import { NewOperatorSchema, OPERATOR_COLUMN_SIZES, OperatorFieldsSchema, operatorInputProblem } from '@/lib/presence/operatorInput';
+import { EMPLOYEE_CATEGORIES, LEFT_CATEGORY, TRACKED_REPARTI } from '@/lib/presence/categories';
+import { NewOperatorSchema, OPERATOR_COLUMN_SIZES, OperatorFieldsSchema, changedOperatorFields, operatorInputProblem } from '@/lib/presence/operatorInput';
 import { QuoteInputSchema } from '@/lib/pricing/validation';
 import { ContactInputSchema, GuideInputSchema, TaskInputSchema, inputProblem } from '@/lib/tasks/input';
 import { parseRepeatRule } from '@/lib/tasks/repeat';
@@ -69,6 +69,14 @@ const CATEGORY = TRACKED_REPARTI[0];
 const OPERATOR: Fields = { code: '9876', name: 'ROSSI MARIO', badge: '', category: CATEGORY };
 const newOperatorSays = (change: Fields) => operatorInputProblem(NewOperatorSchema, { ...OPERATOR, ...change }) ?? FINE;
 const changeSays = (fields: Fields) => operatorInputProblem(OperatorFieldsSchema, fields) ?? FINE;
+// What "Modifica operatore" sends: a person's row as the list read it, and the window opened on it with something changed
+const PLAIN = EMPLOYEE_CATEGORIES.find((category) => !category.nameMark)!.key;
+const MARKED_CATEGORY = EMPLOYEE_CATEGORIES.find((category) => category.nameMark)!;
+const MARKED = MARKED_CATEGORY.key;
+const NO_FREE = { FCODE01: null, FCODE02: null, FCODE03: null, FCODE04: null, FCODE05: null };
+const ROW = { NOME: 'ROSSI MARIO', BADGE: '123', ENTITA: PLAIN, MATRICOLA: '9876', ...NO_FREE };
+const windowOn = (row: Record<string, string | null>, change: Record<string, string> = {}) =>
+    changedOperatorFields(row, { NOME: row.NOME ?? '', BADGE: row.BADGE ?? '', ENTITA: row.ENTITA?.trim() || PLAIN, MATRICOLA: row.MATRICOLA ?? '', FCODE01: '', FCODE02: '', FCODE03: '', FCODE04: '', FCODE05: '', ...change });
 
 // ── Preventivo ───────────────────────────────────────────────────────────────────────────────────────────────────
 const QUOTE = {
@@ -161,6 +169,19 @@ const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'new operator: no category, an unknown one, the one of the people who left', expected: [operators.categoryRequired, operators.categoryRequired, operators.categoryRequired], actual: () => ['', 'altro', LEFT_CATEGORY.reparto].map((category) => newOperatorSays({ category })) },
     { name: 'new operator: a badge one character past its column', expected: operatorField(operators.badge), actual: () => newOperatorSays({ badge: chars(OPERATOR_COLUMN_SIZES.BADGE + 1) }) },
     { name: 'new operator: code and name are kept trimmed, an empty badge as none', expected: { code: '9876', name: 'ROSSI MARIO', badge: null, category: CATEGORY }, actual: () => kept(NewOperatorSchema, { code: ' 9876 ', name: ' ROSSI MARIO ', badge: '  ', category: CATEGORY }) },
+
+    // Operatori: what the Modifica window sends (only what differs from the person's row)
+    { name: 'modifica: nothing touched, nothing sent', expected: {}, actual: () => windowOn(ROW) },
+    { name: 'modifica: a new badge, only the badge', expected: { BADGE: '456' }, actual: () => windowOn(ROW, { BADGE: '456' }) },
+    { name: 'modifica: the badge emptied, sent as empty', expected: { BADGE: '' }, actual: () => windowOn(ROW, { BADGE: '' }) },
+    { name: 'modifica: spaces around a value are no change', expected: {}, actual: () => windowOn({ ...ROW, BADGE: ' 123 ' }, { MATRICOLA: '9876 ' }) },
+    { name: 'modifica: a free field filled, only that one', expected: { FCODE02: 'ADECCO' }, actual: () => windowOn(ROW, { FCODE02: 'ADECCO' }) },
+    { name: 'modifica: another name goes with its category', expected: { NOME: 'ROSSI MARIA', ENTITA: PLAIN }, actual: () => windowOn(ROW, { NOME: 'ROSSI MARIA' }) },
+    { name: 'modifica: another category goes with the name (the server adds the mark)', expected: { NOME: 'ROSSI MARIO', ENTITA: MARKED }, actual: () => windowOn(ROW, { ENTITA: MARKED }) },
+    { name: 'modifica: a name that lacks the mark of its category is sent, as the window announces', expected: { NOME: 'ROSSI MARIO', ENTITA: MARKED }, actual: () => windowOn({ ...ROW, ENTITA: MARKED }) },
+    { name: 'modifica: a name that has the mark of its category, untouched: nothing', expected: {}, actual: () => windowOn({ ...ROW, NOME: `ROSSI MARIO${MARKED_CATEGORY.nameMark}`, ENTITA: MARKED }) },
+    { name: 'modifica: a person without a category gets the one the window shows', expected: { NOME: 'ROSSI MARIO', ENTITA: PLAIN }, actual: () => windowOn({ ...ROW, ENTITA: null }) },
+    { name: 'modifica: two things changed, both sent, nothing else', expected: { BADGE: '456', FCODE01: 'X' }, actual: () => windowOn(ROW, { BADGE: '456', FCODE01: 'X' }) },
 
     // Operatori: the fields of an operator
     { name: 'operator: one field alone', expected: { NOME: 'ROSSI MARIO' }, actual: () => kept(OperatorFieldsSchema, { NOME: ' ROSSI MARIO ' }) },

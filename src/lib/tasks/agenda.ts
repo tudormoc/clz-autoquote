@@ -3,7 +3,7 @@
  * days), what is further away, what has no date. Pure, shared by the server and the screens.
  */
 
-import { addDays } from '@/lib/tasks/dates';
+import { addDays } from '@/lib/dateUtils';
 
 export const AGENDA_GROUPS = ['overdue', 'today', 'soon', 'later', 'nodate'] as const;
 export type AgendaGroup = (typeof AGENDA_GROUPS)[number];

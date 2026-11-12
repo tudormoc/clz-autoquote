@@ -24,14 +24,13 @@ export function isValidLabourRate(value: number): boolean {
     return Number.isFinite(value) && value > 0 && value <= APP_CONFIG.ANALYTICS.MAX_LABOUR_RATE;
 }
 
-/** The saved rates; a rate never saved (or unreadable) is its default */
+/**
+ * The saved rates; a rate never saved (or saved as something that is no rate) is its default. A read that fails
+ * throws to the report's own catch: until 2026-11-12 it answered the defaults, and a report then showed labour costs
+ * and margins at a rate that was not the one set in Costo del Lavoro, as if right.
+ */
 export async function readLabourRates(): Promise<LabourRates> {
-    let stored = new Map<string, string>();
-    try {
-        stored = await readSettingValues('ANALISI');
-    } catch (error) {
-        console.error('Labour rates not readable, using the defaults:', error);
-    }
+    const stored = await readSettingValues('ANALISI');
     return Object.fromEntries(
         KEYS.map((key) => {
             const value = Number(stored.get(LABOUR_RATES[key].name));

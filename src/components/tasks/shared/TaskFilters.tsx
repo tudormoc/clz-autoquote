@@ -18,8 +18,6 @@ export interface TaskFilterValues {
     person: string;
 }
 
-export const EMPTY_FILTERS: TaskFilterValues = { search: '', area: '', person: '' };
-
 interface TaskFiltersProps {
     values: TaskFilterValues;
     onChange: (values: TaskFilterValues) => void;

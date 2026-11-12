@@ -54,7 +54,7 @@ export class NotFound extends Error {
 }
 
 /** The error a write failed with is our "changed by someone else" */
-export const isStale = (error: unknown) => (error as { number?: number })?.number === STALE_ERROR;
+const isStale = (error: unknown) => (error as { number?: number })?.number === STALE_ERROR;
 
 // ---- How the server actions of these modules answer ----
 

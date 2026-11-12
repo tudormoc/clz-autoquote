@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
 import { LINKS } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
-import { isIsoDate } from '@/lib/tasks/dates';
+import { isIsoDate } from '@/lib/dateUtils';
 import { TimeSchema } from '@/lib/tasks/input';
 import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { refreshSeries } from '@/lib/tasks/db/series';

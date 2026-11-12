@@ -5,7 +5,7 @@
  */
 
 import { APP_CONFIG } from '@/config/constants';
-import { addDays, weekdayOf } from '@/lib/tasks/dates';
+import { addDays, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
 
 const holidays = APP_COPY.tasks.holidays;

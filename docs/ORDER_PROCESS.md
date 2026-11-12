@@ -2,6 +2,12 @@
 
 Two official apps + this webapp (autoquote). Test case used throughout: article `9999NEWDB`, commessa `260999910`, qty 1000.
 
+The rules of this page that need no database (the comparison with the DiBa, what a Riallinea changes, leaves or
+refuses, the rows of a new phase, the production flow: the pure files of `src/lib/orders`) are held by examples on
+made-up orders, `npm run orders:examples` (`scripts/orders-examples.ts`, part of `npm run check`): change a rule and
+the example that says otherwise fails. What a Riallinea writes in the two databases (`sync.ts`) has no examples: that
+is tried on a test order.
+
 ## Flow
 
 1. **Business – Impegno cliente** (Gestione Ordini, doc type "Impegno cliente", 2026/9999, client 9010038 LONGO AG SPA)
@@ -23,7 +29,7 @@ Two official apps + this webapp (autoquote). Test case used throughout: article 
 |---|---|
 | OdP (anno/numero 674) | Ordini (`H26 0000006740010`) |
 | DiBa lavorazione (fase, centro lav.) | Tasks (macchina = centro) + Operazioni (WRK) |
-| DiBa material | (materials stay in Business/DiBa) |
+| DiBa material | Materials of the order (`MATERIALI_ORDINI`, one row per material row of the Business order) |
 
 ## Notes
 - DiBa drives everything; change phases there, not in NetPro.
@@ -34,7 +40,7 @@ Two official apps + this webapp (autoquote). Test case used throughout: article 
 ## Sync from DiBa ("Riallinea Ordine da DiBa") — verified 2026-10-06 on test order 674
 
 Code: `syncOrderFromDiba` in `src/lib/orders/sync.ts` (steps: find the order and its impegno, quantities, article data, phases, phase chain, materials), row cloning in `src/lib/orders/syncRows.ts`; called by `syncOrderFromDibaAction` (`src/app/analytics/queries/order-operations-queries.ts`).
-Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo Distinta / Solo Ordine. The button writes to BOTH live DBs, one transaction each (`withTransactions`, `src/lib/mssql.ts`): if any statement fails, nothing is changed (Business commits first, then NetPro).
+Edit the DiBa in Business only. Tab "Confronto Allineato" puts each phase of the DiBa, the Business order and the NetPro order side by side and says "Allineato" or what differs. The button writes to BOTH live DBs, one transaction each (`withTransactions`, `src/lib/mssql.ts`): if any statement fails, nothing is changed (Business commits first, then NetPro).
 
 **Per phase (fase)** — new rows are cloned from an existing row of the same order, only key/value columns overridden:
 - NetPro: `OPERAZIONI` (OPERAZIONE = fase 2-digit, CENTRO_ASSEGNATO/REALE, DESCRIZIONE, **note → DESCRIZIONE01**, QTA_*, TIPO WRK, STATO REL), `TASKS` (MACCHINA / MACCHINA_ASSEGNATA = centro), `JOBSET` (ORDINE, OPERAZIONE, ID_OPER, TASK).
@@ -43,7 +49,7 @@ Edit the DiBa in Business only. Tab "Confronto Allineato" shows Allineato / Solo
 - Delete: removes JOBSET, TASKS, OPERAZIONI, attivit, assris of that fase.
 - Update: centro/descr/note/qty; real centre/machine only overwritten if not manually reassigned.
 
-**Materials** (DiBa `movdis`): Business `movord` tipork Y + `keyord` (ko_conto = order client); NetPro `MATERIALI_ORDINI` (OPERAZIONE '0', TIPO_QTA 'TOT', QUANTITA = orderQty × quant / perpz, QTA_IMPIEGO = quant / perpz). New material riga = max + 5. Price is NOT calculated (stays 0) — accepted.
+**Materials** (DiBa `movdis`): Business `movord` tipork Y + `keyord` (ko_conto = order client); NetPro `MATERIALI_ORDINI` (OPERAZIONE '0', TIPO_QTA 'TOT', QUANTITA = `dibaMaterialQty` = ceil(orderQty / perpz) × quant, QTA_IMPIEGO = QUANTITA / orderQty). Riallinea first sets the DiBa's per pieces (`md_perpz`) to the ordered quantity, so the quantity it writes is the DiBa's own `quant`. New material riga = max + 5. Price is NOT calculated (stays 0) — accepted.
 `MP_FITTIZIA`, the placeholder that gives NetPro one material on an order without any (286 orders of 2026): Riallinea never adds it;
 once the DiBa has a real material it is removed from the DiBa, the Business order (Y row + keyord) and NetPro, and the comparison
 shows it "da rimuovere" (owner's rule 2026-11-04). On an order without real materials it is left alone.
@@ -392,7 +398,7 @@ clean copy on an order with work has **not yet run in a real Riallinea**.
   added what is new, so when the only material of an order was replaced (or every phase), nothing was left to copy and
   it stopped with an error. In Business a DiBa material line cannot change its code (owner): a material is replaced by
   deleting its line and adding a new one, so with one material that is the normal way. Which rows go is decided on the
-  rows as they were read, before anything is added (`materialRowsToRemove`, `phasesToRemove`). No unique index stands in
+  rows as they were read, before anything is added (`materialRowsLeaving`, `phasesLeaving` in `syncBlocks.ts`). No unique index stands in
   the way of the old and the new row sitting side by side inside the transaction (every one is the row's own key).
   The placeholder row counts as a row to copy: of the open orders 127 hold only MP_FITTIZIA, 17 one material plus the
   placeholder, and only the two test editions one material without it — but Riallinea removes the placeholder once the
@@ -485,16 +491,16 @@ written to the order the row is copied from: it is only read.
 
 ## Production flow on the Avanzamento Lavori page (`/work-progress`)
 
-Operations are grouped by their area (NetPro `CENTRI.REPARTO` → `AREE.DESCRIZIONE`, read by the query) into the phases
+Operations are grouped by their area (NetPro: the task's machine is a `CENTRI.CENTRO`, whose `AREA` names the row of `AREE`; read by the query) into the phases
 of `APP_CONFIG.ANALYTICS.PRODUCTION_FLOW` (`src/config/constants.ts`). The array order is the display order; an area in
 no array is shown under "Altre operazioni".
 
 | Phase | Areas |
 |---|---|
-| Flow A — block (in parallel with B) | Taglio Carta, Piega, Raccolta, Cucitura |
+| Flow A — block (in parallel with B) | Taglio Carta, Piega, Imbavatura, Raccolta, Accavallatura, Cucitura |
 | Flow B — cover | Taglio Cartone, Taglio Plancia, Copertine |
-| Assembly (needs A and B) | Messa in colla, Incassatura, Imbavatura |
-| Finishing | Accavallatura, Stampa a caldo, Finissaggio/lavori manuali, Lavorazione esterna, Generico |
+| Assembly (needs A and B) | Messa in colla, Incassatura |
+| Finishing | Accavallatura/Arrotondatura, Stampa a caldo, Finissaggio/lavori manuali, Lavorazione esterna, Generico |
 
 Several editions of one order: operations with the same description and machine are merged and show the most
 urgent state — EXE (in work) if any edition is in work, else SUS (suspended), COM (completed) only when all are completed.

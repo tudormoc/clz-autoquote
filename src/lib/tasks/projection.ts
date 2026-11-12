@@ -3,7 +3,7 @@
  * planned entries of the calendar. Pure. "after" mode assumes each one is done on its due date.
  */
 
-import { addDays, maxDate } from '@/lib/tasks/dates';
+import { addDays, maxDate } from '@/lib/dateUtils';
 import { addInterval, nextPatternDate, patternDates, withinEnd, type RepeatRule } from '@/lib/tasks/repeat';
 
 /** The next `count` dates of the rule from `from` on (`made` = how many the task already has, for "per N volte") */

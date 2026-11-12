@@ -52,7 +52,7 @@ export const LEFT_CATEGORY = PRESENCE_RULES.LEFT_CATEGORY;
 export const isLeftCategory = (reparto: string | null | undefined): boolean => (reparto ?? '').trim() === LEFT_CATEGORY.reparto;
 
 /** ENTITA values of the people who enter their own hours in the timesheet */
-export const TIMESHEET_REPARTI: readonly string[] = EMPLOYEE_CATEGORIES.filter((c) => c.timesheet).map((c) => c.key);
+const TIMESHEET_REPARTI: readonly string[] = EMPLOYEE_CATEGORIES.filter((c) => c.timesheet).map((c) => c.key);
 
 /** ENTITA values that belong to the presence system (used to list operators and to prefill). */
 export const TRACKED_REPARTI: readonly string[] = EMPLOYEE_CATEGORIES.map((c) => c.key);
@@ -61,7 +61,7 @@ export const TRACKED_REPARTI: readonly string[] = EMPLOYEE_CATEGORIES.map((c) =>
 export const PREFILL_CATEGORIES: readonly EmployeeCategory[] = EMPLOYEE_CATEGORIES.filter((c) => c.profile !== 'none');
 
 /** ENTITA values the prefill applies to. */
-export const PREFILL_REPARTI: readonly string[] = PREFILL_CATEGORIES.map((c) => c.key);
+const PREFILL_REPARTI: readonly string[] = PREFILL_CATEGORIES.map((c) => c.key);
 
 /** Rule profile for a raw ENTITA value ('none' when unknown). */
 export function profileFromReparto(reparto: string | null | undefined): CategoryProfile {

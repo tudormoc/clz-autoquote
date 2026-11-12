@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/Field';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Input } from '@/components/ui/Input';
 import type { ClosedDay } from '@/lib/tasks/closedDays';
-import { isIsoDate } from '@/lib/tasks/dates';
+import { isIsoDate } from '@/lib/dateUtils';
 import { repeatDraftFor, type RepeatDraft, type TaskDraft } from '@/lib/tasks/taskDraft';
 import { APP_COPY } from '@/locales';
 

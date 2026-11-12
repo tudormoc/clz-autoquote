@@ -14,7 +14,7 @@ import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { choiceParam, dayParam, flagParam, numberParam } from '@/lib/address';
 import { getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
-import { addDays, maxDate, weekStart } from '@/lib/tasks/dates';
+import { addDays, maxDate, weekStart } from '@/lib/dateUtils';
 import { compareInDay, placeAmong, placeAt, sameOrder } from '@/lib/tasks/dayOrder';
 import { formatIsoDate, formatShortDay } from '@/lib/tasks/describe';
 import { isOpenStatus, type AgendaItem, type PlannedEntry, type Priority } from '@/lib/tasks/types';

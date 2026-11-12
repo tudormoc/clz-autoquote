@@ -50,16 +50,6 @@ export const CASHFLOW_CONFIG = {
         return this.BANKS.filter(b => b.enabled).map(b => b.accountCode);
     },
 
-    /** Helper function to get enabled Attivo (Asset) bank account codes */
-    getAttivoBankCodes(): number[] {
-        return this.BANKS.filter(b => b.enabled && b.category === 'attivo').map(b => b.accountCode);
-    },
-
-    /** Helper function to get enabled Passivo (Liability) bank account codes */
-    getPassivoBankCodes(): number[] {
-        return this.BANKS.filter(b => b.enabled && b.category === 'passivo').map(b => b.accountCode);
-    },
-
     /** Check if an account code belongs to Attivo */
     isAttivo(accountCode: number): boolean {
         return this.BANKS.some(b => b.accountCode === accountCode && b.category === 'attivo');

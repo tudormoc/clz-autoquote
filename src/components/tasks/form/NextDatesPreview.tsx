@@ -5,7 +5,7 @@ import { CalendarDays } from 'lucide-react';
 import { APP_CONFIG } from '@/config/constants';
 import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';
 import { formatShortDay } from '@/lib/tasks/describe';
-import { isIsoDate } from '@/lib/tasks/dates';
+import { isIsoDate } from '@/lib/dateUtils';
 import { upcomingDates } from '@/lib/tasks/projection';
 import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { toRepeatRule, type RepeatDraft } from '@/lib/tasks/taskDraft';

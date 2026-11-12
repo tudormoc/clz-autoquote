@@ -6,6 +6,7 @@
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL } from '@/lib/mssql';
 import { loadOrderArticle } from '@/lib/orders/articleData';
+import { readDibaMaterials, readDibaPhases } from '@/lib/orders/dibaData';
 import { compareOrder, countDifferences } from '@/lib/orders/differences';
 import { loadDocumentRows, type DocumentRows } from '@/lib/orders/documentRows';
 import { loadOrderQuantities } from '@/lib/orders/quantityData';
@@ -14,8 +15,6 @@ import { NO_KEEPS } from '@/lib/orders/syncBlocks';
 import { errorMessage } from '@/lib/utils';
 import type {
     BusinessOrderOperationRow,
-    DibaMaterialRow,
-    DibaOperationRow,
     OrderMaterialSummaryRow,
     OrderOperationsManagementData,
     OrderProductionOperationRow,
@@ -35,7 +34,7 @@ export interface BusinessOrderRef {
 }
 
 /** Comparison without data (order not found, or the queries failed) */
-export const emptyManagement = (articleFather = ''): OrderOperationsManagementData => ({
+const emptyManagement = (articleFather = ''): OrderOperationsManagementData => ({
     article_father: articleFather,
     ordine_netpro: '',
     diba_operations: [],
@@ -88,51 +87,6 @@ async function findNetproArticle(rootCommessaKey: string): Promise<string | unde
                 WHERE TIPO = 'MAKE' AND LEFT(COMMESSA, 7) = @rootCommessaKey AND PART_NUMBER IS NOT NULL
             `, { rootCommessaKey }, 'NETPRO');
     return ordRes.recordset[0]?.PART_NUMBER || undefined;
-}
-
-/** DiBa phases of the article (cicli) */
-async function loadDibaOperations(article: string): Promise<DibaOperationRow[]> {
-    if (!article) return [];
-    const dibaRes = await queryMSSQL<DibaOperationRow>(`
-                SELECT
-                    dd.dd_riga as riga,
-                    dd.dd_fase as fase,
-                    dd.dd_codlavo as codlavo,
-                    ISNULL(tl.tb_deslavo, '') as descr_lavor,
-                    CASE WHEN dd.dd_terzista = 'S' THEN 'Terzista' ELSE 'Lavorazione interna' END as terzista,
-                    dd.dd_codcent as codcent,
-                    ISNULL(tc.tb_descent, '') as descr_centro,
-                    ISNULL(dd.dd_note, '') as note,
-                    dd.dd_tempese as tesec,
-                    dd.dd_perqta as perqta,
-                    dd.dd_aggcp2 as aggriga
-                FROM cicli dd WITH (NOLOCK)
-                LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = dd.codditt AND tl.tb_codlavo = dd.dd_codlavo
-                LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = dd.codditt AND tc.tb_codcent = dd.dd_codcent
-                WHERE dd.codditt = '${BUSINESS_COMPANY}'
-                  AND dd.dd_coddb = @cleanPartNumber
-                ORDER BY dd.dd_riga ASC
-            `, { cleanPartNumber: article }, 'BUSINESS');
-    return dibaRes.recordset;
-}
-
-/** DiBa materials of the article (movdis) */
-async function loadDibaMaterials(article: string): Promise<DibaMaterialRow[]> {
-    if (!article) return [];
-    const dibaMatRes = await queryMSSQL<DibaMaterialRow>(`
-                SELECT
-                    md.md_riga as riga,
-                    RTRIM(md.md_codfigli) as codfigli,
-                    ISNULL(RTRIM(ar.ar_descr), RTRIM(md.md_codfigli)) as description,
-                    md.md_quant as quant,
-                    ISNULL(md.md_perpz, 1000) as perpz,
-                    RTRIM(md.md_unmis) as unmis
-                FROM movdis md WITH (NOLOCK)
-                LEFT JOIN artico ar WITH (NOLOCK) ON ar.codditt = md.codditt AND ar.ar_codart = md.md_codfigli
-                WHERE md.codditt = '${BUSINESS_COMPANY}' AND md.md_coddb = @cleanPartNumber
-                ORDER BY md.md_riga ASC
-            `, { cleanPartNumber: article }, 'BUSINESS');
-    return dibaMatRes.recordset;
 }
 
 /** Phases of the NetPro order: by NetPro id when Business knows it, else by edition, else by commessa root */
@@ -246,8 +200,8 @@ export async function loadOrderManagement(
 
     // The independent reads run together
     const [dibaOperations, dibaMaterials, orderOperations, businessOperations, businessMaterials] = await Promise.all([
-        loadDibaOperations(article),
-        loadDibaMaterials(article),
+        readDibaPhases(article),
+        readDibaMaterials(article),
         loadNetproOperations(rootCommessaKey, netpid || order?.netpid || '', commessaFull),
         loadBusinessOperations(order),
         loadBusinessMaterials(order),

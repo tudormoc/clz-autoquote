@@ -18,7 +18,7 @@ import { getTodayDate } from '@/lib/dateUtils';
 import { formatDate } from '@/lib/format';
 import type { PresenceRulesConfig } from '@/lib/presence';
 import { closedDayChecker } from '@/lib/tasks/closedDays';
-import { addDays, isIsoDate } from '@/lib/tasks/dates';
+import { addDays, isIsoDate } from '@/lib/dateUtils';
 import { listClosedDays } from '@/lib/tasks/db/settings';
 import { summarizeDay } from '@/lib/timesheet/day';
 import { deleteDayEntries, deleteEntry, getEntry, insertDayEntries, insertEntry, listEntries, replaceDayEntries, updateEntry } from '@/lib/timesheet/db/entries';

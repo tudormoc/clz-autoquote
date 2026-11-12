@@ -4,10 +4,9 @@
  * read by src/app/layout.tsx and changed by the switch in the sidebar (ThemeProvider).
  */
 
-export const THEMES = ['light', 'dark'] as const;
-export type Theme = (typeof THEMES)[number];
+export type Theme = 'light' | 'dark';
 
-export const DEFAULT_THEME: Theme = 'light';
+const DEFAULT_THEME: Theme = 'light';
 
 /** Cookie with the chosen theme; readable by scripts on purpose (the switch writes it) */
 export const THEME_COOKIE = 'clz_theme';

@@ -19,6 +19,7 @@ import {
     type PagePermissions,
     type UserAccess,
 } from '@/lib/auth/permissions';
+import { createGroupTicks } from '@/lib/auth/groupTicks';
 import { lightCounts, lightState, sameGrants, withFunction, withLight, withPreset } from '@/lib/auth/lights';
 import { computerOf, createLockout, type LockoutRules } from '@/lib/auth/lockout';
 import { formatWait } from '@/lib/format';
@@ -137,6 +138,16 @@ const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'wrong PINs: the computer is the first address Next gives, written the short way; "unknown" without one', expected: ['192.168.1.57', '192.168.1.57', '192.168.1.57', 'unknown', 'unknown'], actual: () => ['192.168.1.57', ' 192.168.1.57 , 10.0.0.1', '::ffff:192.168.1.57', '', null].map((address) => computerOf(address, PC_APP)) },
     { name: 'wrong PINs: a browser on the app\'s own machine ("::1") shows that machine\'s address on the network', expected: [PC_APP, PC_APP, PC_APP, 'localhost'], actual: () => [computerOf('::1', PC_APP), computerOf('127.0.0.1', PC_APP), computerOf('::ffff:127.0.0.1', PC_APP), computerOf('::1', null)] },
     { name: 'wrong PINs: the wait as text, never shorter than the wait', expected: ['1 min', '5 min', '1 h', '2 h', '24 h'], actual: () => [0.2, 5, 60, 61, 1440].map(formatWait) },
+
+    // Utenti: group ticks made quickly one after the other (each tick saves the user's whole list). User 1 is in group 10
+    { name: 'group ticks: a second quick tick keeps the first (the screen still shows the old list)', expected: [[10, 20], [10, 20, 30]], actual: () => { const ticks = createGroupTicks(); return [ticks.tick(1, [10], 20, true), ticks.tick(1, [10], 30, true)]; } },
+    { name: 'group ticks: a quick tick and a quick untick both count', expected: [[10, 20, 30], [20, 30]], actual: () => { const ticks = createGroupTicks(); return [ticks.tick(1, [10, 20], 30, true), ticks.tick(1, [10, 20], 10, false)]; } },
+    { name: 'group ticks: the same group ticked twice is in the list once', expected: [10, 20], actual: () => { const ticks = createGroupTicks(); ticks.tick(1, [10], 20, true); return ticks.tick(1, [10], 20, true); } },
+    { name: 'group ticks: every user has their own list', expected: [[10, 20], [50, 30]], actual: () => { const ticks = createGroupTicks(); return [ticks.tick(1, [10], 20, true), ticks.tick(2, [50], 30, true)]; } },
+    { name: 'group ticks: the first save is back, the second still on its way: the third tick keeps both', expected: [10, 20, 30, 40], actual: () => { const ticks = createGroupTicks(); ticks.tick(1, [10], 20, true); ticks.tick(1, [10], 30, true); ticks.settled(1); ticks.readBack(); return ticks.tick(1, [10, 20], 40, true); } },
+    { name: 'group ticks: both saves are back but the screen is not redrawn yet: still from the ticks', expected: [10, 20, 30, 40], actual: () => { const ticks = createGroupTicks(); ticks.tick(1, [10], 20, true); ticks.tick(1, [10], 30, true); ticks.settled(1); ticks.settled(1); return ticks.tick(1, [10], 40, true); } },
+    { name: 'group ticks: saves back and list read again: the next tick starts from what is stored', expected: [10, 20, 30, 40], actual: () => { const ticks = createGroupTicks(); ticks.tick(1, [10], 20, true); ticks.tick(1, [10], 30, true); ticks.settled(1); ticks.settled(1); ticks.readBack(); return ticks.tick(1, [10, 20, 30], 40, true); } },
+    { name: 'group ticks: a refused save is not carried into the next tick', expected: [10, 40], actual: () => { const ticks = createGroupTicks(); ticks.tick(1, [10], 20, true); ticks.settled(1); ticks.readBack(); return ticks.tick(1, [10], 40, true); } },
 ];
 
 let failed = 0;

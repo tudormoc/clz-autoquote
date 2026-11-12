@@ -8,7 +8,7 @@
  * "after" mode keeps exactly one open occurrence: the next one is made when the last one is closed.
  */
 
-import { addDays, maxDate } from '@/lib/tasks/dates';
+import { addDays, maxDate } from '@/lib/dateUtils';
 import { addInterval, nextPatternDate, patternDates, withinEnd, type RepeatRule } from '@/lib/tasks/repeat';
 import { isOpenStatus, type OccurrenceStatus } from '@/lib/tasks/types';
 

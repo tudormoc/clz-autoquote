@@ -1,4 +1,5 @@
 import { PRESENCE_RULES } from '@/config/constants';
+import { APP_COPY } from '@/locales';
 import type { PresenceSettingRow } from '@/types';
 import type { HourField, PresenceRulesConfig, RoundingMode } from './types';
 
@@ -41,40 +42,43 @@ export interface PresenceSettingDefinition {
     unit?: string;
 }
 
+/** What each parameter is, in words (it.ts) */
+const describe = APP_COPY.analytics.presenceSettings.parameters;
+
 /** Every DB-tunable parameter, in display order. */
 export const PRESENCE_SETTINGS: readonly PresenceSettingDefinition[] = [
-    { key: 'TURNI_INIZIO', kind: 'list', defaultValue: PRESENCE_RULES.SHIFT_STARTS.join(','), description: 'Orari di inizio turno possibili (HH:MM, separati da virgola)' },
-    { key: 'TURNO_FINESTRA_MINUTI', kind: 'number', defaultValue: String(PRESENCE_RULES.SHIFT_SNAP_WINDOW_MINUTES), description: 'Ingresso entro N minuti prima di un inizio turno → conteggio da inizio turno', unit: 'min' },
-    { key: 'INGRESSO_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.ENTRY_ROUNDING_MINUTES), description: 'Ingresso arrotondato per eccesso a N minuti (penalità)', unit: 'min' },
-    { key: 'USCITA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.EXIT_ROUNDING_MINUTES), description: 'Uscita arrotondata per difetto a N minuti (penalità)', unit: 'min' },
-    { key: 'TOLLERANZA_INGRESSO', kind: 'number', defaultValue: String(PRESENCE_RULES.ENTRY_GRACE_MINUTES), description: 'Ingresso fino a N minuti dopo inizio turno conteggiato da inizio turno (0 = disattivo)', unit: 'min' },
-    { key: 'TOLLERANZA_COMPENSAZIONE', kind: 'number', defaultValue: String(PRESENCE_RULES.COMPENSATION_TOLERANCE_MINUTES), description: 'Mancanza massima compensata se i minuti reali timbrati raggiungono la giornata (0 = disattivo)', unit: 'min' },
-    { key: 'TOLLERANZA_MINUTI_REALI', kind: 'number', defaultValue: String(PRESENCE_RULES.REAL_MINUTES_TOLERANCE), description: 'I minuti reali possono mancare la giornata di N minuti e compensare comunque', unit: 'min' },
-    { key: 'PAUSA_MINUTI', kind: 'number', defaultValue: String(PRESENCE_RULES.PAUSE_MINUTES), description: 'Pausa fissa detratta dal totale giornaliero (solo se presente in tutta la finestra pausa)', unit: 'min' },
-    { key: 'PAUSA_FINESTRA_INIZIO', kind: 'time', defaultValue: PRESENCE_RULES.PAUSE_WINDOW_START, description: 'Inizio finestra pausa: chi entra dopo non ha la pausa detratta' },
-    { key: 'PAUSA_FINESTRA_FINE', kind: 'time', defaultValue: PRESENCE_RULES.PAUSE_WINDOW_END, description: 'Fine finestra pausa: chi esce prima non ha la pausa detratta' },
-    { key: 'ORE_GIORNATA', kind: 'number', defaultValue: String(PRESENCE_RULES.WORKDAY_HOURS), description: 'Ore che una giornata lavorativa deve coprire (regola 8h)', unit: 'h' },
-    { key: 'ORE_GIORNATA_OPERATORE', kind: 'operator-map', defaultValue: '', description: 'Eccezioni per operatore: codice=ore, separate da virgola (es. 12345=6). Gli altri usano ORE_GIORNATA' },
-    { key: 'GIORNI_LAVORATIVI', kind: 'weekdays', defaultValue: PRESENCE_RULES.WORKING_DAYS.join(','), description: 'Giorni lavorativi con regole complete (1=Lun … 7=Dom, separati da virgola)' },
-    { key: 'GIORNI_EXTRA', kind: 'weekdays', defaultValue: PRESENCE_RULES.EXTRA_DAYS.join(','), description: 'Giorni extra, es. sabato: solo se timbrati, ore in straordinario (1=Lun … 7=Dom)' },
-    { key: 'EXTRA_ORE_MAX', kind: 'number', defaultValue: String(PRESENCE_RULES.EXTRA_MAX_HOURS), description: 'Ore massime conteggiate in un giorno extra', unit: 'h' },
-    { key: 'EXTRA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.EXTRA_FIELD, description: 'Campo che riceve le ore del giorno extra' },
-    { key: 'EXTRA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.EXTRA_ROUNDING_STEP), description: 'Passo di arrotondamento ore giorno extra (0 = nessuno)', unit: 'h' },
-    { key: 'EXTRA_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.EXTRA_ROUNDING_MODE, description: 'Modo di arrotondamento giorno extra: floor | nearest | ceil' },
-    { key: 'CAMPI_COPERTURA', kind: 'list', defaultValue: PRESENCE_RULES.COVERED_FIELDS.join(','), description: 'Campi la cui somma deve coprire la giornata (separati da virgola)' },
-    { key: 'ASSENZA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.ABSENCE_FIELD, description: 'Campo riempito con le ore giornata in caso di assenza totale' },
-    { key: 'PARZIALE_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.PARTIAL_FILL_FIELD, description: 'Campo che riceve le ore mancanti in caso di presenza parziale' },
-    { key: 'ORDINARIE_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.ORDINARIE_ROUNDING_STEP), description: 'Passo di arrotondamento delle ore ordinarie (0 = nessuno)', unit: 'h' },
-    { key: 'ORDINARIE_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.ORDINARIE_ROUNDING_MODE, description: 'Modo di arrotondamento ordinarie: floor | nearest | ceil' },
-    { key: 'ECCEDENZA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.OVERFLOW_FIELD, description: 'Campo che riceve le ore eccedenti la giornata' },
-    { key: 'ECCEDENZA_SOGLIA', kind: 'number', defaultValue: String(PRESENCE_RULES.OVERFLOW_MIN_HOURS), description: 'Eccedenza minima per essere registrata', unit: 'h' },
-    { key: 'ECCEDENZA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.OVERFLOW_ROUNDING_STEP), description: 'Passo di arrotondamento eccedenza (0 = nessuno)', unit: 'h' },
-    { key: 'ECCEDENZA_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.OVERFLOW_ROUNDING_MODE, description: 'Modo di arrotondamento eccedenza: floor | nearest | ceil' },
-    { key: 'FERIE_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.FERIE_PRESETS.join(','), description: 'Opzioni rapide testo per Ore Ferie (separate da virgola)' },
-    { key: 'PERMESSO_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.PERMESSO_PRESETS.join(','), description: 'Opzioni rapide testo per Ore Permesso (separate da virgola)' },
-    { key: 'FOGLIO_ORE_INIZIO', kind: 'date', defaultValue: PRESENCE_RULES.TIMESHEET_START, description: 'Primo giorno del foglio ore (Le mie ore / Ore Ufficio): i giorni prima si vedono ma sono bloccati' },
-    { key: 'FOGLIO_ORE_PRIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_FIRST_TIME, description: 'Prima ora proposta in Dalle / Alle del foglio ore (apertura azienda)' },
-    { key: 'FOGLIO_ORE_ULTIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_LAST_TIME, description: 'Ultima ora proposta in Dalle / Alle del foglio ore' },
+    { key: 'TURNI_INIZIO', kind: 'list', defaultValue: PRESENCE_RULES.SHIFT_STARTS.join(','), description: describe.TURNI_INIZIO },
+    { key: 'TURNO_FINESTRA_MINUTI', kind: 'number', defaultValue: String(PRESENCE_RULES.SHIFT_SNAP_WINDOW_MINUTES), description: describe.TURNO_FINESTRA_MINUTI, unit: 'min' },
+    { key: 'INGRESSO_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.ENTRY_ROUNDING_MINUTES), description: describe.INGRESSO_ARROTONDAMENTO, unit: 'min' },
+    { key: 'USCITA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.EXIT_ROUNDING_MINUTES), description: describe.USCITA_ARROTONDAMENTO, unit: 'min' },
+    { key: 'TOLLERANZA_INGRESSO', kind: 'number', defaultValue: String(PRESENCE_RULES.ENTRY_GRACE_MINUTES), description: describe.TOLLERANZA_INGRESSO, unit: 'min' },
+    { key: 'TOLLERANZA_COMPENSAZIONE', kind: 'number', defaultValue: String(PRESENCE_RULES.COMPENSATION_TOLERANCE_MINUTES), description: describe.TOLLERANZA_COMPENSAZIONE, unit: 'min' },
+    { key: 'TOLLERANZA_MINUTI_REALI', kind: 'number', defaultValue: String(PRESENCE_RULES.REAL_MINUTES_TOLERANCE), description: describe.TOLLERANZA_MINUTI_REALI, unit: 'min' },
+    { key: 'PAUSA_MINUTI', kind: 'number', defaultValue: String(PRESENCE_RULES.PAUSE_MINUTES), description: describe.PAUSA_MINUTI, unit: 'min' },
+    { key: 'PAUSA_FINESTRA_INIZIO', kind: 'time', defaultValue: PRESENCE_RULES.PAUSE_WINDOW_START, description: describe.PAUSA_FINESTRA_INIZIO },
+    { key: 'PAUSA_FINESTRA_FINE', kind: 'time', defaultValue: PRESENCE_RULES.PAUSE_WINDOW_END, description: describe.PAUSA_FINESTRA_FINE },
+    { key: 'ORE_GIORNATA', kind: 'number', defaultValue: String(PRESENCE_RULES.WORKDAY_HOURS), description: describe.ORE_GIORNATA, unit: 'h' },
+    { key: 'ORE_GIORNATA_OPERATORE', kind: 'operator-map', defaultValue: '', description: describe.ORE_GIORNATA_OPERATORE },
+    { key: 'GIORNI_LAVORATIVI', kind: 'weekdays', defaultValue: PRESENCE_RULES.WORKING_DAYS.join(','), description: describe.GIORNI_LAVORATIVI },
+    { key: 'GIORNI_EXTRA', kind: 'weekdays', defaultValue: PRESENCE_RULES.EXTRA_DAYS.join(','), description: describe.GIORNI_EXTRA },
+    { key: 'EXTRA_ORE_MAX', kind: 'number', defaultValue: String(PRESENCE_RULES.EXTRA_MAX_HOURS), description: describe.EXTRA_ORE_MAX, unit: 'h' },
+    { key: 'EXTRA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.EXTRA_FIELD, description: describe.EXTRA_CAMPO },
+    { key: 'EXTRA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.EXTRA_ROUNDING_STEP), description: describe.EXTRA_ARROTONDAMENTO, unit: 'h' },
+    { key: 'EXTRA_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.EXTRA_ROUNDING_MODE, description: describe.EXTRA_ARROTONDAMENTO_MODO },
+    { key: 'CAMPI_COPERTURA', kind: 'list', defaultValue: PRESENCE_RULES.COVERED_FIELDS.join(','), description: describe.CAMPI_COPERTURA },
+    { key: 'ASSENZA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.ABSENCE_FIELD, description: describe.ASSENZA_CAMPO },
+    { key: 'PARZIALE_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.PARTIAL_FILL_FIELD, description: describe.PARZIALE_CAMPO },
+    { key: 'ORDINARIE_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.ORDINARIE_ROUNDING_STEP), description: describe.ORDINARIE_ARROTONDAMENTO, unit: 'h' },
+    { key: 'ORDINARIE_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.ORDINARIE_ROUNDING_MODE, description: describe.ORDINARIE_ARROTONDAMENTO_MODO },
+    { key: 'ECCEDENZA_CAMPO', kind: 'field', defaultValue: PRESENCE_RULES.OVERFLOW_FIELD, description: describe.ECCEDENZA_CAMPO },
+    { key: 'ECCEDENZA_SOGLIA', kind: 'number', defaultValue: String(PRESENCE_RULES.OVERFLOW_MIN_HOURS), description: describe.ECCEDENZA_SOGLIA, unit: 'h' },
+    { key: 'ECCEDENZA_ARROTONDAMENTO', kind: 'number', defaultValue: String(PRESENCE_RULES.OVERFLOW_ROUNDING_STEP), description: describe.ECCEDENZA_ARROTONDAMENTO, unit: 'h' },
+    { key: 'ECCEDENZA_ARROTONDAMENTO_MODO', kind: 'rounding', defaultValue: PRESENCE_RULES.OVERFLOW_ROUNDING_MODE, description: describe.ECCEDENZA_ARROTONDAMENTO_MODO },
+    { key: 'FERIE_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.FERIE_PRESETS.join(','), description: describe.FERIE_PRESETS },
+    { key: 'PERMESSO_PRESETS', kind: 'list', defaultValue: PRESENCE_RULES.PERMESSO_PRESETS.join(','), description: describe.PERMESSO_PRESETS },
+    { key: 'FOGLIO_ORE_INIZIO', kind: 'date', defaultValue: PRESENCE_RULES.TIMESHEET_START, description: describe.FOGLIO_ORE_INIZIO },
+    { key: 'FOGLIO_ORE_PRIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_FIRST_TIME, description: describe.FOGLIO_ORE_PRIMA_ORA },
+    { key: 'FOGLIO_ORE_ULTIMA_ORA', kind: 'time', defaultValue: PRESENCE_RULES.TIMESHEET_LAST_TIME, description: describe.FOGLIO_ORE_ULTIMA_ORA },
 ];
 
 export const PRESENCE_SETTING_KEYS = PRESENCE_SETTINGS.map((s) => s.key);

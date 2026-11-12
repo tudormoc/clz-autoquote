@@ -5,7 +5,7 @@
  * Server only (used by server actions).
  */
 
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, type SqlRunner } from '@/lib/mssql';
 
 export type SettingsGroup = 'PRESENZE' | 'ANALISI';
 
@@ -19,10 +19,13 @@ export async function readSettingValues(group: SettingsGroup): Promise<Map<strin
     return new Map(result.recordset.map((row) => [row.PARAMETRO, row.VALORE ?? '']));
 }
 
-/** Saves one value: updates its row, or adds it when the setting was never stored */
-export async function saveSettingValue(group: SettingsGroup, name: string, value: string, description?: string): Promise<void> {
+/**
+ * Saves one value: updates its row, or adds it when the setting was never stored. `run` is the caller's transaction
+ * when the save belongs to a larger change (a quick text renamed together with the lines that carry it).
+ */
+export async function saveSettingValue(group: SettingsGroup, name: string, value: string, description?: string, run: SqlRunner = queryMSSQL): Promise<void> {
     const number = parseFloat(value);
-    await queryMSSQL(
+    await run(
         `
             IF EXISTS (SELECT 1 FROM VALORI_TABELLE WHERE TABELLA = @tabella AND PARAMETRO = @parametro)
             BEGIN

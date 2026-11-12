@@ -17,7 +17,7 @@ import { getTodayDate } from '@/lib/dateUtils';
 import { reportFileName } from '@/lib/download';
 import type { ExcelColumn } from '@/lib/excel';
 import type { RowSortColumns } from '@/lib/sort';
-import { daysBetween } from '@/lib/tasks/dates';
+import { daysBetween } from '@/lib/dateUtils';
 import { formatIsoDate, formatMoment } from '@/lib/tasks/describe';
 import type { HistoryRow } from '@/lib/tasks/db/views';
 import type { OccurrenceStatus } from '@/lib/tasks/types';

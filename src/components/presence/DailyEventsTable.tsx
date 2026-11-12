@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { deleteEventsAction, getDailyEventsAction, updateEventAction } from '@/app/presence/events-actions';
+import { deleteEventsAction, getDailyEventsAction, updateEventTimeAction } from '@/app/presence/events-actions';
 import { AddEventForm } from '@/components/presence/AddEventForm';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -74,8 +74,9 @@ export function DailyEventsTable() {
     };
 
     const saveTime = (row: PresenceEventRow) => async ({ date, time }: { date: string; time: string }) => {
-        // Date and time go to the database as typed, no timezone conversion
-        const result = await updateEventAction(row.OGGETTO, row.ORA_EVENTO, 'ORA_EVENTO', `${date} ${time}`);
+        // Date and time go to the database as typed, no timezone conversion. The row is named by its whole key: a
+        // double stamp (entry and exit at the same instant) is two rows of the same operator and time
+        const result = await updateEventTimeAction({ oggetto: row.OGGETTO, evento: row.EVENTO, oraEvento: row.ORA_EVENTO, progressivo: row.PROGRESSIVO }, `${date} ${time}`);
         if (!result.success) {
             notify.failure(result.error);
             return false;

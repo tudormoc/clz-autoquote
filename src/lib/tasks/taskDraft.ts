@@ -4,7 +4,7 @@
  */
 
 import { APP_CONFIG } from '@/config/constants';
-import { dayOf, monthOf, weekdayOf } from '@/lib/tasks/dates';
+import { dayOf, monthOf, weekdayOf } from '@/lib/dateUtils';
 import { TaskInputSchema, inputProblem, parseTags } from '@/lib/tasks/input';
 import { isFilledLink } from '@/lib/tasks/links';
 import type { IntervalUnit, MonthDay, RepeatEnd, RepeatRule } from '@/lib/tasks/repeat';

@@ -13,7 +13,8 @@
  */
 import { APP_CONFIG, BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, withTransactions, type SqlRunner } from '@/lib/mssql';
-import { dibaMaterialQty, isPlaceholderMaterial, PLACEHOLDER_MATERIAL } from '@/lib/orders/compare';
+import { dibaMaterialQty, isPlaceholderMaterial, NETPRO_NOTE_LEN, PLACEHOLDER_MATERIAL } from '@/lib/orders/compare';
+import * as readDiba from '@/lib/orders/dibaData';
 import { cutToPlace } from '@/lib/orders/documentFacts';
 import { diffSnapshots, snapshotOrder, type RowChange } from '@/lib/orders/snapshot';
 import { hasWorkSql, rowExists, usedInNetproSql, WITHDRAWN_IN_BUSINESS_SQL } from '@/lib/orders/sql';
@@ -286,28 +287,12 @@ async function syncArticle(run: SqlRunner, { articleFather, title, composition, 
         { title: cutToPlace(title, lengths.netproArticle), articleFather }, 'NETPRO');
 }
 
-/** The phases of the article's DiBa (cicli) */
+/**
+ * The phases of the article's DiBa in phase order, read through the realign's transaction: the same read the order
+ * page compares with (dibaData.ts)
+ */
 async function readDibaPhases(run: SqlRunner, articleFather: string): Promise<DibaOperationRow[]> {
-    const dibaOpsRes = await run<DibaOperationRow>(`
-            SELECT
-                dd.dd_riga as riga,
-                dd.dd_fase as fase,
-                dd.dd_codlavo as codlavo,
-                ISNULL(tl.tb_deslavo, '') as descr_lavor,
-                CASE WHEN dd.dd_terzista = 'S' THEN 'S' ELSE 'N' END as terzista,
-                dd.dd_codcent as codcent,
-                ISNULL(tc.tb_descent, '') as descr_centro,
-                ISNULL(dd.dd_note, '') as note,
-                dd.dd_tempese as tesec,
-                dd.dd_perqta as perqta
-            FROM cicli dd WITH (NOLOCK)
-            LEFT JOIN tablavo tl WITH (NOLOCK) ON tl.codditt = dd.codditt AND tl.tb_codlavo = dd.dd_codlavo
-            LEFT JOIN tabcent tc WITH (NOLOCK) ON tc.codditt = dd.codditt AND tc.tb_codcent = dd.dd_codcent
-            WHERE dd.codditt = '${BUSINESS_COMPANY}'
-              AND dd.dd_coddb = @articleFather
-            ORDER BY dd.dd_fase ASC
-        `, { articleFather }, 'BUSINESS');
-    return dibaOpsRes.recordset;
+    return [...(await readDiba.readDibaPhases(articleFather, run))].sort((a, b) => a.fase - b.fase);
 }
 
 /** The phases of the NetPro order (OPERAZIONI), with their state and whether work is recorded on them */
@@ -411,7 +396,7 @@ async function syncPhases(run: SqlRunner, { articleFather, orderFatherQuant, ann
                     QTA_BASE         = @orderFatherQuant,
                     QTA_RICHIESTA    = @orderFatherQuant
                 WHERE ID_OPER = @idOper
-            `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note ? op.note.slice(0, 100) : null, orderFatherQuant, idOper }, 'NETPRO');
+            `, { descr: op.descr_lavor, centro: String(op.codcent), tesec: op.tesec, note: op.note ? op.note.slice(0, NETPRO_NOTE_LEN) : null, orderFatherQuant, idOper }, 'NETPRO');
 
         // NetPro TASKS — description, machine, notes, qty
         await run(`
@@ -457,23 +442,9 @@ async function syncPhaseChain(run: SqlRunner, { anno, numord, rigaPadre, netOrdi
     }
 }
 
-/** The materials of the article's DiBa (movdis), without the placeholder */
+/** The real materials of the article's DiBa (the same read as the order page, dibaData.ts), without the placeholder */
 async function readDibaMaterials(run: SqlRunner, articleFather: string): Promise<DibaMaterialRow[]> {
-    const dibaMatRes = await run<DibaMaterialRow>(`
-            SELECT
-                md.md_riga as riga,
-                RTRIM(md.md_codfigli) as codfigli,
-                ISNULL(RTRIM(ar.ar_descr), RTRIM(md.md_codfigli)) as description,
-                RTRIM(ar.ar_desint) as desint,
-                md.md_quant as quant,
-                ISNULL(md.md_perpz, 1000) as perpz,
-                RTRIM(md.md_unmis) as unmis
-            FROM movdis md WITH (NOLOCK)
-            LEFT JOIN artico ar WITH (NOLOCK) ON ar.codditt = md.codditt AND ar.ar_codart = md.md_codfigli
-            WHERE md.codditt = '${BUSINESS_COMPANY}' AND md.md_coddb = @articleFather
-            ORDER BY md.md_riga ASC
-        `, { articleFather }, 'BUSINESS');
-    return dibaMatRes.recordset.filter((m) => !isPlaceholderMaterial(m.codfigli));
+    return (await readDiba.readDibaMaterials(articleFather, run)).filter((m) => !isPlaceholderMaterial(m.codfigli));
 }
 
 /**

@@ -34,7 +34,7 @@ export function getCoveredHours(row: Partial<HoursDistribution>, rules: Presence
 }
 
 /** Hours recorded on an extra day (the single extraField). */
-export function getExtraDayHours(row: Partial<HoursDistribution>, rules: PresenceRulesConfig): number {
+function getExtraDayHours(row: Partial<HoursDistribution>, rules: PresenceRulesConfig): number {
     return normalizeHours(toHours(row[rules.extraField as keyof HoursDistribution] as number | string | null | undefined));
 }
 

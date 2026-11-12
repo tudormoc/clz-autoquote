@@ -6,7 +6,9 @@ import { toHours } from './rounding';
 // EDIT SIDE EFFECTS
 // ============================================================================
 // When a user edits one cell, some other cells must follow. This is the only
-// place that knows those rules; the table just applies the returned patch.
+// place that knows those rules. The server decides them from the stored day and
+// writes the cell and its follow-ups in one statement (updateHoursDistributionAction,
+// through editChanges below); the table shows what the server says it saved.
 //
 // RULES:
 //   1. Entering hours > 0 in partialFillField (permesso) or ore_malattia
@@ -20,7 +22,7 @@ import { toHours } from './rounding';
 
 export type DistributionPatch = Partial<Record<HoursDistributionField, number | string | null>>;
 
-export function resolveEditSideEffects(
+function resolveEditSideEffects(
     row: Partial<HoursDistribution>,
     field: HoursDistributionField,
     newValue: number | string | null,
@@ -43,4 +45,29 @@ export function resolveEditSideEffects(
     }
 
     return patch;
+}
+
+/** The columns of an hours day that hold a text (the causali); every other one holds hours */
+const TEXT_FIELDS: readonly HoursDistributionField[] = ['causale_ferie', 'causale_permesso'];
+
+/** An edited cell as it is stored: a text trimmed, hours as a number; an empty cell, or hours that are no number, as null */
+function storedEditValue(field: HoursDistributionField, value: number | string | null | undefined): number | string | null {
+    if (value === null || value === undefined || String(value).trim() === '') return null;
+    if (TEXT_FIELDS.includes(field)) return String(value).trim();
+    const hours = parseFloat(String(value));
+    return Number.isNaN(hours) ? null : hours;
+}
+
+/**
+ * Everything one edit writes on a day: the edited cell (as stored) and the cells that must follow it. `stored` is
+ * what the day holds now. All of it is saved together, or none.
+ */
+export function editChanges(
+    stored: Partial<HoursDistribution>,
+    field: HoursDistributionField,
+    value: number | string | null | undefined,
+    rules: PresenceRulesConfig
+): DistributionPatch {
+    const edited = storedEditValue(field, value);
+    return { [field]: edited, ...resolveEditSideEffects(stored, field, edited, rules) };
 }

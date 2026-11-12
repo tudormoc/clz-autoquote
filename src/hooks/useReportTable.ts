@@ -7,6 +7,7 @@ import { useAddress } from '@/hooks/useAddress';
 import { useAppliedFilters } from '@/hooks/useAppliedFilters';
 import { pageParam, sortParam } from '@/lib/address';
 import { nextSort, type SortState } from '@/lib/sort';
+import { APP_COPY } from '@/locales';
 
 export type { SortState };
 
@@ -134,11 +135,12 @@ export function useReportTable<F, R, S = never>({
 
     const setPage = (next: number) => view.set({ page: next }, 'replace');
 
-    /** Every row for the applied filters and current order (used by exports) */
+    /** Every row for the applied filters and current order (used by exports); throws when they cannot be read */
     const fetchAll = async (): Promise<R[]> => {
         if (applied === null) return [];
         const result = await fetchPageRef.current({ filters: applied, page: 1, limit: EXPORT_LIMIT, sort });
-        return result.success ? result.data : [];
+        if (!result.success) throw new Error(result.error ?? APP_COPY.common.loadError);
+        return result.data;
     };
 
     const loadSummary = useCallback(async () => {

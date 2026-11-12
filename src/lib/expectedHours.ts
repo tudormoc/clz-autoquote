@@ -2,11 +2,6 @@ import { APP_CONFIG } from '@/config/constants';
 
 const { AREA_EXPECTED_VELOCITY, FOLDING_AREA } = APP_CONFIG.ANALYTICS;
 
-/** True when the area has an expected velocity (so expected hours can be computed) */
-export function hasExpectedVelocity(areaName: string): boolean {
-    return (AREA_EXPECTED_VELOCITY[areaName as keyof typeof AREA_EXPECTED_VELOCITY] ?? 0) > 0;
-}
-
 /**
  * Expected work hours for one commessa in one area, from AREA_EXPECTED_VELOCITY.
  * The folding area (FOLDING_AREA) is measured in sheets (fogli), every other area in requested quantity.

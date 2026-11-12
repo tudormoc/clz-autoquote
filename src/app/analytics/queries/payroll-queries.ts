@@ -21,9 +21,10 @@ import { toPayrollPerson } from '@/lib/timesheet/payroll';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import { loadPresenceRules } from '@/app/presence/presence-db';
-import { presenceFileNames, presenceFolder, readFirstSheet } from './shared/presence-files';
+import { presenceFileNames, presenceFolder, readSheetByPosition } from './shared/presence-files';
 
 const { EXCEL_FOLDERS } = APP_CONFIG.PRESENCE;
+const { EXCEL_COLUMNS, EXCEL_HEADERS } = APP_CONFIG.PAYROLL;
 const copy = APP_COPY.analytics.payroll;
 
 type PayrollResult = { success: true; data: PayrollData } | { success: false; error: string };
@@ -44,7 +45,8 @@ export async function getPayrollHoursAction(year: number, month: number): Promis
             return { success: false, error: fmt(copy.noFile, { month: monthName(month), year }) };
         }
 
-        const { production, interinali } = peopleOfFile(readFirstSheet(folder, fileName), monthDates(year, month));
+        // The file is read by position: refused (the error names the column) when a column is not where it is read
+        const { production, interinali } = peopleOfFile(readSheetByPosition(folder, fileName, EXCEL_COLUMNS, EXCEL_HEADERS), monthDates(year, month));
 
         // The office people: their month as entered in Le mie ore
         const [rules, closedDays] = await Promise.all([loadPresenceRules(), listClosedDays()]);

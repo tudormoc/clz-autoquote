@@ -4,7 +4,8 @@
  * say whether the day is covered (the alert). A company closed day with nothing entered counts as ferie by itself.
  */
 
-import { isoWeekday, normalizeHours } from '@/lib/presence';
+import { weekdayOf } from '@/lib/dateUtils';
+import { normalizeHours } from '@/lib/presence';
 import { COVERING_FIELDS, KIND_SPECS } from './kinds';
 import { spanHours } from './time';
 import { HOUR_FIELDS, type DayHours, type DayStatus, type DaySummary, type Entry, type EntryKind } from './types';
@@ -71,7 +72,7 @@ export function summarizeDay(day: string, entries: Entry[], ctx: DayContext): Da
     }
 
     // Before the start of the timesheet a day is shown but expects nothing and takes nothing (owner, 2026-11-05)
-    const workingWeekday = day >= ctx.startDay && ctx.workingDays.includes(isoWeekday(day));
+    const workingWeekday = day >= ctx.startDay && ctx.workingDays.includes(weekdayOf(day));
     // The office is closed and nobody wrote anything: the day is ferie, named after the closed day
     const closedByItself = ctx.closedReason !== null && workingWeekday && entries.length === 0;
     let causaleFerie = causaleOf(entries, 'ferie');

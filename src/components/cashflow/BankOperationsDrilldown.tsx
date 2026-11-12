@@ -4,7 +4,7 @@ import { LoadState } from '@/components/ui/LoadState';
 import { Spinner } from '@/components/ui/Spinner';
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import { getBankAccountTransactionsAction } from '@/app/cashflow/cashflow-actions';
 import type { BankAccountDetailsResult } from '@/lib/cashflow/types';
 import { formatCurrency } from '@/lib/format';
@@ -326,7 +326,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                                         <span className="font-semibold text-fg-secondary">R.{tx.regNum}/{tx.rowNum}</span>
                                         {tx.docNum > 0 && (
                                             <span className="ml-1 text-fg-subtle">
-                                                Doc.{tx.docNum}{tx.docSeries ? `/${tx.docSeries}` : ''}
+                                                {fmt(t.docNumber, { number: `${tx.docNum}${tx.docSeries ? `/${tx.docSeries}` : ''}` })}
                                             </span>
                                         )}
                                     </td>

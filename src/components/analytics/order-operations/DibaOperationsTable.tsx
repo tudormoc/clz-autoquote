@@ -11,7 +11,7 @@ const COLUMNS: DataTableColumn<DibaOperationRow>[] = [
     { key: 'fase', header: t.dibaFase, align: 'center', cell: (row) => <span className="font-mono font-bold text-primary">{row.fase}</span> },
     { key: 'codlavo', header: t.dibaLav, align: 'center', variant: 'number', cell: (row) => row.codlavo },
     { key: 'descr_lavor', header: t.dibaDescrLav, cell: (row) => <span className="font-semibold text-fg">{row.descr_lavor}</span> },
-    { key: 'terzista', header: t.dibaTerzista, cell: (row) => <span className="text-2xs text-fg-muted">{row.terzista}</span> },
+    { key: 'terzista', header: t.dibaTerzista, cell: (row) => <span className="text-2xs text-fg-muted">{row.terzista === 'S' ? t.dibaTerzistaYes : t.dibaTerzistaNo}</span> },
     { key: 'codcent', header: t.dibaCentro, align: 'center', variant: 'number', cell: (row) => row.codcent },
     { key: 'descr_centro', header: t.dibaDescrCentro, cell: (row) => row.descr_centro },
     {

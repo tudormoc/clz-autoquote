@@ -6,7 +6,6 @@
 import { queryMSSQL, type SqlRunner } from '@/lib/mssql';
 import type { PresenceSettingRow } from '@/types';
 import {
-    DEFAULT_PRESENCE_RULES,
     PRESENCE_SETTING_KEYS,
     STATO_IN,
     STATO_OUT,
@@ -139,7 +138,7 @@ const machineOpenOn = (task: string) => `
  * NetPro, which counts them again at its next pause of the phase: its machine hours could not be reproduced exactly.
  * `exitTime` is "YYYY-MM-DD HH:MM:SS"; `run` is the caller's transaction, so all of it lands with the exit event.
  */
-export async function pauseWorkAtExit(run: SqlRunner, operator: string, exitTime: string): Promise<PausedWork[]> {
+async function pauseWorkAtExit(run: SqlRunner, operator: string, exitTime: string): Promise<PausedWork[]> {
     const pauseTime = withMillis(oneSecondBefore(exitTime));
 
     const inProgress = await run<{ TASK: string; MACCHINA: string | null; colleagues: number }>(`
@@ -207,23 +206,21 @@ export async function pauseWorkAtExit(run: SqlRunner, operator: string, exitTime
 }
 
 /**
- * Load the effective presence rules: defaults overridden by NETPRO.VALORI_TABELLE (PRESENZE).
- * Never throws — falls back to DEFAULT_PRESENCE_RULES if the DB is unreachable.
+ * Load the effective presence rules: defaults overridden by NETPRO.VALORI_TABELLE (PRESENZE). A parameter that is
+ * not stored takes its default; a read that fails throws (until 2026-11-12 it answered the defaults without a word,
+ * also to the actions that write: hours, pay data and exits were then decided by rules nobody had set). Every caller
+ * answers the failure as its own: a page says it could not load, a write is refused.
  */
 export async function loadPresenceRules(): Promise<PresenceRulesConfig> {
-    try {
-        const keys = PRESENCE_SETTING_KEYS.map((k) => `'${k}'`).join(',');
-        const res = await queryMSSQL<PresenceSettingRow>(
-            `SELECT PARAMETRO, VALORE, FVALUE01
-             FROM VALORI_TABELLE WITH (NOLOCK)
-             WHERE TABELLA = 'PRESENZE' AND PARAMETRO IN (${keys})`,
-            {},
-            'NETPRO'
-        );
-        return parsePresenceRules(res.recordset);
-    } catch {
-        return DEFAULT_PRESENCE_RULES;
-    }
+    const keys = PRESENCE_SETTING_KEYS.map((k) => `'${k}'`).join(',');
+    const res = await queryMSSQL<PresenceSettingRow>(
+        `SELECT PARAMETRO, VALORE, FVALUE01
+         FROM VALORI_TABELLE WITH (NOLOCK)
+         WHERE TABELLA = 'PRESENZE' AND PARAMETRO IN (${keys})`,
+        {},
+        'NETPRO'
+    );
+    return parsePresenceRules(res.recordset);
 }
 
 /** Build `(a LIKE @p0 OR b LIKE @p0 ...)` conditions for a comma-separated operator search. */
@@ -262,10 +259,13 @@ const DISTRIBUTION_SELECT = `
 
 type DistributionRecord = Partial<Record<HourField | 'causale_ferie' | 'causale_permesso' | 'banca_ore_mese_n1' | 'banca_ore_mese_n', unknown>> & { operatore: string; data: string };
 
-/** Map saved distributions by `operatore_YYYY-MM-DD`. */
+/**
+ * Map saved distributions by `operatore_YYYY-MM-DD`. A read that fails throws: answered as "nothing saved", Riepilogo
+ * Mensile showed every day without its hours, and "Precompila" counted, and wrote in the Registro, days it then left
+ * alone (its MERGE touches only rows still empty).
+ */
 export async function loadDistributionMap(dateFrom: string, dateTo: string): Promise<Map<string, DistributionRecord>> {
-    const res = await queryMSSQL<DistributionRecord>(DISTRIBUTION_SELECT, { dateFrom, dateTo }, 'QUOTES')
-        .catch(() => ({ recordset: [] as DistributionRecord[] }));
+    const res = await queryMSSQL<DistributionRecord>(DISTRIBUTION_SELECT, { dateFrom, dateTo }, 'QUOTES');
     const map = new Map<string, DistributionRecord>();
     for (const d of res.recordset) {
         const dateStr = typeof d.data === 'string' ? d.data.substring(0, 10) : '';

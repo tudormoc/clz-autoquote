@@ -26,7 +26,9 @@ export function MyHoursView() {
     const setPeriod = (next: MonthPeriod) => set({ month: sameMonthPeriod(next, thisMonthPeriod()) ? null : next, day: null });
     const setOpenDay = useCallback((day: string | null) => set({ day }, 'replace'), [set]);
     const load = useCallback(() => getMyMonthAction(period.year, period.month), [period]);
-    const { data, loading, error, reload } = useActionData(load);
+    const { data: loaded, loading, error, reload } = useActionData(load);
+    // The month on screen: while another month loads, the days of the one before are not shown under its name
+    const data = loaded && loaded.year === period.year && loaded.month === period.month ? loaded : null;
     const canEdit = useCanEdit();
     const toggle = (day: string) => setOpenDay(openDay === day ? null : day);
 

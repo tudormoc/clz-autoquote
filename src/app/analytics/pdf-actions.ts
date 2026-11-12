@@ -9,14 +9,14 @@ import { errorMessage } from '@/lib/utils';
 import { getAreaSummaryDataAction, getOrderAreaSummaryDataAction, getClientSummaryDataAction } from './analytics-actions';
 import { APP_CONFIG } from '@/config/constants';
 import type { AreaSummaryRow, OrderAreaRow } from './queries/area-queries';
-import { isoWeekStart, toIsoDate } from '@/lib/dateUtils';
+import { isoWeekStart, monthRange, toIsoDate } from '@/lib/dateUtils';
 import { formatDate, monthName } from '@/lib/format';
 import { areaSummaryReportHtml } from '@/lib/pdf/areaSummaryHtml';
 import { clientSummaryReportHtml } from '@/lib/pdf/clientSummaryHtml';
 import { readLabourRates } from './queries/shared/labour-rates';
 import { orderAreaSummaryReportHtml } from '@/lib/pdf/orderAreaSummaryHtml';
 import { fileSlug, reportFileName } from '@/lib/download';
-import { monthRange, renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
+import { renderPdfBase64, type PeriodData } from '@/lib/pdf/renderPdf';
 import { APP_COPY } from '@/locales';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
@@ -33,6 +33,15 @@ const failure = (label: string, error: unknown): PdfResult => {
     console.error(`${label} PDF generation error:`, error);
     return { success: false, error: errorMessage(error) };
 };
+
+/**
+ * The rows a PDF prints. A read that failed fails the PDF (the person sees the error notice): printed as no rows, a
+ * month that could not be read looked like a month with no work or no revenue.
+ */
+function rowsOf<R>(result: { success: boolean; data: R[]; error?: string | null }): R[] {
+    if (!result.success) throw new Error(result.error ?? APP_COPY.common.loadError);
+    return result.data;
+}
 
 /** PDF title, footer and file name: the report's name as in the menu */
 const reports = APP_COPY.analytics.reports;
@@ -65,7 +74,7 @@ export async function generateAreaSummaryPDFAction(
                 { dateFrom, dateTo, machine: areaFilter || undefined },
                 { column: 'display_order', direction: 'asc' }
             );
-            return { month: label, year, data: result.success ? result.data : [] };
+            return { month: label, year, data: rowsOf(result) };
         };
 
         const periods = await Promise.all(
@@ -117,7 +126,7 @@ export async function generateOrderAreaSummaryPDFAction(
                     year, 1, ALL_ROWS,
                     { ...monthRange(year, month), commessa: commessaFilter || undefined, area: areaFilter || undefined, complexOnly }
                 );
-                return { month: monthName(month), year, data: result.success ? result.data : [] };
+                return { month: monthName(month), year, data: rowsOf(result) };
             })
         );
 
@@ -170,7 +179,7 @@ export async function generateClientSummaryPDFAction(
 
         // Internal clients and test accounts are left out of the PDF (codes come from the DB as numbers)
         const excluded = new Set(APP_CONFIG.ANALYTICS.EXCLUDED_CLIENTS_PDF);
-        const rows = (result.success ? result.data : [])
+        const rows = rowsOf(result)
             .filter((row) => !excluded.has(String(row.client_code)))
             .sort((a, b) => b.total_revenue - a.total_revenue);
 

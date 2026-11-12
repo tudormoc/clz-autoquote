@@ -29,4 +29,5 @@
 - Bold, italic, heading, bullet list, numbered list, checklist, link: they wrap the selected text (or put the symbols at the cursor) and a second click takes them off.
 - A **"?"** button opening a short cheat sheet popup (about ten lines of examples).
 - No keyboard shortcuts for now (Ctrl+B / Ctrl+I can be added on top later).
-- Optional with it: tables and `- [ ]` checklists in the text (`remark-gfm`).
+- Tables and `- [ ]` checklists already show in the preview and wherever the text is displayed (`remark-gfm` in
+  `src/components/ui/Markdown.tsx`): the toolbar only has to type them.

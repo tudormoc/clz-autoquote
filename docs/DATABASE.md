@@ -47,7 +47,7 @@ up. Row lists group by the full number and only *display* the core.
 | `JOBSET` | `TASK`, `ORDINE`, `OPERAZIONE`, `ID_OPER`, `QTA_RICHIESTA` |
 | `OPERAZIONI` | `ID_OPER`, `ORDINE`, `SEQUENZA` (fase), `DESCRIZIONE`, `STATO` (EXE in work, SUS suspended, COM completed) |
 | `TASKS` | `TASK`, `MACCHINA`, `STATO` |
-| `CENTRI` / `AREE` | machine/centre → `REPARTO` (area) → area name |
+| `CENTRI` / `AREE` | machine/centre (`CENTRI.CENTRO` = the task's `MACCHINA`) → `CENTRI.AREA` → the row of `AREE` with the area's name |
 | `OPERATORI` | one row per operator, key `OPERATORE` (typed by hand, no numbering), `NOME` (interinali end with ` *lb`), `BADGE` (card number, unique by the app only), `ENTITA` (category: 2 Produzione, 3 Ufficio, 1001 Interinali, 999 who left: "OFF HR" in Modifica operatore), `MATRICOLA`, `STATO_FISICO` / `STATO_LOGICO` (and when each last changed: `ORA_ST_FISICO` / `ORA_ST_LOGICO`, 1986-01-01 until the first event, `APP_CONFIG.PRESENCE.NO_MOVEMENT_DATE`; the first is the "Ultimo movimento" column of Operatori), `FCODE01`…`05` (free fields: agency, then whatever was typed). "Nuovo operatore" inserts one row with the same fixed values NetPro writes (`APP_CONFIG.PRESENCE.NEW_OPERATOR_VALUES`), the stato fisico by category (OUT, OFF for Ufficio); nothing else in the database refers to a new operator (no keys, triggers or procedures). "Elimina" deletes the row only when no event, clock record, activity, user or saved hours names the code. Rules: [PRESENCE.md](PRESENCE.md) → Operators |
 | `EVENTI` | presence and work events (ENT/EXT/SUS …). Key: `TASK`, `TIPO_OGGETTO`, `OGGETTO`, `EVENTO`, `ORA_EVENTO`, `PROGRESSIVO` (the counter of the events of one instant); no foreign key, trigger or procedure. A presence event has `TASK = 'presenza'`, `TIPO_OGGETTO = 'OPE'`, `OGGETTO` = the operator; a work event names its operator in `OPERATORE` (machine and 'stato' rows too). The `SITUAZIONI` rows (`TIPO = 'CLCK'` for presence) are built from these by NetPro's night job, never by the app. Rules: [PRESENCE.md](PRESENCE.md) → Presence events |
 | `ATTIVITA` | NetPro's list of the work in progress: one row per person working now (key `TASK`, `OPERATORE`, `TIPO_OGGETTO` 'OPE'; `DATA_INIZIO`, `TIPO` 'WRK'). NetPro adds the row at a start and removes it at a pause; while it is there NetPro refuses that person another job (`OPERATORE ATTIVO`). The app reads it to know what an exit must pause and removes the row when it pauses that work ([PRESENCE.md](PRESENCE.md) → Presence events) |
@@ -90,7 +90,10 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 2. **Material costs** = supplier rows (`an_tipo = 'F'`, `dw_acqvalore`), **never filtered by date**: an order invoiced in 2025
    with costs in 2024 needs those costs for its real margin. The same for work hours (`fetchWorkTimesForCommessas`).
 3. **Always `dw_commeca > 0`** on cost queries, or general expenses inflate the costs.
-4. **Labour cost** = work hours × `APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE`.
+4. **Labour cost** = work hours × the hourly rate set in Impostazioni → Costo del Lavoro (`readLabourRates`,
+   `src/app/analytics/queries/shared/labour-rates.ts`; kept in NETPRO.VALORI_TABELLE, `TABELLA = 'ANALISI'`).
+   `APP_CONFIG.ANALYTICS.HOURLY_LABOR_RATE` is only the value used until a rate is saved. When the rate or the hours
+   cannot be read the report fails: it does not show a margin without labour cost.
 5. **Margin** = revenue − (material cost + labour cost), computed once on the server (`full_cost`, `margin` in the
    rows) and used as is by the table, Excel and PDF. In Ricavo Ordini the revenue is the value *delivered* in the period
    (decided 2026-10-07).

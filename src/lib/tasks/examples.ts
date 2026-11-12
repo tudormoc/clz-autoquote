@@ -9,7 +9,7 @@
 
 import { agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
 import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';
-import { addMonths } from '@/lib/tasks/dates';
+import { addMonths } from '@/lib/dateUtils';
 import { compareByDate, compareInDay, placeAmong, placeAt } from '@/lib/tasks/dayOrder';
 import { parseQuickEntry } from '@/lib/tasks/quickParse';
 import { describeRepeat, weekTitle } from '@/lib/tasks/describe';

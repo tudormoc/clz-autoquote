@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_CONFIG } from '@/config/constants';
-import { addDays } from '@/lib/tasks/dates';
+import { addDays } from '@/lib/dateUtils';
 import { formatDayMonth } from '@/lib/format';
 import type { DayLoad } from '@/lib/tasks/types';
 import { isoWeekNumber, weekDays } from '@/lib/tasks/week';

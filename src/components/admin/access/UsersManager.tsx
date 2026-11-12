@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     createUserAction,
     deleteUserAction,
@@ -24,6 +24,7 @@ import { RecordCount } from '@/components/ui/RecordCount';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAddress } from '@/hooks/useAddress';
 import { numberParam } from '@/lib/address';
+import { createGroupTicks } from '@/lib/auth/groupTicks';
 import { DEFAULT_PIN_KIND, pinKindLabel, type PinKindId } from '@/lib/auth/pinKinds';
 import { confirmDelete } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
@@ -58,6 +59,12 @@ export function UsersManager() {
     }, [users]);
     /** The PIN proposed in the window: nothing is written until Salva (a new user's first PIN is already stored) */
     const [newPin, setNewPin] = useState<{ id: number; name: string; pin: string; storedPin: string; kind: PinKindId } | null>(null);
+    /** Group ticks whose save is still on its way (two quick ticks must both count) */
+    const ticks = useRef(createGroupTicks());
+    useEffect(() => {
+        // The table shows the lists just read: a user whose saves are all back starts from what is stored
+        ticks.current.readBack();
+    }, [users]);
 
     if (loading || error) return <LoadState loading={loading} error={error} />;
 
@@ -105,8 +112,15 @@ export function UsersManager() {
         if (await confirmDelete(fmt(copy.deleteConfirm, { name }))) await run(deleteUserAction(id));
     };
 
-    const setGroup = (user: UserView, groupId: number, member: boolean) =>
-        run(setUserGroupsAction(user.id, member ? [...user.groupIds, groupId] : user.groupIds.filter((id) => id !== groupId)));
+    /** A tick saves the user's whole list: it starts from the ticks made just before it, not only from the list last read */
+    const setGroup = async (user: UserView, groupId: number, member: boolean) => {
+        const groupIds = ticks.current.tick(user.id, user.groupIds, groupId, member);
+        try {
+            return await run(setUserGroupsAction(user.id, groupIds));
+        } finally {
+            ticks.current.settled(user.id);
+        }
+    };
 
     return (
         <div className="space-y-4">

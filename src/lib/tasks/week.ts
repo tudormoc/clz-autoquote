@@ -1,8 +1,9 @@
 /**
  * Weeks and month grids of the Agenda's calendar views. Pure, on "YYYY-MM-DD" strings; weeks start on Monday.
+ * The date arithmetic itself is src/lib/dateUtils.ts.
  */
 
-import { addDays, daysInMonth, monthOf, weekStart, weekdayOf, yearOf } from '@/lib/tasks/dates';
+import { addDays, monthOf, monthRange, shiftMonthPeriod, weekStart, weekdayOf, yearOf } from '@/lib/dateUtils';
 
 /** The 7 days of the week that starts on `monday` */
 export const weekDays = (monday: string): string[] => Array.from({ length: 7 }, (_, i) => addDays(monday, i));
@@ -19,13 +20,12 @@ export const monthKey = (iso: string) => iso.slice(0, 7);
 
 /** "YYYY-MM" moved by some months */
 export function shiftMonth(month: string, by: number): string {
-    const index = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + by;
-    return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+    const moved = shiftMonthPeriod({ year: Number(month.slice(0, 4)), month: Number(month.slice(5, 7)) }, by);
+    return `${moved.year}-${String(moved.month).padStart(2, '0')}`;
 }
 
 /** The days a month grid shows: from the Monday on or before the 1st to the Sunday on or after the last day */
 export function monthGrid(month: string): { start: string; end: string } {
-    const first = `${month}-01`;
-    const last = `${month}-${String(daysInMonth(yearOf(first), monthOf(first))).padStart(2, '0')}`;
+    const { dateFrom: first, dateTo: last } = monthRange(yearOf(`${month}-01`), monthOf(`${month}-01`));
     return { start: weekStart(first), end: addDays(last, 7 - weekdayOf(last)) };
 }

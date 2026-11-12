@@ -5,7 +5,7 @@
  */
 
 import { foldText } from '@/lib/utils';
-import { addDays, addMonths, dayOf, daysInMonth, makeDate, monthOf, weekStart, weekdayOf, yearOf } from '@/lib/tasks/dates';
+import { addDays, addMonths, dayOf, daysInMonth, makeDate, monthOf, weekStart, weekdayOf, yearOf } from '@/lib/dateUtils';
 import { RepeatRuleSchema, type RepeatRule } from '@/lib/tasks/repeat';
 import { APP_COPY } from '@/locales';
 

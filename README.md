@@ -12,7 +12,10 @@ Puppeteer for PDFs, xlsx for Excel.
    Local `npm run dev` uses the live databases: look, don't save, delete or press "Riallinea".
 2. **Read queries** use `WITH (NOLOCK)` and go through `queryMSSQL` in `src/lib/mssql.ts` (never a new connection).
    A write of more than one statement runs inside `withTransactions([...dbs], run => …)` (same file): all of it lands,
-   or none of it. Query rules, commessa formats and tables: [docs/DATABASE.md](docs/DATABASE.md).
+   or none of it. Over two databases it is one transaction in each, committed one after the other: a statement that
+   fails undoes both, and only a cut exactly between the two commits can leave the first written and the second not
+   (docs/ORDER_PROCESS.md → "Two databases, two commits"). Query rules, commessa formats and tables:
+   [docs/DATABASE.md](docs/DATABASE.md).
 3. **Deploy only when the owner asks.** Secrets stay in `.env.local` (never committed).
 4. **Every page and every server action checks access** (see Login below). A new page calls `requirePage(...)`,
    a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`
@@ -34,10 +37,14 @@ npm run dev        # http://localhost:3000 (live databases!)
 npm run check      # typecheck + lint + access check + example checks + production build — run before every deploy
 npm run access:check        # every page and server action checks access, an action first of all; every list of a schema has a maximum (scripts/access-check.ts)
 npm run presence:examples   # presence rules on made-up data
+npm run orders:examples     # order rules on made-up orders: comparison with the DiBa, what Riallinea changes, leaves or refuses
 npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
 npm run tasks:examples      # Agenda date rules (repeats, closed days, to-do groups)
 npm run persons:examples    # Scheda persona name rules (same name, capitals, cognome / nome split)
+npm run permissions:examples # who sees what: stored grants, the lights of Gruppi, the wrong-PIN wait, quick group ticks in Utenti
+npm run dates:examples      # date arithmetic (src/lib/dateUtils.ts) and the ready-made periods of the date filters
+npm run timesheet:examples  # Le mie ore: what a day adds up to, what the editor accepts, the half-hour steps
 npm run inputs:examples     # what the forms accept and refuse (Agenda, Operatori, quote): run before and after a Zod update
 npm run address:examples    # what a screen keeps in the address bar (tab, sort, page, chips, applied filters)
 npm run order:snapshot -- 260999910 before   # read-only snapshot of one commessa in Business and NetPro, diffed with the previous one
@@ -129,19 +136,19 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 | Settings pages / their screens / what they may change | `src/config/settingsPages.ts` / `src/components/admin/settingsComponents.ts` (table editors in `recordTables.tsx`; pages `/settings/<id>`) / `src/config/editableTables.ts` |
 | Page frame, title, sidebar | `src/components/layout/` (`AppShell`, `PageHeader`, `FillPage`, `AreaOverview`, `NavCards`, `MobileMenu`, `sidebar/`); folded sidebar state `src/lib/sidebar.ts` |
 | Shared UI parts | `src/components/ui/` |
-| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`; every filter opens on today, `defaultReportPeriod`) `src/lib/dateUtils.ts` |
+| Display formats (money, numbers, hours, dates, months) | `src/lib/format.ts`; date strings, today, the ready-made periods of the date filters (`periodRange`; every filter opens on today, `defaultReportPeriod`) and ALL date arithmetic (day of the week, a date plus days or months, the days of a range or a month, first and last day of a month, the Monday of a week): `src/lib/dateUtils.ts`, the one place for it, with `npm run dates:examples` |
 | Excel / file downloads | `src/lib/excel.ts` / `src/lib/download.ts` |
 | What a screen shows, kept in the address bar (rule 8): view values (tab, sort, page, chips, the record, month or day shown) / the applied filters of a list | `src/lib/address.ts` (pure: one `…Param` per kind of value, `readFilters` / `writeFilters`) + `src/hooks/useAddress.ts` (`useAddress(shape)` → `values`, `set`, `link`) / `src/hooks/useAppliedFilters.ts`; real links to another view of the same page: `src/components/ui/ViewLink.tsx` |
 | Report state (filters, paging, sorting, export; a page opened bare loads only on "Applica", an address with filters loads at once) | `src/hooks/useReportTable.ts` |
 | State of a screen that reads everything in one go for its applied filters (a year, a month) / of a list of rows (presence pages) / on-screen sorting | `src/hooks/useAppliedQuery.ts` / `src/hooks/useListQuery.ts` / `src/hooks/useClientSort.ts` (`src/lib/sort.ts`) |
 | Quote pricing / saved quotes | `src/lib/pricing/` — [docs/PRICING.md](docs/PRICING.md) / `src/lib/quotes/db.ts` |
 | Presence rules / data | `src/lib/presence/` — [docs/PRESENCE.md](docs/PRESENCE.md) / `src/app/presence/*-actions.ts` (events, operators, hours, settings; auto-exit in `auto-exit.ts`; shared queries in `presence-db.ts`) |
-| Ore Studio Paghe (a month's hours per person for the pay studio: production from the monthly Excel files, the office from the timesheet) | `src/lib/payroll.ts` (pure, the file's columns), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali), `src/components/analytics/PayrollHoursReport.tsx` |
+| Ore Studio Paghe (a month's hours per person for the pay studio: production from the monthly Excel files, the office from the timesheet) | `src/lib/payroll.ts` (pure, the file's columns), `src/app/analytics/queries/payroll-queries.ts` + `queries/shared/presence-files.ts` (the files, shared with Presenze Annuali; read by column position, so a file whose header row does not show the expected title at a column read is refused: `src/lib/excelLayout.ts`, titles in `APP_CONFIG.…EXCEL_HEADERS`), `src/components/analytics/PayrollHoursReport.tsx` |
 | Timesheet (Le mie ore, Ore Ufficio: the office people's own hours, entrate / uscite and absences, exported for the studio) | `src/lib/timesheet/` (pure) + `src/lib/timesheet/db/` (its SQL), actions `src/app/presence/timesheet-actions.ts`, screens `src/components/timesheet/`, tables `sql/timesheet/` — [docs/TIMESHEET.md](docs/TIMESHEET.md) |
 | Login, users, groups, access checks | `src/lib/auth/` (`access`, `permissions`, `lights` = how the Gruppi page turns clicks into grants, `accounts`, `session`, `secrets`, `lockout`), `src/proxy.ts`, `src/app/auth-actions.ts`, `src/app/access-actions.ts`, `src/components/auth/`, `src/components/admin/access/` |
 | Registro (the app-wide log: who did what and when, with the values before and after) | `src/lib/log/` (`log` writes: `logEvent`, never throws; `entries` reads the three logs as one list; `areas` = whose entries a person sees; `describe` turns a record into lines), actions `src/app/log-actions.ts`, screen `src/components/log/`, table `sql/log/` — a server action that writes calls `logEvent(personOf(access), { page: LINKS.…, action, summary, details })` |
 | PDF reports | `src/app/analytics/pdf-actions.ts` (data) + `src/lib/pdf/`: one `*Html.ts` per report on the shared `html.ts` (document, title block, escaping, `percent`) and `theme.ts` (print colours), printed by `renderPdfBase64` |
-| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro), list of the open orders to realign | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs; `differences` = what differs by kind, `syncBlocks` = what a realign leaves on the order because it was already used, and when it is refused, `misaligned` = "Ordini da riallineare"); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
+| Orders: search, details, DiBa comparison, realign (DiBa → Business → NetPro), list of the open orders to realign | `src/lib/orders/` (`details`, `management`, `sync`, `compare`, `flow`, `syncRows`; `dibaData` = the one read of the DiBa, for the page and for Riallinea; `documentFacts` + `documentRows`, `quantities` + `quantityData`, `article` + `articleData` for the Quantità and Articolo tabs; `differences` = what differs by kind, `syncBlocks` = what a realign leaves on the order because it was already used, and when it is refused, `misaligned` = "Ordini da riallineare"); server actions `src/app/analytics/queries/order-operations-queries.ts` — [docs/ORDER_PROCESS.md](docs/ORDER_PROCESS.md) |
 | Cashflow | [docs/CASHFLOW.md](docs/CASHFLOW.md); the monthly table is one `MatrixRow` per line (`src/components/cashflow/`) |
 | Work progress page (order flow, DiBa comparison, orders to realign) | `src/components/analytics/OrderOperationsReport.tsx` + `order-operations/`; logic in `src/hooks/useOrderSearch.ts`, `useOrderManagement.ts`, `useMisalignedOrders.ts`, `src/lib/orders/`; what is on screen (search, list, the open order, its tabs and edition) is in the address: `src/hooks/useOrderAddress.ts`, e.g. `/work-progress?order=2609537&tab=management&view=quantity` |
 | Database page (Settings → Strumenti) | `src/components/database/` + `src/hooks/useDatabaseExplorer.ts`, queries in `src/app/db-actions.ts` |

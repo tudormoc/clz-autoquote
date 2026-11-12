@@ -6,9 +6,13 @@
  * in .env.local), keeps the session cookies in memory and logs in again automatically when they expire.
  */
 import { APP_CONFIG } from '@/config/constants';
+import { APP_COPY, fmt } from '@/locales';
 
 let cookieJar = new Map<string, string>();
 let loginInFlight: Promise<void> | null = null;
+
+/** Why a print could not be made, in words (it.ts) */
+const errors = APP_COPY.analytics.orderOperations.printErrors;
 
 const reportUrl = new URL(APP_CONFIG.REPORTS.NETPRO_PDF_ENDPOINT);
 const LOGIN_URL = `${reportUrl.origin}/QualitasWebClient/Account/Login`;
@@ -49,7 +53,7 @@ async function fetchWithJar(url: string, init: RequestInit = {}, hops = 5): Prom
         }
         return res;
     }
-    throw new Error('NetPro: troppi redirect');
+    throw new Error(errors.tooManyRedirects);
 }
 
 async function login() {
@@ -57,7 +61,7 @@ async function login() {
     // An empty password is allowed (NetPro users can have none): the line just has to exist
     const password = process.env.NETPRO_WEB_PASSWORD;
     if (!user || password === undefined) {
-        throw new Error('Credenziali NetPro non configurate: impostare NETPRO_WEB_USER e NETPRO_WEB_PASSWORD in .env.local');
+        throw new Error(errors.noCredentials);
     }
     cookieJar = new Map();
     // Load the login page first (session cookie), then post the form like the browser does
@@ -79,7 +83,7 @@ async function login() {
     // Still on the login form → wrong credentials / login refused
     if (/id="signupform"/i.test(html)) {
         cookieJar = new Map();
-        throw new Error('Login NetPro non riuscito: verificare NETPRO_WEB_USER / NETPRO_WEB_PASSWORD');
+        throw new Error(errors.loginFailed);
     }
 }
 
@@ -99,11 +103,11 @@ export async function netproAuthenticatedGet(url: string): Promise<ArrayBuffer> 
     for (let attempt = 0; attempt < 2; attempt++) {
         await ensureLogin(attempt > 0);
         const res = await fetchWithJar(url, { headers: { Accept: 'application/pdf, text/html, */*' } });
-        if (!res.ok) throw new Error(`NetPro report service responded with status ${res.status}`);
+        if (!res.ok) throw new Error(fmt(errors.badStatus, { status: res.status }));
         const buffer = await res.arrayBuffer();
         const head = new TextDecoder().decode(buffer.slice(0, 600));
         if (!isNetproLoginPage(head)) return buffer;
         cookieJar = new Map(); // session expired → log in again and retry once
     }
-    throw new Error('Il servizio report di NetPro richiede il login e il login automatico non è riuscito.');
+    throw new Error(errors.loginNeeded);
 }

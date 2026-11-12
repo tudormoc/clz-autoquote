@@ -8,14 +8,15 @@ import { queryMSSQL } from '@/lib/mssql';
 import { APP_COPY, fmt } from '@/locales';
 import { HOURS_DISTRIBUTION_FIELDS, type OperatorHoursRow, type HoursDistributionField } from '@/types';
 import {
+    editChanges,
     rulesForOperator,
     computeCountedDay,
     getDayKind,
     trackedRepartiSql,
     categoriaFromReparto,
     profileFromReparto,
-    eachDateInRange,
 } from '@/lib/presence';
+import { eachDateInRange } from '@/lib/dateUtils';
 import { CLOCK_COLUMNS, clockOf, loadPresenceRules, buildOperatorSearch, loadDistributionMap, type ClockRow } from './presence-db';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
@@ -39,8 +40,11 @@ type OperatorRow = Pick<AttendanceRow, 'operatore' | 'matricola' | 'nome' | 'gru
 /** Effective presence rules for client components (config-driven badges, side effects, presets). */
 export async function getPresenceRulesAction() {
     await authorize('view', LINKS.presence.monthlySummary, LINKS.settings['presence']);
-    const rules = await loadPresenceRules();
-    return { success: true as const, rules };
+    try {
+        return { success: true as const, rules: await loadPresenceRules() };
+    } catch (err) {
+        return { success: false as const, error: errorMessage(err) };
+    }
 }
 
 export async function getMonthlyHoursAction(
@@ -188,8 +192,16 @@ export async function getMonthlyHoursAction(
     }
 }
 
+/** What a day holds in presence_hours_distribution, as far as the monthly table may change it */
+type StoredHours = Partial<Pick<OperatorHoursRow, HoursDistributionField>>;
+
 /**
- * Upsert an hours distribution field for an operator on a specific date in CLZDWHQANDPROG
+ * Saves one edited cell of Riepilogo Mensile together with the cells that must follow it (hours of permesso or
+ * malattia clear the ferie and its causale, a causale ferie fills the ferie hours: `editChanges`,
+ * src/lib/presence/formulas/edit-effects.ts), in ONE statement of CLZDWHQANDPROG: all of it is saved, or none.
+ * Until 2026-11-12 the browser sent one save per follow-up and did not look at their answers, so a day could keep
+ * both ferie and permesso while the screen showed it right. The follow-ups are decided here, from what the day holds
+ * now and the stored rules; `saved` is what was written, for the screen to show.
  */
 export async function updateHoursDistributionAction(
     operatore: string,
@@ -200,60 +212,56 @@ export async function updateHoursDistributionAction(
     const access = await authorize('edit', LINKS.presence.monthlySummary);
     try {
         if (!HOURS_DISTRIBUTION_FIELDS.includes(field)) {
-            return { success: false, error: APP_COPY.common.notAllowed };
+            return { success: false as const, error: APP_COPY.common.notAllowed };
         }
 
-        const isTextField = field === 'causale_ferie' || field === 'causale_permesso';
-        let paramValue: string | number | null = null;
-
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-            if (isTextField) {
-                paramValue = String(value).trim();
-            } else {
-                const num = parseFloat(String(value));
-                paramValue = !isNaN(num) ? num : null;
-            }
-        }
-
-        // What the field holds now, for the log (the field's name was checked above)
-        const before = await queryMSSQL<{ value: string | number | null }>(
-            `SELECT ${field} AS value FROM presence_hours_distribution WITH (NOLOCK) WHERE operatore = @operatore AND data = CAST(@data AS DATE)`,
+        const rules = await loadPresenceRules();
+        // What the day holds now: it decides the follow-ups and is the "before" of the log
+        const before = await queryMSSQL<StoredHours>(
+            `SELECT ${HOURS_DISTRIBUTION_FIELDS.join(', ')} FROM presence_hours_distribution WITH (NOLOCK) WHERE operatore = @operatore AND data = CAST(@data AS DATE)`,
             { operatore, data },
             'QUOTES'
         );
+        const stored: StoredHours = before.recordset[0] ?? {};
+        const changes = editChanges(stored, field, value, rulesForOperator(operatore, rules));
+        // The columns' names go into the statement: only names of the fixed list, the edited one first
+        const columns = HOURS_DISTRIBUTION_FIELDS.filter((column) => column in changes).sort((a, b) => Number(b === field) - Number(a === field));
 
-        const query = `
-            MERGE presence_hours_distribution AS target
-            USING (SELECT @operatore AS operatore, CAST(@data AS DATE) AS data) AS source
-            ON (target.operatore = source.operatore AND target.data = source.data)
-            WHEN MATCHED THEN
-                UPDATE SET ${field} = @value, updated_at = SYSDATETIME()
-            WHEN NOT MATCHED THEN
-                INSERT (operatore, data, ${field}, created_at, updated_at)
-                VALUES (@operatore, CAST(@data AS DATE), @value, SYSDATETIME(), SYSDATETIME());
-        `;
-
+        const params: Record<string, unknown> = { operatore, data };
+        columns.forEach((column, index) => {
+            params[`v${index}`] = changes[column] ?? null;
+        });
         await queryMSSQL(
-            query,
-            {
-                operatore,
-                data,
-                value: paramValue,
-            },
+            `MERGE presence_hours_distribution AS target
+             USING (SELECT @operatore AS operatore, CAST(@data AS DATE) AS data) AS source
+             ON (target.operatore = source.operatore AND target.data = source.data)
+             WHEN MATCHED THEN
+                 UPDATE SET ${columns.map((column, index) => `${column} = @v${index}`).join(', ')}, updated_at = SYSDATETIME()
+             WHEN NOT MATCHED THEN
+                 INSERT (operatore, data, ${columns.join(', ')}, created_at, updated_at)
+                 VALUES (@operatore, CAST(@data AS DATE), ${columns.map((_, index) => `@v${index}`).join(', ')}, SYSDATETIME(), SYSDATETIME());`,
+            params,
             'QUOTES'
         );
 
-        const previous = before.recordset[0]?.value ?? null;
+        // One line: the edited cell, then what followed it
+        const shown = (column: HoursDistributionField) => ({ field: column, from: stored[column] ?? '-', value: changes[column] ?? '-' });
+        const followUps = columns.filter((column) => column !== field).map((column) => fmt(log.hoursChange, shown(column)));
         await logEvent(personOf(access), {
             page: LINKS.presence.monthlySummary,
             action: 'changed',
             entityKind: 'hours',
             entityId: `${operatore} ${data}`,
-            summary: fmt(log.hoursUpdated, { operator: operatore, date: data, field, from: previous ?? '-', value: paramValue ?? '-' }),
-            details: { before: { [field]: previous }, after: { [field]: paramValue } },
+            summary:
+                fmt(log.hoursUpdated, { operator: operatore, date: data, ...shown(field) }) +
+                (followUps.length > 0 ? fmt(log.hoursFollowUps, { changes: followUps.join(', ') }) : ''),
+            details: {
+                before: Object.fromEntries(columns.map((column) => [column, stored[column] ?? null])),
+                after: Object.fromEntries(columns.map((column) => [column, changes[column] ?? null])),
+            },
         });
-        return { success: true };
+        return { success: true as const, saved: changes };
     } catch (err) {
-        return { success: false, error: errorMessage(err) };
+        return { success: false as const, error: errorMessage(err) };
     }
 }

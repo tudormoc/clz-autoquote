@@ -181,7 +181,7 @@ export async function getCashflowMonthlyDataAction(year: number = new Date().get
         };
     } catch (err) {
         console.error('Error fetching cashflow monthly data:', err);
-        return emptyCashflow(year, false, errorMessage(err) || 'Failed to fetch cashflow data');
+        return emptyCashflow(year, false, errorMessage(err) || APP_COPY.common.loadError);
     }
 }
 
@@ -195,6 +195,11 @@ export async function getBankAccountTransactionsAction(
 ): Promise<BankAccountDetailsResult> {
     await authorize('view', LINKS.cashflow);
     try {
+        // Only the bank accounts switched on for this page (CASHFLOW_CONFIG.BANKS): the code comes from the address,
+        // and any other number would read the movements of that ledger account of Business, whatever it is
+        if (!CASHFLOW_CONFIG.getEnabledAccountCodes().includes(accountCode)) {
+            throw new Error(fmt(labels.accountNotEnabled, { code: String(accountCode).slice(0, 20) }));
+        }
         const [nameRes, openingRes, movementsRes] = await Promise.all([
             queryMSSQL<AccountNameRow>(accountNameSql(), { accountCode }, 'BUSINESS'),
             queryMSSQL<OpeningRow>(accountOpeningSql(), { accountCode, year }, 'BUSINESS'),
@@ -275,7 +280,7 @@ export async function getBankAccountTransactionsAction(
             totalAvereYear: 0,
             transactions: [],
             monthlySummaries: [],
-            error: errorMessage(err) || 'Failed to fetch bank transactions',
+            error: errorMessage(err) || APP_COPY.common.loadError,
         };
     }
 }

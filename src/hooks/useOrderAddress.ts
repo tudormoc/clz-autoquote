@@ -4,11 +4,11 @@ import { useAddress } from '@/hooks/useAddress';
 import { choiceParam, flagParam, listParam, textParam } from '@/lib/address';
 
 /** The tabs of an open order */
-export const WORKSPACE_TABS = ['flow', 'materials', 'management'] as const;
+const WORKSPACE_TABS = ['flow', 'materials', 'management'] as const;
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
 
 /** The tabs of its DiBa comparison */
-export const MANAGEMENT_TABS = ['comparison', 'materials', 'quantity', 'article', 'diba', 'order'] as const;
+const MANAGEMENT_TABS = ['comparison', 'materials', 'quantity', 'article', 'diba', 'order'] as const;
 export type ManagementTab = (typeof MANAGEMENT_TABS)[number];
 
 const NO_KINDS: readonly string[] = [];

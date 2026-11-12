@@ -9,7 +9,7 @@ import type { UserAccess } from '@/lib/auth/permissions';
 import type { SqlParams } from '@/lib/mssql';
 import { agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
 import { closedDayChecker, type ClosedDayChecker } from '@/lib/tasks/closedDays';
-import { addDays, maxDate } from '@/lib/tasks/dates';
+import { addDays, maxDate } from '@/lib/dateUtils';
 import { plannedDates, upcomingDates } from '@/lib/tasks/projection';
 import { addInterval, parseRepeatRule } from '@/lib/tasks/repeat';
 import type { AgendaItem, DayLoad, LogEntry, NamedItem, Occurrence, OccurrenceStatus, Person, PlannedEntry, Priority, TaskDetail } from '@/lib/tasks/types';

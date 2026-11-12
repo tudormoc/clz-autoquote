@@ -1,5 +1,5 @@
 import type { RecordKind } from '@/components/admin/record-editor/types';
-import { isIsoDate } from '@/lib/tasks/dates';
+import { isIsoDate } from '@/lib/dateUtils';
 
 /** Value as it appears in an input: percent 0.1 → "10" (rounded, so 0.1 * 100 does not show 10.000000000000002) */
 export function draftOf(kind: RecordKind, value: unknown): string {

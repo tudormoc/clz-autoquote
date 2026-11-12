@@ -15,6 +15,13 @@ src/lib/presence/config.ts → parsePresenceRules()
 formulas/*   ← server actions + MonthlyHoursTable
 ```
 
+A parameter that is not stored takes its default. A read that **fails** is an error, not the defaults (2026-11-12):
+`loadPresenceRules()` and `loadDistributionMap()` (`src/app/presence/presence-db.ts`) throw, so a page says it could
+not load and a write (hours, Precompila, the timesheet, the automatic exit) is refused, instead of going on with
+rules nobody set. Riepilogo Mensile shows "Le regole delle presenze non sono state lette" in place of the table;
+Regole Presenze shows the error in place of its values, so a list of quick-pick texts cannot be saved from the
+defaults over the stored one.
+
 ## Files
 
 | File | Formula |
@@ -22,9 +29,9 @@ formulas/*   ← server actions + MonthlyHoursTable
 | `src/lib/presence/formulas/counted-times.ts` | Entry rule (shift snap / ceil 15), exit rule (floor 15), totale = end − start − pausa |
 | `src/lib/presence/formulas/distribution.ts` | Prefill: absence / partial / full → which fields get which hours |
 | `src/lib/presence/formulas/coverage.ts` | Controllo 8h: Σ coveredFields = workdayHours, day status |
-| `src/lib/presence/formulas/edit-effects.ts` | Cell edit side effects (permesso clears ferie, causale → full ferie) |
+| `src/lib/presence/formulas/edit-effects.ts` | Cell edit side effects (permesso clears ferie, causale → full ferie); `editChanges` = everything one edit writes. The server decides it from the stored day and saves the cell and its follow-ups in one statement (`updateHoursDistributionAction`): all of it or none, one Registro line |
 | `src/lib/presence/formulas/rounding.ts` | Shared rounding (step + floor/nearest/ceil) |
-| `src/lib/presence/calendar.ts` | Working days, date ranges, local today |
+| `src/lib/presence/calendar.ts` | Which days are worked (working / extra / off) and the days the prefill may touch; the date arithmetic itself (day of the week, every date of a range) is `src/lib/dateUtils.ts` |
 | `src/lib/presence/categories.ts` | ENTITA → category, tracked reparti, the name mark of a category (`nameForCategory`) |
 | `src/lib/presence/operatorInput.ts` | What the Operatori window may write: column sizes, Zod schemas, the message of a wrong field |
 | `src/lib/presence/events.ts` | Presence events and the stato fisico: NetPro's codes, the event a stato changed by hand needs (`eventForStatoChange`) |
@@ -138,6 +145,10 @@ handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES`
   an **entry** is the row, the operator IN and both "since" times (`ORA_ST_FISICO`, `ORA_ST_LOGICO`) = the entry; an
   **exit** first pauses the work in progress one second before, then the row, the operator OUT and `ORA_ST_FISICO` =
   the exit. Entering again restarts nothing, in NetPro and in the app: the work stays paused until someone starts it.
+- **Changing an event's time** (Eventi Giornalieri, `updateEventTimeAction`): the row is named by its whole key, as
+  the delete does (by operator and time alone, until 2026-11-12, both rows of a double stamp moved); exactly one row
+  must change, else nothing is written or logged and the list is to be read again; the Registro keeps the time before
+  and after. Only the row's time changes: the stato fisico and the clock rows stay NetPro's.
 - **The automatic exit** (`runAutoExit` in `src/app/presence/auto-exit.ts`, called by the scheduler at 19:00 on the
   VM through `/api/auto-exit`): who is still IN (last presence event of the day an entry) gets an exit written as
   `UTENTE = 'AUTO'`, with the work in progress paused one second before. Days that are not worked (the rules'
@@ -184,7 +195,8 @@ handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES`
   NetPro never writes, so an exit of someone with nothing open set a phase closed long before back to SUS (the
   phases hit were closed again by the owner); until 2026-11-11 the person stayed on `ATTIVITA`, so NetPro refused them a new job the
   same day (`OPERATORE ATTIVO`), and the state row was not written.
-- **The time** (a click on it, `updateEventAction`): changes `ORA_EVENTO` of that row, nothing else.
+- **The time** (a click on it, `updateEventTimeAction`): changes `ORA_EVENTO` of that one row, named by its whole key
+  like a delete, and nothing else (see "Changing an event's time" above).
 - **Elimina** (tick boxes at the start of the rows, with *modifica*; the ticks drop at every new search;
   `deleteEventsAction`): removes the ticked rows and
   nothing else, which is exactly what NetPro's own screen does (compared on 2026-11-06 with a snapshot before and after

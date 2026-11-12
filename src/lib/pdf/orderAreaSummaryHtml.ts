@@ -1,7 +1,7 @@
 import type { OrderAreaRow } from '@/app/analytics/queries/area-queries';
 import { APP_CONFIG } from '@/config/constants';
-import { calcExpectedHours } from '@/lib/expectedHours';
 import { EMPTY_VALUE, formatHours } from '@/lib/format';
+import { sumOrderHours, type OrderHours } from '@/lib/orderAreaHours';
 import { escapeHtml, generatedAt, join, pdfDocument, percent, reportHeader } from '@/lib/pdf/html';
 import type { PeriodData } from '@/lib/pdf/renderPdf';
 import { PDF_COLORS as C } from '@/lib/pdf/theme';
@@ -18,22 +18,6 @@ const efficiencyOf = (expected: number, worked: number) => (worked > 0 ? (expect
 /** Green on target, amber below */
 const efficiencyColor = (value: number) => (value >= TARGET ? C.good : C.fair);
 
-interface AreaHours {
-    label: string;
-    worked: number;
-    /** Hours the area should take; null when the area has no expected speed */
-    expected: number | null;
-}
-
-interface OrderHours {
-    display: string;
-    description: string;
-    client: string;
-    worked: number;
-    expected: number;
-    areas: AreaHours[];
-}
-
 interface Totals {
     label: string;
     worked: number;
@@ -41,26 +25,9 @@ interface Totals {
     efficiency: number;
 }
 
-/** Sums worked and expected hours per order and area, then per area, per client and overall */
+/** The hours of every order (the same sum as the summary on screen: src/lib/orderAreaHours.ts), then per area, per client and overall */
 function summarize(periods: PeriodData<OrderAreaRow>[]) {
-    const orders = new Map<string, OrderHours>();
-    for (const row of periods.flatMap((p) => p.data)) {
-        let order = orders.get(row.commessa_display);
-        if (!order) {
-            order = { display: row.commessa_display, description: row.order_description ?? '', client: row.client_name ?? '', worked: 0, expected: 0, areas: [] };
-            orders.set(row.commessa_display, order);
-        }
-        let area = order.areas.find((a) => a.label === row.area_name);
-        if (!area) {
-            // Expected hours count once per order and area, even over several periods
-            area = { label: row.area_name, worked: 0, expected: calcExpectedHours(row.area_name, row.qty_requested, row.fogli) };
-            order.areas.push(area);
-            order.expected += area.expected ?? 0;
-        }
-        area.worked += row.work_time;
-        order.worked += row.work_time;
-    }
-    const list = Array.from(orders.values());
+    const list = sumOrderHours(periods.flatMap((p) => p.data));
 
     const totalsBy = (entries: { label: string; worked: number; expected: number }[]): Totals[] => {
         const map = new Map<string, Totals>();

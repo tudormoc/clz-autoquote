@@ -14,7 +14,7 @@ import { getTodayDate } from '@/lib/dateUtils';
 import type { NamedItem, Person, PersonKey } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 
-export { DATE_SQL, MOMENT_SQL, NotFound, THROW_IF_STALE, TIME_SQL, VERSION_MATCH, VERSION_SQL, isStale, personKey, rowSets, rows, transaction } from '@/lib/appTables';
+export { DATE_SQL, MOMENT_SQL, NotFound, THROW_IF_STALE, TIME_SQL, VERSION_MATCH, VERSION_SQL, personKey, rowSets, rows, transaction } from '@/lib/appTables';
 
 /** The Agenda itself, for what it does on its own (a missed date replaced by the next one) */
 export const SYSTEM_PERSON = 'system';

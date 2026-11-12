@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import type { OccurrenceDialogKind, OccurrenceDialogValues, TitledOccurrence } from '@/hooks/useOccurrenceActions';
-import { addDays } from '@/lib/tasks/dates';
+import { addDays } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.tasks.dialogs;

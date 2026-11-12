@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { isoWeekday } from '@/lib/presence';
+import { weekdayOf } from '@/lib/dateUtils';
 import { KIND_SPECS } from '@/lib/timesheet/kinds';
 import type { DaySummary } from '@/lib/timesheet/types';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ import { entryText, hoursText } from './labels';
 
 /** "mer 4": the weekday's first letters and the day of the month */
 function dayLabel(day: string): string {
-    const weekday = APP_COPY.weekdays.long[isoWeekday(day) - 1].slice(0, 3).toLowerCase();
+    const weekday = APP_COPY.weekdays.long[weekdayOf(day) - 1].slice(0, 3).toLowerCase();
     return `${weekday} ${Number(day.slice(8, 10))}`;
 }
 

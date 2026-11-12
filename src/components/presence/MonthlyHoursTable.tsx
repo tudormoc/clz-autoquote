@@ -12,6 +12,7 @@ import { columnLabel } from '@/components/ui/DataCards';
 import { DataTable } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
 import { FilterPanel } from '@/components/ui/FilterPanel';
+import { LoadState } from '@/components/ui/LoadState';
 import { RecordCount } from '@/components/ui/RecordCount';
 import { SearchField } from '@/components/ui/SearchField';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -33,7 +34,6 @@ import {
     isCoverageAnomaly,
     normalizeHours,
     normalizeReparto,
-    resolveEditSideEffects,
     rulesForOperator,
     toHours,
     type PresenceRulesConfig,
@@ -41,7 +41,7 @@ import {
 import { listParam } from '@/lib/address';
 import { defaultReportPeriod, getTodayDate } from '@/lib/dateUtils';
 import { notify } from '@/lib/notify';
-import { toggleInSet } from '@/lib/utils';
+import { errorMessage, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { HoursDistributionField, OperatorHoursRow } from '@/types';
 import { useCanEdit } from '@/components/auth/AccessProvider';
@@ -86,14 +86,16 @@ const LABEL_COLUMNS = 7;
 export function MonthlyHoursTable() {
     const todayStr = useMemo(() => getTodayDate(), []);
     const [rules, setRules] = useState<PresenceRulesConfig>(DEFAULT_PRESENCE_RULES);
+    // Why the stored rules could not be read: the page then shows that instead of hours judged by the defaults
+    const [rulesError, setRulesError] = useState<string | null>(null);
     const view = useAddress(VIEW);
     const activeCategories = useMemo(() => new Set(view.values.categories), [view.values.categories]);
     const activeStatuses = useMemo(() => new Set(view.values.statuses), [view.values.statuses]);
 
     useEffect(() => {
-        getPresenceRulesAction().then((res) => {
-            if (res.success) setRules(res.rules);
-        });
+        getPresenceRulesAction()
+            .then((res) => (res.success ? setRules(res.rules) : setRulesError(res.error)))
+            .catch((err: unknown) => setRulesError(errorMessage(err)));
     }, []);
 
     const list = useListQuery({
@@ -127,19 +129,13 @@ export function MonthlyHoursTable() {
             return false;
         };
         try {
+            // One save: the cell and the cells that must follow it (permesso clears ferie …) are decided and written
+            // together by the server; the row shows what it says it saved
             const res = await updateHoursDistributionAction(row.operatore, row.data, field, value);
             if (!res.success) return fail(res.error);
 
-            // Side effects (e.g. permesso clears ferie) are decided by the rules module
-            const patch = resolveEditSideEffects(row, field, value, rulesForOperator(row.operatore, rules));
-            for (const [patchField, patchValue] of Object.entries(patch)) {
-                await updateHoursDistributionAction(row.operatore, row.data, patchField as HoursDistributionField, patchValue ?? null);
-            }
-
             setRows((prev) =>
-                prev.map((r) =>
-                    r.operatore === row.operatore && r.data === row.data ? ({ ...r, [field]: value, ...patch } as OperatorHoursRow) : r
-                )
+                prev.map((r) => (r.operatore === row.operatore && r.data === row.data ? ({ ...r, ...res.saved } as OperatorHoursRow) : r))
             );
             return true;
         } catch (err) {
@@ -192,6 +188,9 @@ export function MonthlyHoursTable() {
             </dl>
         </div>
     );
+
+    // Statuses, totals and what an edit clears all come from the rules: without them nothing here would be right
+    if (rulesError) return <LoadState loading={false} error={fmt(copy.rulesNotRead, { error: rulesError })} />;
 
     return (
         <div className="flex flex-col gap-4 lg:h-full">

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { LoadState } from '@/components/ui/LoadState';
 import { formatCurrency } from '@/lib/format';
 import { notify } from '@/lib/notify';
+import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 
 const copy = APP_COPY.admin.labourCost;
@@ -18,15 +19,18 @@ const EXAMPLE_HOURS = 10;
 /** The labour rates of the analytics reports: click an amount to change it; the reports use the new value at once. */
 export function LabourCostSettings() {
     const [rates, setRates] = useState<LabourRates | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        getLabourRatesAction().then(setRates).catch(notify.failure);
+        getLabourRatesAction()
+            .then((res) => (res.success ? setRates(res.rates) : setError(res.error)))
+            .catch((err: unknown) => setError(errorMessage(err)));
     }, []);
 
     if (!rates) {
         return (
             <Card className="max-w-2xl">
-                <LoadState loading />
+                <LoadState loading={!error} error={error} />
             </Card>
         );
     }

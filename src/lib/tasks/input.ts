@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { APP_CONFIG } from '@/config/constants';
 import { firstInputProblem } from '@/lib/inputProblem';
-import { isIsoDate } from '@/lib/tasks/dates';
+import { isIsoDate } from '@/lib/dateUtils';
 import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { LINK_KINDS, PRIORITIES, VISIBILITIES } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';

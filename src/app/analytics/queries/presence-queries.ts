@@ -14,9 +14,9 @@ import { APP_COPY, fmt } from '@/locales';
 import type { PresenceData, WeekDateRange, WeeklyGroupData } from '@/types';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
-import { presenceFileNames, presenceFolder, readFirstSheet } from './shared/presence-files';
+import { presenceFileNames, presenceFolder, readSheetByPosition } from './shared/presence-files';
 
-const { EXCEL_FOLDERS, EXCEL_COLUMNS } = APP_CONFIG.PRESENCE;
+const { EXCEL_FOLDERS, EXCEL_COLUMNS, EXCEL_HEADERS } = APP_CONFIG.PRESENCE;
 const copy = APP_COPY.analytics.presence;
 
 interface PresenceRow {
@@ -25,26 +25,25 @@ interface PresenceRow {
     hours: number;
 }
 
-/** Rows of one monthly file with a week number ("Totale settimana 3" → 3), a group and positive hours */
+/**
+ * Rows of one monthly file with a week number ("Totale settimana 3" → 3), a group and positive hours. A file that
+ * cannot be read, or whose columns are not where they are read, throws and the report says which file and why: until
+ * 2026-11-12 such a month counted as no hours, without a word.
+ */
 function readPresenceFile(folder: string, fileName: string): PresenceRow[] {
-    try {
-        const data = readFirstSheet(folder, fileName);
+    const data = readSheetByPosition(folder, fileName, EXCEL_COLUMNS, EXCEL_HEADERS);
 
-        const rows: PresenceRow[] = [];
-        for (const row of data.slice(1)) {
-            const weekText = row[EXCEL_COLUMNS.WEEK];
-            const group = row[EXCEL_COLUMNS.GROUP];
-            const hours = Number(row[EXCEL_COLUMNS.HOURS]);
-            const week = Number(String(weekText ?? '').match(/(\d+)/)?.[1]);
-            if (weekText && group && hours > 0 && !isNaN(week)) {
-                rows.push({ week, group: String(group).trim(), hours });
-            }
+    const rows: PresenceRow[] = [];
+    for (const row of data.slice(1)) {
+        const weekText = row[EXCEL_COLUMNS.WEEK];
+        const group = row[EXCEL_COLUMNS.GROUP];
+        const hours = Number(row[EXCEL_COLUMNS.HOURS]);
+        const week = Number(String(weekText ?? '').match(/(\d+)/)?.[1]);
+        if (weekText && group && hours > 0 && !isNaN(week)) {
+            rows.push({ week, group: String(group).trim(), hours });
         }
-        return rows;
-    } catch (err) {
-        console.error(`Error parsing file ${fileName}:`, errorMessage(err));
-        return [];
     }
+    return rows;
 }
 
 /** Monday to Sunday of an ISO week, as "YYYY-MM-DD" */

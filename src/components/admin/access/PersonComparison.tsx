@@ -10,7 +10,7 @@ const copy = APP_COPY.admin.person;
 const SYSTEM_TONE = { netpro: 'text-info-300', business: 'text-warning-200' } as const;
 
 /** One line per distinct value of a differing fact: the value and where it is */
-export const factIssues = (fact: Fact): string[] =>
+const factIssues = (fact: Fact): string[] =>
     fact.differs ? distinctValues(fact).map((value) => fmt(copy.valueIn, { value, places: placesWith(fact, value).map((place) => copy.places[place]).join(', ') })) : [];
 
 /** Header of a place: its name in the colour of its program, "sola lettura" where Allinea never writes */

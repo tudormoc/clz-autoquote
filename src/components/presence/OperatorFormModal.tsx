@@ -18,6 +18,7 @@ import {
     OPERATOR_COLUMN_SIZES,
     OPERATOR_FREE_FIELDS,
     OperatorFieldsSchema,
+    changedOperatorFields,
     operatorInputProblem,
     type NewOperatorInput,
     type OperatorFields,
@@ -75,7 +76,9 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
     const nameChanges = savedName !== draft.name.trim();
 
     const newInput = (): NewOperatorInput => ({ code, name: draft.name, badge: draft.badge, category: draft.category });
-    const changedFields = (): OperatorFields => ({ NOME: draft.name, BADGE: draft.badge, ENTITA: draft.category, MATRICOLA: draft.matricola, ...draft.free });
+    /** Modifica: only what the window shows differently from the person's row is sent, not every field (see changedOperatorFields) */
+    const changedFields = (): OperatorFields =>
+        operator ? changedOperatorFields(operator, { NOME: draft.name, BADGE: draft.badge, ENTITA: draft.category, MATRICOLA: draft.matricola, ...draft.free }) : {};
 
     const save = async () => {
         const problem = operator ? operatorInputProblem(OperatorFieldsSchema, changedFields()) : operatorInputProblem(NewOperatorSchema, newInput());

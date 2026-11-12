@@ -7,7 +7,7 @@
  * Names compare without case (the columns' collation). Server only; callers check who may do it.
  */
 
-import { queryMSSQL } from '@/lib/mssql';
+import { queryMSSQL, withTransactions, type SqlRunner } from '@/lib/mssql';
 import { cleanPermissions, mergePermissions, type PagePermissions } from '@/lib/auth/permissions';
 import type { PersonLinks } from '@/lib/persons/places';
 
@@ -142,8 +142,9 @@ export async function updateAccountName(id: number, name: string): Promise<void>
     await queryMSSQL(`UPDATE app_users SET name = @name WHERE id = @id`, { id, name }, DB);
 }
 
-export async function updateAccountGroups(id: number, groupIds: number[]): Promise<void> {
-    await queryMSSQL(`UPDATE app_users SET group_ids = @groupIds WHERE id = @id`, { id, groupIds: groupIds.join(',') }, DB);
+/** `run`: the caller's transaction, when the change is part of a larger one (a group deleted) */
+export async function updateAccountGroups(id: number, groupIds: number[], run: SqlRunner = queryMSSQL): Promise<void> {
+    await run(`UPDATE app_users SET group_ids = @groupIds WHERE id = @id`, { id, groupIds: groupIds.join(',') }, DB);
 }
 
 /** `provisional`: given out by the superadmin, or chosen by the person themselves */
@@ -191,9 +192,14 @@ export async function updateGroupPages(id: number, pages: PagePermissions): Prom
     await queryMSSQL(`UPDATE app_groups SET pages = @pages WHERE id = @id`, { id, pages: JSON.stringify(pages) }, DB);
 }
 
-/** Deletes a group and takes it off its users (a group id left on a user would be ignored anyway) */
+/**
+ * Deletes a group and takes it off its users, in one transaction: all of it, or none (until 2026-11-12 it was one
+ * write per user and then the delete, so a stop halfway left some users without the group and the group still there).
+ */
 export async function deleteGroup(id: number): Promise<void> {
     const members = (await listAccounts()).filter((account) => account.groupIds.includes(id));
-    for (const account of members) await updateAccountGroups(account.id, account.groupIds.filter((groupId) => groupId !== id));
-    await queryMSSQL(`DELETE FROM app_groups WHERE id = @id`, { id }, DB);
+    await withTransactions([DB], async (run) => {
+        for (const account of members) await updateAccountGroups(account.id, account.groupIds.filter((groupId) => groupId !== id), run);
+        await run(`DELETE FROM app_groups WHERE id = @id`, { id }, DB);
+    });
 }

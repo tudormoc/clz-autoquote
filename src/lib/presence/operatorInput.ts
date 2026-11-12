@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { firstInputProblem } from '@/lib/inputProblem';
 import { APP_COPY, fmt } from '@/locales';
-import { TRACKED_REPARTI, isLeftCategory } from './categories';
+import { TRACKED_REPARTI, isLeftCategory, nameForCategory } from './categories';
 
 /** varchar lengths of the OPERATORI columns the app writes */
 export const OPERATOR_COLUMN_SIZES = { OPERATORE: 20, NOME: 30, BADGE: 20, MATRICOLA: 20, FCODE: 20, STATO_FISICO: 4 } as const;
@@ -50,6 +50,32 @@ export const OperatorFieldsSchema = z
 export type OperatorFields = z.input<typeof OperatorFieldsSchema>;
 export type OperatorField = keyof OperatorFields;
 export const OPERATOR_FIELDS = Object.keys(OperatorFieldsSchema.shape) as OperatorField[];
+
+/** A value of the window and one of the row are the same when their text is: spaces around and "nothing" do not count */
+const sameText = (a: string | null | undefined, b: string | null | undefined) => (a ?? '').trim() === (b ?? '').trim();
+
+/**
+ * The fields the "Modifica operatore" window sends: only those where what the window shows differs from the person's
+ * row as the list read it (`stored`). Until 2026-11-12 every field went back at each Salva: a value changed in
+ * NetPro while the window was open was overwritten with the old one, and the Registro listed every field as changed.
+ * Name and category go together, since the name carries the category's mark (" *lb"): both are sent when the
+ * category differs, or when the name as it will be saved (nameForCategory, what the window announces) differs.
+ */
+export function changedOperatorFields(stored: Partial<Record<OperatorField, string | null>>, shown: OperatorFields): OperatorFields {
+    const changed: OperatorFields = {};
+    for (const field of OPERATOR_FIELDS) {
+        if (field === 'NOME' || field === 'ENTITA' || shown[field] === undefined) continue;
+        if (!sameText(stored[field], shown[field])) changed[field] = shown[field];
+    }
+    if (shown.NOME !== undefined && shown.ENTITA !== undefined) {
+        const nameAsSaved = nameForCategory(shown.NOME, shown.ENTITA);
+        if (!sameText(stored.NOME, nameAsSaved) || !sameText(stored.ENTITA, shown.ENTITA)) {
+            changed.NOME = shown.NOME;
+            changed.ENTITA = shown.ENTITA;
+        }
+    }
+    return changed;
+}
 
 const OWN_MESSAGES = new Set<string>([copy.codeRequired, copy.codeNoSpaces, copy.nameRequired, copy.categoryRequired]);
 const FIELD_LABELS: readonly (readonly [string, string])[] = [

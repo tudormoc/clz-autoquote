@@ -9,6 +9,7 @@ import {
     blockedStamps,
     chooseExit,
     clockToSeconds,
+    editChanges,
     eventForStatoChange,
     exitGuesses,
     minutesToTime,
@@ -18,12 +19,14 @@ import {
     secondsToClock,
     timeToMinutes,
     type DayStamp,
+    type HoursDistribution,
     type PastExit,
     type PresenceStamp,
 } from '@/lib/presence';
 import { runNoRecordExamples, runOperatorExceptionExamples, runPresenceExamples } from '@/lib/presence/examples';
 import type { AutoExitDecision, runAutoExit } from '@/app/presence/auto-exit';
 import { APP_COPY } from '@/locales';
+import type { HoursDistributionField } from '@/types';
 import { readAnswer } from './scheduler.js';
 
 const results = runPresenceExamples(DEFAULT_PRESENCE_RULES);
@@ -202,6 +205,27 @@ for (const { slots, expect, note } of OTHERS_EXAMPLES) {
     if (!pass) console.log(`     expected ${String(expect)}`);
 }
 
+// What one edit of a cell of Riepilogo Mensile writes: the cell, as stored, and the cells that must follow it. The
+// server saves all of them in one statement (updateHoursDistributionAction), from what the day holds now.
+const EDIT_EXAMPLES: { stored: Partial<HoursDistribution>; field: HoursDistributionField; value: number | string | null; expect: Record<string, number | string | null>; note: string }[] = [
+    { stored: {}, field: 'ore_ordinarie', value: '8', expect: { ore_ordinarie: 8 }, note: 'a plain cell: only itself, hours as a number' },
+    { stored: { ore_ferie: 8, causale_ferie: 'FERIE' }, field: 'ore_permesso', value: 2, expect: { ore_permesso: 2, ore_ferie: null, causale_ferie: null }, note: 'permesso on a ferie day clears the ferie and its causale' },
+    { stored: { ore_ferie: 8, causale_ferie: 'FERIE' }, field: 'ore_malattia', value: 8, expect: { ore_malattia: 8, ore_ferie: null, causale_ferie: null }, note: 'malattia on a ferie day does the same' },
+    { stored: { ore_ordinarie: 6 }, field: 'ore_permesso', value: 2, expect: { ore_permesso: 2 }, note: 'permesso on a day without ferie: nothing follows' },
+    { stored: { ore_ferie: 8, causale_ferie: 'FERIE' }, field: 'ore_permesso', value: 0, expect: { ore_permesso: 0 }, note: 'permesso set to 0 leaves the ferie' },
+    { stored: {}, field: 'causale_ferie', value: ' FERIE ', expect: { causale_ferie: 'FERIE', ore_ferie: 8 }, note: 'a causale ferie on a day without ferie hours fills the workday' },
+    { stored: { ore_ferie: 4 }, field: 'causale_ferie', value: 'FERIE', expect: { causale_ferie: 'FERIE' }, note: 'a causale ferie where hours are there: only the causale' },
+    { stored: { ore_permesso: 2 }, field: 'ore_permesso', value: '', expect: { ore_permesso: null }, note: 'an emptied cell is stored as empty' },
+    { stored: {}, field: 'ore_ordinarie', value: 'abc', expect: { ore_ordinarie: null }, note: 'hours that are no number are stored as empty' },
+];
+for (const { stored, field, value, expect, note } of EDIT_EXAMPLES) {
+    const actual = JSON.stringify(editChanges(stored, field, value, DEFAULT_PRESENCE_RULES));
+    const pass = actual === JSON.stringify(expect);
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${actual.padEnd(18)} — edit: ${note}`);
+    if (!pass) console.log(`     expected ${JSON.stringify(expect)}`);
+}
+
 // What the scheduler (scripts/scheduler.js) makes of the app's answer to the daily automatic exit: did the run end
 // well, and does it call again. The answers are typed as the app's own (runAutoExit), so a field renamed there fails
 // the typecheck here: the scheduler is plain JavaScript and would otherwise go on reading a field that is gone.
@@ -235,6 +259,6 @@ for (const { status, answer, expect, note } of SCHEDULER_EXAMPLES) {
 
 const total =
     results.length + noRecord.length + exceptions.length + NAME_EXAMPLES.length + DELETE_EXAMPLES.length + STATO_EXAMPLES.length +
-    EXIT_EXAMPLES.length + REAL_EXIT_EXAMPLES.length + OTHERS_EXAMPLES.length + SCHEDULER_EXAMPLES.length;
+    EXIT_EXAMPLES.length + REAL_EXIT_EXAMPLES.length + OTHERS_EXAMPLES.length + EDIT_EXAMPLES.length + SCHEDULER_EXAMPLES.length;
 console.log(`\n${total - failed}/${total} examples pass`);
 process.exit(failed > 0 ? 1 : 0);

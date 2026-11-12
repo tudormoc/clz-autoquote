@@ -18,9 +18,14 @@ type Saved = { success: true } | { success: false; error: string };
 
 const KeySchema = z.enum(Object.keys(LABOUR_RATES) as [LabourRateKey, ...LabourRateKey[]]);
 
-export async function getLabourRatesAction(): Promise<LabourRates> {
+/** The rates for Costo del Lavoro; when they cannot be read the page says so, it does not show the defaults as saved */
+export async function getLabourRatesAction(): Promise<{ success: true; rates: LabourRates } | { success: false; error: string }> {
     await authorize('view', LINKS.settings['labour-cost']);
-    return readLabourRates();
+    try {
+        return { success: true, rates: await readLabourRates() };
+    } catch (error) {
+        return { success: false, error: errorMessage(error) };
+    }
 }
 
 /** Saves one rate (€ per hour); anything but a known rate and a sensible amount is refused */

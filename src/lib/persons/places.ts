@@ -76,7 +76,7 @@ const clean = (value: string | null | undefined): string | null => (value ?? '')
 const joinName = (surname: string | null, name: string | null) => clean([surname, name].map((part) => (part ?? '').trim()).filter(Boolean).join(' '));
 
 /** The same address however it is typed */
-export const emailKey = (value: string) => value.trim().toLowerCase();
+const emailKey = (value: string) => value.trim().toLowerCase();
 
 const singleSpaced = (value: string) => value.split(/\s+/).filter(Boolean).join(' ');
 

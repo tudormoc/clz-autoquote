@@ -15,12 +15,11 @@ const { EXCEL_COLUMNS: COL, INTERINALI_GROUP, PLACEHOLDER_NAME_PREFIX, BLANK_ROW
 /** A cell as the studio gets it: a number of hours, a typed note ("L.104"), or nothing */
 export type PayrollValue = number | string | null;
 
-/** The hour columns, in the order of the file */
-export const PAYROLL_FIELDS = ['ferie', 'permesso', 'malattia', 'ordinarie', 'straordinarie', 'bancaOre', 'bancaOreN1', 'bancaOreN'] as const;
-export type PayrollField = (typeof PAYROLL_FIELDS)[number];
+/** The hour columns of the file */
+export type PayrollField = 'ferie' | 'permesso' | 'malattia' | 'ordinarie' | 'straordinarie' | 'bancaOre' | 'bancaOreN1' | 'bancaOreN';
 
 /** The note next to ferie and to permesso: the type of the absence (the office rows have it, the production file not) */
-export const PAYROLL_NOTES = ['causaleFerie', 'causalePermesso'] as const;
+const PAYROLL_NOTES = ['causaleFerie', 'causalePermesso'] as const;
 export type PayrollNote = (typeof PAYROLL_NOTES)[number];
 
 /** Every column after the date, in the order of the file */
@@ -57,7 +56,7 @@ export type PayrollRow = { kind: 'day'; person: PayrollPerson; day: PayrollDay }
 export const dayOf = (row: PayrollRow) => (row.kind === 'day' ? row : null);
 
 /** A day with nothing in it */
-export function emptyDay(date: string): PayrollDay {
+function emptyDay(date: string): PayrollDay {
     return {
         date,
         ferie: null,
@@ -136,7 +135,7 @@ const UNIX_EPOCH_SERIAL = 25569;
 const DAY_MS = 86_400_000;
 
 /** "YYYY-MM-DD" of an Excel date serial (its time part dropped); null for anything else (the file's "data0" rows) */
-export function cellDate(raw: unknown): string | null {
+function cellDate(raw: unknown): string | null {
     if (typeof raw !== 'number' || Number.isNaN(raw)) return null;
     return new Date((Math.floor(raw) - UNIX_EPOCH_SERIAL) * DAY_MS).toISOString().slice(0, 10);
 }

@@ -15,10 +15,10 @@ const { MAX_HOURS, MAX_CAUSALE_LENGTH, MAX_NOTE_LENGTH } = APP_CONFIG.TIMESHEET;
 const messages = APP_COPY.timesheet.messages;
 const editor = APP_COPY.timesheet.editor;
 
-export const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).refine(isStepTime, messages.step);
+const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).refine(isStepTime, messages.step);
 const HoursSchema = z.number().positive().max(MAX_HOURS).refine(isStepHours, messages.step);
 
-export const EntryInputSchema = z
+const EntryInputSchema = z
     .object({
         kind: z.enum(ENTRY_KINDS),
         timeFrom: TimeSchema.nullable(),

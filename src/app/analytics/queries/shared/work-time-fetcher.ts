@@ -14,7 +14,6 @@
  * calculate true profitability of the order.
  */
 
-import { errorMessage } from '@/lib/utils';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 
@@ -44,28 +43,25 @@ export async function fetchWorkTimesForCommessas(
             return `@code${idx}`;
         }).join(', ');
 
-        try {
-            const timeResult = await queryMSSQL<{ commessa_code: string; total_work_time: number | null }>(`
-                SELECT 
-                    SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
-                    SUM(SIT.LAVORO) as total_work_time
-                FROM SITUAZIONI SIT WITH (NOLOCK)
-                LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
-                LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
-                WHERE SIT.TIPO = 'WORK'
-                  AND SIT.TIPO_OGGETTO = 'OPE'
-                  AND ORD.COMMESSA IS NOT NULL
-                  AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
-                GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
-            `, timeParams, 'NETPRO', 15000); // 15 second timeout
+        // A batch that cannot be read fails the whole report (it throws to the report's own catch). Until 2026-11-12
+        // it was only logged: the orders of that batch then showed no labour cost, so a margin too high, as if right
+        const timeResult = await queryMSSQL<{ commessa_code: string; total_work_time: number | null }>(`
+            SELECT
+                SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
+                SUM(SIT.LAVORO) as total_work_time
+            FROM SITUAZIONI SIT WITH (NOLOCK)
+            LEFT JOIN JOBSET JST WITH (NOLOCK) ON SIT.TASK = JST.TASK
+            LEFT JOIN ORDINI ORD WITH (NOLOCK) ON JST.ORDINE = ORD.ORDINE
+            WHERE SIT.TIPO = 'WORK'
+              AND SIT.TIPO_OGGETTO = 'OPE'
+              AND ORD.COMMESSA IS NOT NULL
+              AND SUBSTRING(ORD.COMMESSA, 4, 4) IN (${placeholders})
+            GROUP BY SUBSTRING(ORD.COMMESSA, 4, 4)
+        `, timeParams, 'NETPRO', 15000); // 15 second timeout
 
-            timeResult.recordset.forEach(row => {
-                workTimes[row.commessa_code] = row.total_work_time || 0;
-            });
-        } catch (err) {
-            console.error(`Work time fetch error for batch ${i / BATCH_SIZE + 1}:`, errorMessage(err));
-            // Continue with other batches even if one fails
-        }
+        timeResult.recordset.forEach(row => {
+            workTimes[row.commessa_code] = row.total_work_time || 0;
+        });
     }
 
     return workTimes;

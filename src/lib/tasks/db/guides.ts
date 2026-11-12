@@ -5,7 +5,7 @@
 
 import type { UserAccess } from '@/lib/auth/permissions';
 import type { SqlParams } from '@/lib/mssql';
-import { addMonths } from '@/lib/tasks/dates';
+import { addMonths } from '@/lib/dateUtils';
 import type { GuideInput } from '@/lib/tasks/input';
 import type { GuideDetail, GuideState, GuideSummary, GuideVersion, Person, TaskLink, TaskState } from '@/lib/tasks/types';
 import {

@@ -51,38 +51,43 @@ export async function getDailyEventsAction(dateFrom: string, dateTo: string, ope
     }
 }
 
-/** Columns of an event the list may change (the server refuses any other) */
-const EVENT_COLUMNS = ['EVENTO', 'ORA_EVENTO'] as const;
+/** A new time as the list's editor gives it: "YYYY-MM-DD HH:MM" or "YYYY-MM-DD HH:MM:SS" */
+const EVENT_TIME = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) ([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
-export async function updateEventAction(
-    oggetto: string,
-    /** The event's current time, as read from the database */
-    oraEvento: Date,
-    columnName: (typeof EVENT_COLUMNS)[number],
-    newValue: string
-) {
+/**
+ * Changes the time of one presence event (the only thing of an event the list changes). The event is named by its
+ * whole key, as the delete does: by operator and time alone, as until 2026-11-12, an entry and an exit stamped at the
+ * same instant (a double badge) both moved. One row must change: when the event is no longer there as the list showed
+ * it, nothing is written or logged and the answer says to reload. The time is stored as typed (no time zone
+ * conversion), with milliseconds; the stato fisico and the clock rows are left to NetPro, as before.
+ */
+export async function updateEventTimeAction(event: PresenceEventKey, newTime: string) {
     const access = await authorize('edit', LINKS.presence.dailyEvents);
-    if (!EVENT_COLUMNS.includes(columnName)) return { success: false, error: APP_COPY.common.notAllowed };
+    const parsed = EventKeySchema.safeParse(event);
+    if (!parsed.success || typeof newTime !== 'string' || !EVENT_TIME.test(newTime)) return { success: false, error: APP_COPY.common.invalidData };
+    const key = parsed.data;
+    // Always with seconds: a browser may leave ":00" out, and "07:55" with milliseconds added would be no time at all
+    const time = newTime.length === 'YYYY-MM-DD HH:MM'.length ? `${newTime}:00` : newTime;
+    // The typed time the way the database's own times arrive here (the wall clock, read as UTC): same format in messages
+    const typed = new Date(`${time.replace(' ', 'T')}Z`);
+    // The time it already has: nothing to write, nothing to log
+    if (typed.getTime() === key.oraEvento.getTime()) return { success: true };
     try {
-        // A time is stored as typed (no time zone conversion), with milliseconds
-        const queryValue = columnName === 'ORA_EVENTO' ? withMillis(newValue) : newValue;
-
-        // The event is identified by OGGETTO + ORA_EVENTO
-        await queryMSSQL(`
-            UPDATE EVENTI
-            SET ${columnName} = @newValue
-            WHERE OGGETTO = @oggetto
-              AND ORA_EVENTO = @oraEvento
-              AND TASK = 'presenza'
-        `, { newValue: queryValue, oggetto, oraEvento }, 'NETPRO');
+        // The count is asked in the same batch: it is the UPDATE's own, whatever else the table does at a change
+        const changed = await queryMSSQL<{ changed: number }>(`
+            UPDATE EVENTI SET ORA_EVENTO = @newTime
+            WHERE ${PRESENCE_OF} AND EVENTO = @evento AND ORA_EVENTO = @oraEvento AND PROGRESSIVO = @progressivo;
+            SELECT @@ROWCOUNT AS changed;
+        `, { newTime: withMillis(time), operator: key.oggetto, evento: key.evento, oraEvento: key.oraEvento, progressivo: key.progressivo }, 'NETPRO');
+        if (changed.recordset[0]?.changed !== 1) return { success: false, error: fmt(copy.timeGone, { event: eventLabel(key) }) };
 
         await logEvent(personOf(access), {
             page: LINKS.presence.dailyEvents,
             action: 'changed',
             entityKind: 'presence-event',
-            entityId: oggetto,
-            summary: fmt(log.eventUpdated, { operator: oggetto, column: columnName, value: newValue }),
-            details: { event: { operator: oggetto, at: oraEvento }, after: { [columnName]: newValue } },
+            entityId: key.oggetto,
+            summary: fmt(log.eventTimeChanged, { operator: key.oggetto, event: key.evento, from: formatDbDateTime(key.oraEvento), time: formatDbDateTime(typed) }),
+            details: { event: { operator: key.oggetto, event: key.evento, progressivo: key.progressivo }, before: { ORA_EVENTO: key.oraEvento }, after: { ORA_EVENTO: time } },
         });
         return { success: true };
     } catch (err) {
@@ -132,6 +137,9 @@ const OTHER_OF = `TASK <> 'presenza' AND (OPERATORE = @operator OR (TIPO_OGGETTO
 
 const stampOf = (key: PresenceEventKey): PresenceStamp => ({ evento: key.evento, at: key.oraEvento.getTime(), progressivo: key.progressivo });
 
+/** One event in a message: operator, ENT / EXT, date and time */
+const eventLabel = (key: PresenceEventKey) => fmt(copy.delete.event, { operator: key.oggetto, event: key.evento, time: formatDbDateTime(key.oraEvento) });
+
 /**
  * The picked events of one operator that must stay (the rule: src/lib/presence/eventDelete.ts). Reads the operator's
  * presence events from the one before the first picked to the one after the last, so every picked event has its
@@ -177,7 +185,7 @@ export async function deleteEventsAction(events: PresenceEventKey[]) {
     const parsed = DeleteEventsSchema.safeParse(events);
     if (!parsed.success) return { success: false, error: APP_COPY.common.invalidData };
     const picked = parsed.data;
-    const label = (key: PresenceEventKey) => fmt(copy.delete.event, { operator: key.oggetto, event: key.evento, time: formatDbDateTime(key.oraEvento) });
+    const label = eventLabel;
     try {
         const deleted = await withTransactions(['NETPRO'], async (run) => {
             const blocked: PresenceEventKey[] = [];

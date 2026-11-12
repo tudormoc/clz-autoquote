@@ -3,7 +3,7 @@
  */
 
 import { formatDate, formatDayMonth } from '@/lib/format';
-import { addDays, daysBetween, dayOf, monthOf, weekdayOf, yearOf } from '@/lib/tasks/dates';
+import { addDays, daysBetween, dayOf, monthOf, weekdayOf, yearOf } from '@/lib/dateUtils';
 import type { MonthDay, RepeatEnd, RepeatPattern, RepeatRule } from '@/lib/tasks/repeat';
 import { APP_COPY, fmt } from '@/locales';
 

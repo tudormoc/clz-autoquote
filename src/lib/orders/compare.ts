@@ -10,6 +10,7 @@ import type {
     DibaMaterialRow,
     OrderMaterialSummaryRow,
 } from '@/types';
+import { APP_COPY, fmt } from '@/locales';
 
 export type OpField = 'lav' | 'centro' | 'note' | 'missing';
 
@@ -46,6 +47,9 @@ export interface MaterialComparisonRow {
     kept?: { bus?: number; net?: number };
 }
 
+const copy = APP_COPY.analytics.orderOperations;
+/** What the comparison says of a row that differs (it.ts → compareIssues) */
+const say = copy.compareIssues;
 const txt = (v: unknown) => String(v ?? '').trim().toLowerCase();
 /** Quantities are compared to the thousandth (materials, order quantities) */
 export const QTY_EPS = 0.001;
@@ -89,25 +93,25 @@ export function compareOperations(
         if (!d) {
             // Already worked on: it stays on the order, whatever the DiBa says now
             if (kept.has(Number(r.fase))) { r.kept = true; continue; }
-            if (r.bus) { r.busDiff.push('missing'); r.issues.push('Fase non più in DiBa (presente in Business)'); }
-            if (r.net) { r.netDiff.push('missing'); r.issues.push('Fase non più in DiBa (presente in NetPro)'); }
+            if (r.bus) { r.busDiff.push('missing'); r.issues.push(say.phaseGoneBus); }
+            if (r.net) { r.netDiff.push('missing'); r.issues.push(say.phaseGoneNet); }
             continue;
         }
         // Business order vs DiBa
         if (!r.bus) {
-            r.busDiff.push('missing'); r.issues.push('Manca nell\'ordine Business');
+            r.busDiff.push('missing'); r.issues.push(copy.factBusMissing);
         } else {
-            if (Number(r.bus.codlavo) !== Number(d.codlavo)) { r.busDiff.push('lav'); r.issues.push('Lavorazione Business ≠ DiBa'); }
-            if (Number(r.bus.codcent) !== Number(d.codcent)) { r.busDiff.push('centro'); r.issues.push('Centro Business ≠ DiBa'); }
-            if (txt(r.bus.note) !== txt(d.note)) { r.busDiff.push('note'); r.issues.push('Nota Business ≠ DiBa'); }
+            if (Number(r.bus.codlavo) !== Number(d.codlavo)) { r.busDiff.push('lav'); r.issues.push(say.lavBus); }
+            if (Number(r.bus.codcent) !== Number(d.codcent)) { r.busDiff.push('centro'); r.issues.push(say.centroBus); }
+            if (txt(r.bus.note) !== txt(d.note)) { r.busDiff.push('note'); r.issues.push(say.noteBus); }
         }
         // NetPro order vs DiBa
         if (!r.net) {
-            r.netDiff.push('missing'); r.issues.push('Manca nell\'ordine NetPro');
+            r.netDiff.push('missing'); r.issues.push(copy.factNetMissing);
         } else {
-            if (txt(r.net.descrizione) !== txt(d.descr_lavor)) { r.netDiff.push('lav'); r.issues.push('Lavorazione NetPro ≠ DiBa'); }
-            if (txt(r.net.centro_assegnato) !== txt(d.codcent)) { r.netDiff.push('centro'); r.issues.push('Centro NetPro ≠ DiBa'); }
-            if (txt(r.net.note) !== txt(String(d.note ?? '').slice(0, NETPRO_NOTE_LEN))) { r.netDiff.push('note'); r.issues.push('Nota NetPro ≠ DiBa'); }
+            if (txt(r.net.descrizione) !== txt(d.descr_lavor)) { r.netDiff.push('lav'); r.issues.push(say.lavNet); }
+            if (txt(r.net.centro_assegnato) !== txt(d.codcent)) { r.netDiff.push('centro'); r.issues.push(say.centroNet); }
+            if (txt(r.net.note) !== txt(String(d.note ?? '').slice(0, NETPRO_NOTE_LEN))) { r.netDiff.push('note'); r.issues.push(say.noteNet); }
         }
     }
     return Array.from(map.values()).sort((a, b) => a.fase - b.fase);
@@ -154,19 +158,20 @@ export function compareMaterials(
 
     for (const r of Array.from(map.values())) {
         if (r.expected === undefined) {
-            if (r.bus !== undefined) { r.busDiff = true; r.issues.push('Non più in DiBa (presente in Business)'); }
-            if (r.net !== undefined) { r.netDiff = true; r.issues.push('Non più in DiBa (presente in NetPro)'); }
+            if (r.bus !== undefined) { r.busDiff = true; r.issues.push(say.materialGoneBus); }
+            if (r.net !== undefined) { r.netDiff = true; r.issues.push(say.materialGoneNet); }
             continue;
         }
-        if (r.bus === undefined) { r.busDiff = true; r.issues.push('Manca nell\'ordine Business'); }
-        else if (Math.abs(r.bus - r.expected) > QTY_EPS) { r.busDiff = true; r.issues.push('Q.tà Business ≠ DiBa'); }
-        if (r.net === undefined) { r.netDiff = true; r.issues.push('Manca nell\'ordine NetPro'); }
-        else if (Math.abs(r.net - r.expected) > QTY_EPS) { r.netDiff = true; r.issues.push('Q.tà NetPro ≠ DiBa'); }
+        if (r.bus === undefined) { r.busDiff = true; r.issues.push(copy.factBusMissing); }
+        else if (Math.abs(r.bus - r.expected) > QTY_EPS) { r.busDiff = true; r.issues.push(say.qtyBus); }
+        if (r.net === undefined) { r.netDiff = true; r.issues.push(copy.factNetMissing); }
+        else if (Math.abs(r.net - r.expected) > QTY_EPS) { r.netDiff = true; r.issues.push(say.qtyNet); }
     }
     // Once the DiBa has a real material the placeholder has to go, wherever it still is
     if (diba.length > 0 && (placeholder.diba || placeholder.bus || placeholder.net)) {
         const sample = placeholder.bus ?? placeholder.net;
-        const where = [placeholder.diba && 'DiBa', placeholder.bus && 'Business', placeholder.net && 'NetPro'].filter(Boolean).join(', ');
+        const places = copy.syncPreview.where;
+        const where = [placeholder.diba && places.diba, placeholder.bus && places.bus, placeholder.net && places.net].filter(Boolean).join(', ');
         map.set(PLACEHOLDER_MATERIAL, {
             part_number: PLACEHOLDER_MATERIAL,
             description: sample?.description ?? placeholder.diba?.description ?? PLACEHOLDER_MATERIAL,
@@ -176,7 +181,7 @@ export function compareMaterials(
             busDiff: !!placeholder.bus,
             netDiff: !!placeholder.net,
             placeholderInDiba: !!placeholder.diba,
-            issues: [`Materiale fittizio da rimuovere (${where})`],
+            issues: [fmt(say.placeholderRemove, { where })],
         });
     }
     return Array.from(map.values()).sort((a, b) =>

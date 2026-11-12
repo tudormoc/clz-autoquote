@@ -6,7 +6,7 @@
  */
 
 import { errorMessage } from '@/lib/utils';
-import { getTodayDate } from '@/lib/dateUtils';
+import { eachDateInRange, getTodayDate } from '@/lib/dateUtils';
 import { queryMSSQL } from '@/lib/mssql';
 import { APP_COPY, fmt } from '@/locales';
 import {
@@ -15,7 +15,6 @@ import {
     getDayKind,
     prefillRepartiSql,
     profileFromReparto,
-    eachDateInRange,
     isPrefillableDay,
     distributeDay,
     hasAnyDistribution,

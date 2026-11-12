@@ -9,7 +9,7 @@ import { minutesToTime, timeToMinutes } from '@/lib/presence';
 const { STEP_MINUTES } = APP_CONFIG.TIMESHEET;
 
 /** The step as hours (0.5) */
-export const STEP_HOURS = STEP_MINUTES / 60;
+const STEP_HOURS = STEP_MINUTES / 60;
 
 /** "08:30" sits on a step; "08:15" does not */
 export const isStepTime = (time: string) => timeToMinutes(time) % STEP_MINUTES === 0;

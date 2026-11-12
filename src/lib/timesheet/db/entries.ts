@@ -6,6 +6,7 @@
 
 import type { UserAccess } from '@/lib/auth/permissions';
 import { DATE_SQL, THROW_IF_STALE, TIME_SQL, VERSION_MATCH, VERSION_SQL, personKey, rows, transaction } from '@/lib/appTables';
+import type { SqlParams, SqlRunner } from '@/lib/mssql';
 import type { Entry, EntryInput, EntryKind } from '@/lib/timesheet/types';
 
 interface EntryRow {
@@ -147,6 +148,36 @@ export async function updateEntry(access: UserAccess, id: number, version: strin
         `),
         { ...entryParams(access, input), id, version }
     );
+}
+
+/** The line `e` as JSON for the log, as BEFORE_SQL gives it; `causale` may be another value (the line as it will be) */
+const LINE_JSON = (causale: string) => `(SELECT e2.kind, ${TIME_SQL('e2.time_from')} AS timeFrom, ${TIME_SQL('e2.time_to')} AS timeTo, e2.hours, ${causale} AS causale, e2.note
+                    FROM timesheet_entries e2 WHERE e2.id = e.id FOR JSON PATH, WITHOUT_ARRAY_WRAPPER, INCLUDE_NULL_VALUES)`;
+
+/**
+ * A quick text of Regole Presenze was renamed: every line of these kinds that carries the old text takes the new one
+ * (owner, 2026-11-12), each with its log line, the line before and after, like any other change of a line. Runs in the
+ * caller's transaction (`run`), together with the rename of the list itself; answers how many lines changed.
+ */
+export async function renameCausale(run: SqlRunner, access: UserAccess, kinds: readonly EntryKind[], oldTag: string, newTag: string): Promise<number> {
+    if (kinds.length === 0) return 0;
+    const params: SqlParams = { me: personKey(access), oldTag, newTag };
+    const kindList = kinds.map((kind, i) => {
+        params[`kind${i}`] = kind;
+        return `@kind${i}`;
+    });
+    const carrying = (alias: string) => `${alias}kind IN (${kindList.join(', ')}) AND ${alias}causale = @oldTag`;
+    const result = await run<{ changed: number }>(
+        `${LOG_INSERT}
+            SELECT @me, e.id, e.operator_code, e.day, 'changed',
+                '{"before":' + ISNULL(${LINE_JSON('e2.causale')}, 'null') + ',"after":' + ISNULL(${LINE_JSON('@newTag')}, 'null') + '}'
+            FROM timesheet_entries e WHERE ${carrying('e.')};
+            UPDATE timesheet_entries SET causale = @newTag, updated_at = GETDATE(), updated_by = @me WHERE ${carrying('')};
+            SELECT @@ROWCOUNT AS changed;`,
+        params,
+        'QUOTES'
+    );
+    return result.recordset[0]?.changed ?? 0;
 }
 
 export async function deleteEntry(access: UserAccess, id: number, version: string): Promise<void> {

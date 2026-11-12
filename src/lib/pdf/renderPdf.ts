@@ -75,10 +75,3 @@ export async function renderPdfBase64(html: string, options: PdfOptions): Promis
         await browser.close();
     }
 }
-
-/** First and last day of a month as "YYYY-MM-DD" */
-export function monthRange(year: number, month: number): { dateFrom: string; dateTo: string } {
-    const mm = String(month).padStart(2, '0');
-    const lastDay = new Date(year, month, 0).getDate();
-    return { dateFrom: `${year}-${mm}-01`, dateTo: `${year}-${mm}-${String(lastDay).padStart(2, '0')}` };
-}

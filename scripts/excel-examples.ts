@@ -4,7 +4,9 @@
  * Run: npm run excel:examples
  */
 import * as XLSX from 'xlsx';
+import { APP_CONFIG } from '@/config/constants';
 import { buildWorkbook, type ExcelColumn } from '@/lib/excel';
+import { columnLetter, misplacedColumns } from '@/lib/excelLayout';
 
 interface Row {
     date: string;
@@ -98,6 +100,26 @@ function main() {
             expectEqual(`${ref} type`, x?.t, y?.t);
             expectEqual(`${ref} format`, x?.z, y?.z);
         }
+    }
+
+    // A sheet the app reads by position (the monthly production files): the header row must show the expected title
+    // at every column read (src/lib/excelLayout.ts). Here: what is found, then what is expected
+    const positions = { ID: 1, HOURS: 3 };
+    const titles = { ID: 'ID Operatore', HOURS: 'Ore Ordinarie' };
+    expectEqual('column letters', [0, 14, 25, 26, 27, 40, 701, 702].map(columnLetter), ['A', 'O', 'Z', 'AA', 'AB', 'AO', 'ZZ', 'AAA']);
+    expectEqual('layout: as expected', misplacedColumns(['x', 'ID Operatore', 'y', 'Ore Ordinarie'], positions, titles), []);
+    expectEqual('layout: capitals and spaces do not count', misplacedColumns([null, ' id  operatore', null, 'ORE ORDINARIE '], positions, titles), []);
+    expectEqual('layout: a column added in front moves both', misplacedColumns(['x', 'Nuova', 'ID Operatore', 'y', 'Ore Ordinarie'], positions, titles), [
+        { column: 'B', expected: 'ID Operatore', found: 'Nuova' },
+        { column: 'D', expected: 'Ore Ordinarie', found: 'y' },
+    ]);
+    expectEqual('layout: a header cell that is empty', misplacedColumns(['x', 'ID Operatore'], positions, titles), [{ column: 'D', expected: 'Ore Ordinarie', found: null }]);
+    expectEqual('layout: no header row at all', misplacedColumns(undefined, positions, titles).map((each) => each.column), ['B', 'D']);
+    // The real titles, at the real positions, are a layout as expected (a typo in constants.ts would fail here)
+    for (const { EXCEL_COLUMNS, EXCEL_HEADERS } of [APP_CONFIG.PRESENCE, APP_CONFIG.PAYROLL]) {
+        const header: string[] = [];
+        for (const [key, index] of Object.entries(EXCEL_COLUMNS)) header[index] = (EXCEL_HEADERS as Record<string, string>)[key];
+        expectEqual('layout: the settings name a title for every column read', misplacedColumns(header, EXCEL_COLUMNS, EXCEL_HEADERS as Record<string, string>), []);
     }
 
     console.log(`\n${checks - failures}/${checks} excel checks pass`);

@@ -197,7 +197,8 @@ export interface DibaOperationRow {
     fase: number;
     codlavo: number;
     descr_lavor: string;
-    terzista: string;
+    /** Done by a third party: 'S' or 'N', as Business holds it (cicli.dd_terzista) and as Riallinea writes it to the order */
+    terzista: 'S' | 'N';
     codcent: number;
     descr_centro: string;
     note: string;

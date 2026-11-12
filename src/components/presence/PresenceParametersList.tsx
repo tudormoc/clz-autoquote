@@ -12,13 +12,15 @@ import type { PresenceSettingRow } from '@/types';
 interface PresenceParametersListProps {
     settings: PresenceSettingRow[];
     loading: boolean;
+    /** Why the stored values could not be read (shown instead of the list) */
+    error: string | null;
     /** Saves a typed value; true when it was saved */
     onSave: (row: PresenceSettingRow, value: string) => Promise<boolean>;
 }
 
 /** The parameters of the presence rules (pause, rounding, working days …), each value editable in place. */
-export function PresenceParametersList({ settings, loading, onSave }: PresenceParametersListProps) {
-    if (loading) return <LoadState loading />;
+export function PresenceParametersList({ settings, loading, error, onSave }: PresenceParametersListProps) {
+    if (loading || error) return <LoadState loading={loading} error={error} />;
     if (settings.length === 0) return <div className="p-6 text-center text-fg-subtle text-sm">{APP_COPY.analytics.presenceSettings.noParameters}</div>;
 
     return (

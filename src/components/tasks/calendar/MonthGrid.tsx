@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { APP_CONFIG } from '@/config/constants';
 import type { AgendaCalendar } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
-import { addDays, dayOf } from '@/lib/tasks/dates';
+import { addDays, dayOf } from '@/lib/dateUtils';
 import { formatShortDay } from '@/lib/tasks/describe';
 import { monthKey } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';

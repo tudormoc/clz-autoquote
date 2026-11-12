@@ -12,7 +12,7 @@ import { LINKS } from '@/config/navigation';
 import { authorize } from '@/lib/auth/access';
 import { canOpen } from '@/lib/auth/permissions';
 import type { ClosedDay } from '@/lib/tasks/closedDays';
-import { daysBetween, isIsoDate } from '@/lib/tasks/dates';
+import { daysBetween, isIsoDate } from '@/lib/dateUtils';
 import { PrioritySchema, TaskInputSchema, inputProblem } from '@/lib/tasks/input';
 import { listContacts } from '@/lib/tasks/db/contacts';
 import { listGuides } from '@/lib/tasks/db/guides';

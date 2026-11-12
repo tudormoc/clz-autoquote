@@ -58,7 +58,7 @@ export function secondsToClock(total: number): string {
 }
 
 /** The step an exit falls in, as minutes since midnight: 16:34:10 → 16:30 with half-hour steps */
-export const exitSlot = (second: number, settings: UsualExitSettings = USUAL_EXIT_SETTINGS): number =>
+const exitSlot = (second: number, settings: UsualExitSettings = USUAL_EXIT_SETTINGS): number =>
     Math.floor(second / 60 / settings.stepMinutes) * settings.stepMinutes;
 
 /** A presence event of a day, as read from EVENTI */
@@ -109,7 +109,7 @@ export function realExits(stamps: readonly DayStamp[], settings: UsualExitSettin
 }
 
 /** The value that comes at least `need` times among `values` (newest first); between equals the newest wins */
-export function mostCommon(values: readonly number[], need: number): number | null {
+function mostCommon(values: readonly number[], need: number): number | null {
     const counts = new Map<number, number>();
     for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
     let best: number | null = null;

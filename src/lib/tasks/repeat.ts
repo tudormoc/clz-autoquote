@@ -10,7 +10,7 @@
  */
 
 import { z } from 'zod';
-import { addDays, addMonths, daysInMonth, isIsoDate, makeDate, maxDate, monthIndex, weekStart, weekdayOf, yearOf } from '@/lib/tasks/dates';
+import { addDays, addMonths, daysInMonth, isIsoDate, makeDate, maxDate, monthIndex, weekStart, weekdayOf, yearOf } from '@/lib/dateUtils';
 import { APP_COPY } from '@/locales';
 
 const messages = APP_COPY.tasks.messages;
@@ -65,8 +65,6 @@ export type RepeatRule = z.infer<typeof RepeatRuleSchema>;
 export type RepeatPattern = z.infer<typeof PatternSchema>;
 export type MonthDay = z.infer<typeof MonthDaySchema>;
 export type RepeatEnd = z.infer<typeof EndSchema>;
-export type CalendarRule = Extract<RepeatRule, { mode: 'calendar' }>;
-export type AfterRule = Extract<RepeatRule, { mode: 'after' }>;
 
 /** The stored JSON as a rule; null for a one-time task or a value that is not a valid rule */
 export function parseRepeatRule(json: string | null | undefined): RepeatRule | null {
