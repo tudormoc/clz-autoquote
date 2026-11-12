@@ -9,6 +9,7 @@ import { OperationsComparison } from '@/components/analytics/order-operations/Op
 import { ProductionOperationsTable } from '@/components/analytics/order-operations/ProductionOperationsTable';
 import { DocumentFactsComparison } from '@/components/analytics/order-operations/DocumentFactsComparison';
 import { SyncDialog } from '@/components/analytics/order-operations/SyncDialog';
+import { LoadState } from '@/components/ui/LoadState';
 import { TabBar, type TabItem } from '@/components/ui/TabBar';
 import { useOrderAddress, type ManagementTab } from '@/hooks/useOrderAddress';
 import { useOrderManagement } from '@/hooks/useOrderManagement';
@@ -17,7 +18,7 @@ import { compareOrder } from '@/lib/orders/differences';
 import { QUANTITY_RULES, quantityText } from '@/lib/orders/quantities';
 import { syncKeepLines } from '@/lib/orders/syncBlocks';
 import { previewSync } from '@/lib/orders/syncPreview';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import type { OrderEdition, OrderOperationsManagementData } from '@/types';
 
 const t = APP_COPY.analytics.orderOperations;
@@ -27,8 +28,8 @@ interface OrderManagementPanelProps {
     initial: OrderOperationsManagementData;
     rootCommessaKey: string;
     editions: OrderEdition[];
-    /** Reports whether the order is aligned to the DiBa (shown on the tab label) */
-    onStatusChange: (hasDiscrepancies: boolean, count: number) => void;
+    /** Reports whether the order is aligned to the DiBa, or that the comparison could not be read (shown on the tab label) */
+    onStatusChange: (hasDiscrepancies: boolean, count: number, notRead: boolean) => void;
 }
 
 /**
@@ -76,6 +77,9 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
             />
 
             <TabBar tabs={tabs} active={tab} linkOf={(id) => address.link({ view: id })} className="border-b border-border" />
+
+            {/* Not read: the empty tables below would look like an order with nothing in it */}
+            {data.load_error && <LoadState loading={false} error={fmt(t.dibaNotReadHint, { error: data.load_error })} />}
 
             {tab === 'comparison' && <OperationsComparison rows={phases} businessOrderNumber={data.order_bus_numord} />}
             {tab === 'materials' && <MaterialsComparison rows={materials} />}

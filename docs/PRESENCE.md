@@ -155,9 +155,10 @@ handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES`
   start of the work in progress, and not in the future; when none is, the exit is dated at the moment of the check.
   "The others today" counts only from the hour of the daily check on (`TRIGGER_HOUR`): earlier the last exit of most
   people is the one of lunch. Examples in `npm run presence:examples`.
-- **Seeing what it would do**: `/api/auto-exit?preview=1` (superadmin) decides and answers without writing or
-  logging; `&everyone=1` lists everybody with past exits, `&operator=98` one person, `&at=19:00` as if the check ran
-  at that time. A real run writes one Registro line per person: the time used and why.
+- **Seeing what it would do**: `/api/auto-exit` opened by the superadmin decides and answers without writing or
+  logging, with or without `?preview=1` (a link only shows; since 2026-11-12 only the scheduler's call, which carries
+  its key, writes); `?everyone=1` lists everybody with past exits, `?operator=98` one person, `?at=19:00` as if the
+  check ran at that time. A real run writes one Registro line per person: the time used and why.
 - **Work in progress paused at an exit** (`pauseWorkAtExit`): what is in progress is what NetPro's own list says,
   `ATTIVITA` (one row per person working now: NetPro adds it at a start and removes it at a pause), on a task NetPro
   holds in stato EXE whose last event of that person is the start. For each such phase the app writes what NetPro

@@ -11,6 +11,7 @@ import {
     dayParam,
     filtersKey,
     flagParam,
+    insideLink,
     listParam,
     listText,
     monthParam,
@@ -79,6 +80,11 @@ const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'a list is written with dots', expected: 'done.skipped.OFF HR', actual: () => listText(['done', 'skipped', 'OFF HR']) },
     { name: 'a list keeps dots, percent signs, commas and a lone dash inside its items', expected: ['a.b', '100%', '-', '', 'OFF HR', 'a,b', 'x-y'], actual: () => textList(listText(['a.b', '100%', '-', '', 'OFF HR', 'a,b', 'x-y'])) },
     { name: 'a page and its query as a link', expected: ['/analytics/payroll-hours?year=2026', '/quotes'], actual: () => [addressOf('/analytics/payroll-hours', new URLSearchParams('year=2026')), addressOf('/quotes', new URLSearchParams())] },
+
+    // The page to go back to after the login
+    { name: 'after the login: a page of the app, with its query and anchor, is where one goes back', expected: ['/work-progress?order=2609537&tab=management', '/tasks/list/12#note', '/'], actual: () => ['/work-progress?order=2609537&tab=management', '/tasks/list/12#note', '/'].map(insideLink) },
+    { name: 'after the login: another site, in every spelling a browser follows, is the home page', expected: ['/', '/', '/', '/', '/', '/'], actual: () => ['//altro.sito/login', '/\\altro.sito/login', '/\t/altro.sito', '/\n/altro.sito', 'http://altro.sito/', 'altro.sito'].map(insideLink) },
+    { name: 'after the login: an /api address or something that is not a text is the home page', expected: ['/', '/', '/', '/', '/'], actual: () => ['/api/auto-exit', '/api', '/x/../api/auto-exit', undefined, 12].map(insideLink) },
 
     // Applied filters
     { name: 'a bare address has nothing applied', expected: null, actual: () => filtersIn('') },

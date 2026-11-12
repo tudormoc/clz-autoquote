@@ -2,7 +2,7 @@ import { runAutoExit } from '@/app/presence/auto-exit';
 import { LINKS } from '@/config/navigation';
 import { getAccess } from '@/lib/auth/access';
 import { sameText, schedulerKey } from '@/lib/auth/secrets';
-import { SCHEDULER, logEvent, personOf, type LogPerson } from '@/lib/log/log';
+import { SCHEDULER, logEvent } from '@/lib/log/log';
 import { APP_COPY, fmt } from '@/locales';
 
 /** Header with which scripts/scheduler.js proves it is the scheduler (a key derived from AUTH_SECRET) */
@@ -12,34 +12,33 @@ const log = APP_COPY.log.entries;
 
 /**
  * GET /api/auto-exit
- * Triggered by the scheduler at the configured TRIGGER_HOUR; otherwise only the superadmin may run it.
+ * Triggered by the scheduler at the configured TRIGGER_HOUR: only its call, with the scheduler's key, writes.
  * Who is still in (an entry today and no exit after it) gets an exit dated at their usual exit time
- * (src/app/presence/auto-exit.ts). Every run is written in the log (Registro), as the Scheduler's or the
- * superadmin's, with one line per person: the time used and why.
+ * (src/app/presence/auto-exit.ts). Every run is written in the log (Registro) as the Scheduler's, with one line per
+ * person: the time used and why.
+ * The superadmin opening this address always gets the preview, whatever the address says: a link only shows, it
+ * never writes (README rule 8; before 2026-11-12 an address without ?preview clocked everybody out).
  *
  * Optional query params:
- *   ?operator=98   limits the run to a single operator (for testing)
- *   ?preview=1     decides and answers, writes nothing and logs nothing: what would happen right now
+ *   ?operator=98   limits the run to a single operator
+ *   ?preview=1     the scheduler's call too only decides and answers, writes nothing and logs nothing
  *   ?everyone=1    with preview: everybody with past exits, not only who is still in
  *   ?at=19:00      with preview: as if the check ran at that time of today
  */
 export async function GET(request: Request) {
     const key = request.headers.get(SCHEDULER_HEADER);
-    let who: LogPerson | null = null;
+    let scheduler = false;
+    let allowed = false;
     try {
-        if (key) {
-            if (sameText(key, schedulerKey())) who = SCHEDULER;
-        } else {
-            const access = await getAccess();
-            if (access?.superadmin) who = personOf(access);
-        }
+        if (key) scheduler = allowed = sameText(key, schedulerKey());
+        else allowed = (await getAccess())?.superadmin === true;
     } catch {
-        who = null;
+        allowed = false;
     }
-    if (!who) return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    if (!allowed) return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
-    const preview = searchParams.has('preview');
+    const preview = !scheduler || searchParams.has('preview');
     const result = await runAutoExit({
         operator: searchParams.get('operator') ?? undefined,
         preview,
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
     });
     if (preview) return Response.json(result);
 
-    await logEvent(who, {
+    await logEvent(SCHEDULER, {
         page: LINKS.presence.dailyEvents,
         action: 'auto-exit',
         entityKind: 'presence-event',
@@ -60,7 +59,7 @@ export async function GET(request: Request) {
     // One line per person: the time the exit was dated at and why, or why none was written
     for (const exit of result.exits) {
         const person = { operator: exit.operator, name: exit.name ?? '' };
-        await logEvent(who, {
+        await logEvent(SCHEDULER, {
             page: LINKS.presence.dailyEvents,
             action: exit.written ? 'created' : 'auto-exit',
             entityKind: 'presence-event',

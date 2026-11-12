@@ -4,7 +4,7 @@
  * Server actions of the work progress page. The queries are in src/lib/orders/ (details, comparison, realign).
  */
 import { fetchOrderDetails, findMasterOrders } from '@/lib/orders/details';
-import { emptyManagement, fetchOrderManagement } from '@/lib/orders/management';
+import { failedManagement, fetchOrderManagement } from '@/lib/orders/management';
 import { findMisalignedOrder, findMisalignedOrders } from '@/lib/orders/misaligned';
 import type { RowChange } from '@/lib/orders/snapshot';
 import { syncOrderFromDiba, type SyncOrderRef } from '@/lib/orders/sync';
@@ -59,9 +59,12 @@ export async function refreshOrderOperationsManagementAction(
 ): Promise<{ success: true; operationsManagement: OrderOperationsManagementData } | (Failure & { operationsManagement: OrderOperationsManagementData })> {
     await authorize('view', LINKS.workProgress);
     try {
-        return { success: true, operationsManagement: await fetchOrderManagement(rootCommessaKey, articleHint, commessaFull) };
+        const operationsManagement = await fetchOrderManagement(rootCommessaKey, articleHint, commessaFull);
+        // A comparison that could not be read is a failure, not an order with nothing to realign
+        if (operationsManagement.load_error) return { success: false, error: operationsManagement.load_error, operationsManagement };
+        return { success: true, operationsManagement };
     } catch (err) {
-        return { success: false, error: errorMessage(err), operationsManagement: emptyManagement() };
+        return { success: false, error: errorMessage(err), operationsManagement: failedManagement(err, articleHint, commessaFull) };
     }
 }
 

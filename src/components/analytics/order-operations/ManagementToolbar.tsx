@@ -79,7 +79,13 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, edition
                         {fmt(t.syncKeptBadge, { kept: syncKeepNames(data.sync_keeps) })}
                     </StatusBadge>
                 )}
-                {hasDiscrepancies ? (
+                {/* A comparison that could not be read says so: it is neither aligned nor not */}
+                {data.load_error ? (
+                    <StatusBadge tone="danger" size="md" title={data.load_error}>
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {t.dibaNotRead}
+                    </StatusBadge>
+                ) : hasDiscrepancies ? (
                     <StatusBadge tone="warning" size="md">
                         <AlertTriangle className="w-3.5 h-3.5" />
                         {fmt(t.dibaDiscrepanciesDetected, { count: data.discrepancy_count ?? 0 })}

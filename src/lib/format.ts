@@ -83,6 +83,11 @@ export function formatHours(hours: number | null | undefined): string {
     return `${hours < 0 && totalMinutes > 0 ? '-' : ''}${h}:${String(m).padStart(2, '0')}`;
 }
 
+/** A wait in minutes as short text: 5 → "5 min", 60 → "1 h", 90 → "2 h" (hours rounded up: never shorter than the wait) */
+export function formatWait(minutes: number): string {
+    return minutes < 60 ? `${Math.max(1, Math.ceil(minutes))} min` : `${Math.ceil(minutes / 60)} h`;
+}
+
 /** Date or ISO string → "06/10/2026" */
 export function formatDate(value: Date | string | null | undefined): string {
     if (!value) return EMPTY_VALUE;

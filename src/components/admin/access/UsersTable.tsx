@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Dices, Trash2, UserRound } from 'lucide-react';
+import { Dices, Lock, Trash2, UserRound } from 'lucide-react';
 import type { UserView } from '@/app/access-actions';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button, buttonClasses } from '@/components/ui/Button';
@@ -16,7 +16,7 @@ import { useClientSort } from '@/hooks/useClientSort';
 import type { Group } from '@/lib/auth/accounts';
 import { PIN_KIND_OPTIONS, type PinKindId } from '@/lib/auth/pinKinds';
 import { functionLabels, isFunctionKey, mergePermissions, pageLabels, type PagePermissions } from '@/lib/auth/permissions';
-import { EMPTY_VALUE, formatDbDateTime } from '@/lib/format';
+import { EMPTY_VALUE, formatDbDateTime, formatWait } from '@/lib/format';
 import { compareValues, type RowSortColumns } from '@/lib/sort';
 import { APP_COPY, fmt } from '@/locales';
 
@@ -44,6 +44,8 @@ interface UsersTableProps {
     emptyMessage: string;
     onRename: (user: UserView, name: string) => Promise<boolean>;
     onSuspend: (user: UserView, suspended: boolean) => void;
+    /** Takes away the wait the user has after wrong PINs */
+    onUnlock: (user: UserView) => void;
     /** Puts the user in the group (true) or takes them out */
     onGroup: (user: UserView, groupId: number, member: boolean) => void;
     /** Rolls a new random PIN of the kind (the dice next to the PIN) */
@@ -58,11 +60,12 @@ interface UsersTableProps {
 }
 
 /**
- * All users in one table, every column sortable: name (click to change), the person behind it (Scheda persona, with
+ * All users in one table, every column sortable: name (click to change; a lock before it while the user has to wait
+ * after wrong PINs, a click takes the wait away), the person behind it (Scheda persona, with
  * "≠" when their data differ between the programs), active switch, a tick per group, how many pages their groups open,
  * last login, PIN (click to type one; the dice rolls a random one of the chosen kind), delete. On phones one card per user.
  */
-export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onGroup, onNewPin, onSetPin, onDelete, personLink, drift }: UsersTableProps) {
+export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, onUnlock, onGroup, onNewPin, onSetPin, onDelete, personLink, drift }: UsersTableProps) {
     const pagesOf = useMemo(
         () => new Map(users.map((user) => [user.id, mergePermissions(groups.filter((group) => user.groupIds.includes(group.id)).map((group) => group.pages))])),
         [users, groups]
@@ -82,18 +85,29 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
     );
     const { sorted, sort, toggleSort } = useClientSort(users, sortColumns, { column: 'name', direction: 'asc' }, byName);
 
-    const nameCell = (user: UserView) => (
-        <EditableCell
-            display={user.name}
-            startValue={() => user.name}
-            renderEditor={(draft, setDraft) => (
-                <div className="w-48">
-                    <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
-                </div>
-            )}
-            onSave={(name) => onRename(user, name)}
-        />
-    );
+    /** The name, click to change; before it, the lock of who has to wait after wrong PINs: a click takes the wait away */
+    const nameCell = (user: UserView) => {
+        const waiting = fmt(copy.waiting, { name: user.name, wait: formatWait(user.waitMinutes) });
+        return (
+            <div className="inline-flex items-center gap-1">
+                {user.waitMinutes > 0 && (
+                    <Button variant="ghost" size="sm" title={waiting} aria-label={waiting} onClick={() => onUnlock(user)}>
+                        <Lock size={16} className="text-warning-400" />
+                    </Button>
+                )}
+                <EditableCell
+                    display={user.name}
+                    startValue={() => user.name}
+                    renderEditor={(draft, setDraft) => (
+                        <div className="w-48">
+                            <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
+                        </div>
+                    )}
+                    onSave={(name) => onRename(user, name)}
+                />
+            </div>
+        );
+    };
     const deleteButton = (user: UserView) => (
         <Button variant="ghost" size="sm" title={APP_COPY.common.delete} aria-label={APP_COPY.common.delete} onClick={() => onDelete(user)}>
             <Trash2 size={16} className="text-danger" />

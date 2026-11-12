@@ -301,6 +301,8 @@ export interface OrderOperationsManagementData {
     netpro_materials?: OrderMaterialSummaryRow[];
     has_discrepancies?: boolean;
     discrepancy_count?: number;
+    /** Why the comparison could not be read. With it the rest says nothing about the order: neither aligned nor not */
+    load_error?: string;
     /** Why Riallinea would be refused as the order is now, in words (src/lib/orders/syncBlocks.ts); none when it would not */
     sync_blocks?: string[];
     /** What Riallinea leaves on the order although the DiBa no longer has it: phases already worked on, materials already withdrawn */

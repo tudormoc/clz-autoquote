@@ -33,8 +33,14 @@ export const APP_CONFIG = {
   // Login (src/lib/auth): users, groups and their pages are kept in the QUOTES tables app_users / app_groups
   AUTH: {
     SESSION_HOURS: 24,          // a login lasts until the browser closes, at most this long
-    MAX_PIN_ATTEMPTS: 5,        // wrong PINs in a row before a name has to wait …
-    LOCKOUT_MINUTES: 5,         // … this long
+    // Wrong PINs (src/lib/auth/lockout.ts): a name waits after this many in a row on one computer …
+    MAX_PIN_ATTEMPTS: 5,
+    // … and after this many on all computers together (someone who poses as a new computer at every try)
+    NAME_MAX_PIN_ATTEMPTS: 30,
+    // The wait in minutes, longer every time the limit is reached again: 5 and 15 minutes, 1 hour, 4 hours, a day
+    LOCKOUT_STEPS_MINUTES: [5, 15, 60, 240, 1440],
+    LOCKOUT_FORGET_HOURS: 24,   // without a wrong PIN for this long the waits start again from the first step
+    LOCKOUT_MAX_ENTRIES: 5000,  // most name-and-computer pairs remembered; past it the oldest are dropped
     // Kinds of random PIN the Utenti page gives out ("Nuovo utente", "Nuovo PIN a caso"); the first is the default.
     // chars: digits = 0-9 · alnum = letters and digits without the look-alikes (0 O 1 l I) · strong = alnum and symbols
     PIN_KINDS: [

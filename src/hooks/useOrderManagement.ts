@@ -18,7 +18,7 @@ export function useOrderManagement(
     initial: OrderOperationsManagementData,
     rootCommessaKey: string,
     edition: string,
-    onStatusChange?: (hasDiscrepancies: boolean, count: number) => void
+    onStatusChange?: (hasDiscrepancies: boolean, count: number, notRead: boolean) => void
 ) {
     const [data, setData] = useState(initial);
     const [refreshing, setRefreshing] = useState(false);
@@ -30,9 +30,10 @@ export function useOrderManagement(
     });
     const hasDiscrepancies = data.has_discrepancies ?? false;
     const discrepancyCount = data.discrepancy_count ?? 0;
+    const notRead = Boolean(data.load_error);
     useEffect(() => {
-        statusCallback.current?.(hasDiscrepancies, discrepancyCount);
-    }, [hasDiscrepancies, discrepancyCount]);
+        statusCallback.current?.(hasDiscrepancies, discrepancyCount, notRead);
+    }, [hasDiscrepancies, discrepancyCount, notRead]);
 
     // Only the latest read may update the screen (two editions asked for one after the other)
     const reads = useRef(0);
@@ -46,10 +47,10 @@ export function useOrderManagement(
             try {
                 const res = await refreshOrderOperationsManagementAction(rootCommessaKey, articleFather, commessaFull);
                 if (id !== reads.current) return false;
-                if (res.success) {
-                    setData(res.operationsManagement);
-                    return true;
-                }
+                // Also when the read failed: the screen then says "not read" (load_error) instead of keeping the
+                // comparison from before, which after a realign would no longer be true
+                setData(res.operationsManagement);
+                if (res.success) return true;
                 notify.error(res.error || t.errorSaving);
             } catch (err) {
                 if (id === reads.current) notify.error(errorMessage(err) || t.errorSaving);

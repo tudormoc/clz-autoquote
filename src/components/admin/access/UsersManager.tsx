@@ -9,6 +9,7 @@ import {
     setUserGroupsAction,
     setUserPinAction,
     setUserSuspendedAction,
+    unlockUserAction,
     type UserView,
 } from '@/app/access-actions';
 import { NewNameForm } from '@/components/admin/access/NewNameForm';
@@ -34,7 +35,8 @@ const copy = APP_COPY.admin.users;
  * Impostazioni → Utenti (superadmin): search, "Nuovo utente" (a 4-digit PIN, shown in a window to copy), and the table
  * of all users where each change is saved at once. The dice next to a PIN rolls a new one of the chosen kind (4 or 6
  * digits, 8 letters and digits, 16 characters), shown the same way; a PIN can also be typed. Either way their open
- * logins end and the person must choose their own PIN at the next login.
+ * logins end and the person must choose their own PIN at the next login. A user who has to wait after wrong PINs has
+ * a lock at the start of the row: a click takes the wait away.
  */
 /** The user whose Scheda persona is open, in the address (?person=<id>) */
 const VIEW = { person: numberParam() };
@@ -126,6 +128,7 @@ export function UsersManager() {
                 emptyMessage={users.length > 0 ? copy.noMatch : copy.empty}
                 onRename={(user, name) => run(renameUserAction(user.id, name), () => copy.saved)}
                 onSuspend={(user, suspended) => run(setUserSuspendedAction(user.id, suspended))}
+                onUnlock={(user) => run(unlockUserAction(user.id), () => fmt(copy.unlocked, { name: user.name }))}
                 onGroup={setGroup}
                 onNewPin={rollPin}
                 onSetPin={(user, pin) => run(setUserPinAction(user.id, pin), (res) => fmt(copy.pinReset, { name: user.name, pin: res.pin }))}

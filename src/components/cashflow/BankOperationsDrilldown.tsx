@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadState } from '@/components/ui/LoadState';
 import { Spinner } from '@/components/ui/Spinner';
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
@@ -7,6 +8,10 @@ import { APP_COPY } from '@/locales';
 import { getBankAccountTransactionsAction } from '@/app/cashflow/cashflow-actions';
 import type { BankAccountDetailsResult } from '@/lib/cashflow/types';
 import { formatCurrency } from '@/lib/format';
+import { errorMessage } from '@/lib/utils';
+
+/** The frame of the panel */
+const PANEL = 'bg-background/95 border border-border-strong/80 rounded-xl p-4 my-2 text-fg shadow-xl space-y-4';
 
 interface BankOperationsDrilldownProps {
     accountCode: number;
@@ -26,16 +31,23 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
     const t = APP_COPY.cashflow.bankDetails;
     const [isPending, startTransition] = useTransition();
     const [data, setData] = useState<BankAccountDetailsResult | null>(null);
+    /** Why the movements could not be read: shown in place of the figures, never zeros with the "verified" tick */
+    const [error, setError] = useState<string | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(initialMonth || 'all');
     const [searchTerm, setSearchTerm] = useState<string>('');
 
     const shortMonths = APP_COPY.months.short;
 
     useEffect(() => {
+        setData(null);
+        setError(null);
         startTransition(async () => {
-            const res = await getBankAccountTransactionsAction(accountCode, year);
-            if (res.success) {
-                setData(res);
+            try {
+                const res = await getBankAccountTransactionsAction(accountCode, year);
+                if (res.success) setData(res);
+                else setError(res.error || APP_COPY.common.loadError);
+            } catch (err) {
+                setError(errorMessage(err));
             }
         });
     }, [accountCode, year]);
@@ -90,9 +102,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
     const currentNet = currentDare - currentAvere;
 
-    return (
-        <div className="bg-background/95 border border-border-strong/80 rounded-xl p-4 my-2 text-fg shadow-xl space-y-4">
-            {/* Header */}
+    const header = (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                 <div className="flex items-center gap-3">
                     <div className="px-2.5 py-1 bg-warning-500/10 border border-warning-500/30 text-warning-400 rounded-md font-mono text-xs font-bold">
@@ -120,6 +130,21 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </button>
                 </div>
             </div>
+    );
+
+    // Until the movements are read nothing is known about the account: a spinner or the error, no figures
+    if (!data) {
+        return (
+            <div className={PANEL}>
+                {header}
+                <LoadState loading={!error} error={error} />
+            </div>
+        );
+    }
+
+    return (
+        <div className={PANEL}>
+            {header}
 
             {/* Month Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">

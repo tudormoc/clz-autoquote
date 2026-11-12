@@ -1,11 +1,14 @@
 /**
  * Access check (npm run access:check, part of npm run check): reads the source and fails when
  *   - a page (src/app/** /page.tsx) does not call requirePage / requireLogin (or render AreaOverview, which does),
- *   - a function exported by a 'use server' file does not start with authorize / requireSuperadmin / requireLogin,
- *     directly or through a helper of the same file (access-actions' run(), for one),
+ *   - a function exported by a 'use server' file does not START with authorize / requireSuperadmin / requireLogin /
+ *     superadminRefusal, directly or through a helper of the same file (person-actions' guarded(), for one): nothing
+ *     that was sent may be looked at before the check, only which page is meant (PAGE_LOOKUPS),
  *   - a route handler (src/app/api/** /route.ts) does not check who is calling (authorize / requireSuperadmin / getAccess),
  *   - anywhere in src/, an access check names a page by a literal link ('/presence/operators') instead of LINKS.*
- *     (src/config/navigation.ts), so that a page can move or be renamed in one place.
+ *     (src/config/navigation.ts), so that a page can move or be renamed in one place,
+ *   - anywhere in src/, a list of a Zod schema (z.array, z.set, z.map) has no maximum: with one, a list that is too
+ *     long is refused at once, without one every element of it is checked first (owner, 2026-11-11).
  * A re-export (`export const x = xImpl`) is checked where xImpl is defined.
  * Pages and files that need no check are listed in NO_CHECK_NEEDED, with the reason.
  */
@@ -28,11 +31,22 @@ const NO_CHECK_NEEDED: Record<string, string> = {
 };
 
 const PAGE_GUARDS = ['requirePage', 'requireLogin'];
-const ACTION_GUARDS = ['authorize', 'requireSuperadmin', 'requireLogin'];
+const ACTION_GUARDS = ['authorize', 'requireSuperadmin', 'requireLogin', 'superadminRefusal'];
+/** Guards that answer `{ success: false, error }` instead of failing: the action returns that answer on the next line */
+const ANSWERING_GUARDS = ['superadminRefusal'];
+/** What an action may call before its access check: only what tells which page the check is about */
+const PAGE_LOOKUPS = ['editableTable'];
 const ROUTE_GUARDS = [...ACTION_GUARDS, 'getAccess'];
 
+/** The lists of a Zod schema, and the calls that say how long each may be */
+const LIST_LIMITS: Record<string, string[]> = { array: ['max', 'length'], set: ['max', 'size'], map: ['max', 'size'] };
+/** Files whose z.record (which cannot carry a maximum) is limited in another way */
+const RECORD_LIMITED: Record<string, string> = {
+    'src/app/admin-actions.ts': 'tooManyFields counts the fields before the schema looks at them',
+};
+
 const problems: string[] = [];
-let checked = { pages: 0, actions: 0, routes: 0, links: 0 };
+let checked = { pages: 0, actions: 0, routes: 0, links: 0, lists: 0 };
 
 const rel = (file: string) => path.relative(ROOT, file).split(path.sep).join('/');
 
@@ -125,7 +139,59 @@ function reExports(sf: ts.SourceFile): { name: string; from: string; file?: stri
     return found;
 }
 
-/** The function starts with a guard: it calls one, or calls a helper of its file that calls one */
+const lineOf = (node: ts.Node) => node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1;
+
+/** The statements of a function body in the order they run; a `try { … }` counts as the statements inside it */
+function statementsOf(body: ts.Node): ts.Node[] {
+    if (!ts.isBlock(body)) return [body]; // `async () => run(…)`: the expression itself
+    return body.statements.flatMap((statement) => (ts.isTryStatement(statement) ? statementsOf(statement.tryBlock) : [statement]));
+}
+
+/** The function a statement calls first: `await x(…)`, `const a = await x(…)`, `return x(…)`, `x(…)`; null for anything else */
+function leadingCall(node: ts.Node): string | null {
+    let expr: ts.Node | undefined = node;
+    if (ts.isExpressionStatement(node) || ts.isReturnStatement(node)) expr = node.expression;
+    else if (ts.isVariableStatement(node)) expr = node.declarationList.declarations.length === 1 ? node.declarationList.declarations[0].initializer : undefined;
+    while (expr && (ts.isAwaitExpression(expr) || ts.isParenthesizedExpression(expr))) expr = expr.expression;
+    return expr && ts.isCallExpression(expr) && ts.isIdentifier(expr.expression) ? expr.expression.text : null;
+}
+
+/** Whether the node does more than name a page: any call, `new` or `await` other than a PAGE_LOOKUPS call */
+function doesWork(node: ts.Node): boolean {
+    if (ts.isCallExpression(node) && !(ts.isIdentifier(node.expression) && PAGE_LOOKUPS.includes(node.expression.text))) return true;
+    if (ts.isNewExpression(node) || ts.isAwaitExpression(node)) return true;
+    return ts.forEachChild(node, doesWork) ?? false;
+}
+
+/** `const refusal = await superadminRefusal();` followed by `if (refusal) return refusal;` */
+function returnsAnswer(statement: ts.Node, next: ts.Node | undefined): boolean {
+    if (!ts.isVariableStatement(statement) || !next || !ts.isIfStatement(next)) return false;
+    const name = statement.declarationList.declarations[0].name;
+    const then = ts.isBlock(next.thenStatement) ? next.thenStatement.statements[0] : next.thenStatement;
+    const isName = (node: ts.Node | undefined) => !!node && ts.isIdentifier(node) && ts.isIdentifier(name) && node.text === name.text;
+    return isName(next.expression) && !!then && ts.isReturnStatement(then) && isName(then.expression);
+}
+
+/**
+ * What is wrong with where a server action checks access, null when the check is the first thing it does: directly,
+ * or through a helper of its file that starts with it. Before the check only a page lookup may happen.
+ */
+function accessProblem(body: ts.Node, functions: Map<string, { body: ts.Node }>, seen = new Set<ts.Node>()): string | null {
+    if (seen.has(body)) return 'does not check access';
+    seen.add(body);
+    const statements = statementsOf(body);
+    for (const [index, statement] of statements.entries()) {
+        const call = leadingCall(statement);
+        if (call && ANSWERING_GUARDS.includes(call)) return returnsAnswer(statement, statements[index + 1]) ? null : `does not return the answer of ${call} on the next line (line ${lineOf(statement)})`;
+        if (call && ACTION_GUARDS.includes(call)) return null;
+        const helper = call ? functions.get(call) : undefined;
+        if (helper && accessProblem(helper.body, functions, seen) === null) return null;
+        if (doesWork(statement)) return `looks at what was sent before its access check (line ${lineOf(statement)}): start with authorize / requireSuperadmin / superadminRefusal`;
+    }
+    return 'does not check access (authorize / requireSuperadmin)';
+}
+
+/** The function checks who is calling somewhere: it calls a guard, or a helper of its file that calls one */
 function guarded(body: ts.Node, guards: string[], helpers: Map<string, { body: ts.Node }>): boolean {
     const calls = calledNames(body);
     if (guards.some((guard) => calls.has(guard))) return true;
@@ -149,15 +215,17 @@ function checkActionFile(file: string) {
     for (const [name, fn] of functions) {
         if (!fn.exported) continue;
         checked.actions++;
-        if (!guarded(fn.body, ACTION_GUARDS, functions)) problems.push(`${rel(file)}: ${name} does not start with authorize / requireSuperadmin`);
+        const problem = accessProblem(fn.body, functions);
+        if (problem) problems.push(`${rel(file)}: ${name} ${problem}`);
     }
     for (const { name, from, file: sourceFile } of reExports(sf)) {
         checked.actions++;
         const target = sourceFile ? source(sourceFile) : sf;
         const targetFunctions = functionsOf(target);
         const fn = targetFunctions.get(from);
+        const problem = fn ? accessProblem(fn.body, targetFunctions) : null;
         if (!fn) problems.push(`${rel(file)}: ${name} re-exports ${from}, which is not a function this check can read`);
-        else if (!guarded(fn.body, ACTION_GUARDS, targetFunctions)) problems.push(`${rel(file)}: ${name} (${from} in ${rel(target.fileName)}) does not start with authorize / requireSuperadmin`);
+        else if (problem) problems.push(`${rel(file)}: ${name} (${from} in ${rel(target.fileName)}) ${problem}`);
     }
 }
 
@@ -188,18 +256,52 @@ function checkLinks(file: string) {
     visit(sf);
 }
 
+/** The methods chained on a call: `z.array(x).min(1).max(7)` → ['min', 'max'] */
+function chainedCalls(call: ts.Node): string[] {
+    const names: string[] = [];
+    let node = call;
+    while (ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node && ts.isCallExpression(node.parent.parent) && node.parent.parent.expression === node.parent) {
+        names.push(node.parent.name.text);
+        node = node.parent.parent;
+    }
+    return names;
+}
+
+/** Every list of a Zod schema in the file says how long it may be, where it is written */
+function checkLists(file: string) {
+    const sf = source(file);
+    const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'z') {
+            const kind = node.expression.name.text;
+            const limits = LIST_LIMITS[kind];
+            if (limits) {
+                checked.lists++;
+                if (!chainedCalls(node).some((name) => limits.includes(name))) problems.push(`${rel(file)}:${lineOf(node)}: z.${kind}(…) has no maximum: add .max(n) right on it, so a list that is too long is refused at once`);
+            } else if (kind === 'record' && !RECORD_LIMITED[rel(file)]) {
+                problems.push(`${rel(file)}:${lineOf(node)}: z.record(…) cannot carry a maximum: count its fields before the schema and list the file in RECORD_LIMITED`);
+            }
+        }
+        ts.forEachChild(node, visit);
+    };
+    visit(sf);
+}
+
 for (const file of walk(APP)) {
     if (NO_CHECK_NEEDED[rel(file)]) continue;
     if (/[\\/]page\.tsx$/.test(file)) checkPage(file);
     else if (/[\\/]api[\\/].*route\.ts$/.test(file)) checkRoute(file);
     else if (isUseServer(source(file))) checkActionFile(file);
 }
-for (const file of walk(SRC)) checkLinks(file);
+for (const file of walk(SRC)) {
+    checkLinks(file);
+    checkLists(file);
+}
 
 if (problems.length > 0) {
     console.error(`Access check: ${problems.length} problem(s)\n` + problems.map((p) => `  - ${p}`).join('\n'));
     process.exit(1);
 }
 console.log(
-    `Access check ok: ${checked.pages} pages, ${checked.actions} server actions, ${checked.routes} route handlers all check access; ${checked.links} checks name their page through LINKS.`
+    `Access check ok: ${checked.pages} pages, ${checked.actions} server actions, ${checked.routes} route handlers all check access, the actions before anything else; ` +
+        `${checked.links} checks name their page through LINKS; ${checked.lists} lists of the schemas have a maximum.`
 );

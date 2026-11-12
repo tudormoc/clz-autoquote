@@ -20,6 +20,8 @@ import {
     type UserAccess,
 } from '@/lib/auth/permissions';
 import { lightCounts, lightState, sameGrants, withFunction, withLight, withPreset } from '@/lib/auth/lights';
+import { computerOf, createLockout, type LockoutRules } from '@/lib/auth/lockout';
+import { formatWait } from '@/lib/format';
 import { visibleLogAreas } from '@/lib/log/areas';
 
 const user = (pages: PagePermissions): UserAccess => ({ id: 1, name: 'Mario', superadmin: false, pages, groupIds: [1] });
@@ -31,6 +33,36 @@ const quotes = page('quotes');
 const clientSummary = page('client-summary');
 const logPage = page('log');
 const historyPage = GRANTABLE_PAGES.find((candidate) => candidate.href === LINKS.tasks.history)!;
+
+// Wrong PINs: two computers, a fixed "now", and the app's own numbers written out (constants.ts → AUTH)
+type Lockout = ReturnType<typeof createLockout>;
+const LOCK_RULES: LockoutRules = { attempts: 5, nameAttempts: 30, stepsMinutes: [5, 15, 60, 240, 1440], forgetHours: 24, maxEntries: 5000, nameLength: 100 };
+const PC_A = '192.168.1.57';
+const PC_B = '192.168.1.80';
+/** The machine the app runs on, as the network sees it */
+const PC_APP = '192.168.1.112';
+const MINUTE = 60_000;
+const NOW = Date.UTC(2026, 10, 12, 9, 0);
+const LATER = NOW + 30 * MINUTE;
+const wrong = (lock: Lockout, name: string, computer: string, times: number, now: number) => {
+    for (let i = 0; i < times; i++) lock.recordFailure(name, computer, now);
+};
+/** One wrong PIN from each of `count` computers nobody used yet */
+const manyComputers = (lock: Lockout, name: string, count: number, now: number, from = 0) => {
+    for (let i = 0; i < count; i++) lock.recordFailure(name, `10.0.${Math.floor((from + i) / 250)}.${(from + i) % 250}`, now);
+};
+/** The waits of `rounds` rounds of five wrong PINs, each round made as soon as the wait before is over */
+const waits = (lock: Lockout, name: string, computer: string, rounds: number) => {
+    let now = NOW;
+    const found: number[] = [];
+    for (let round = 0; round < rounds; round++) {
+        wrong(lock, name, computer, 5, now);
+        const wait = lock.minutesLocked(name, computer, now);
+        found.push(wait);
+        now += wait * MINUTE;
+    }
+    return found;
+};
 
 const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'every page has a different id', expected: GRANTABLE_PAGES.length, actual: () => new Set(GRANTABLE_PAGES.map((page) => page.id)).size },
@@ -88,6 +120,23 @@ const EXAMPLES: { name: string; expected: unknown; actual: () => unknown }[] = [
     { name: 'Tutto il registro shows every page a group can be given, plus the Agenda and the timesheet', expected: GRANTABLE_PAGES.length + 2, actual: () => visibleLogAreas(user({ log: 'view', 'log#tutto': 'edit' }))?.length },
     { name: 'only the superadmin sees every entry, logins and users included (no filter)', expected: true, actual: () => visibleLogAreas(superadmin) === undefined },
     { name: 'the tooltip names the functions given', expected: ['Avanzamento Lavori · Riallinea ordine da DiBa'], actual: () => functionLabels({ 'work-progress#riallinea': 'edit' }) },
+
+    // Wrong PINs (src/lib/auth/lockout.ts): counted per name and computer, the wait grows, the superadmin can take it away
+    { name: 'wrong PINs: four give no wait, the fifth gives 5 minutes', expected: [0, 5], actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 4, NOW); const before = lock.minutesLocked('Mario', PC_A, NOW); wrong(lock, 'Mario', PC_A, 1, NOW); return [before, lock.minutesLocked('Mario', PC_A, NOW)]; } },
+    { name: 'wrong PINs: the same name is not locked on another computer, another name not on the same one', expected: [0, 0], actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 5, NOW); return [lock.minutesLocked('Mario', PC_B, NOW), lock.minutesLocked('Anna', PC_A, NOW)]; } },
+    { name: 'wrong PINs: capitals and spaces around the name do not make another name', expected: 5, actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 5, NOW); return lock.minutesLocked('  MARIO ', PC_A, NOW); } },
+    { name: 'wrong PINs: the wait counts down and ends', expected: [5, 3, 0], actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 5, NOW); return [0, 2.5, 5].map((minutes) => lock.minutesLocked('Mario', PC_A, NOW + minutes * MINUTE)); } },
+    { name: 'wrong PINs: every time the limit is reached again the wait is longer, up to a day', expected: [5, 15, 60, 240, 1440, 1440], actual: () => waits(createLockout(), 'Mario', PC_A, 6) },
+    { name: 'wrong PINs: the right PIN clears that computer, the next wait is 5 minutes again', expected: [5, 15, 5], actual: () => { const lock = createLockout(); const first = waits(lock, 'Mario', PC_A, 2); lock.clearFailures('Mario', PC_A); wrong(lock, 'Mario', PC_A, 5, LATER); return [...first, lock.minutesLocked('Mario', PC_A, LATER)]; } },
+    { name: 'wrong PINs: a day without one, and the waits start over', expected: [5, 5], actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 5, NOW); const first = lock.minutesLocked('Mario', PC_A, NOW); const nextDay = NOW + 25 * 60 * MINUTE; wrong(lock, 'Mario', PC_A, 5, nextDay); return [first, lock.minutesLocked('Mario', PC_A, nextDay)]; } },
+    { name: 'wrong PINs: 30 for one name from 30 computers lock the name on every computer', expected: [0, 5], actual: () => { const lock = createLockout(); manyComputers(lock, 'Mario', 29, NOW); const before = lock.minutesLocked('Mario', PC_A, NOW); manyComputers(lock, 'Mario', 1, NOW, 29); return [before, lock.minutesLocked('Mario', PC_A, NOW)]; } },
+    { name: 'wrong PINs: the right PIN of the real person does not shorten the next name-wide wait', expected: [5, 15], actual: () => { const lock = createLockout(); manyComputers(lock, 'Mario', 30, NOW); const first = lock.minutesLocked('Mario', PC_A, NOW); const after = NOW + 6 * MINUTE; lock.clearFailures('Mario', PC_A); manyComputers(lock, 'Mario', 30, after, 100); return [first, lock.minutesLocked('Mario', PC_A, after)]; } },
+    { name: 'wrong PINs: the lock on the user\'s row is the longest wait of the name on any computer', expected: [15, 0], actual: () => { const lock = createLockout(); waits(lock, 'Mario', PC_A, 1); const now = NOW + 6 * MINUTE; wrong(lock, 'Mario', PC_A, 5, now); wrong(lock, 'Mario', PC_B, 5, now); return [lock.waitOfName('Mario', now), lock.waitOfName('Anna', now)]; } },
+    { name: 'wrong PINs: the superadmin takes the wait away, on every computer at once', expected: [true, 0, 0, 0, false], actual: () => { const lock = createLockout(); wrong(lock, 'Mario', PC_A, 5, NOW); manyComputers(lock, 'Mario', 30, NOW); const taken = lock.unlockName('mario'); return [taken, lock.minutesLocked('Mario', PC_A, NOW), lock.minutesLocked('Mario', PC_B, NOW), lock.waitOfName('Mario', NOW), lock.unlockName('Mario')]; } },
+    { name: 'wrong PINs: endless made-up names do not fill the memory', expected: true, actual: () => { const lock = createLockout({ ...LOCK_RULES, maxEntries: 20 }); for (let i = 0; i < 500; i++) lock.recordFailure(`nome ${i}`, PC_A, NOW + i); return lock.size() <= 20; } },
+    { name: 'wrong PINs: the computer is the first address Next gives, written the short way; "unknown" without one', expected: ['192.168.1.57', '192.168.1.57', '192.168.1.57', 'unknown', 'unknown'], actual: () => ['192.168.1.57', ' 192.168.1.57 , 10.0.0.1', '::ffff:192.168.1.57', '', null].map((address) => computerOf(address, PC_APP)) },
+    { name: 'wrong PINs: a browser on the app\'s own machine ("::1") shows that machine\'s address on the network', expected: [PC_APP, PC_APP, PC_APP, 'localhost'], actual: () => [computerOf('::1', PC_APP), computerOf('127.0.0.1', PC_APP), computerOf('::ffff:127.0.0.1', PC_APP), computerOf('::1', null)] },
+    { name: 'wrong PINs: the wait as text, never shorter than the wait', expected: ['1 min', '5 min', '1 h', '2 h', '24 h'], actual: () => [0.2, 5, 60, 61, 1440].map(formatWait) },
 ];
 
 let failed = 0;

@@ -15,8 +15,9 @@ Puppeteer for PDFs, xlsx for Excel.
    or none of it. Query rules, commessa formats and tables: [docs/DATABASE.md](docs/DATABASE.md).
 3. **Deploy only when the owner asks.** Secrets stay in `.env.local` (never committed).
 4. **Every page and every server action checks access** (see Login below). A new page calls `requirePage(...)`,
-   a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`.
-   `npm run access:check` (part of `npm run check`) reads the source and fails when one is missing. A page is
+   a new server action starts with `await authorize('view' | 'edit', '<menu link>')` or `await requireSuperadmin()`
+   (`superadminRefusal()` where it answers `{ success: false, error }`): nothing that was sent is looked at before it.
+   `npm run access:check` (part of `npm run check`) reads the source and fails when one is missing or comes late. A page is
    always named through `LINKS` (`src/config/navigation.ts`), never by a literal link: the check refuses that too.
 
 ## Working with the owner
@@ -31,7 +32,7 @@ but don't implement them without a yes.
 npm install
 npm run dev        # http://localhost:3000 (live databases!)
 npm run check      # typecheck + lint + access check + example checks + production build — run before every deploy
-npm run access:check        # every page and server action checks access (scripts/access-check.ts)
+npm run access:check        # every page and server action checks access, an action first of all; every list of a schema has a maximum (scripts/access-check.ts)
 npm run presence:examples   # presence rules on made-up data
 npm run format:examples     # number / money / hours / date formatting
 npm run excel:examples      # Excel export
@@ -46,7 +47,10 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 
 - Dev: this PC. Prod: VM `192.168.1.93:3000`, folder `C:\tm\clz-autoquote`, run by PM2 (`ecosystem.config.js`):
   `clz-autoquote` (the app) and `clz-scheduler` (daily auto-exit, `scripts/scheduler.js`).
-- Deploy: commit and push to `main` (`gitsync.bat "message"`), then run `update.ps1` on the VM (pull, install, build, restart).
+- Deploy: commit and push to `main` (`gitsync.bat "message"`: it runs `npm run check` first and pushes nothing when
+  it fails, and asks before pushing files Git has never seen), then run `update.ps1` on the VM (pull, install, build,
+  restart). `update.ps1` checks every step and restarts PM2 only on a build that finished; a failed build is replaced
+  by the one before (kept in `C:\tm\clz-autoquote-last-build`), with its code and packages, so the app keeps running.
   The build downloads the two fonts (Inter, JetBrains Mono, `src/app/layout.tsx`) from Google, so the VM needs internet while
   building; the running app serves them itself.
 - Presence Excel files: `\\SERVER2019\Office\…`, with `Z:\` as fallback on the VM.
@@ -57,7 +61,10 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 ## Login
 
 - Everyone logs in with a **name and PIN** (`/login`); the login ends when the browser closes, at the latest after
-  `APP_CONFIG.AUTH.SESSION_HOURS`. After 5 wrong PINs a name waits 5 minutes.
+  `APP_CONFIG.AUTH.SESSION_HOURS`. After 5 wrong PINs a name waits, on that computer only: 5 minutes, then 15, an hour,
+  4 hours, a day when it happens again (`src/lib/auth/lockout.ts`; 30 wrong PINs for one name from several computers
+  make it wait everywhere). A user who is waiting has a lock at the start of their row in Utenti: a click takes the
+  wait away. A restart of the app clears every wait.
 - **Superadmin** (the owner): name + PIN from `.env.local`, not in the database; sees everything and alone manages
   Impostazioni → Accessi → **Utenti** and **Gruppi** and Esplora Database: giving pages and reading PINs cannot be handed
   to a group (owner, 2026-11-05). The Registro is a page given in Gruppi like any other: who opens it finds the history
@@ -89,7 +96,8 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
   `src/proxy.ts` (logged in?), `requirePage` in each page, `authorize` / `requireSuperadmin` in each server action
   (`src/lib/auth/access.ts`). A page that changes data has `editable` in the menu config; Utenti / Gruppi / Database
   have `superadminOnly`.
-- `/api/auto-exit` accepts only the scheduler (a key derived from `AUTH_SECRET`, `scripts/scheduler.js`) or the superadmin.
+- `/api/auto-exit` accepts only the scheduler (a key derived from `AUTH_SECRET`, `scripts/scheduler.js`), whose call
+  alone writes, or the superadmin, who always gets the preview of what it would do.
 - **Who sees what, in practice.** A module is an area of the menu; a group gets it in Gruppi with one click on the
   area's row (*vede* or *modifica*), or page by page below it; "Tutte le pagine" gives everything. A person gets the
   pages of all their groups (tick columns in Utenti). To take the app away from someone: the *attivo* switch in Utenti
@@ -178,7 +186,9 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 2. **Never copy**: logic, markup or text needed twice goes into one shared helper, hook or component.
 3. **Nothing hardcoded**: texts in `it.ts`, numbers in `constants.ts`, look in `theme.js`, formats through `format.ts`.
 4. **Small parts**: a component past ~400 lines is split (logic into hooks or `src/lib`, UI into components). One component per file.
-5. **Strict TypeScript**, Zod at data boundaries. Remove unused code, imports and files as you go.
+5. **Strict TypeScript**, Zod at data boundaries. Every list of a schema has a maximum (`z.array(…).max(n)`): a longer
+   one is then refused at once instead of being checked element by element; `npm run access:check` fails without it.
+   Remove unused code, imports and files as you go.
 6. **Before calling it done**: `npm run check` passes and the change is checked in the browser.
 7. **Every write is logged**: a server action that changes data ends with `await logEvent(personOf(access), { page: LINKS.…,
    action, entityKind, entityId, summary, details: { before, after } })` (`src/lib/log/log.ts`; the line's text in `it.ts` →

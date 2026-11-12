@@ -27,6 +27,7 @@ import {
     updateGroupPages,
     type Group,
 } from '@/lib/auth/accounts';
+import { lockout } from '@/lib/auth/lockout';
 import { cleanPermissions } from '@/lib/auth/permissions';
 import { DEFAULT_PIN_KIND, isPinKind, type PinKindId } from '@/lib/auth/pinKinds';
 import { checkPin, decryptPin, encryptPin, randomPin } from '@/lib/auth/secrets';
@@ -49,6 +50,8 @@ export interface UserView {
     suspended: boolean;
     /** Still the PIN the superadmin gave out, never changed by the person ("provvisorio") */
     mustChangePin: boolean;
+    /** Minutes this name still has to wait after wrong PINs, on any computer (0 = none): the lock on the row */
+    waitMinutes: number;
     /** The same person in NetPro and Business (Scheda persona); null = not linked */
     operatorCode: string | null;
     netproUser: string | null;
@@ -116,7 +119,7 @@ export async function getAccountsAction(): Promise<{ users: UserView[]; groups: 
         } catch {
             // Scrambled with another AUTH_SECRET: give the user a new PIN
         }
-        return { ...account, pin: readable };
+        return { ...account, pin: readable, waitMinutes: lockout.waitOfName(account.name) };
     });
     return { users, groups };
 }
@@ -204,6 +207,18 @@ export async function setUserSuspendedAction(id: number, suspended: boolean): Pr
             before: { suspended: account?.suspended },
             after: { suspended },
         });
+        return {};
+    });
+}
+
+/** Takes away the wait a user has after wrong PINs, on every computer (src/lib/auth/lockout.ts): they may try again at once */
+export async function unlockUserAction(id: number): Promise<Saved> {
+    const refusal = await superadminRefusal();
+    if (refusal) return refusal;
+    if (!IdSchema.safeParse(id).success) return { success: false, error: APP_COPY.common.notAllowed };
+    return run(async (who) => {
+        const account = await findAccountById(id);
+        if (account && lockout.unlockName(account.name)) await logUser(who, 'unlocked', id, fmt(log.userUnlocked, { name: account.name }));
         return {};
     });
 }

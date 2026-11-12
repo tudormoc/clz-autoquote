@@ -11,6 +11,7 @@ import { loadDocumentRows, type DocumentRows } from '@/lib/orders/documentRows';
 import { loadOrderQuantities } from '@/lib/orders/quantityData';
 import { findSyncLimits } from '@/lib/orders/sync';
 import { NO_KEEPS } from '@/lib/orders/syncBlocks';
+import { errorMessage } from '@/lib/utils';
 import type {
     BusinessOrderOperationRow,
     DibaMaterialRow,
@@ -43,6 +44,13 @@ export const emptyManagement = (articleFather = ''): OrderOperationsManagementDa
     order_materials: [],
     has_discrepancies: false,
     discrepancy_count: 0,
+});
+
+/** The comparison of an edition that could not be read: empty, with the reason; it keeps the edition, to ask for it again */
+export const failedManagement = (error: unknown, articleFather?: string, commessaFull?: string): OrderOperationsManagementData => ({
+    ...emptyManagement(articleFather),
+    commessa_full: commessaFull,
+    load_error: errorMessage(error),
 });
 
 /**
@@ -288,13 +296,14 @@ export async function loadOrderManagement(
 }
 
 /**
- * The same for the order page: read errors give an empty comparison (logged), so the rest of the page still shows.
+ * The same for the order page: a read error gives an empty comparison marked with `load_error` (and logged), so the
+ * rest of the page still shows and the comparison says "not read", never "aligned".
  */
 export async function fetchOrderManagement(rootCommessaKey: string, articleHint?: string, commessaFull?: string): Promise<OrderOperationsManagementData> {
     try {
         return await loadOrderManagement(rootCommessaKey, articleHint, commessaFull);
     } catch (err) {
         console.error('Error in fetchOrderManagement:', err);
-        return emptyManagement(articleHint);
+        return failedManagement(err, articleHint, commessaFull);
     }
 }

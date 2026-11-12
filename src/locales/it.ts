@@ -101,7 +101,8 @@ export const APP_COPY = {
     pin: "PIN",
     submit: "Entra",
     wrong: "Nome o PIN errati",
-    locked: "Troppi tentativi: riprova tra {minutes} minuti",
+    /** {wait}: "5 min", "4 h" (formatWait) */
+    locked: "Troppi tentativi: riprova tra {wait}",
     notConfigured: "Accesso non configurato: mancano AUTH_SECRET o SUPERADMIN_PIN in .env.local",
     sessionExpired: "Accesso scaduto: ricarica la pagina ed entra di nuovo",
     notAllowed: "Non hai accesso a questa funzione",
@@ -913,7 +914,8 @@ export const APP_COPY = {
       riallineaFailed: "Riallinea commessa {commessa} non eseguito",
       login: "Accesso",
       loginFailed: "PIN errato",
-      loginLocked: "Accesso bloccato per troppi PIN errati",
+      loginLocked: "Troppi PIN errati dal computer {computer}: deve aspettare {wait}",
+      userUnlocked: "Attesa dopo i PIN errati tolta a {name}",
       loginSuspended: "Accesso rifiutato: utente sospeso",
       logout: "Uscita",
       pinChanged: "PIN cambiato dall'utente",
@@ -1043,6 +1045,9 @@ export const APP_COPY = {
       never: "mai",
       suspendUser: "Sospendi {name}: non può più entrare",
       resumeUser: "Riattiva {name}",
+      /** The lock at the start of the row of a user who has to wait after wrong PINs ({wait}: "5 min", "4 h") */
+      waiting: "{name} deve aspettare ancora {wait} dopo troppi PIN errati: clic per togliere l'attesa",
+      unlocked: "{name} può riprovare subito",
       pin: "PIN",
       /** Kinds of random PIN (APP_CONFIG.AUTH.PIN_KINDS): the dice next to a PIN offers them; "Nuovo utente" gives the first */
       pinKinds: {
@@ -1463,6 +1468,10 @@ export const APP_COPY = {
       noDibaMaterials: "Nessun materiale configurato per questo articolo.",
       dibaAligned: "Allineato alla DiBa",
       dibaDiscrepanciesDetected: "Disallineato da DiBa ({count})",
+      /** The comparison could not be read from the databases: it says nothing about the order */
+      dibaNotRead: "Confronto non letto",
+      dibaNotReadShort: "non letto",
+      dibaNotReadHint: "Il confronto con la DiBa non è stato letto ({error}): premi «Ricarica Dati ERP» per riprovare. Finché non si legge, non si sa se l'ordine è allineato.",
       dibaMaterialsTab: "Materiali DiBa",
       expectedQty: "Q.tà DiBa Attesa",
       printMissingOrder: "Indica la commessa da stampare (netproId o netproIds)",

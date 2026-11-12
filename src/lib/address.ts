@@ -134,6 +134,25 @@ export function addressOf(pathname: string, params: URLSearchParams): string {
     return query ? `${pathname}?${query}` : pathname;
 }
 
+/** A made-up site to read a link against: a link that leaves it is not one of the app's */
+const INSIDE = 'http://app.invalid';
+
+/**
+ * A link somebody handed over (the page to go back to after the login) as a link inside the app: its page, query and
+ * anchor, or the home page when it is anything else. Refused: another site in every spelling a browser follows
+ * ("//host", "/\host", a tab or line break inside) and the /api addresses, which are not pages.
+ */
+export function insideLink(link: unknown): string {
+    if (typeof link !== 'string' || !link.startsWith('/') || /[\\\u0000-\u001f\u007f]/.test(link)) return '/';
+    try {
+        const url = new URL(link, INSIDE);
+        if (url.origin !== INSIDE || url.pathname === '/api' || url.pathname.startsWith('/api/')) return '/';
+        return `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+        return '/';
+    }
+}
+
 // ── Applied filters ────────────────────────────────────────────────────────────────────────────────────────────────
 
 type FilterValue = string | number | boolean | readonly string[];

@@ -24,10 +24,12 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
     const address = useOrderAddress();
     const { tab } = address.values;
     // DiBa alignment as reported by the comparison panel (it stays right after a refresh or a realign there)
-    const [diba, setDiba] = useState<{ hasDiscrepancies: boolean; count: number } | null>(null);
+    const [diba, setDiba] = useState<{ hasDiscrepancies: boolean; count: number; notRead: boolean } | null>(null);
 
     const hasDiscrepancies = diba ? diba.hasDiscrepancies : !!order.management.has_discrepancies;
     const discrepancyCount = diba ? diba.count : order.management.discrepancy_count || 0;
+    // The comparison could not be read: the tab says so, it does not say "aligned"
+    const notRead = diba ? diba.notRead : Boolean(order.management.load_error);
 
     const tabs: TabItem<WorkspaceTab>[] = [
         { id: 'flow', label: t.operationsTab, icon: <Workflow className="w-4 h-4 text-info-400" />, count: order.operations.length },
@@ -36,7 +38,11 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
             id: 'management',
             label: t.operationsManagementTab,
             icon: <Layers className="w-4 h-4 text-highlight-400" />,
-            badge: hasDiscrepancies ? (
+            badge: notRead ? (
+                <span className="inline-flex items-center gap-1 text-3xs px-1.5 rounded-full bg-danger-500/15 text-danger-400 border border-danger-500/30" title={t.dibaNotRead}>
+                    <AlertTriangle className="w-3 h-3" />{t.dibaNotReadShort}
+                </span>
+            ) : hasDiscrepancies ? (
                 <span className="inline-flex items-center gap-1 text-3xs px-1.5 rounded-full bg-warning-500/20 text-warning-300 border border-warning-500/30">
                     <AlertTriangle className="w-3 h-3" />{discrepancyCount}
                 </span>
@@ -67,7 +73,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
                         initial={order.management}
                         rootCommessaKey={order.key}
                         editions={order.editions}
-                        onStatusChange={(hasDiscrepancies, count) => setDiba({ hasDiscrepancies, count })}
+                        onStatusChange={(hasDiscrepancies, count, notRead) => setDiba({ hasDiscrepancies, count, notRead })}
                     />
                 </div>
             </div>
