@@ -1,10 +1,13 @@
 /**
- * Regression check of the floor plan's geometry, placement, outline, scene and text fitting against the agreed
- * examples (src/lib/floorplan/examples.ts).
+ * Regression check of the floor plan against the agreed examples (src/lib/floorplan/examples.ts): geometry, placement,
+ * outline, scene, text fitting, symbols, columns, duplicates, and that the static example of the headquarters is whole.
  *
  *   npx tsx --tsconfig tsconfig.json scripts/floorplan-examples.ts
  */
-import { runBuildingExamples, runGeometryExamples, runPlacementExamples, runSceneExamples, runTextExamples, type FloorPlanExample } from '@/lib/floorplan/examples';
+import {
+    runBuildingExamples, runColumnExamples, runDuplicateExamples, runGeometryExamples, runPlacementExamples, runSceneExamples, runStaticExamples,
+    runSymbolExamples, runTextExamples, type FloorPlanExample,
+} from '@/lib/floorplan/examples';
 
 const GROUPS: [string, () => FloorPlanExample[]][] = [
     ['shapes', runGeometryExamples],
@@ -12,6 +15,10 @@ const GROUPS: [string, () => FloorPlanExample[]][] = [
     ['the headquarters', runBuildingExamples],
     ['from a spec to a drawing', runSceneExamples],
     ['text inside an area', runTextExamples],
+    ['symbols in front of a line', runSymbolExamples],
+    ['long lists on columns', runColumnExamples],
+    ['the same line twice', runDuplicateExamples],
+    ['the static example of the headquarters', runStaticExamples],
 ];
 
 let failed = 0;

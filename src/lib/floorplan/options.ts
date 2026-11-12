@@ -24,6 +24,17 @@ export interface TextOptions {
     labelGap: number;
     /** How finely a block is moved down its area to find where it fits */
     scanStep: number;
+    /** A symbol in front of a line, in text sizes: its side, the room between two, the room before the text */
+    symbolSide: number;
+    symbolGap: number;
+    symbolLead: number;
+    /** Room kept between a symbol and the edges of its area; less than `padding`: a symbol may hang nearer a wall */
+    symbolPadding: number;
+    /** How tall the font's capitals are, in sizes: a symbol is centred on them (Inter, the app's font: 0.727) */
+    capHeight: number;
+    /** A list too long for its room goes on up to this many columns, this far apart (in text sizes) */
+    maxColumns: number;
+    columnGap: number;
 }
 
 export interface GridOptions {
@@ -57,7 +68,7 @@ export const DEFAULT_OPTIONS: FloorPlanOptions = {
     text: {
         maxSize: 4,
         minSize: 1.3,
-        sizeStep: 0.1,
+        sizeStep: 0.05,
         lineHeight: 1.45,
         padding: 2.6,
         labelRatio: 0.7,
@@ -67,6 +78,13 @@ export const DEFAULT_OPTIONS: FloorPlanOptions = {
         labelLineHeight: 1.5,
         labelGap: 0.9,
         scanStep: 0.5,
+        symbolSide: 0.9,
+        symbolGap: 0.15,
+        symbolLead: 0.35,
+        symbolPadding: 1.6,
+        capHeight: 0.727,
+        maxColumns: 3,
+        columnGap: 2.2,
     },
     grid: { labelBand: 6, labelGap: 3, labelSize: 3.2 },
     breakLine: { amplitude: 1.3, period: 5.3, overhang: 2.1 },

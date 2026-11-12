@@ -9,7 +9,7 @@ import { createFrame, type Frame } from './frame';
 import { clipPolygon, flattenPath, spansAt } from './geometry';
 import { resolveOptions, type FloorPlanOptions, type FloorPlanOptionsPatch, type TextOptions } from './options';
 import { boxPolygon, columnName, placementOf, rowName } from './placement';
-import { hasText, largestFit, layoutBlock } from './textBlock';
+import { hasText, largestFit, layoutBlock, lineMarks, lineText, type BlockContent } from './textBlock';
 import type {
     AreaNotDrawn, FloorPlanArea, FloorPlanExcluded, FloorPlanScene, FloorPlanSpec, PathStep, Point, Polygon, SceneArea,
     SceneExcluded, SceneGrid, SceneGridLabel, SceneText, TextMeasure,
@@ -32,6 +32,8 @@ interface PlacedArea {
     shape: Polygon;
     /** The part of it its text may use: the shape, less what the cut hides */
     room: Polygon;
+    /** Its heading and lines, the lines carrying only the symbols the spec holds */
+    content: BlockContent;
 }
 
 interface Layout {
@@ -42,6 +44,7 @@ interface Layout {
     shown: Polygon | null;
     areas: PlacedArea[];
     notDrawn: AreaNotDrawn[];
+    unknownMarks: string[];
 }
 
 const round = (value: number) => Math.round(value * 100) / 100;
@@ -64,6 +67,21 @@ function layoutOf(spec: FloorPlanSpec, options: FloorPlanOptions): Layout {
             ? [[frame.left - bleed, frame.top - bleed], [frame.right + bleed, frame.top - bleed], [frame.right + bleed, frame.cutBelow ? frame.bottom : frame.bottom + bleed], [frame.left - bleed, frame.cutBelow ? frame.bottom : frame.bottom + bleed]]
             : null;
 
+    // A line keeps the marks that name a symbol of the spec; the others are left out and named in the scene
+    const known = new Set(Object.keys(spec.symbols ?? {}));
+    const unknownMarks = new Set<string>();
+    const contentOf = (area: FloorPlanArea): BlockContent => ({
+        label: area.label,
+        lines: (area.lines ?? []).map((line) => {
+            const marks: string[] = [];
+            for (const id of lineMarks(line)) {
+                if (known.has(id)) marks.push(id);
+                else unknownMarks.add(id);
+            }
+            return marks.length > 0 ? { text: lineText(line), marks } : lineText(line);
+        }),
+    });
+
     const areas: PlacedArea[] = [];
     const notDrawn: AreaNotDrawn[] = [];
     for (const area of spec.areas ?? []) {
@@ -76,16 +94,16 @@ function layoutOf(spec: FloorPlanSpec, options: FloorPlanOptions): Layout {
         const shape = area.clip === false ? given : clipPolygon(walls, given);
         const room = shown ? clipPolygon(shape, shown) : shape;
         if (shape.length < 3 || room.length < 3) notDrawn.push({ id: area.id, why: 'outside' });
-        else areas.push({ area, shape, room });
+        else areas.push({ area, shape, room, content: contentOf(area) });
     }
-    return { frame, walls, shown, areas, notDrawn };
+    return { frame, walls, shown, areas, notDrawn, unknownMarks: [...unknownMarks] };
 }
 
 /** The largest size at which the text of every area fits, never below the smallest size; null when no area has text */
 function sharedTextSize(areas: readonly PlacedArea[], measure: TextMeasure, text: TextOptions): number | null {
-    const written = areas.filter(({ area }) => hasText(area));
+    const written = areas.filter(({ content }) => hasText(content));
     if (written.length === 0) return null;
-    return Math.min(...written.map(({ area, room }) => largestFit(room, area, measure, text) ?? text.minSize));
+    return Math.min(...written.map(({ content, room }) => largestFit(room, content, measure, text) ?? text.minSize));
 }
 
 /**
@@ -129,13 +147,13 @@ function excludedOf(excluded: FloorPlanExcluded, frame: Frame, walls: Polygon, l
 }
 
 /** The text of one area at the plan's size; when its lines do not fit, the heading alone */
-function sceneAreaOf({ area, shape, room }: PlacedArea, size: number | null, measure: TextMeasure | null, text: TextOptions): SceneArea {
+function sceneAreaOf({ area, shape, room, content }: PlacedArea, size: number | null, measure: TextMeasure | null, text: TextOptions): SceneArea {
     let texts: SceneText[] = [];
     let overflow = false;
     if (size !== null && measure) {
-        const block = layoutBlock(room, area, size, measure, text);
+        const block = layoutBlock(room, content, size, measure, text);
         overflow = block === null;
-        texts = block ?? layoutBlock(room, { label: area.label }, size, measure, text) ?? [];
+        texts = block ?? layoutBlock(room, { label: content.label }, size, measure, text) ?? [];
     }
     return { id: area.id, polygon: shape, texts, overflow };
 }
@@ -146,7 +164,7 @@ function sceneAreaOf({ area, shape, room }: PlacedArea, size: number | null, mea
  */
 export function buildScene(spec: FloorPlanSpec, measure: TextMeasure | null, settings: SceneSettings = {}): FloorPlanScene {
     const options = resolveOptions(settings.options);
-    const { frame, walls, shown, areas, notDrawn } = layoutOf(spec, options);
+    const { frame, walls, shown, areas, notDrawn, unknownMarks } = layoutOf(spec, options);
 
     const fitted = measure ? sharedTextSize(areas, measure, options.text) : null;
     const textSize = fitted === null ? null : (settings.textSize ?? fitted);
@@ -174,5 +192,6 @@ export function buildScene(spec: FloorPlanSpec, measure: TextMeasure | null, set
         breakLines,
         textSize,
         notDrawn,
+        unknownMarks,
     };
 }

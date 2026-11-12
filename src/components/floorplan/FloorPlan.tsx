@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { buildScene, type FloorPlanSpec, type Polygon, type SceneText, type TextMeasure, type TextRole } from '@/lib/floorplan';
+import { useId, useMemo, useRef } from 'react';
+import { SYMBOL_GRID, SymbolShape, type FloorPlanSymbolArt } from '@/components/floorplan/SymbolShape';
+import { TEXT_WEIGHT } from '@/components/floorplan/textStyle';
+import { useFloorPlanMeasure } from '@/hooks/useFloorPlanMeasure';
+import { buildScene, type FloorPlanSpec, type Polygon, type SceneText, type TextMeasure } from '@/lib/floorplan';
 import { cn } from '@/lib/utils';
 
 /** Line weights and patterns, in millimetres of the sheet */
@@ -11,33 +14,24 @@ const DASH = { grid: '1 1', cut: '1.6 1' } as const;
 const HATCH_STEP = 2.1;
 /** The rule under a heading, in heading sizes: how far below the baseline, how long, how thick */
 const RULE = { drop: 0.5, length: 2.2, thickness: 0.2 } as const;
-/** Weight of each kind of text; the browser measures with the same ones */
-const WEIGHT: Record<TextRole, number> = { label: 800, line: 400 };
 const GRID_LABEL_WEIGHT = 600;
 /** Room between the letters of the text over the hatch, in sizes */
 const EXCLUDED_LABEL_SPACING = 0.3;
-/** Size the browser measures at, scaled down to the size asked: small sizes measure badly */
-const MEASURE_PX = 100;
 
 const points = (polygon: Polygon) => polygon.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-
-/** How wide a text is in this font, by the browser's own measure; null where there is no canvas */
-function browserMeasure(fontFamily: string): TextMeasure | null {
-    const context = document.createElement('canvas').getContext('2d');
-    if (!context) return null;
-    return (text, size, role) => {
-        context.font = `${WEIGHT[role]} ${MEASURE_PX}px ${fontFamily}`;
-        return (context.measureText(text).width / MEASURE_PX) * size;
-    };
-}
 
 interface FloorPlanProps {
     /** What to draw. With only a building and a sheet: the bare shape. */
     spec: FloorPlanSpec;
+    /** How each symbol of the spec looks, by its id; one without art is drawn as a plain grey square */
+    symbolArt?: FloorPlanSymbolArt;
     /** One size (mm) for the lines of several plans shown together: the smallest of their `fitTextSize` */
     textSize?: number;
-    /** How wide a text is. By default the browser measures, with the plan's own font, once the page is up. */
-    measure?: TextMeasure;
+    /**
+     * How wide a text is. Left out, the browser measures with the plan's own font once the page is up; null means
+     * someone else is measuring and the plan waits without text (FloorPlanSet).
+     */
+    measure?: TextMeasure | null;
     /** What the drawing is, for a screen reader; without it the drawing is hidden from them */
     title?: string;
     className?: string;
@@ -45,38 +39,27 @@ interface FloorPlanProps {
 
 /**
  * A floor plan (src/lib/floorplan) as an SVG in millimetres of its sheet: it fills the width of its box on screen and
- * prints at true size. It holds no content of its own — the spec says what there is. Colours are theme tokens
- * (Tailwind fill / stroke classes); the text is the page's font.
+ * prints at true size. It holds no content of its own — the spec says what there is, `symbolArt` how its symbols
+ * look. Colours are theme tokens (Tailwind fill / stroke classes); the text is the page's font.
  */
-export function FloorPlan({ spec, textSize, measure, title, className }: FloorPlanProps) {
+export function FloorPlan({ spec, symbolArt, textSize, measure, title, className }: FloorPlanProps) {
     const svg = useRef<SVGSVGElement>(null);
     const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-    const [measured, setMeasured] = useState<TextMeasure | null>(null);
+    const measured = useFloorPlanMeasure(svg, measure);
 
-    // Text can be placed only once it can be measured: after the first paint, and again when the font has loaded
-    useEffect(() => {
-        if (measure) return;
-        let mounted = true;
-        const read = () => {
-            if (!mounted || !svg.current) return;
-            const fromBrowser = browserMeasure(getComputedStyle(svg.current).fontFamily);
-            setMeasured(() => fromBrowser);
-        };
-        read();
-        document.fonts?.ready.then(read);
-        return () => {
-            mounted = false;
-        };
-    }, [measure]);
-
-    const scene = useMemo(() => buildScene(spec, measure ?? measured, { textSize }), [spec, measure, measured, textSize]);
+    const scene = useMemo(() => buildScene(spec, measured, { textSize }), [spec, measured, textSize]);
 
     const text = (item: SceneText, key: number) => (
         <g key={key}>
-            <text x={item.x} y={item.y} fontSize={item.size} fontWeight={WEIGHT[item.role]} letterSpacing={item.spacing} className={item.role === 'label' ? 'fill-primary' : 'fill-fg'}>
+            <text x={item.x} y={item.y} fontSize={item.size} fontWeight={TEXT_WEIGHT[item.role]} letterSpacing={item.spacing} className={item.role === 'label' ? 'fill-primary' : 'fill-fg'}>
                 {item.text}
             </text>
             {item.rule && <rect x={item.x} y={item.y + item.size * RULE.drop} width={item.size * RULE.length} height={item.size * RULE.thickness} className="fill-primary" />}
+            {item.marks?.map((mark) => (
+                <g key={mark.id} transform={`translate(${mark.x.toFixed(2)} ${mark.y.toFixed(2)}) scale(${(mark.side / SYMBOL_GRID).toFixed(4)})`}>
+                    <SymbolShape art={symbolArt?.[mark.id]} />
+                </g>
+            ))}
         </g>
     );
 
@@ -142,7 +125,7 @@ export function FloorPlan({ spec, textSize, measure, title, className }: FloorPl
                                 textAnchor="middle"
                                 dominantBaseline="central"
                                 fontSize={scene.excluded.label.size}
-                                fontWeight={WEIGHT.label}
+                                fontWeight={TEXT_WEIGHT.label}
                                 letterSpacing={scene.excluded.label.size * EXCLUDED_LABEL_SPACING}
                                 className="fill-fg-muted"
                             >

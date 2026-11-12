@@ -46,6 +46,15 @@ export interface AreaPlacement {
     points?: Polygon;
 }
 
+/** A row of text under an area's heading: the text alone, or with the ids of the symbols drawn in front of it */
+export type FloorPlanLine = string | { readonly text: string; readonly marks?: readonly string[] };
+
+/** A symbol a line can carry (a role, a qualification …). How it looks is the drawing's business, not the spec's. */
+export interface FloorPlanSymbol {
+    /** What it means, for a legend */
+    title: string;
+}
+
 export interface FloorPlanArea extends AreaPlacement {
     /** Names the area in the scene (a React key, the list of areas not drawn) */
     id: string;
@@ -53,8 +62,8 @@ export interface FloorPlanArea extends AreaPlacement {
     clip?: boolean;
     /** Heading of the area, written as given */
     label?: string;
-    /** Lines under the heading, one per row, in this order */
-    lines?: readonly string[];
+    /** Lines under the heading, one per row, in this order; a list too long for its room goes on more columns */
+    lines?: readonly FloorPlanLine[];
 }
 
 /** A part of the building the plan is not about: hatched */
@@ -94,6 +103,8 @@ export interface FloorPlanSpec {
     /** Open lines inside the building that are not the edge of an area, in grid units; trimmed to the outline */
     walls?: readonly Polygon[];
     excluded?: FloorPlanExcluded;
+    /** The symbols the lines may carry, by id, in the order of a legend. A mark naming none of them is left out. */
+    symbols?: Readonly<Record<string, FloorPlanSymbol>>;
 }
 
 /** The two kinds of text inside an area */
@@ -102,6 +113,14 @@ export type TextRole = 'label' | 'line';
 export type TextMeasure = (text: string, size: number, role: TextRole) => number;
 
 // ─── The scene: what the drawing is made of, in millimetres of the sheet ─────────
+
+/** A symbol in front of a line: a square, given by its top-left corner */
+export interface SceneMark {
+    id: string;
+    x: number;
+    y: number;
+    side: number;
+}
 
 /** One row of text, left-aligned on its baseline */
 export interface SceneText {
@@ -114,6 +133,8 @@ export interface SceneText {
     spacing?: number;
     /** The last row of a heading: a short rule goes under it */
     rule?: boolean;
+    /** The symbols hanging in front of the text, left to right; lines only */
+    marks?: readonly SceneMark[];
 }
 
 export interface SceneArea {
@@ -173,4 +194,6 @@ export interface FloorPlanScene {
     /** Size of the lines in every area (mm); null when no area has text, or nothing could be measured */
     textSize: number | null;
     notDrawn: readonly AreaNotDrawn[];
+    /** Ids that lines carry but `spec.symbols` does not hold: left out of the drawing */
+    unknownMarks: readonly string[];
 }
