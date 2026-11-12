@@ -16,7 +16,7 @@ module.exports = {
             },
         },
         {
-            // Auto-exit scheduler — calls /api/auto-exit daily at TRIGGER_HOUR (Mon–Sat)
+            // Auto-exit scheduler — calls /api/auto-exit daily (Mon–Sat) at the hour written in src/config/schedule.json
             name: 'clz-scheduler',
             script: 'node',
             args: 'scripts/scheduler.js',
@@ -26,7 +26,6 @@ module.exports = {
             watch: false,
             env: {
                 PORT: 3000,
-                AUTO_EXIT_TRIGGER_HOUR: 19,
             },
         },
     ],

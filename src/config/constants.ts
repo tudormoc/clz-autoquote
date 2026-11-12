@@ -6,6 +6,10 @@
 //
 // Use this file ONLY for true static configuration (e.g., UI timeouts, pagination limits).
 
+// When the daily automatic exit runs and how it is tried again. A file of its own because the scheduler
+// (scripts/scheduler.js, plain Node outside the app) reads it too: these numbers are written there and nowhere else.
+import schedule from './schedule.json';
+
 /** Company code (codditt) of every Business ERP row the app reads or writes */
 export const BUSINESS_COMPANY = 'COOPZANARDI';
 
@@ -299,8 +303,10 @@ export const APP_CONFIG = {
     // the standard times, used only when nothing can be learned: working days, and extra days (Saturday)
     AUTO_EXIT_TIME_WEEKDAY: '16:30:00',
     AUTO_EXIT_TIME_SATURDAY: '11:00:00',
-    // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00)
-    TRIGGER_HOUR: 19,
+    // Hour of day (24h) when the auto-exit check runs (e.g. 19 = 19:00): `autoExitHour` in schedule.json, next to this
+    // file, which the scheduler reads too. After a run that failed or left exits unwritten the scheduler calls again
+    // `autoExitRetries` more times, `autoExitRetryMinutes` apart (same file)
+    TRIGGER_HOUR: schedule.autoExitHour,
     // How a person's usual exit time is read from the past real exits (src/lib/presence/usualExit.ts; owner,
     // 2026-11-11: the last few days decide). Tested against the 4,527 real exits of May–November 2026: these numbers
     // guess the real exit 88.5 % of the time (one fixed time: 60.7 %); `npm run presence:examples` holds the cases.

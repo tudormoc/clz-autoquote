@@ -46,7 +46,8 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 ## Deployment
 
 - Dev: this PC. Prod: VM `192.168.1.93:3000`, folder `C:\tm\clz-autoquote`, run by PM2 (`ecosystem.config.js`):
-  `clz-autoquote` (the app) and `clz-scheduler` (daily auto-exit, `scripts/scheduler.js`).
+  `clz-autoquote` (the app) and `clz-scheduler` (daily auto-exit, `scripts/scheduler.js`: it reads the app's answer
+  and calls again after a run that failed or left exits unwritten, [docs/PRESENCE.md](docs/PRESENCE.md)).
 - Deploy: commit and push to `main` (`gitsync.bat "message"`: it runs `npm run check` first and pushes nothing when
   it fails, and asks before pushing files Git has never seen), then run `update.ps1` on the VM (pull, install, build,
   restart). `update.ps1` checks every step and restarts PM2 only on a build that finished; a failed build is replaced
@@ -121,7 +122,7 @@ npm run order:snapshot -- 260999910 before   # read-only snapshot of one commess
 | Pages | `src/app/<area>/page.tsx`; every page sits in the one frame drawn by the root layout (`src/app/layout.tsx`) |
 | Server actions (DB access) | `src/app/**/*-actions.ts`, analytics queries in `src/app/analytics/queries/` |
 | All UI text | `src/locales/it.ts` → `APP_COPY` |
-| Numbers and settings | `src/config/constants.ts` → `APP_CONFIG`, `PRICING_FORMULAS`, `PRESENCE_RULES` |
+| Numbers and settings | `src/config/constants.ts` → `APP_CONFIG`, `PRICING_FORMULAS`, `PRESENCE_RULES`; the hour of the daily automatic exit and how often it is tried again: `src/config/schedule.json`, read by the scheduler too |
 | Look: colours, font sizes, radius, shadows, layout sizes | `src/styles/theme.js` |
 | Areas and their pages: sidebar, phone menu, home cards, area overview pages | `src/config/navigation.ts` (`NAV_AREAS`) |
 | Analytics report list / their components | `src/config/analyticsSections.ts` / `src/components/analytics/reportComponents.ts` |

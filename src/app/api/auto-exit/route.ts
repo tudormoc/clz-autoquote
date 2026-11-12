@@ -1,4 +1,4 @@
-import { runAutoExit } from '@/app/presence/auto-exit';
+import { runAutoExit, type AutoExitDecision } from '@/app/presence/auto-exit';
 import { LINKS } from '@/config/navigation';
 import { getAccess } from '@/lib/auth/access';
 import { sameText, schedulerKey } from '@/lib/auth/secrets';
@@ -15,7 +15,8 @@ const log = APP_COPY.log.entries;
  * Triggered by the scheduler at the configured TRIGGER_HOUR: only its call, with the scheduler's key, writes.
  * Who is still in (an entry today and no exit after it) gets an exit dated at their usual exit time
  * (src/app/presence/auto-exit.ts). Every run is written in the log (Registro) as the Scheduler's, with one line per
- * person: the time used and why.
+ * person: the time used and why, or why no exit was written. An exit that could not be written is counted in
+ * `failed`: the scheduler then calls again a few minutes later, and that run only finds who is still in.
  * The superadmin opening this address always gets the preview, whatever the address says: a link only shows, it
  * never writes (README rule 8; before 2026-11-12 an address without ?preview clocked everybody out).
  *
@@ -47,13 +48,14 @@ export async function GET(request: Request) {
     });
     if (preview) return Response.json(result);
 
+    const counts = { count: result.processed, failed: result.failed };
     await logEvent(SCHEDULER, {
         page: LINKS.presence.dailyEvents,
         action: 'auto-exit',
         entityKind: 'presence-event',
-        summary: result.success ? fmt(log.autoExit, { count: result.processed }) : log.autoExitFailed,
+        summary: runSummary(result.success, counts),
         details: result,
-        outcome: result.success ? 'ok' : 'error',
+        outcome: result.success && result.failed === 0 ? 'ok' : 'error',
         error: 'error' in result ? result.error : undefined,
     });
     // One line per person: the time the exit was dated at and why, or why none was written
@@ -66,10 +68,23 @@ export async function GET(request: Request) {
             entityId: exit.operator,
             summary: exit.written
                 ? fmt(log.autoExitOperator, { ...person, time: exit.exitTime ?? '', why: exit.why })
-                : fmt(log.autoExitNotWritten, { ...person, why: exit.exitTime ? log.autoExitReasons.leftMeanwhile : exit.why }),
+                : fmt(log.autoExitNotWritten, { ...person, why: notWrittenWhy(exit) }),
             details: { after: exit },
-            outcome: exit.written ? 'ok' : 'refused',
+            outcome: exit.written ? 'ok' : exit.error === undefined ? 'refused' : 'error',
+            error: exit.error,
         });
     }
     return Response.json(result);
+}
+
+/** The run's line in the Registro: all written, some not written, or broken off (with what it had written by then) */
+function runSummary(success: boolean, counts: { count: number; failed: number }): string {
+    if (!success) return counts.count > 0 ? fmt(log.autoExitBrokenOff, counts) : log.autoExitFailed;
+    return counts.failed > 0 ? fmt(log.autoExitPartly, counts) : fmt(log.autoExit, counts);
+}
+
+/** Why a person's exit was not written: the write failed, they badged out in the meantime, or no time was possible */
+function notWrittenWhy(exit: AutoExitDecision): string {
+    if (exit.error !== undefined) return log.autoExitReasons.writeFailed;
+    return exit.exitTime ? log.autoExitReasons.leftMeanwhile : exit.why;
 }

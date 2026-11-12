@@ -1,0 +1,5 @@
+{
+  "autoExitHour": 19,
+  "autoExitRetries": 3,
+  "autoExitRetryMinutes": 5
+}

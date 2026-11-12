@@ -141,7 +141,17 @@ handled in `IMPORT_TIMBRATURE`, so a deleted event is not imported again), `MES`
 - **The automatic exit** (`runAutoExit` in `src/app/presence/auto-exit.ts`, called by the scheduler at 19:00 on the
   VM through `/api/auto-exit`): who is still IN (last presence event of the day an entry) gets an exit written as
   `UTENTE = 'AUTO'`, with the work in progress paused one second before. Days that are not worked (the rules'
-  calendar) are skipped.
+  calendar) are skipped. The hour is `autoExitHour` in `src/config/schedule.json`, the one file both the app
+  (`APP_CONFIG.PRESENCE.TRIGGER_HOUR`) and the scheduler read.
+- **When an exit cannot be written** (2026-11-12): each person's exit is a transaction of its own, so a failed one is
+  that person's alone: nothing of it is in NetPro, their Registro line says "non scritta: la scrittura non è riuscita"
+  with the error, and the others still get theirs (before, the run stopped there and answered as if nothing had been
+  written). The scheduler (`scripts/scheduler.js`) reads the answer: after a run that did not happen (the app was
+  restarting), failed or left exits unwritten it calls again, `autoExitRetries` more times, `autoExitRetryMinutes`
+  apart (`schedule.json`: 3 times, 5 minutes). A second run is safe: it only finds who is still in. A refused call
+  (403: the scheduler's `AUTH_SECRET` is not the app's) is not tried again. What it did each evening is in the PM2 log
+  of `clz-scheduler` (`pm2 logs clz-scheduler`) and in the Registro. What the scheduler makes of each kind of answer
+  is among `npm run presence:examples`, typed as the app's own answer: a field renamed in `runAutoExit` fails there.
 - **The time of a forgotten exit** (owner, 2026-11-11; the rule is pure, `src/lib/presence/usualExit.ts`, its numbers
   in `APP_CONFIG.PRESENCE.USUAL_EXIT`): the person's usual exit time, read from the last *real* exits (the last
   presence event of a day when it is an exit made at the badge clock, the terminal or NetPro; automatic exits and

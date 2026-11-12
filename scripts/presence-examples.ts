@@ -22,6 +22,9 @@ import {
     type PresenceStamp,
 } from '@/lib/presence';
 import { runNoRecordExamples, runOperatorExceptionExamples, runPresenceExamples } from '@/lib/presence/examples';
+import type { AutoExitDecision, runAutoExit } from '@/app/presence/auto-exit';
+import { APP_COPY } from '@/locales';
+import { readAnswer } from './scheduler.js';
 
 const results = runPresenceExamples(DEFAULT_PRESENCE_RULES);
 const noRecord = runNoRecordExamples(DEFAULT_PRESENCE_RULES);
@@ -199,8 +202,39 @@ for (const { slots, expect, note } of OTHERS_EXAMPLES) {
     if (!pass) console.log(`     expected ${String(expect)}`);
 }
 
+// What the scheduler (scripts/scheduler.js) makes of the app's answer to the daily automatic exit: did the run end
+// well, and does it call again. The answers are typed as the app's own (runAutoExit), so a field renamed there fails
+// the typecheck here: the scheduler is plain JavaScript and would otherwise go on reading a field that is gone.
+type AutoExitAnswer = Awaited<ReturnType<typeof runAutoExit>>;
+const decision = (operator: string, written: boolean, error?: string): AutoExitDecision => ({
+    operator, name: null, stillIn: true, exitTime: '16:30:00', reason: 'standard', why: '', lastExits: [], written, ...(error === undefined ? {} : { error }), paused: [],
+});
+const ran = (exits: AutoExitDecision[]): AutoExitAnswer => ({
+    success: true, skipped: false, preview: false, date: '2026-11-12', checkedAt: '19:00:00', standardTime: '16:30', othersToday: null,
+    processed: exits.filter((exit) => exit.written).length, failed: exits.filter((exit) => exit.error !== undefined).length, exits,
+});
+const SCHEDULER_EXAMPLES: { status: number; answer: AutoExitAnswer | string; expect: string; note: string }[] = [
+    { status: 200, answer: ran([decision('12', true), decision('98', true)]), expect: 'ended well', note: 'every exit written' },
+    { status: 200, answer: ran([]), expect: 'ended well', note: 'nobody was still in' },
+    { status: 200, answer: ran([decision('12', true), decision('98', false)]), expect: 'ended well', note: 'someone badged out in the meantime: no failure' },
+    { status: 200, answer: { success: true, skipped: true, reason: APP_COPY.analytics.presence.autoExitSunday, processed: 0, failed: 0, exits: [] }, expect: 'ended well', note: 'a day that is not worked' },
+    { status: 200, answer: ran([decision('12', true), decision('98', false, 'deadlock')]), expect: 'calls again', note: 'one exit could not be written' },
+    { status: 200, answer: { success: false, error: 'Connection lost', processed: 1, failed: 0, exits: [decision('12', true)] }, expect: 'calls again', note: 'the run broke off' },
+    { status: 403, answer: '{"success":false,"error":"Forbidden"}', expect: 'gives up', note: 'refused, the key is wrong: calling again cannot help' },
+    { status: 500, answer: 'Internal Server Error', expect: 'calls again', note: 'an error page of the server' },
+    { status: 200, answer: 'starting...', expect: 'calls again', note: 'an answer that is not JSON' },
+];
+for (const { status, answer, expect, note } of SCHEDULER_EXAMPLES) {
+    const read = readAnswer(status, typeof answer === 'string' ? answer : JSON.stringify(answer));
+    const actual = read.ok ? 'ended well' : read.retry ? 'calls again' : 'gives up';
+    const pass = actual === expect;
+    if (!pass) failed++;
+    console.log(`${pass ? 'OK  ' : 'FAIL'} ${actual.padEnd(18)} — scheduler: ${note} ⇒ "${read.text}"`);
+    if (!pass) console.log(`     expected ${expect}`);
+}
+
 const total =
     results.length + noRecord.length + exceptions.length + NAME_EXAMPLES.length + DELETE_EXAMPLES.length + STATO_EXAMPLES.length +
-    EXIT_EXAMPLES.length + REAL_EXIT_EXAMPLES.length + OTHERS_EXAMPLES.length;
+    EXIT_EXAMPLES.length + REAL_EXIT_EXAMPLES.length + OTHERS_EXAMPLES.length + SCHEDULER_EXAMPLES.length;
 console.log(`\n${total - failed}/${total} examples pass`);
 process.exit(failed > 0 ? 1 : 0);

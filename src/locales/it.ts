@@ -954,7 +954,11 @@ export const APP_COPY = {
       alignEmail: "Allinea e-mail di {name}: {value} ({written} righe scritte)",
       alignName: "Allinea nome di {name}: {value} ({written} righe scritte)",
       autoExit: "Uscita automatica: {count} operatori",
+      /** Some exits could not be written: the scheduler tries again a few minutes later */
+      autoExitPartly: "Uscita automatica: {count} operatori, uscite non scritte: {failed}",
       autoExitFailed: "Uscita automatica non riuscita",
+      /** The run broke off after some exits were already written */
+      autoExitBrokenOff: "Uscita automatica interrotta, uscite già scritte: {count}",
       /** One line per person the automatic exit closed: the time it used and why */
       autoExitOperator: "Uscita automatica di {operator} {name} alle {time}: {why}",
       autoExitNotWritten: "Uscita automatica di {operator} {name} non scritta: {why}",
@@ -968,6 +972,7 @@ export const APP_COPY = {
         now: "gli orari abituali vengono prima della sua entrata o della lavorazione in corso: ora del controllo ({time})",
         tooEarly: "è entrato o ha avviato una lavorazione da pochi istanti",
         leftMeanwhile: "ha timbrato l'uscita nel frattempo",
+        writeFailed: "la scrittura non è riuscita",
       },
     },
   },
