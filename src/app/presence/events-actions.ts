@@ -56,8 +56,8 @@ const EVENT_TIME = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) ([01]\d|2[0-3])
 
 /**
  * Changes the time of one presence event (the only thing of an event the list changes). The event is named by its
- * whole key, as the delete does: by operator and time alone, as until 2026-11-12, an entry and an exit stamped at the
- * same instant (a double badge) both moved. One row must change: when the event is no longer there as the list showed
+ * whole key, as the delete does: by operator and time alone, an entry and an exit stamped at the same instant (a
+ * double badge) would both move. One row must change: when the event is no longer there as the list showed
  * it, nothing is written or logged and the answer says to reload. The time is stored as typed (no time zone
  * conversion), with milliseconds; the stato fisico and the clock rows are left to NetPro, as before.
  */

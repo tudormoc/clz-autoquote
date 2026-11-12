@@ -3,9 +3,7 @@ import { APP_COPY } from '@/locales';
 import type { PresenceSettingRow } from '@/types';
 import type { HourField, PresenceRulesConfig, RoundingMode } from './types';
 
-// ============================================================================
 // PRESENCE RULES — CONFIG
-// ============================================================================
 // Single place that knows how a PresenceRulesConfig is built:
 //   defaults (src/config/constants.ts → PRESENCE_RULES)
 //   ⟶ overridden by NETPRO.VALORI_TABELLE rows (TABELLA = 'PRESENZE')
@@ -15,7 +13,6 @@ import type { HourField, PresenceRulesConfig, RoundingMode } from './types';
 //   2. add the field to PresenceRulesConfig (types.ts)
 //   3. add one entry to PRESENCE_SETTINGS below
 // The settings page and the parser pick it up automatically.
-// ============================================================================
 
 const HOUR_FIELDS: readonly HourField[] = [
     'ore_ordinarie',
@@ -129,10 +126,8 @@ export const DEFAULT_PRESENCE_RULES: PresenceRulesConfig = {
     workdayHoursByOperator: { ...PRESENCE_RULES.WORKDAY_HOURS_BY_OPERATOR },
 };
 
-// ---------------------------------------------------------------------------
 // Parsing helpers — each returns the fallback on any invalid input so a bad
 // DB value can never break the dashboard.
-// ---------------------------------------------------------------------------
 
 type SettingSource = Pick<PresenceSettingRow, 'PARAMETRO' | 'VALORE' | 'FVALUE01'>;
 

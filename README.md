@@ -47,6 +47,7 @@ npm run dates:examples      # date arithmetic (src/lib/dateUtils.ts) and the rea
 npm run timesheet:examples  # Le mie ore: what a day adds up to, what the editor accepts, the half-hour steps
 npm run inputs:examples     # what the forms accept and refuse (Agenda, Operatori, quote): run before and after a Zod update
 npm run address:examples    # what a screen keeps in the address bar (tab, sort, page, chips, applied filters)
+npm run errors:examples     # what a screen says when something fails: the app's own texts, a plain sentence for a technical failure
 npm run order:snapshot -- 260999910 before   # read-only snapshot of one commessa in Business and NetPro, diffed with the previous one
 ```
 
@@ -186,7 +187,10 @@ Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for
 `EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar` (tabs as links with `linkOf`), `ViewLink` (a link to another view of the same page), `Section` + `RowList`/`Row` (blocks of a settings page),
 `Spinner`, `LoadState` (spinner or load error while a screen's data is not there yet), `Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
-(`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any`.
+(`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error for the screen: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any` or `err.message`:
+an error the app raised says its own text, a technical failure (database, network, file, a fault in the code) says a plain
+sentence of `it.ts` → `errors.faults` and its cause goes to the log. For a log, the Registro or the scheduler:
+`technicalMessage(err)`. A fault of the setup or the code is thrown as `new AppFault(…)`, never as a text for the person.
 
 ## Rules for new code
 
@@ -223,7 +227,7 @@ Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `awa
 ## Recipes
 
 **New page**: the frame (sidebar, phone menu, padding) comes from the root layout — the page starts with
-`await requirePage('<area>', '<page id>')`, renders `<PageHeader icon title subtitle />` and its content, and exports
+`await requirePage('<area>', '<page id>')`, renders `<PageHeader icon title />` and its content, and exports
 `metadata = { title }` for the browser tab. Its server actions start with `await authorize(...)`; a page that changes
 data gets `editable: true` in the menu config, so groups can be given *modifica* on it. A page that
 fills the height uses `h-full`. Add the link to `NAV_AREAS` in `src/config/navigation.ts` (a new area, or a page in an

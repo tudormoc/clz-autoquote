@@ -2,6 +2,8 @@ export const APP_COPY = {
   common: {
     today: "Oggi",
     pickDate: "Scegli dal calendario",
+    /** What an empty date field shows: day, month, year as they are typed */
+    datePlaceholder: "GG/MM/AAAA",
     yes: "Sì",
     no: "No",
     // Filters
@@ -68,7 +70,6 @@ export const APP_COPY = {
   },
   home: {
     welcome: "Benvenuto in CLZ TM",
-    subtitle: "Piattaforma integrata di gestione aziendale e analisi",
   },
   // Sidebar, phone menu, home cards and area overview pages (src/config/navigation.ts)
   nav: {
@@ -83,11 +84,11 @@ export const APP_COPY = {
     areas: {
       quotes: { label: "Preventivi", description: "Crea preventivi dettagliati per rilegatura libri" },
       workProgress: { label: "Avanzamento Lavori", description: "Stato di produzione delle commesse e confronto con la DiBa" },
-      analytics: { label: "Analisi", description: "Report di produzione, clienti e ricavi" },
-      presence: { label: "Presenze", description: "Presenze, eventi e ore mensili degli operatori" },
+      analytics: { label: "Analisi" },
+      presence: { label: "Presenze" },
       cashflow: { label: "Flusso Monetario", description: "Liquidità, scadenze attive e passive" },
-      tasks: { label: "Agenda", description: "Attività, scadenze e procedure: cosa fare, quando e come" },
-      settings: { label: "Impostazioni", description: "Prezzi dei preventivi, costo del lavoro, regole presenze e strumenti" },
+      tasks: { label: "Agenda" },
+      settings: { label: "Impostazioni" },
     },
     // Functions of a page that a group is given on their own, in Gruppi (NavItem.functions)
     functions: {
@@ -103,6 +104,8 @@ export const APP_COPY = {
     pin: "PIN",
     submit: "Entra",
     wrong: "Nome o PIN errati",
+    /** The login could not be checked (database down …): the cause is in the server log, never on this page */
+    failed: "Accesso non riuscito: riprova tra poco",
     /** {wait}: "5 min", "4 h" (formatWait) */
     locked: "Troppi tentativi: riprova tra {wait}",
     notConfigured: "Accesso non configurato: mancano AUTH_SECRET o SUPERADMIN_PIN in .env.local",
@@ -138,14 +141,9 @@ export const APP_COPY = {
       nodate: "Senza data",
       doneToday: "Fatte oggi",
     },
-    groupHints: {
-      later: "Non ancora nel periodo di preavviso",
-      nodate: "Da sistemare: dai una data o falle quando puoi",
-    },
     allClear: "Niente da fare per ora",
     nothingNow: "Niente di scaduto né per oggi",
     nothingNext: "Niente in arrivo",
-    allClearHint: "Le attività compaiono qui quando si avvicina la scadenza. Aggiungine una con \"Nuova attività\" o scrivila qui sopra.",
     quickAdd: "Scrivi un'attività e premi Invio (anche \"venerdì alle 10\", \"il 25\", \"ogni lunedì\")",
     quickAddButton: "Aggiungi",
     quickAdded: "Aggiunta in \"Senza data\": {title}",
@@ -299,15 +297,10 @@ export const APP_COPY = {
       tagsPlaceholder: "Parole per trovarla, separate da virgola",
       kind: "Tipo",
       dueDate: "Scadenza",
-      noDateHint: "Lascia vuoto se non ha ancora una data",
       dueTime: "Ora (facoltativa)",
       firstDate: "Prima scadenza",
       mode: "Come si ripete",
       modes: { calendar: "A calendario", after: "Dopo l'ultima volta" },
-      modeHints: {
-        calendar: "Le date seguono il calendario (es. ogni 16 del mese), anche se l'ultima è stata fatta in ritardo",
-        after: "La prossima data si conta da quando l'ultima è stata fatta (es. 3 mesi dopo l'ultimo controllo)",
-      },
       every: "Ogni",
       units: { days: "giorni", weeks: "settimane", months: "mesi", years: "anni" },
       weekdays: "Nei giorni",
@@ -315,7 +308,6 @@ export const APP_COPY = {
       monthOnOptions: { days: "Nel giorno", last: "L'ultimo giorno", weekday: "Un giorno della settimana" },
       monthDays: "Giorni del mese",
       monthDaysPlaceholder: "Es. 16 oppure 1, 15",
-      monthDaysHint: "Se il mese è più corto vale l'ultimo giorno (31 → 30 aprile)",
       nth: "Quale",
       nthOptions: { 1: "Il primo", 2: "Il secondo", 3: "Il terzo", 4: "Il quarto", "-1": "L'ultimo" },
       weekday: "Giorno",
@@ -339,7 +331,6 @@ export const APP_COPY = {
       notes: "Come si fa",
       notesPlaceholder: "I passi, cosa serve, dove trovarlo. Si può scrivere con **grassetto**, elenchi (- punto) e link.",
       checklist: "Lista di controllo",
-      checklistHint: "Passi da spuntare ogni volta",
       addStep: "Aggiungi passo",
       stepPlaceholder: "Es. scarica l'estratto conto",
       links: "Link e percorsi",
@@ -481,8 +472,6 @@ export const APP_COPY = {
       weekNumber: "Settimana {n}",
       progress: "{done} di {total} fatte",
       nothingThisWeek: "Niente in scadenza",
-      keyboardHint: "← → per cambiare, T per tornare a oggi",
-      cardKeysHint: "Su una scheda selezionata: Spazio = fatta, ← → un giorno prima o dopo, ↑ ↓ cambia l'ordine, Invio la apre",
       horizon: "Le prossime settimane",
       horizonWeek: "Settimana {n}: {count} in scadenza",
       horizonCritical: "{n} critiche",
@@ -527,7 +516,6 @@ export const APP_COPY = {
       body: "Passi e istruzioni",
       bodyPlaceholder: "1. Apri il sito…\n2. Scarica…\n\nSi può scrivere con **grassetto**, elenchi e link.",
       reviewMonths: "Ricontrolla ogni (mesi)",
-      reviewHint: "Vuoto = non serve. Passato il tempo la procedura viene segnata \"da ricontrollare\"",
       reviewedAt: "Controllata il {date}",
       neverReviewed: "Mai controllata",
       toReview: "Da ricontrollare",
@@ -547,7 +535,6 @@ export const APP_COPY = {
       columns: { title: "Procedura", area: "Area", updated: "Aggiornata", review: "Controllo", tasks: "Attività" },
       archiveConfirm: "Archiviare la procedura \"{title}\"? Resta collegata alle attività che la usano.",
       showArchived: "Mostra archiviate",
-      passwordsHint: "Non scrivere password: scrivi dove si trovano.",
       created: "Procedura creata",
     },
     contacts: {
@@ -703,7 +690,6 @@ export const APP_COPY = {
   },
   cashflow: {
     title: "Flusso Monetario & Liquidità",
-    subtitle: "Pianificazione e monitoraggio del flusso di cassa e liquidità aziendale",
     // Names used when the ERP has none
     labels: {
       otherSuppliers: "Altri Fornitori",
@@ -713,17 +699,15 @@ export const APP_COPY = {
     },
     kpi: {
       currentLiquidity: "Liquidità Disponibile",
-      currentLiquiditySubtitle: "Saldo reale conti bancari (Prima Nota)",
       totalIncomes: "Entrate Totali",
       totalExpenses: "Uscite Totali",
       netCashflow: "Flusso Netto Esercizio",
-      incomesSubtitle: "Scadenze attive (Clienti)",
-      expensesSubtitle: "Fornitori, stipendi, F24 e spese",
-      netSubtitle: "Liquidità netta generata / assorbita",
+      invoices: "{count} fatture",
+      suppliers: "{count} fornitori",
+      surplus: "Surplus",
+      deficit: "Deficit",
     },
     macro: {
-      incomesSubtitle: "Riepilogo entrate aggregate per categoria",
-      expensesSubtitle: "Riepilogo uscite e costi aggregati per categoria",
       clientIncomes: "Incassi da Clienti (Fatturato)",
       supplierExpenses: "Fornitori Materie Prime & Servizi",
       payrollExpenses: "Stipendi & Costo del Personale",
@@ -734,7 +718,6 @@ export const APP_COPY = {
     },
     matrix: {
       title: "Tabella Finanziaria Mensile ({year})",
-      hint: "Clicca sulle righe per espandere o comprimere le voci",
       categoryHeader: "Macro Categoria",
       totalHeader: "Totale Periodo",
       expandAll: "Espandi Tutto",
@@ -756,7 +739,6 @@ export const APP_COPY = {
       verifiedBalance: "Saldo attuale verificato: {amount}",
     },
     bankDetails: {
-      subtitle: "Operazioni di Prima Nota e formazione progressiva del saldo",
       openingBalance: "Saldo Iniziale",
       closingBalance: "Saldo Finale",
       totalInflows: "Totale Dare (+)",
@@ -791,7 +773,6 @@ export const APP_COPY = {
   },
   quotes: {
     title: "Nuovo Preventivo",
-    subtitle: "Inserisci le specifiche del libro qui sotto per generare un preventivo dettagliato in tempo reale.",
   },
   form: {
     quantityLabel: "Quantità",
@@ -849,6 +830,7 @@ export const APP_COPY = {
     headbands: "Capitelli",
     includeHeadbands: "Includi Capitelli",
     headbandType: "Tipo Capitello",
+    headbandTypes: { politi: "Politi", gw: "G&W" },
   },
   errors: {
     title: "Errore di sistema",
@@ -857,10 +839,22 @@ export const APP_COPY = {
     generic: "Si è verificato un errore imprevisto. Contatta l'assistenza.",
     notFound: "Pagina non trovata",
     notFoundHint: "L'indirizzo non corrisponde a nessuna pagina: scegline una dal menu.",
+    /** What a screen says of a failure that is not the person's doing; the cause goes to the log (src/lib/utils.ts → errorMessage) */
+    faults: {
+      timeout: "Tempo scaduto: il server o il database non ha risposto, riprova tra poco",
+      connection: "Database o server non raggiungibile: riprova tra poco",
+      database: "Il database ha risposto con un errore: operazione non riuscita",
+      fileBusy: "Il file è aperto in un altro programma: chiudilo e riprova",
+      fileMissing: "File o cartella non trovati",
+      fileDenied: "Accesso al file o alla cartella negato",
+      app: "Qualcosa non ha funzionato nell'applicazione: operazione non riuscita. Se si ripete, avvisa {name}",
+    },
   },
   history: {
     title: "Preventivi Recenti",
     empty: "Nessun preventivo generato ancora.",
+    /** One line under a quote's title: copies, pages, closed size */
+    specs: "{quantity} copie • {pages} pagine • {width}x{height}mm",
     deleteConfirm: "Sei sicuro di voler eliminare questo preventivo?",
   },
   breakdown: {
@@ -1082,14 +1076,12 @@ export const APP_COPY = {
     person: {
       open: "Scheda persona",
       title: "Scheda persona: {name}",
-      subtitle: "La stessa persona in NetPro, Business e ARCPROC, a confronto come un ordine con la sua DiBa",
       operator: "Operatore NetPro",
       netproUser: "Utente NetPro",
       erpUser: "Utente Business",
       notLinked: "— non collegato —",
       notLinkedShort: "non collegato",
       saveLinks: "Salva collegamenti",
-      linksHint: "I dati qui sotto si leggono dai record collegati, ogni volta",
       linksSaved: "Collegamenti salvati",
       notFound: "Utente non trovato",
       noLinks: "Nessun collegamento: scegli almeno un record",
@@ -1147,7 +1139,6 @@ export const APP_COPY = {
     },
     // Impostazioni → Gruppi (src/components/admin/access/Group*.tsx, the rules in src/lib/auth/lights.ts)
     groups: {
-      hint: "Scegli un gruppo e accendi ciò che può fare: ogni luce è accesa o spenta, e ogni clic si salva da solo. La riga di un'area e «Tutte le pagine» valgono per tutte le pagine sotto; le funzioni con un nome (es. Riallinea) si accendono una per una. Chi vede la pagina Registro ci trova la storia delle pagine che vede. Chi è nel gruppo si sceglie nella pagina Utenti.",
       page: "Pagina",
       allPages: "Tutte le pagine",
       functions: "Funzioni",
@@ -1193,8 +1184,8 @@ export const APP_COPY = {
     },
     labourCost: {
       rates: {
-        hourly: { label: "Costo orario del lavoro", hint: "Costo del lavoro e margine in Report Clienti, Ricavo Ordini e nel loro PDF" },
-        partial: { label: "Costo orario parziale", hint: "Converte il costo dei fornitori in ore equivalenti in Lavorazioni Esterne" },
+        hourly: { label: "Costo orario del lavoro" },
+        partial: { label: "Costo orario parziale" },
       },
       perHour: "all'ora",
       exampleLine: "Esempio: {hours} ore × {rate} = {total}",
@@ -1307,7 +1298,6 @@ export const APP_COPY = {
     applyFiltersHint: "Imposta i filtri e premi \"Applica Filtri\" per caricare i dati.",
     pdfError: "Errore durante la generazione del PDF",
     pdfPicker: {
-      intro: "Seleziona l'anno e il periodo da includere nel report:",
       year: "Anno",
       periodType: "Tipo Periodo",
       months: "Mesi",
@@ -1697,7 +1687,6 @@ export const APP_COPY = {
       },
         pdfButton: "Genera Report PDF",
         separateReports: "Report separati per area",
-        separateReportsDescription: "Scarica un file PDF distinto per ogni area selezionata",
     },
     presence: {
       year: "Anno {year}",
@@ -1751,7 +1740,6 @@ export const APP_COPY = {
         categoria: "Categoria",
       },
       noResults: "Nessun operatore trovato.",
-      editHint: "Clicca su Badge, Nome o Stato Fisico per modificarli; la matita apre tutti i campi",
       // A stato fisico changed by hand into IN or out of IN: what happened to the presence events (src/lib/presence/events.ts)
       stato: {
         eventCreated: "Stato {stato}: creato l'evento {event} delle {time}",
@@ -1778,7 +1766,6 @@ export const APP_COPY = {
         /** Under the category when the one of the people who left is chosen ({category}: its name, {stato}: the stato it gives) */
         leaving: "Con {category} esce dalle presenze; in Operatori si vede solo con il filtro {category}. Stato fisico {stato} (se è dentro viene scritta anche l'uscita), il nome resta com'è.",
         matricola: "Matricola",
-        matricolaHint: "Uguale al codice operatore",
         freeFields: "Campi liberi di NetPro",
         /** What each free field usually holds (seen in the rows of today) */
         freeFieldHints: {
@@ -1807,7 +1794,6 @@ export const APP_COPY = {
       checklist: {
         button: "Lista PDF",
         title: "Lista operatori",
-        intro: "Scegli chi mettere nella lista da stampare:",
         showDate: "Stampa la data",
         showChecks: "Stampa le caselle Entrata / Uscita",
         /** Headers of the tick columns, left to right */
@@ -1822,7 +1808,6 @@ export const APP_COPY = {
       title: "Eventi Giornalieri",
       subtitle: "Visualizza e modifica gli eventi di presenza degli operatori per oggi",
       operatorFilter: "Operatore (codice o nome)",
-      editHint: "Clicca sull'ora di un evento per modificarla",
       headers: {
         oggetto: "Oggetto",
         operatorName: "Nome Operatore",
@@ -1975,13 +1960,11 @@ export const APP_COPY = {
         FOGLIO_ORE_ULTIMA_ORA: "Ultima ora proposta in Dalle / Alle del foglio ore",
       },
       parametersSection: "Parametri Orari e Pausa",
-      parametersDesc: "Valori orari standard e speciali per il calcolo presenze",
       noParameters: "Nessun parametro trovato.",
       valueRequired: "Il valore non può essere vuoto",
       saveError: "Errore nel salvataggio",
       savedSuccess: "Impostazione salvata con successo",
       presetsSection: "Opzioni Rapide Testo (Ferie e Permessi)",
-      presetsDesc: "Gestisci i testi rapidi (tag) selezionabili per Ore Ferie e Ore Permesso",
       feriePresetsTitle: "Opzioni Rapide Ferie",
       feriePresetsDesc: "Tag rapidi per la colonna Ore Ferie (es. FESTA)",
       permessoPresetsTitle: "Opzioni Rapide Permessi",
@@ -1991,7 +1974,6 @@ export const APP_COPY = {
       newPresetPlaceholder: "Nuovo testo...",
       removePreset: "Rimuovi {tag}",
       turno2Section: "Operatori Turno 2",
-      turno2Desc: "Operatori che usano l'orario speciale (campo GRUPPO = TURNO2)",
       turno2Search: "Cerca operatore e aggiungilo a Turno 2",
       turno2SearchPlaceholder: "Nome o codice operatore...",
       turno2Current: "Operatori attualmente in Turno 2",
@@ -1999,7 +1981,6 @@ export const APP_COPY = {
       add: "Aggiungi",
       remove: "Rimuovi",
       autoExitSection: "Auto-Uscita (EXT)",
-      autoExitDesc: "Chi dimentica di timbrare l'uscita la riceve all'orario in cui esce di solito: se esce con gli altri, l'orario degli altri di quel giorno; altrimenti quello delle sue ultime uscite. Gli orari standard valgono solo quando non si riconosce un'abitudine.",
       autoExitWeekday: "Orario standard feriale",
       autoExitSaturday: "Orario standard del sabato",
       autoExitRecent: "Ultime uscite considerate",

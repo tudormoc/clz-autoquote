@@ -9,13 +9,14 @@
 import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { APP_CONFIG } from '@/config/constants';
 import { PIN_KINDS, type PinKindId } from '@/lib/auth/pinKinds';
+import { AppFault } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 
 const PIN_FORMAT = 'v1';
 
 function secret(): string {
     const value = process.env.AUTH_SECRET;
-    if (!value || value.length < 32) throw new Error('AUTH_SECRET missing or too short in .env.local');
+    if (!value || value.length < 32) throw new AppFault('AUTH_SECRET missing or too short in .env.local');
     return value;
 }
 
@@ -52,7 +53,7 @@ export function encryptPin(pin: string): string {
 
 export function decryptPin(stored: string): string {
     const [format, payload] = stored.split(':');
-    if (format !== PIN_FORMAT || !payload) throw new Error('Unknown PIN format');
+    if (format !== PIN_FORMAT || !payload) throw new AppFault('Unknown PIN format');
     const raw = Buffer.from(payload, 'base64');
     const decipher = createDecipheriv('aes-256-gcm', keyFor('pin'), raw.subarray(0, 12));
     decipher.setAuthTag(raw.subarray(12, 28));

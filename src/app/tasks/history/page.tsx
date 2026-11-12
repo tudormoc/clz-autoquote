@@ -13,7 +13,7 @@ export const metadata = { title: page.label };
 export default async function HistoryPage() {
     await requirePage('tasks', 'history');
     return (
-        <FillPage header={<PageHeader icon={History} title={page.label} subtitle={page.description} actions={<AgendaSearch />} />}>
+        <FillPage header={<PageHeader icon={History} title={page.label} actions={<AgendaSearch />} />}>
             <HistoryView />
         </FillPage>
     );

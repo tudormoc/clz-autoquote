@@ -46,9 +46,6 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                             {progress.total > 0 ? fmt(copy.progress, progress) : copy.nothingThisWeek}
                         </span>
                     )}
-                    <span className="hidden lg:inline text-fg-faint cursor-help" title={copy.cardKeysHint}>
-                        {copy.keyboardHint}
-                    </span>
                 </div>
             </div>
 

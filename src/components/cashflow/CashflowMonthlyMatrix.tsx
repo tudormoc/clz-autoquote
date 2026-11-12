@@ -108,10 +108,7 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
                     <div className="p-2 bg-primary/10 text-primary rounded-lg">
                         <CalendarRange size={18} />
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-fg text-base">{fmt(copy.title, { year })}</h3>
-                        <p className="text-xs text-fg-muted">{copy.hint}</p>
-                    </div>
+                    <h3 className="font-semibold text-fg text-base">{fmt(copy.title, { year })}</h3>
                 </div>
                 <Button
                     variant="outline"

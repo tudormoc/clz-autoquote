@@ -4,6 +4,7 @@
  */
 
 import { queryMSSQL, type SqlRunner } from '@/lib/mssql';
+import { AppFault } from '@/lib/utils';
 import type { PresenceSettingRow } from '@/types';
 import {
     PRESENCE_SETTING_KEYS,
@@ -49,7 +50,7 @@ export const withMillis = (time: string) => (time.includes('.') ? time : `${time
 /** "YYYY-MM-DD HH:MM:SS" one second earlier, on the text itself so no time zone can shift it */
 function oneSecondBefore(time: string): string {
     const parts = time.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
-    if (!parts) throw new Error(`Invalid time format: ${time}`);
+    if (!parts) throw new AppFault(`Invalid time format: ${time}`);
     const [, date, hours, minutes, seconds] = parts;
     const total = Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) - 1;
     const two = (n: number) => String(n).padStart(2, '0');
@@ -125,7 +126,7 @@ const machineOpenOn = (task: string) => `
  *
  * What is in progress is what NetPro's own list says (ATTIVITA: one row per person working now), on a phase NetPro
  * holds in execution (TASKS.STATO EXE) and whose last event of that person is the start. Old events never decide:
- * until 2026-11-06 they did, and an exit set phases closed long before back to SUS.
+ * with them an exit would set phases closed long before back to SUS.
  *
  * For each such phase:
  * - the person's pause row (OPE SUS) with the fields NetPro fills, and the person off the list (ATTIVITA);
@@ -207,8 +208,8 @@ async function pauseWorkAtExit(run: SqlRunner, operator: string, exitTime: strin
 
 /**
  * Load the effective presence rules: defaults overridden by NETPRO.VALORI_TABELLE (PRESENZE). A parameter that is
- * not stored takes its default; a read that fails throws (until 2026-11-12 it answered the defaults without a word,
- * also to the actions that write: hours, pay data and exits were then decided by rules nobody had set). Every caller
+ * not stored takes its default; a read that fails throws (the defaults answered without a word, also to the actions
+ * that write, would decide hours, pay data and exits by rules nobody had set). Every caller
  * answers the failure as its own: a page says it could not load, a write is refused.
  */
 export async function loadPresenceRules(): Promise<PresenceRulesConfig> {

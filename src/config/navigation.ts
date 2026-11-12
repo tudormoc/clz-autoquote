@@ -3,7 +3,7 @@
  * The sidebar, the phone menu, the home page cards and each area's overview page are built from NAV_AREAS.
  *
  * Adding a page:
- *   - a new area → add it to NAV_AREAS (label and description in it.ts → nav.areas)
+ *   - a new area → add it to NAV_AREAS (label in it.ts → nav.areas)
  *   - a page inside an area → add it to that area's groups
  * Analytics reports (src/config/analyticsSections.ts) and settings pages (src/config/settingsPages.ts) appear here automatically.
  */

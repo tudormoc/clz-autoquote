@@ -60,7 +60,6 @@ export function GroupsManager() {
                 {selected && (
                     <GroupCards groups={groups} selectedId={selected.id} pagesOf={drafts.pagesOf} members={members} linkOf={(group) => view.link({ group: group.id })} />
                 )}
-                <p className="text-xs text-fg-muted">{copy.hint}</p>
             </div>
             {selected ? (
                 <GroupEditor

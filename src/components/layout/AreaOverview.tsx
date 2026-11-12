@@ -12,7 +12,7 @@ export async function AreaOverview({ areaId }: { areaId: NavAreaId }) {
 
     return (
         <>
-            <PageHeader icon={area.icon} title={area.label} subtitle={area.description} />
+            <PageHeader icon={area.icon} title={area.label} />
             <NavCards groups={groups} />
         </>
     );

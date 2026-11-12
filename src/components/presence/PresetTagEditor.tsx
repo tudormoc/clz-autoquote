@@ -16,7 +16,6 @@ const sameTag = (a: string, b: string) => a.toUpperCase() === b.toUpperCase();
 
 interface PresetTagEditorProps {
     title: string;
-    description: string;
     /** The tags, separated by commas, as stored */
     value: string;
     /** Saves the whole list; true when it was saved */
@@ -26,7 +25,7 @@ interface PresetTagEditorProps {
 }
 
 /** The quick-pick texts of a presence column (Ferie, Permessi) as chips: click one to rename it, ✕ removes it, the field adds one. */
-export function PresetTagEditor({ title, description, value, onSave, onRename }: PresetTagEditorProps) {
+export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEditorProps) {
     const canEdit = useCanEdit();
     const [newTag, setNewTag] = useState('');
     const [saving, setSaving] = useState(false);
@@ -63,10 +62,7 @@ export function PresetTagEditor({ title, description, value, onSave, onRename }:
 
     return (
         <div className="p-4 rounded-lg bg-card/50 border border-border space-y-3">
-            <div>
-                <h4 className="text-xs font-semibold text-fg-soft">{title}</h4>
-                <p className="text-2xs text-fg-muted mt-0.5">{description}</p>
-            </div>
+            <h4 className="text-xs font-semibold text-fg-soft">{title}</h4>
 
             <div className="flex flex-wrap gap-1.5 min-h-8 items-center">
                 {tags.length === 0 && <span className="text-xs text-fg-faint italic">{copy.noPresets}</span>}

@@ -52,7 +52,6 @@ export function WhenCard({ draft, today, closedDays, set, setRepeat }: WhenCardP
             <div className="grid grid-cols-1 sm:grid-cols-[14rem_10rem] gap-4">
                 <Field label={repeating ? form.firstDate : form.dueDate} htmlFor="task-due">
                     <DatePicker id="task-due" value={draft.dueDate} onChange={setFirstDate} clearable={!repeating} />
-                    {!repeating && <p className="mt-1 text-xs text-fg-subtle">{form.noDateHint}</p>}
                 </Field>
                 <Field label={form.dueTime} htmlFor="task-time">
                     <Input id="task-time" type="time" value={draft.dueTime} onChange={(e) => set({ dueTime: e.target.value })} />

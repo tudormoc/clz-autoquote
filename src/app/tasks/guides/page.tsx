@@ -13,7 +13,7 @@ export const metadata = { title: page.label };
 export default async function GuidesPage() {
     await requirePage('tasks', 'guides');
     return (
-        <FillPage header={<PageHeader icon={BookOpen} title={page.label} subtitle={page.description} actions={<AgendaSearch />} />}>
+        <FillPage header={<PageHeader icon={BookOpen} title={page.label} actions={<AgendaSearch />} />}>
             <GuidesListView />
         </FillPage>
     );

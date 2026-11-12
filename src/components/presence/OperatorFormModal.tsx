@@ -219,7 +219,6 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
                             className="font-mono"
                         />
                     </Field>
-                    {!operator && <p className="text-xs text-fg-muted mt-1">{copy.matricolaHint}</p>}
                 </div>
                 {operator && (
                     <fieldset className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border pt-3">

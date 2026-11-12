@@ -3,7 +3,7 @@
  * cannot call it, only that route can (after checking the scheduler's key or the superadmin).
  */
 
-import { errorMessage } from '@/lib/utils';
+import { technicalMessage } from '@/lib/utils';
 import { queryMSSQL, withTransactions } from '@/lib/mssql';
 import { APP_CONFIG } from '@/config/constants';
 import { dbDateTimeParts, toLocalDateTime } from '@/lib/dateUtils';
@@ -201,7 +201,7 @@ export async function runAutoExit(options: AutoExitOptions = {}) {
                     paused = result?.paused ?? [];
                 } catch (err) {
                     // The transaction took back whatever it had written for this person: on to the next one
-                    error = errorMessage(err);
+                    error = technicalMessage(err);
                 }
             }
 
@@ -236,7 +236,7 @@ export async function runAutoExit(options: AutoExitOptions = {}) {
     } catch (err) {
         return {
             success: false as const,
-            error: errorMessage(err),
+            error: technicalMessage(err),
             ...countOf(decisions),
             exits: decisions,
         };

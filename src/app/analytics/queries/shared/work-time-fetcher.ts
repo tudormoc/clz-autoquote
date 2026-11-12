@@ -43,8 +43,8 @@ export async function fetchWorkTimesForCommessas(
             return `@code${idx}`;
         }).join(', ');
 
-        // A batch that cannot be read fails the whole report (it throws to the report's own catch). Until 2026-11-12
-        // it was only logged: the orders of that batch then showed no labour cost, so a margin too high, as if right
+        // A batch that cannot be read fails the whole report (it throws to the report's own catch): left out, its
+        // orders would show no labour cost, so a margin too high, as if right
         const timeResult = await queryMSSQL<{ commessa_code: string; total_work_time: number | null }>(`
             SELECT
                 SUBSTRING(MIN(ORD.COMMESSA), 4, 4) as commessa_code,
@@ -95,7 +95,6 @@ export async function fetchWorkCostsForClients(
         return {};
     }
 
-    // First get all commessas for these clients that have invoices in the date range
     const commessaParams: SqlParams = {
         codditt: BUSINESS_COMPANY,
         startDate,
@@ -129,7 +128,6 @@ export async function fetchWorkCostsForClients(
           AND an.an_conto IN (${clientPlaceholders})
     `, commessaParams, 'BUSINESS');
 
-    // Get unique commessa codes
     const commessaSet = new Set(commessasResult.recordset.map(row => row.commessa_display));
     const commessaCodes = Array.from(commessaSet);
 
@@ -142,7 +140,6 @@ export async function fetchWorkCostsForClients(
     // we include that 2024 work to calculate true profitability
     const workTimeMap = await fetchWorkTimesForCommessas(commessaCodes);
 
-    // Sum work costs per client
     const workCosts: Record<string, number> = {};
     commessasResult.recordset.forEach(row => {
         const workTime = workTimeMap[row.commessa_display] || 0;

@@ -111,7 +111,7 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
     const drift = card ? driftCount(card.facts) : 0;
 
     return (
-        <Modal title={fmt(copy.title, { name: user.name })} subtitle={copy.subtitle} icon={UserRound} size="2xl" onClose={onClose} busy={busy} footer={<Button onClick={onClose} disabled={busy}>{APP_COPY.common.close}</Button>}>
+        <Modal title={fmt(copy.title, { name: user.name })} icon={UserRound} size="2xl" onClose={onClose} busy={busy} footer={<Button onClick={onClose} disabled={busy}>{APP_COPY.common.close}</Button>}>
             {!card || !choices ? (
                 <LoadState loading={!error} error={error} />
             ) : (
@@ -132,7 +132,6 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
                         <Button variant="secondary" size="sm" onClick={saveLinks} disabled={busy || sameLinks(links, card.links)}>
                             {copy.saveLinks}
                         </Button>
-                        <span className="text-xs text-fg-muted">{copy.linksHint}</span>
                         <div className="ml-auto flex items-center gap-2">
                             {drift > 0 ? (
                                 <StatusBadge tone="warning" size="md">

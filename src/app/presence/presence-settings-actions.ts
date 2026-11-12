@@ -42,8 +42,7 @@ const RenameSchema = z.object({
  * Renames a quick text of Ferie or Permessi everywhere it is: the list (NETPRO.VALORI_TABELLE), the hours of Calcolo
  * Ore Mensile entered with it (presence_hours_distribution) and the lines of Le mie ore that carry it
  * (timesheet_entries, each with its timesheet_log line; owner, 2026-11-12). One transaction per database: all of it
- * lands, or none. Until 2026-11-12 the list and the hours were two separate writes, the answer of the first was not
- * looked at, and the lines of Le mie ore kept the old text.
+ * lands, or none.
  */
 export async function renamePresencePresetAction(
     parametro: 'FERIE_PRESETS' | 'PERMESSO_PRESETS',

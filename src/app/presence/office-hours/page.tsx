@@ -13,7 +13,7 @@ export const metadata = { title: page.label };
 export default async function OfficeHoursPage() {
     await requirePage('presence', 'office-hours');
     return (
-        <FillPage header={<PageHeader icon={ClipboardList} title={page.label} subtitle={page.description} />}>
+        <FillPage header={<PageHeader icon={ClipboardList} title={page.label} />}>
             <OfficeHoursView />
         </FillPage>
     );

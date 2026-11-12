@@ -341,7 +341,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                                             setValue(`internals.custom_signatures.${index}.size`, pages);
                                                         }
                                                     }}
-                                                    options={signatureOptions.length > 0 ? signatureOptions : [{ label: 'Loading signatures...', value: '' }]}
+                                                    options={signatureOptions.length > 0 ? signatureOptions : [{ label: APP_COPY.common.loading, value: '' }]}
                                                     className="h-9"
                                                     disabled={signatureOptions.length === 0}
                                                 />

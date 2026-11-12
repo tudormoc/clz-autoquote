@@ -20,7 +20,7 @@ export default async function AnalyticsReportPage({ params }: AnalyticsReportPag
     const ReportComponent = REPORT_COMPONENTS[section.id];
 
     return (
-        <FillPage header={<PageHeader icon={section.icon} title={section.label} subtitle={section.description} />}>
+        <FillPage header={<PageHeader icon={section.icon} title={section.label} />}>
             <ReportComponent />
         </FillPage>
     );

@@ -18,7 +18,7 @@ export default async function Home() {
     const work = areas.filter((area) => !area.pinnedBottom);
     return (
         <>
-            <PageHeader title={APP_COPY.home.welcome} subtitle={APP_COPY.home.subtitle} />
+            <PageHeader title={APP_COPY.home.welcome} />
             {canOpen(access, LINKS.tasks.todo) && <AgendaSummary access={access} />}
             {pages.length === 0 ? (
                 <EmptyState title={APP_COPY.auth.noPages} />

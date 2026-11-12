@@ -225,11 +225,7 @@ export function OperatorsTable() {
                 </div>
             </FilterPanel>
 
-            {visibleRows.length > 0 && (
-                <RecordCount count={visibleRows.length}>
-                    {canEdit && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
-                </RecordCount>
-            )}
+            {visibleRows.length > 0 && <RecordCount count={visibleRows.length} />}
 
             <DataTable
                 columns={columns}

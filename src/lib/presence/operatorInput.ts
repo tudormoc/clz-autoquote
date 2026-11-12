@@ -56,8 +56,8 @@ const sameText = (a: string | null | undefined, b: string | null | undefined) =>
 
 /**
  * The fields the "Modifica operatore" window sends: only those where what the window shows differs from the person's
- * row as the list read it (`stored`). Until 2026-11-12 every field went back at each Salva: a value changed in
- * NetPro while the window was open was overwritten with the old one, and the Registro listed every field as changed.
+ * row as the list read it (`stored`). Sending every field at each Salva would overwrite a value changed in NetPro
+ * while the window was open with the old one, and the Registro would list every field as changed.
  * Name and category go together, since the name carries the category's mark (" *lb"): both are sent when the
  * category differs, or when the name as it will be saved (nameForCategory, what the window announces) differs.
  */

@@ -113,9 +113,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                             {accountName}
                             <span className="text-xs font-normal text-fg-muted">({year})</span>
                         </h4>
-                        <p className="text-2xs text-fg-muted">
-                            {t.subtitle}
-                        </p>
                     </div>
                 </div>
 
@@ -196,7 +193,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
             {/* Summary KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 font-mono text-xs">
-                {/* 1. Saldo Iniziale */}
                 <div className="bg-card/80 border border-border rounded-lg p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.openingBalance} ({selectedMonth === 'all' ? `01/01/${year}` : `01/${String(selectedMonth).padStart(2, '0')}/${year}`})
@@ -206,7 +202,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                {/* 2. Totale Dare (+) */}
                 <div className="bg-success-950/20 border border-success-900/40 rounded-lg p-2.5">
                     <span className="text-3xs font-sans text-success-400 flex items-center gap-1 mb-0.5">
                         <ArrowUpRight size={12} />
@@ -217,7 +212,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                {/* 3. Totale Avere (-) */}
                 <div className="bg-danger-950/20 border border-danger-900/40 rounded-lg p-2.5">
                     <span className="text-3xs font-sans text-danger-400 flex items-center gap-1 mb-0.5">
                         <ArrowDownRight size={12} />
@@ -228,7 +222,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                {/* 4. Variazione Periodo */}
                 <div className="bg-card/80 border border-border rounded-lg p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.netVariation}
@@ -238,7 +231,6 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                {/* 5. Saldo Finale (Highlight with verification badge) */}
                 <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-warning-950/30 to-card border border-warning-500/50 rounded-lg p-2.5 relative">
                     <div className="flex items-center justify-between mb-0.5">
                         <span className="text-3xs font-sans text-warning-300 font-semibold block">
@@ -316,12 +308,10 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
                             {!isPending && filteredTransactions.map((tx, idx) => (
                                 <tr key={tx.id || idx} className="hover:bg-card/60 transition-colors">
-                                    {/* Data Reg */}
                                     <td className="px-2.5 py-1.5 text-fg-secondary whitespace-nowrap">
                                         {tx.formattedDate}
                                     </td>
 
-                                    {/* N. Reg / Doc */}
                                     <td className="px-2 py-1.5 text-fg-muted whitespace-nowrap text-3xs">
                                         <span className="font-semibold text-fg-secondary">R.{tx.regNum}/{tx.rowNum}</span>
                                         {tx.docNum > 0 && (
@@ -331,22 +321,18 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                                         )}
                                     </td>
 
-                                    {/* Descrizione / Causale */}
                                     <td className="px-2 py-1.5 text-fg-soft truncate max-w-[280px]" title={tx.description}>
                                         {tx.description}
                                     </td>
 
-                                    {/* Dare (+) */}
                                     <td className="px-2.5 py-1.5 text-right font-medium text-success-400 whitespace-nowrap">
                                         {tx.dare > 0 ? `+${formatCurrency(tx.dare)}` : '-'}
                                     </td>
 
-                                    {/* Avere (-) */}
                                     <td className="px-2.5 py-1.5 text-right font-medium text-danger-400 whitespace-nowrap">
                                         {tx.avere > 0 ? `-${formatCurrency(tx.avere)}` : '-'}
                                     </td>
 
-                                    {/* Saldo Progressivo */}
                                     <td className="px-3 py-1.5 text-right font-bold text-warning-200 bg-warning-950/10 border-l border-border whitespace-nowrap">
                                         {formatCurrency(tx.runningBalance)}
                                     </td>

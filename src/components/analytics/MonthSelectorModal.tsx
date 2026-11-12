@@ -91,8 +91,6 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
             }
         >
             <div className="space-y-4">
-                <p className="text-fg-muted">{copy.intro}</p>
-
                 <Field label={copy.year}>
                     <div className="flex gap-2">
                         {years.map((y) => (
@@ -174,18 +172,15 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                 )}
 
                 {!hideSeparateToggle && (
-                    <label className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer group">
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer group">
                         <input
                             type="checkbox"
                             checked={separateByArea}
                             onChange={(e) => setSeparateByArea(e.target.checked)}
                             disabled={loading}
-                            className="mt-0.5 w-4 h-4 rounded border-border-strong bg-muted text-primary focus:ring-primary focus:ring-offset-card"
+                            className="w-4 h-4 rounded border-border-strong bg-muted text-primary focus:ring-primary focus:ring-offset-card"
                         />
-                        <span>
-                            <span className="block font-medium text-fg-strong group-hover:text-primary transition-colors">{areaCopy.separateReports}</span>
-                            <span className="block text-xs text-fg-muted">{areaCopy.separateReportsDescription}</span>
-                        </span>
+                        <span className="font-medium text-fg-strong group-hover:text-primary transition-colors">{areaCopy.separateReports}</span>
                     </label>
                 )}
 

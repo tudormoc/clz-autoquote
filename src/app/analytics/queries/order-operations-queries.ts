@@ -11,7 +11,7 @@ import { syncOrderFromDiba, type SyncOrderRef } from '@/lib/orders/sync';
 import { keepsSomething, syncKeepLines, syncKeepNames } from '@/lib/orders/syncBlocks';
 import type { MasterOrderMatch, MisalignedOrder, MisalignedOrders, OrderDetailsData } from '@/lib/orders/types';
 import { logEvent, personOf } from '@/lib/log/log';
-import { errorMessage } from '@/lib/utils';
+import { errorMessage, technicalMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { OrderOperationsManagementData } from '@/types';
 import { authorize } from '@/lib/auth/access';
@@ -126,7 +126,7 @@ export async function syncOrderFromDibaAction(order: SyncOrderRef): Promise<{ su
         return { success: true, kept: syncKeepLines(result.kept) };
     } catch (err) {
         console.error('Error in syncOrderFromDibaAction:', err);
-        await failed('error', errorMessage(err));
+        await failed('error', technicalMessage(err));
         return { success: false, error: errorMessage(err) };
     }
 }

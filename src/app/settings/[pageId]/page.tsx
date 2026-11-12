@@ -17,7 +17,7 @@ export default async function SettingsEntryPage({ params }: SettingsEntryPagePro
 
     return (
         <>
-            <PageHeader icon={page.icon} title={page.label} subtitle={page.description} />
+            <PageHeader icon={page.icon} title={page.label} />
             <Settings />
         </>
     );

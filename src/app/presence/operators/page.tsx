@@ -12,7 +12,7 @@ export default async function OperatorsPage() {
     const copy = APP_COPY.analytics.operators;
 
     return (
-        <FillPage header={<PageHeader icon={Users} title={copy.title} subtitle={copy.subtitle} />}>
+        <FillPage header={<PageHeader icon={Users} title={copy.title} />}>
             <OperatorsTable />
         </FillPage>
     );

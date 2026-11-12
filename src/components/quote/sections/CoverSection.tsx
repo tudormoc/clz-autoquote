@@ -103,8 +103,8 @@ export function CoverSection({ control, errors }: Props) {
                                         {...field}
                                         label={APP_COPY.form.headbandType}
                                         options={[
-                                            { label: 'Politi', value: 'politi' },
-                                            { label: 'G&W', value: 'g&w' }
+                                            { label: APP_COPY.form.headbandTypes.politi, value: 'politi' },
+                                            { label: APP_COPY.form.headbandTypes.gw, value: 'g&w' }
                                         ]}
                                         error={errors.cover_details?.headbands_type?.message}
                                     />

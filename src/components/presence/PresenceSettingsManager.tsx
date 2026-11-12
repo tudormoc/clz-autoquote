@@ -24,24 +24,22 @@ export function PresenceSettingsManager() {
 
     return (
         <Card className="p-6 space-y-8">
-            <Section title={copy.parametersSection} description={copy.parametersDesc}>
+            <Section title={copy.parametersSection}>
                 <PresenceParametersList settings={parameters} loading={loading} error={error} onSave={saveSetting} />
             </Section>
 
-            <Section title={copy.presetsSection} description={copy.presetsDesc}>
+            <Section title={copy.presetsSection}>
                 <LoadState loading={loading} error={error} />
                 {read && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <PresetTagEditor
                             title={copy.feriePresetsTitle}
-                            description={copy.feriePresetsDesc}
                             value={valueOf('FERIE_PRESETS')}
                             onSave={(value) => savePreset('FERIE_PRESETS', value)}
                             onRename={(oldTag, newTag, value) => renamePreset('FERIE_PRESETS', oldTag, newTag, value)}
                         />
                         <PresetTagEditor
                             title={copy.permessoPresetsTitle}
-                            description={copy.permessoPresetsDesc}
                             value={valueOf('PERMESSO_PRESETS')}
                             onSave={(value) => savePreset('PERMESSO_PRESETS', value)}
                             onRename={(oldTag, newTag, value) => renamePreset('PERMESSO_PRESETS', oldTag, newTag, value)}
@@ -50,11 +48,11 @@ export function PresenceSettingsManager() {
                 )}
             </Section>
 
-            <Section title={copy.turno2Section} description={copy.turno2Desc}>
+            <Section title={copy.turno2Section}>
                 <Turno2Operators />
             </Section>
 
-            <Section title={copy.autoExitSection} description={copy.autoExitDesc}>
+            <Section title={copy.autoExitSection}>
                 <RowList>
                     <Row label={copy.autoExitWeekday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_WEEKDAY}</span></Row>
                     <Row label={copy.autoExitSaturday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_SATURDAY}</span></Row>

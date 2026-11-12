@@ -67,8 +67,9 @@ export async function loginAction(name: string, pin: string, next?: string): Pro
             }
         }
     } catch (error) {
+        // Whoever is typing is not logged in: never the cause, whatever it is
         console.error('Login failed:', error);
-        return { success: false, error: errorMessage(error) };
+        return { success: false, error: copy.failed };
     }
 
     if (!token || !person) {

@@ -193,8 +193,8 @@ export async function updateGroupPages(id: number, pages: PagePermissions): Prom
 }
 
 /**
- * Deletes a group and takes it off its users, in one transaction: all of it, or none (until 2026-11-12 it was one
- * write per user and then the delete, so a stop halfway left some users without the group and the group still there).
+ * Deletes a group and takes it off its users, in one transaction: all of it, or none (a stop halfway would leave
+ * some users without the group and the group still there).
  */
 export async function deleteGroup(id: number): Promise<void> {
     const members = (await listAccounts()).filter((account) => account.groupIds.includes(id));

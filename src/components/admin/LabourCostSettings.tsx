@@ -58,7 +58,6 @@ export function LabourCostSettings() {
                 <div key={key} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="min-w-0">
                         <h2 className="text-sm font-semibold text-fg-strong">{copy.rates[key].label}</h2>
-                        <p className="text-sm text-fg-muted mt-0.5">{copy.rates[key].hint}</p>
                         {key === 'hourly' && (
                             <p className="text-sm text-fg-muted mt-2">
                                 {fmt(copy.exampleLine, {

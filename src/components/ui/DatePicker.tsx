@@ -139,7 +139,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     inputMode="numeric"
                     value={inputValue}
                     onChange={handleInputChange}
-                    placeholder={placeholder || 'DD/MM/YYYY'}
+                    placeholder={placeholder || APP_COPY.common.datePlaceholder}
                     aria-label={ariaLabel}
                     maxLength={10}
                     autoFocus={autoFocus}

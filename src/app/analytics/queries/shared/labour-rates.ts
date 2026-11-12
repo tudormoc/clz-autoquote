@@ -26,8 +26,8 @@ export function isValidLabourRate(value: number): boolean {
 
 /**
  * The saved rates; a rate never saved (or saved as something that is no rate) is its default. A read that fails
- * throws to the report's own catch: until 2026-11-12 it answered the defaults, and a report then showed labour costs
- * and margins at a rate that was not the one set in Costo del Lavoro, as if right.
+ * throws to the report's own catch: answering the defaults would show labour costs and margins at a rate that is
+ * not the one set in Costo del Lavoro, as if right.
  */
 export async function readLabourRates(): Promise<LabourRates> {
     const stored = await readSettingValues('ANALISI');

@@ -7,7 +7,6 @@
 
 'use server'
 
-// Import all query functions
 import {
     getProductionDataAction as getProductionData,
     getOrderSummaryDataAction as getOrderSummaryData
@@ -45,14 +44,11 @@ export type { ClientDeliveryRow } from './queries/client-deliveries-queries';
 
 import { getPresenceDataAction as getPresenceData } from './queries/presence-queries';
 
-// Export Client Deliveries action
 export const getClientDeliveriesDataAction = getClientDeliveriesData;
 export const getClientDeliveriesStatsAction = getClientDeliveriesStats;
 
-// Export Presence action
 export const getPresenceDataAction = getPresenceData;
 
 import { getPayrollHoursAction as getPayrollHours } from './queries/payroll-queries';
 
-// Export Ore Studio Paghe action
 export const getPayrollHoursAction = getPayrollHours;

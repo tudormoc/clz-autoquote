@@ -10,7 +10,7 @@ interface PageHeaderProps {
 }
 
 /**
- * Title row at the top of every page: icon, title and one line of description, controls on the right.
+ * Title row at the top of every page: icon and title, controls on the right.
  * On phones the top bar already names the page, so only the controls remain (the title stays for screen readers).
  */
 export function PageHeader({ title, icon: Icon, subtitle, actions }: PageHeaderProps) {

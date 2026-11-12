@@ -70,7 +70,6 @@ export function OperatorChecklistModal({ stati: allStati, onClose }: { stati: st
             }
         >
             <div className="space-y-4">
-                <p className="text-sm text-fg-soft">{copy.checklist.intro}</p>
                 <ToggleChips
                     label={copy.headers.categoria}
                     options={CATEGORY_OPTIONS}

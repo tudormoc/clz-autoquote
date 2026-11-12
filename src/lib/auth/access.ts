@@ -14,7 +14,7 @@ import { loadAccountAccess } from '@/lib/auth/accounts';
 import { GRANTABLE_FUNCTIONS, canOpen, canOpenPath, menuPages, type AccessLevel, type UserAccess } from '@/lib/auth/permissions';
 import { pinFingerprint } from '@/lib/auth/secrets';
 import { SESSION_COOKIE, SUPERADMIN, parseSession, superadminAccount, superadminFingerprint } from '@/lib/auth/session';
-import { errorMessage } from '@/lib/utils';
+import { AppFault, errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 
 const copy = APP_COPY.auth;
@@ -68,7 +68,7 @@ export async function requireLogin(): Promise<UserAccess> {
  */
 export async function authorize(level: AccessLevel, ...hrefs: string[]): Promise<UserAccess> {
     const unknown = hrefs.find((href) => !KNOWN_PAGES.has(href));
-    if (unknown) throw new Error(`Access check on an unknown page: ${unknown}`);
+    if (unknown) throw new AppFault(`Access check on an unknown page: ${unknown}`);
     const access = await getAccess();
     if (!access) throw new Error(copy.sessionExpired);
     if (!hrefs.some((href) => canOpen(access, href, level))) throw new Error(copy.notAllowed);

@@ -18,7 +18,7 @@ const log = APP_COPY.log.entries;
  * person: the time used and why, or why no exit was written. An exit that could not be written is counted in
  * `failed`: the scheduler then calls again a few minutes later, and that run only finds who is still in.
  * The superadmin opening this address always gets the preview, whatever the address says: a link only shows, it
- * never writes (README rule 8; before 2026-11-12 an address without ?preview clocked everybody out).
+ * never writes (README rule 8).
  *
  * Optional query params:
  *   ?operator=98   limits the run to a single operator

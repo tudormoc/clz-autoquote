@@ -3,9 +3,7 @@ import { computeCountedDay, timeToMinutes } from './formulas/counted-times';
 import { distributeDay } from './formulas/distribution';
 import { rulesForOperator } from './config';
 
-// ============================================================================
 // WORKED EXAMPLES — the agreed reference table
-// ============================================================================
 // Each row is a real case validated with the business. They document the
 // expected behaviour AND run as a regression check:
 //
@@ -17,7 +15,6 @@ import { rulesForOperator } from './config';
 // ordinarie floor 0.5, banca ore ≥ 0.5 floor 0.5.
 // Extra day (Saturday): raw span, no pause, max 4h floor 0.5 → ore_straordinarie.
 // Fixed profile (office): raw span shown, prefill always 8 ordinarie on working days.
-// ============================================================================
 
 export interface PresenceExample {
     /** 'working' (Mon–Fri) unless stated. */

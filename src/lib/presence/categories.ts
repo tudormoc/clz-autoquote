@@ -2,11 +2,8 @@ import { PRESENCE_RULES } from '@/config/constants';
 import type { OperatorHoursRow } from '@/types';
 import type { CategoryProfile } from './types';
 
-// ============================================================================
 // EMPLOYEE CATEGORIES (OPERATORI.ENTITA → dashboard category)
-// ============================================================================
 // Edit the list in src/config/constants.ts → PRESENCE_RULES.CATEGORIES.
-// ============================================================================
 
 export const OTHER_CATEGORY_KEY = 'altro';
 

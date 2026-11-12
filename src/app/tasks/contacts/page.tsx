@@ -13,7 +13,7 @@ export const metadata = { title: page.label };
 export default async function ContactsPage() {
     await requirePage('tasks', 'contacts');
     return (
-        <FillPage header={<PageHeader icon={Contact} title={page.label} subtitle={page.description} actions={<AgendaSearch />} />}>
+        <FillPage header={<PageHeader icon={Contact} title={page.label} actions={<AgendaSearch />} />}>
             <ContactsView />
         </FillPage>
     );

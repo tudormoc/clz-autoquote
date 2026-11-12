@@ -12,7 +12,7 @@ export default async function DailyEventsPage() {
     const copy = APP_COPY.analytics.dailyEvents;
 
     return (
-        <FillPage header={<PageHeader icon={Calendar} title={copy.title} subtitle={copy.subtitle} />}>
+        <FillPage header={<PageHeader icon={Calendar} title={copy.title} />}>
             <DailyEventsTable />
         </FillPage>
     );

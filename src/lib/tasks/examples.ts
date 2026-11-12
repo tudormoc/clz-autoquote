@@ -1,11 +1,9 @@
-// ============================================================================
 // AGENDA EXAMPLES — the expected behaviour of the date rules, as a regression check:
 //
 //     npm run tasks:examples
 //
 // Made-up dates around "today" = Friday 9 October 2026. When a rule changes, update the expected values here in
 // the same commit.
-// ============================================================================
 
 import { agendaGroup, type AgendaGroup } from '@/lib/tasks/agenda';
 import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';

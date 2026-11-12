@@ -1,13 +1,10 @@
 import type { OperatorHoursRow, HoursDistributionField } from '@/types';
 
-// ============================================================================
 // PRESENCE RULES — TYPES
-// ============================================================================
 // Every formula in src/lib/presence/formulas/* reads its numbers from a
 // PresenceRulesConfig. Nothing is hardcoded inside the formulas, so changing
 // a rule means changing a value (DB VALORI_TABELLE / PRESENZE, or the
 // defaults in src/config/constants.ts → PRESENCE_RULES), not code.
-// ============================================================================
 
 /** Numeric hour fields that can be written by prefill / edit side effects. */
 export type HourField = Extract<

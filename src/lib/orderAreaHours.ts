@@ -1,7 +1,7 @@
 /**
  * Report Ordini per Area: the hours of each order, worked and expected, in total and per area. Pure, and the ONE sum
  * of it: the summary on screen ("Mostra Riepilogo") and the PDF both use it, so they show the same hours for the same
- * order. Until 2026-11-12 each had its own sum with its own rule; the rule kept is the PDF's (owner, 2026-11-12):
+ * order. The rule is the PDF's (owner, 2026-11-12):
  * - every area counts in the hours worked, also one without an expected speed (its expected hours are none, and add
  *   nothing to the order's);
  * - the expected hours of an area count once per order, however many rows (periods) the area has.

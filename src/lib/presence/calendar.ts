@@ -1,10 +1,8 @@
 import { weekdayOf } from '@/lib/dateUtils';
 import type { DayKind, PresenceRulesConfig } from './types';
 
-// ============================================================================
 // THE PRESENCE CALENDAR: which days are worked (dates are 'YYYY-MM-DD' strings).
 // The date arithmetic itself (day of the week, every date of a range) is src/lib/dateUtils.ts.
-// ============================================================================
 
 /** Resolve the kind of a date. A weekday listed in both lists counts as working. */
 export function getDayKind(dateStr: string, rules: PresenceRulesConfig): DayKind {

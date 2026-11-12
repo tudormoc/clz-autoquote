@@ -13,7 +13,7 @@ export const metadata = { title: page.label };
 export default async function MyHoursPage() {
     await requirePage('presence', 'my-hours');
     return (
-        <FillPage header={<PageHeader icon={Clock} title={page.label} subtitle={page.description} />}>
+        <FillPage header={<PageHeader icon={Clock} title={page.label} />}>
             <MyHoursView />
         </FillPage>
     );

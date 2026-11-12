@@ -35,7 +35,7 @@ export function GuideForm({ id }: { id: number | null }) {
             saveLabel={copy.form.save}
             columns={[
                 <Fragment key="text">
-                    <FormCard title={guides.body} icon={BookOpen} hint={guides.passwordsHint}>
+                    <FormCard title={guides.body} icon={BookOpen}>
                         <div className="grid grid-cols-1 sm:grid-cols-[1fr_16rem] gap-4">
                             <Field label={guides.title} htmlFor="guide-title">
                                 <Input id="guide-title" value={draft.title} onChange={(e) => set({ title: e.target.value })} placeholder={guides.titlePlaceholder} maxLength={200} autoFocus={id === null} />
@@ -54,12 +54,11 @@ export function GuideForm({ id }: { id: number | null }) {
                             <div className="w-28">
                                 <Input id="guide-review" type="number" min={1} value={draft.reviewMonths} onChange={(e) => set({ reviewMonths: e.target.value })} />
                             </div>
-                            <p className="mt-1 text-xs text-fg-subtle">{guides.reviewHint}</p>
                         </Field>
                     </FormCard>
                 </Fragment>,
                 <Fragment key="where">
-                    <FormCard title={copy.form.sections.where} icon={Link2} hint={copy.pathHint}>
+                    <FormCard title={copy.form.sections.where} icon={Link2}>
                         <Field label={copy.form.links}>
                             <LinksEditor links={draft.links} onChange={(links) => set({ links })} />
                         </Field>

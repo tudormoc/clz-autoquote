@@ -106,7 +106,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: APP_COPY.analytics.orderOperations.printMissingOrder }, { status: 400 });
         }
 
-        // If only 1 order ID requested
         if (ids.length === 1) {
             const buffer = await fetchNetProPDF(ids[0]);
             const safeFileName = `commessa_${ids[0].replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;

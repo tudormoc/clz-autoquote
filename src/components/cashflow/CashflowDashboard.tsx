@@ -33,7 +33,7 @@ export function CashflowDashboard() {
 
     return (
         <>
-            <PageHeader icon={Wallet} title={copy.title} subtitle={copy.subtitle} />
+            <PageHeader icon={Wallet} title={copy.title} />
 
             <div className="space-y-4">
                 <FilterPanel onApply={query.apply} onClear={query.clear} activeCount={query.activeFilterCount}>

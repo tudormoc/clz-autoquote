@@ -6,6 +6,7 @@
  */
 
 import type { SqlParams } from '@/lib/mssql';
+import { errorMessage, faultKind, technicalMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { sortRows, type RowSortColumns, type SortState } from '@/lib/sort';
 
@@ -154,10 +155,9 @@ export function dropTempTablesSql(tables: string[]): string {
     return tables.map((table) => `DROP TABLE IF EXISTS ${table};`).join(' ');
 }
 
-/** Error text for a failed report query: a timeout gets a hint, anything else its own message */
+/** Error text for a failed report query: a timeout gets a hint, anything else the text of any failure (errorMessage) */
 export function queryErrorMessage(err: unknown): string {
-    const message = err instanceof Error ? err.message : String(err);
-    return /timeout/i.test(message) ? APP_COPY.analytics.common.queryTimeout : message;
+    return faultKind(err) === 'timeout' || /timeout/i.test(technicalMessage(err)) ? APP_COPY.analytics.common.queryTimeout : errorMessage(err);
 }
 
 /** A report page that failed: no rows, an empty page and the error text */

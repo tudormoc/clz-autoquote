@@ -11,7 +11,7 @@ export default async function QuotesPage() {
     await requirePage('quotes');
     return (
         <>
-            <PageHeader icon={FileText} title={APP_COPY.quotes.title} subtitle={APP_COPY.quotes.subtitle} />
+            <PageHeader icon={FileText} title={APP_COPY.quotes.title} />
             <AdvancedQuoteForm />
         </>
     );

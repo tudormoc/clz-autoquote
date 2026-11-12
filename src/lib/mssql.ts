@@ -1,5 +1,6 @@
 import mssql from 'mssql';
 import { APP_CONFIG } from '@/config/constants';
+import { AppFault, faultKind, logFault } from '@/lib/utils';
 
 /** Named values of a query (@name in the SQL) */
 export type SqlParams = Record<string, unknown>;
@@ -23,7 +24,6 @@ const databaseNames: Record<MSSQL_DB, string | undefined> = {
     QUOTES: process.env.MSSQL_DATABASE_QUOTES,
 };
 
-// Store pools for each database
 const pools: Record<string, Promise<mssql.ConnectionPool> | undefined> = {};
 
 /**
@@ -33,7 +33,7 @@ export const getMSSQLPool = async (db: MSSQL_DB = 'BUSINESS') => {
     const dbName = Object.hasOwn(databaseNames, db) ? databaseNames[db] : undefined;
 
     if (!dbName) {
-        throw new Error(`Database name for ${db} is not configured in environment variables`);
+        throw new AppFault(`Database name for ${db} is not configured in environment variables`);
     }
 
     if (pools[db]) return pools[db];
@@ -90,20 +90,18 @@ export const queryMSSQL = async <T = Record<string, unknown>>(
             // Use a cached pool with custom timeout (avoids creating/destroying pools per query)
             pool = await getCustomTimeoutPool(db, timeout);
         } else {
-            // Use the default shared pool
             pool = await getMSSQLPool(db);
         }
 
         const request = pool.request();
 
-        // Add parameters if provided
         Object.entries(params).forEach(([key, value]) => {
             request.input(key, value);
         });
 
         return await request.query<T>(query);
     } catch (err) {
-        console.error(`SQL error in ${db}:`, err);
+        logFault(`SQL error in ${db}:`, err);
         throw err;
     }
 };
@@ -128,7 +126,7 @@ export async function withTransactions<T>(dbs: readonly MSSQL_DB[], work: (run: 
         }
         const run: SqlRunner = async (query, params = {}, db = 'BUSINESS') => {
             const transaction = open.get(db);
-            if (!transaction) throw new Error(`No transaction open on ${db}`);
+            if (!transaction) throw new AppFault(`No transaction open on ${db}`);
             const request = new mssql.Request(transaction);
             Object.entries(params).forEach(([key, value]) => request.input(key, value));
             return request.query(query);
@@ -138,6 +136,8 @@ export async function withTransactions<T>(dbs: readonly MSSQL_DB[], work: (run: 
         return result;
     } catch (err) {
         await rollbackAll();
+        // What the app refused itself (a text for the person) is no fault of the databases
+        if (faultKind(err)) logFault(`SQL error in a transaction on ${dbs.join(' + ')}:`, err);
         throw err;
     }
 }
@@ -155,7 +155,7 @@ async function getCustomTimeoutPool(db: MSSQL_DB, timeout: number): Promise<mssq
 
     const dbName = Object.hasOwn(databaseNames, db) ? databaseNames[db] : undefined;
     if (!dbName) {
-        throw new Error(`Database name for ${db} is not configured in environment variables`);
+        throw new AppFault(`Database name for ${db} is not configured in environment variables`);
     }
 
     const config: mssql.config = {

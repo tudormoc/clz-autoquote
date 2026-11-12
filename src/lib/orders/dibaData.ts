@@ -2,9 +2,9 @@
  * The DiBa (Distinta Base) of an article as Business holds it: its phases (cicli) and its materials (movdis). Server.
  *
  * The ONE read of it: the order page compares the orders with these rows (management.ts) and Riallinea writes from
- * them (sync.ts, through its transaction), so what the page shows is what a realign works from. Until 2026-11-12 each
- * had its own query, almost the same: a change made to one and forgotten in the other would have let the page say
- * "aligned" while a realign wrote something else. See docs/ORDER_PROCESS.md.
+ * them (sync.ts, through its transaction), so what the page shows is what a realign works from. With a query
+ * each, a change made to one and forgotten in the other would let the page say "aligned" while a realign wrote
+ * something else. See docs/ORDER_PROCESS.md.
  */
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, type SqlRunner } from '@/lib/mssql';

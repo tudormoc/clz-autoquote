@@ -66,7 +66,6 @@ export function AnnualPresenceReport() {
         
         text += `${APP_COPY.analytics.presence.total}\t\t${toWholeHours(weekTotal)}\n`;
         
-        // Copy to clipboard silently
         copyToClipboard(text).catch(err => {
             console.error('Failed to copy:', err);
         });
@@ -89,7 +88,6 @@ export function AnnualPresenceReport() {
 
             {error && <EmptyState title={APP_COPY.common.loadError} description={error} />}
 
-            {/* Loading */}
             {loading && (
                 <div className="flex items-center justify-center py-12">
                     <div className="text-fg-subtle">{APP_COPY.analytics.common.loading}</div>

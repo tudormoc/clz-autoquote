@@ -110,12 +110,11 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                         </div>
                     </FormCard>
 
-                    <FormCard title={form.sections.how} icon={BookOpen} hint={copy.guides.passwordsHint}>
+                    <FormCard title={form.sections.how} icon={BookOpen}>
                         <Field label={form.notes} htmlFor="task-notes">
                             <MarkdownField id="task-notes" value={draft.notes} onChange={(notes) => set({ notes })} placeholder={form.notesPlaceholder} />
                         </Field>
                         <Field label={form.checklist}>
-                            <p className="-mt-1 mb-2 text-xs text-fg-subtle">{form.checklistHint}</p>
                             <ChecklistEditor items={draft.checklist} onChange={(checklist) => set({ checklist })} />
                         </Field>
                         <Field label={form.guides}>
@@ -123,7 +122,7 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                         </Field>
                     </FormCard>
 
-                    <FormCard title={form.sections.where} icon={Link2} hint={copy.pathHint}>
+                    <FormCard title={form.sections.where} icon={Link2}>
                         <Field label={form.links}>
                             <LinksEditor links={draft.links} onChange={(links) => set({ links })} />
                         </Field>

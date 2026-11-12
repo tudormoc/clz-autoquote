@@ -42,7 +42,6 @@ export function RepeatEditor({ draft, onChange }: RepeatEditorProps) {
         <div className="space-y-4">
             <Field label={form.mode}>
                 <Choices options={[['calendar', form.modes.calendar], ['after', form.modes.after]]} value={draft.mode} onChange={(mode) => onChange({ mode })} />
-                <p className="mt-1.5 text-xs text-fg-subtle">{form.modeHints[draft.mode]}</p>
             </Field>
 
             <Field label={form.every}>
@@ -82,7 +81,6 @@ export function RepeatEditor({ draft, onChange }: RepeatEditorProps) {
                     {draft.monthOn === 'days' && (
                         <div className="mt-2 max-w-xs">
                             <Input value={draft.monthDays} onChange={(e) => onChange({ monthDays: e.target.value })} placeholder={form.monthDaysPlaceholder} aria-label={form.monthDays} />
-                            <p className="mt-1 text-xs text-fg-subtle">{form.monthDaysHint}</p>
                         </div>
                     )}
                     {draft.monthOn === 'weekday' && (

@@ -16,7 +16,7 @@ export default async function MonthlySummaryPage() {
     const copy = APP_COPY.analytics.monthlySummary;
 
     return (
-        <FillPage header={<PageHeader icon={CalendarDays} title={copy.title} subtitle={copy.subtitle} />}>
+        <FillPage header={<PageHeader icon={CalendarDays} title={copy.title} />}>
             <MonthlyHoursTable />
         </FillPage>
     );

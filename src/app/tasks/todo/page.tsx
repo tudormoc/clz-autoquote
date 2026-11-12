@@ -14,7 +14,7 @@ export const metadata = { title: page.label };
 export default async function TodoPage() {
     await requirePage('tasks', 'todo');
     return (
-        <FillPage header={<PageHeader icon={ListTodo} title={page.label} subtitle={page.description} actions={
+        <FillPage header={<PageHeader icon={ListTodo} title={page.label} actions={
                         <>
                             <AgendaSearch />
                             <NewTaskButton />

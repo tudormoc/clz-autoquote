@@ -176,7 +176,6 @@ export function DailyEventsTable() {
 
             <RecordCount count={sorted.length}>
                 <div className="flex items-center gap-3">
-                    {canEdit && sorted.length > 0 && <span className="hidden sm:inline text-xs text-fg-subtle">{copy.editHint}</span>}
                     {canEdit && picked.length > 0 && (
                         <Button type="button" variant="danger" onClick={removePicked} disabled={deleting}>
                             <Trash2 size={16} />

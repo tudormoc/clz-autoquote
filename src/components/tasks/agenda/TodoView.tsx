@@ -62,7 +62,6 @@ export function TodoView() {
                 title={copy.groups[group]}
                 count={groups[group].length}
                 tone={GROUP_TONES[group]}
-                hint={group === 'later' || group === 'nodate' ? copy.groupHints[group] : undefined}
                 folded={group === 'later'}
             >
                 {groups[group].map((item) => (
@@ -88,7 +87,7 @@ export function TodoView() {
             {error && <p className="text-sm text-danger">{`${APP_COPY.common.loadError}: ${error}`}</p>}
 
             {total === 0 && doneToday.length === 0 ? (
-                <EmptyState title={copy.allClear} description={copy.allClearHint} />
+                <EmptyState title={copy.allClear} />
             ) : (
                 // Wide screens: what is late and for today on the left, what is coming on the right, each scrolling on its own
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden">

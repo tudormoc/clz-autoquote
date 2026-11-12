@@ -5,7 +5,7 @@ import { Clock, History, Trash2 } from 'lucide-react';
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import { confirmDelete } from '@/lib/confirm';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
 import type { Quote } from '@/types';
 import { formatDate } from '@/lib/format';
 
@@ -35,7 +35,7 @@ export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistor
                                 <p className="font-semibold text-sm text-fg group-hover:text-primary transition-colors">
                                     {quote.book_name} {quote.customer_name && <span className="text-fg-muted font-normal"> - {quote.customer_name}</span>}
                                 </p>
-                                <p className="text-xs text-fg-subtle font-mono">{quote.quantity} units • {quote.pages} pages • {quote.width}x{quote.height}mm</p>
+                                <p className="text-xs text-fg-subtle font-mono">{fmt(APP_COPY.history.specs, { quantity: quote.quantity, pages: quote.pages, width: quote.width, height: quote.height })}</p>
                             </ViewLink>
                             <div className="flex flex-col items-end gap-2">
                                 <p className="text-xs text-fg-subtle flex items-center gap-1">
