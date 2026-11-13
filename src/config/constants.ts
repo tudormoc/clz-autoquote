@@ -171,6 +171,16 @@ export const APP_CONFIG = {
     // Contropartita codes for supplier invoicing
     SUPPLIER_CONTROPARTITA_CODES: [5093],
 
+    // Rows about an advance (the "fattura di acconto" and its "a dedurre acconto" on the delivery note): they are money
+    // paid ahead, not value delivered, so the delivered value leaves them out. One is recognised by the advances
+    // account (5105, ACCONTI DA CLIENTI), by the advance article, or, when the deduction was typed by hand on a sales
+    // account, by a negative value whose text holds one of TEXTS
+    ADVANCE_ROWS: {
+      CONTROPARTITA_CODES: [5105],
+      ARTICLE_CODES: ['YAC'],
+      TEXTS: ['ACCONT', 'DOWN PAYMENT'],
+    },
+
     // Client codes to exclude from PDF reports (e.g., internal clients, test accounts)
     // Add client codes here to hide them from exported PDF reports
     EXCLUDED_CLIENTS_PDF: ['9010384', '9010383', '9010250', '9010262', '9010011', '9010194', '9010389', '9010013', '9010377', '9010365', '9010382', '9010179', '9010035', '9010356'] as string[],

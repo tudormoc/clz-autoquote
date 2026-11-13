@@ -1,6 +1,7 @@
 /**
  * Client Deliveries Queries
- * Delivered value (dw_valore of delivery notes) per client, by movement date (dw_datmov).
+ * Delivered value (dw_valore of delivery notes, without the rows that deduct an advance) per client,
+ * by movement date (dw_datmov), and how many orders it comes from.
  */
 
 'use server';
@@ -9,6 +10,7 @@ import { errorMessage } from '@/lib/utils';
 import sql from 'mssql';
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { getMSSQLPool } from '@/lib/mssql';
+import { DELIVERY_NOTE, NOT_ADVANCE_ROW, ORDER_COUNT } from './shared/business-report';
 import { buildPaginationResult, calculateOffset, failedPage, ownEntry, sqlDirection, type SortConfig } from './shared/query-utils';
 import { authorize } from '@/lib/auth/access';
 import { LINKS } from '@/config/navigation';
@@ -17,6 +19,8 @@ export interface ClientDeliveryRow {
     client_code: number;
     client_name: string;
     delivered_value: number;
+    /** Orders the delivered value comes from: the editions of one order count once */
+    orders: number;
 }
 
 interface Filters {
@@ -29,6 +33,7 @@ interface Filters {
 const SORT_COLUMNS: Record<string, string> = {
     client: 'an.an_conto',
     delivered_value: 'SUM(dw.dw_valore)',
+    orders: ORDER_COUNT,
 };
 
 const CLIENT_ROWS = `
@@ -39,7 +44,7 @@ const CLIENT_ROWS = `
 
 /**
  * A request on the Business pool with the parameters of the filters, and the matching WHERE clause
- * (delivery notes of clients, value ≠ 0). Parameters keep their SQL types so the indexes are used.
+ * (delivery notes of clients, value ≠ 0, no advance rows). Parameters keep their SQL types so the indexes are used.
  */
 async function deliveriesRequest(year: number, filters: Filters) {
     const pool = await getMSSQLPool('BUSINESS');
@@ -51,12 +56,13 @@ async function deliveriesRequest(year: number, filters: Filters) {
         'dw.dw_anno >= @year',
         'an.an_tipo = @clientType',
         'dw.dw_valore <> 0',
-        'dw.dw_tipork = @tipoRec'
+        'dw.dw_tipork = @tipoRec',
+        NOT_ADVANCE_ROW
     ];
     request.input('company', sql.VarChar, BUSINESS_COMPANY);
     request.input('year', sql.Int, year);
     request.input('clientType', sql.VarChar, 'C');
-    request.input('tipoRec', sql.VarChar, 'B');
+    request.input('tipoRec', sql.VarChar, DELIVERY_NOTE);
 
     if (filters.dateFrom) {
         conditions.push('dw.dw_datmov >= @dateFrom');
@@ -115,7 +121,8 @@ export async function getClientDeliveriesDataAction(
             SELECT
                 an.an_conto as client_code,
                 MIN(an.an_descr1) as client_name,
-                SUM(dw.dw_valore) as delivered_value
+                SUM(dw.dw_valore) as delivered_value,
+                ${ORDER_COUNT} as orders
             ${CLIENT_ROWS}
             WHERE ${where}
             GROUP BY an.an_conto

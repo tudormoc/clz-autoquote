@@ -2024,11 +2024,13 @@ export const APP_COPY = {
       headers: {
         client: "Cliente",
         deliveredValue: "Valore Consegnato",
+        orders: "Ordini",
       },
       export: {
         clientCode: "Codice Cliente",
         clientName: "Nome Cliente",
         deliveredValue: "Valore Consegnato",
+        orders: "Ordini",
       },
       summary: "Valore Consegnato Totale",
     },

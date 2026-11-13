@@ -68,6 +68,8 @@ up. Row lists group by the full number and only *display* the core.
 | `dw_valfatt` | Invoiced value (client revenue on invoices; always `0` on delivery notes) |
 | `dw_acqvalore` | Delivered purchase value (**material cost**; `dw_acqvalfatt` is the old column, not used) |
 | `dw_collifatt` | Invoiced quantity |
+| `dw_controp` | Contropartita, the account the row is booked on (names in `tabcove`): `5099` / `5100` sales, `5105` advances from clients (ACCONTI DA CLIENTI), `5093` external binding work |
+| `dw_codart`, `dw_descr` | Article code and the row's text (`D` = a free line typed by hand, `YAC` = the deduction of an advance) |
 | `dw_datmov`, `dw_anno` | Movement date, year |
 | `dw_scenario` | Always `1` (actual data) |
 
@@ -87,6 +89,13 @@ LEFT JOIN commess co WITH (NOLOCK) ON dw.dw_commeca = co.co_comme AND dw.codditt
 
 1. **Revenue** = client rows (`an_tipo = 'C'`), filtered by the date range. Report Clienti and Ricavo Ordini use the
    delivered value: `dw_valore` of delivery notes (`dw_tipork = 'B'`).
+   **Advances are not delivered value** (decided 2026-11-13): a delivery note that deducts an advance already invoiced
+   carries the goods at their whole value and the advance as a negative row ("a dedurre ns. fattura di acconto"), and
+   the advance invoice itself is not a delivery note. Consegne Clienti and Report Clienti leave the advance rows out
+   with `NOT_ADVANCE_ROW` (`shared/business-report.ts`): account `5105`, article `YAC`, or a negative row whose text
+   names the advance (`APP_CONFIG.ANALYTICS.ADVANCE_ROWS`). A deduction typed by hand on a sales account with another
+   text is not recognised and still lowers the value. Ricavo Ordini counts only the positive rows, so it needs no rule
+   (and ignores discounts too).
 2. **Material costs** = supplier rows (`an_tipo = 'F'`, `dw_acqvalore`), **never filtered by date**: an order invoiced in 2025
    with costs in 2024 needs those costs for its real margin. The same for work hours (`fetchWorkTimesForCommessas`).
 3. **Always `dw_commeca > 0`** on cost queries, or general expenses inflate the costs.

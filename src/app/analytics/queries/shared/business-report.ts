@@ -17,3 +17,20 @@ import { businessOrderCore } from './query-utils';
 export const DELIVERY_NOTE = 'B';
 export const TIMEOUT = APP_CONFIG.ANALYTICS.REPORT_QUERY_TIMEOUT_MS;
 export const ORDER_CORE = businessOrderCore('dw.dw_commeca');
+/** How many orders the grouped `dw` rows belong to: the editions of one order count once, a row with no commessa for none */
+export const ORDER_COUNT = `COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN ${ORDER_CORE} END)`;
+
+const ADVANCE = APP_CONFIG.ANALYTICS.ADVANCE_ROWS;
+const sqlText = (text: string) => `'${text.replace(/'/g, "''")}'`;
+
+/**
+ * Condition on a `dw` row: it is not about an advance (APP_CONFIG.ANALYTICS.ADVANCE_ROWS). A delivery note that
+ * deducts the advance already invoiced ("a dedurre ns. fattura di acconto") carries the goods at their whole value
+ * and the advance as a negative row: the delivered value is the first alone, so Consegne Clienti and Report Clienti
+ * read their rows with this condition. Ricavo Ordini counts only the positive rows and needs none.
+ */
+export const NOT_ADVANCE_ROW = `(
+    dw.dw_controp NOT IN (${ADVANCE.CONTROPARTITA_CODES.join(', ')})
+    AND dw.dw_codart NOT IN (${ADVANCE.ARTICLE_CODES.map(sqlText).join(', ')})
+    AND NOT (dw.dw_valore < 0 AND (${ADVANCE.TEXTS.map((text) => `ISNULL(dw.dw_descr, '') LIKE ${sqlText(`%${text}%`)}`).join(' OR ')}))
+)`;

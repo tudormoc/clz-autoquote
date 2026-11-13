@@ -7,7 +7,7 @@
 
 import { BUSINESS_COMPANY } from '@/config/constants';
 import { queryMSSQL, type SqlParams } from '@/lib/mssql';
-import { DELIVERY_NOTE, ORDER_CORE, TIMEOUT } from './shared/business-report';
+import { DELIVERY_NOTE, NOT_ADVANCE_ROW, ORDER_CORE, ORDER_COUNT, TIMEOUT } from './shared/business-report';
 import { readLabourRates } from './shared/labour-rates';
 import { buildClientFilter } from './shared/filter-builders';
 import {
@@ -103,11 +103,11 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
         SET NOCOUNT ON;
         ${dropTempTablesSql(CLIENT_SUMMARY_TABLES)}
 
-        -- Delivered value of the period per client (delivery notes)
+        -- Delivered value of the period per client (delivery notes, without the rows that deduct an advance)
         SELECT
             an.an_conto AS client_code,
             an.an_descr1 AS client_name,
-            COUNT(DISTINCT CASE WHEN dw.dw_commeca > 0 THEN ${ORDER_CORE} END) AS total_orders,
+            ${ORDER_COUNT} AS total_orders,
             SUM(dw.dw_valore) AS total_revenue,
             SUM(dw.dw_collifatt) AS total_quantity
         INTO #ClientRevenue
@@ -117,6 +117,7 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
           AND dw.dw_tipork = @tipoRec
           AND an.an_tipo = 'C'
           AND dw.dw_valore <> 0
+          AND ${NOT_ADVANCE_ROW}
         GROUP BY an.an_conto, an.an_descr1;
     `;
 
@@ -148,7 +149,8 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
           AND dw.dw_acqvalore <> 0
         GROUP BY ${ORDER_CORE};
 
-        -- Value of the same orders for the same client outside the period
+        -- Value of the same orders for the same client outside the period (no advance rows here either: with the
+        -- deduction left out above, an advance invoice counted here would add the advance a second time)
         SELECT
             o.client_code,
             COUNT(DISTINCT CASE WHEN ${inPeriod} THEN NULL ELSE o.commessa_core END) AS split_orders_count,
@@ -160,6 +162,7 @@ function buildClientSummaryBatch(year: number, filters?: ClientSummaryFilters) {
         WHERE dw.dw_scenario = 1
           AND dw.codditt = @codditt
           AND dw.dw_valore <> 0
+          AND ${NOT_ADVANCE_ROW}
         GROUP BY o.client_code;
 
         SELECT

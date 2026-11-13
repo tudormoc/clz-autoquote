@@ -10,7 +10,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { useReportTable } from '@/hooks/useReportTable';
 import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
-import { formatCurrencyRounded } from '@/lib/format';
+import { formatCurrencyRounded, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 
 interface Filters {
@@ -46,12 +46,14 @@ const columns: DataTableColumn<ClientDeliveryRow>[] = [
         variant: 'total',
         cell: (row) => formatCurrencyRounded(row.delivered_value),
     },
+    { key: 'orders', header: copy.headers.orders, variant: 'number', cell: (row) => formatNumber(row.orders) },
 ];
 
 const excelColumns: ExcelColumn<ClientDeliveryRow>[] = [
     { header: copy.export.clientCode, value: (row) => row.client_code, width: 15 },
     { header: copy.export.clientName, value: (row) => row.client_name, width: 35 },
     { header: copy.export.deliveredValue, value: (row) => Number(row.delivered_value.toFixed(2)), width: 18 },
+    { header: copy.export.orders, value: (row) => row.orders, width: 10 },
 ];
 
 export function ClientDeliveriesReport() {
