@@ -40,15 +40,6 @@ export function StackedCell({ primary, secondary, tone = 'code', maxWidth }: Sta
     );
 }
 
-/** Small grey chip, e.g. an area name */
-export function TagCell({ children }: { children: React.ReactNode }) {
-    return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-fg-secondary">
-            {children}
-        </span>
-    );
-}
-
 /** Faint placeholder for an empty cell */
 export function MissingValue() {
     return <span className="text-fg-faint italic">{EMPTY_VALUE}</span>;

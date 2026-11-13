@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, Boxes, Cpu, Hash, Package, Tag } from 'lucide-react';
+import { ArrowLeftRight, Boxes, Cpu, Hash, Package, Tag } from '@/components/ui/icons';
 import { DibaOperationsTable } from '@/components/analytics/order-operations/DibaOperationsTable';
 import { ManagementToolbar } from '@/components/analytics/order-operations/ManagementToolbar';
 import { MaterialsComparison } from '@/components/analytics/order-operations/MaterialsComparison';
@@ -56,12 +56,12 @@ export function OrderManagementPanel({ initial, rootCommessaKey, editions, onSta
     const changes = useMemo(() => previewSync(comparisons), [comparisons]);
 
     const tabs: TabItem<ManagementTab>[] = [
-        { id: 'comparison', label: t.comparisonTab, icon: <ArrowLeftRight className="w-3.5 h-3.5 text-primary" />, count: phases.length },
-        { id: 'materials', label: t.dibaMaterialsTab, icon: <Package className="w-3.5 h-3.5 text-success-400" />, count: materials.length },
-        { id: 'quantity', label: t.quantityTab, icon: <Hash className="w-3.5 h-3.5 text-warning-300" />, count: data.quantities?.rows.length ?? 0 },
-        { id: 'article', label: t.articleTab, icon: <Tag className="w-3.5 h-3.5 text-primary" />, count: data.article?.rows.length ?? 0 },
-        { id: 'diba', label: t.dibaTab, icon: <Boxes className="w-3.5 h-3.5 text-highlight-400" />, count: dibaOperations.length },
-        { id: 'order', label: t.prodOrderOpsTab, icon: <Cpu className="w-3.5 h-3.5 text-info-400" />, count: orderOperations.length },
+        { id: 'comparison', label: t.comparisonTab, icon: <ArrowLeftRight size={14} className="text-primary" />, count: phases.length },
+        { id: 'materials', label: t.dibaMaterialsTab, icon: <Package size={14} className="text-success-400" />, count: materials.length },
+        { id: 'quantity', label: t.quantityTab, icon: <Hash size={14} className="text-warning-300" />, count: data.quantities?.rows.length ?? 0 },
+        { id: 'article', label: t.articleTab, icon: <Tag size={14} className="text-primary" />, count: data.article?.rows.length ?? 0 },
+        { id: 'diba', label: t.dibaTab, icon: <Boxes size={14} className="text-highlight-400" />, count: dibaOperations.length },
+        { id: 'order', label: t.prodOrderOpsTab, icon: <Cpu size={14} className="text-info-400" />, count: orderOperations.length },
     ];
 
     return (

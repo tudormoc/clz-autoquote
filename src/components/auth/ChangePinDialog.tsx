@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { KeyRound } from 'lucide-react';
+import { KeyRound } from '@/components/ui/icons';
 import { changeOwnPinAction } from '@/app/auth-actions';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';

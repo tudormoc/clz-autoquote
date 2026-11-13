@@ -8,7 +8,7 @@
  * 3. Register it in REPORT_COMPONENTS (src/components/analytics/reportComponents.ts)
  */
 
-import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, CalendarDays, Banknote } from 'lucide-react';
+import { LucideIcon, Users, Package, FileText, DollarSign, BarChart3, Truck, Table2, CalendarDays, Banknote } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 
 /** Sidebar groups, in display order */

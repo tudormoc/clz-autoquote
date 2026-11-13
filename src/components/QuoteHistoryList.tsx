@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, History, Trash2 } from 'lucide-react';
+import { Clock, History, Trash2 } from '@/components/ui/icons';
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import { confirmDelete } from '@/lib/confirm';
@@ -9,7 +9,8 @@ import { APP_COPY, fmt } from '@/locales';
 import type { Quote } from '@/types';
 import { formatDate } from '@/lib/format';
 import { Surface } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { IconButton } from '@/components/ui/IconButton';
+import { titleClasses } from '@/components/ui/titleLook';
 
 interface QuoteHistoryListProps {
     history: Quote[];
@@ -21,8 +22,8 @@ interface QuoteHistoryListProps {
 export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistoryListProps) => {
     return (
         <div className="space-y-4">
-            <h2 className="text-sm font-semibold text-fg-strong flex items-center gap-2">
-                <History className="h-4 w-4" />
+            <h2 className={titleClasses('section', 'flex items-center gap-2')}>
+                <History size={16} />
                 {APP_COPY.history.title}
             </h2>
             {history.length > 0 ? (
@@ -41,22 +42,24 @@ export const QuoteHistoryList = ({ history, linkOf, onDeleteQuote }: QuoteHistor
                             </ViewLink>
                             <div className="flex flex-col items-end gap-2">
                                 <p className="text-xs text-fg-subtle flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
+                                    <Clock size={12} />
                                     {formatDate(quote.created_at)}
                                 </p>
                                 {onDeleteQuote && (
-                                    <Pressable
+                                    <IconButton
                                         type="button"
+                                        size="sm"
+                                        tone="danger"
                                         onClick={async () => {
                                             if (await confirmDelete(APP_COPY.history.deleteConfirm)) {
                                                 onDeleteQuote(quote.id);
                                             }
                                         }}
-                                        className="relative z-10 text-fg-subtle hover:text-danger transition-colors md:opacity-0 group-hover:opacity-100 p-1"
+                                        className="relative z-10 md:opacity-0 group-hover:opacity-100"
                                         title={APP_COPY.common.delete}
                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Pressable>
+                                        <Trash2 size={16} />
+                                    </IconButton>
                                 )}
                             </div>
                         </Surface>

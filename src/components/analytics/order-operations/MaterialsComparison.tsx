@@ -4,6 +4,7 @@ import { EMPTY_VALUE, formatNumber } from '@/lib/format';
 import type { MaterialComparisonRow } from '@/lib/orders/compare';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { ROW_WARNING } from '@/components/ui/Table';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -31,7 +32,7 @@ export function MaterialsComparison({ rows }: { rows: MaterialComparisonRow[] })
             columns={COLUMNS}
             rows={rows}
             getRowKey={(row) => row.part_number}
-            getRowClassName={(row) => (row.issues.length ? 'bg-warning-500/5 hover:bg-warning-500/10' : undefined)}
+            getRowClassName={(row) => (row.issues.length ? ROW_WARNING : undefined)}
             emptyMessage={t.noDibaMaterials}
         />
     );

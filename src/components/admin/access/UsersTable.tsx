@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Dices, Lock, Trash2, UserRound } from 'lucide-react';
+import { Dices, Lock, Trash2, UserRound } from '@/components/ui/icons';
 import type { UserView } from '@/app/access-actions';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button, buttonClasses } from '@/components/ui/Button';
@@ -123,7 +123,7 @@ export function UsersTable({ users, groups, emptyMessage, onRename, onSuspend, o
                 className={buttonClasses({ variant: 'ghost', size: 'sm' })}
             >
                 <UserRound size={16} className={count > 0 ? 'text-warning-400' : undefined} />
-                {count > 0 && <span className="text-2xs font-medium text-warning-400">≠ {count}</span>}
+                {count > 0 && <span className="text-2xs font-medium text-warning-400">{fmt(APP_COPY.admin.person.driftMark, { count })}</span>}
             </ViewLink>
         );
     };

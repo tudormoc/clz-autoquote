@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Save } from 'lucide-react';
+import { Save } from '@/components/ui/icons';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';

@@ -2,7 +2,7 @@ import { Surface } from '@/components/ui/Surface';
 
 /** Bordered list of label / value rows (settings, operators). */
 export function RowList({ children }: { children: React.ReactNode }) {
-    return <Surface kind="soft" className="overflow-hidden divide-y divide-border/60">{children}</Surface>;
+    return <Surface kind="inset" className="overflow-hidden divide-y divide-border/60">{children}</Surface>;
 }
 
 interface RowProps {

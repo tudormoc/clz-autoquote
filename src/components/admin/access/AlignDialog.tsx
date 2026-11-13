@@ -1,11 +1,12 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Check } from '@/components/ui/icons';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.admin.person;
 
@@ -47,7 +48,7 @@ export function AlignDialog({ title, subtitle, description, effects, note, align
         >
             <div className="space-y-4">
                 {children}
-                <div className="text-xs text-fg-secondary leading-relaxed bg-background/60 p-4 rounded-lg border border-border space-y-3">
+                <div className={surfaceClasses('inset', 'text-xs text-fg-secondary leading-relaxed p-4 space-y-3')}>
                     <p className="font-medium text-fg-soft">{description}</p>
                     <ul className="space-y-1.5 text-fg-muted list-disc list-inside">
                         {effects.map((effect) => (

@@ -16,6 +16,8 @@ import { hoursOptions, shiftedEnd, timeOptions } from '@/lib/timesheet/time';
 import type { Entry, EntryInput, EntryKind, TimesheetBounds, TimesheetPerson } from '@/lib/timesheet/types';
 import { APP_COPY, fmt } from '@/locales';
 import { formatStepHours, kindLabel } from './labels';
+import { surfaceClasses } from '@/components/ui/Surface';
+import { EMPTY_VALUE } from '@/lib/format';
 
 const copy = APP_COPY.timesheet.editor;
 const { DEFAULT_TIME_FROM, MAX_NOTE_LENGTH } = APP_CONFIG.TIMESHEET;
@@ -120,7 +122,7 @@ export function EntryForm({ person, day, entry, presets, prefill, bounds, kinds,
     return (
         <form
             id={formId}
-            className="rounded-lg border border-border bg-muted/20 p-3 space-y-3"
+            className={surfaceClasses('inset', 'p-3 space-y-3')}
             onSubmit={(event) => {
                 event.preventDefault();
                 save();
@@ -129,7 +131,7 @@ export function EntryForm({ person, day, entry, presets, prefill, bounds, kinds,
             <p className="text-xs font-semibold text-fg-soft">{entry ? copy.editLine : copy.newLine}</p>
             <div className="flex flex-wrap gap-1.5">
                 {kindChoices.map((kind) => (
-                    <ChoiceButton key={kind} size="sm" className="px-3" selected={draft.kind === kind} onClick={() => changeKind(kind)} disabled={saving}>
+                    <ChoiceButton key={kind} size="sm" selected={draft.kind === kind} onClick={() => changeKind(kind)} disabled={saving}>
                         {kindLabel(kind)}
                     </ChoiceButton>
                 ))}
@@ -144,7 +146,7 @@ export function EntryForm({ person, day, entry, presets, prefill, bounds, kinds,
                             <Select
                                 id={id('to')}
                                 value={draft.timeTo ?? ''}
-                                options={[{ value: '', label: '—' }, ...timeChoices]}
+                                options={[{ value: '', label: EMPTY_VALUE }, ...timeChoices]}
                                 onChange={(e) => set({ timeTo: e.target.value || null })}
                             />
                         </Field>
@@ -158,7 +160,7 @@ export function EntryForm({ person, day, entry, presets, prefill, bounds, kinds,
                         <Select
                             id={id('hours')}
                             value={draft.hours === null ? '' : String(draft.hours)}
-                            options={[{ value: '', label: '—' }, ...hoursChoices]}
+                            options={[{ value: '', label: EMPTY_VALUE }, ...hoursChoices]}
                             onChange={(e) => set({ hours: e.target.value ? Number(e.target.value) : null })}
                         />
                     </Field>

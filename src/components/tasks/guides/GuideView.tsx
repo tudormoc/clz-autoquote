@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import Link from 'next/link';
-import { Archive, BadgeCheck, BookOpen, Link2, ListChecks, Pencil, RotateCcw } from 'lucide-react';
+import { Archive, BadgeCheck, BookOpen, Link2, ListChecks, Pencil, RotateCcw } from '@/components/ui/icons';
 import { getGuideAction, markGuideReviewedAction, setGuideStateAction } from '@/app/tasks/guide-actions';
 import type { Saved } from '@/app/tasks/results';
 import { useCanEdit } from '@/components/auth/AccessProvider';
@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { GuideVersions } from '@/components/tasks/guides/GuideVersions';
 import { ReviewBadge } from '@/components/tasks/guides/ReviewBadge';
 import { ContactList } from '@/components/tasks/shared/ContactList';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { LinkList } from '@/components/tasks/shared/LinkList';
 import { LoadState } from '@/components/ui/LoadState';
 import { TaskStateBadge } from '@/components/tasks/shared/TaskBadges';
@@ -86,18 +86,18 @@ export function GuideView({ id }: { id: number }) {
             />
             <div className="grid grid-cols-1 xl:grid-cols-3 xl:grid-rows-[minmax(0,1fr)] gap-4 items-start lg:flex-1 lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden">
                 <div className="xl:col-span-2 space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
-                    <FormCard title={copy.guides.body} icon={BookOpen}>
+                    <Panel title={copy.guides.body} icon={BookOpen}>
                         {guide.body.trim() ? <Markdown text={guide.body} /> : <p className="text-sm text-fg-subtle">{copy.detail.notesEmpty}</p>}
-                    </FormCard>
+                    </Panel>
                     {(guide.links.length > 0 || contacts.length > 0) && (
-                        <FormCard title={copy.form.sections.where} icon={Link2}>
+                        <Panel title={copy.form.sections.where} icon={Link2}>
                             <LinkList links={guide.links} />
                             <ContactList contacts={contacts} />
-                        </FormCard>
+                        </Panel>
                     )}
                 </div>
                 <div className="space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
-                    <FormCard title={copy.guides.usedBy} icon={ListChecks}>
+                    <Panel title={copy.guides.usedBy} icon={ListChecks}>
                         {guide.tasks.length === 0 ? (
                             <p className="text-sm text-fg-subtle">{copy.guides.notUsed}</p>
                         ) : (
@@ -116,7 +116,7 @@ export function GuideView({ id }: { id: number }) {
                             <p>{fmt(copy.detail.createdBy, { name: guide.createdBy, date: formatMoment(guide.createdAt) })}</p>
                             <p>{fmt(copy.detail.updatedBy, { name: guide.updatedBy, date: formatMoment(guide.updatedAt) })}</p>
                         </div>
-                    </FormCard>
+                    </Panel>
                     <GuideVersions guide={guide} reload={reload} />
                 </div>
             </div>

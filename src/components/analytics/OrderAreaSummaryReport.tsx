@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { getOrderAreaSummaryDataAction, type OrderAreaRow } from '@/app/analytics/analytics-actions';
 import { generateOrderAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { DateRangeFields } from '@/components/ui/DateRangeFields';
 import { SearchField } from '@/components/ui/SearchField';
-import { StackedCell, TagCell } from '@/components/ui/TableCells';
+import { StackedCell } from '@/components/ui/TableCells';
 import { APP_CONFIG } from '@/config/constants';
 import { EXPORT_LIMIT, useReportTable, type PageResult } from '@/hooks/useReportTable';
 import { defaultReportPeriod } from '@/lib/dateUtils';
@@ -22,6 +22,7 @@ import { EMPTY_VALUE, formatHours, formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { sumOrderHours, type OrderHours } from '@/lib/orderAreaHours';
 import { APP_COPY } from '@/locales';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Filters {
     commessa: string;
@@ -75,7 +76,7 @@ const columns: DataTableColumn<OrderAreaRow>[] = [
         cellClassName: 'text-fg-secondary',
         cell: (row) => <div className="truncate max-w-48" title={row.client_name ?? ''}>{row.client_name ?? EMPTY_VALUE}</div>,
     },
-    { key: 'area', header: copy.headers.area, cell: (row) => <TagCell>{row.area_name}</TagCell> },
+    { key: 'area', header: copy.headers.area, cell: (row) => <StatusBadge tone="neutral">{row.area_name}</StatusBadge> },
     {
         key: 'composition',
         header: copy.headers.composition,

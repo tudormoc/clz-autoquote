@@ -26,7 +26,7 @@ import {
     Wallet,
     Workflow,
     type LucideIcon,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 import { ANALYTICS_CATEGORIES, ANALYTICS_SECTIONS } from '@/config/analyticsSections';
 import { SETTINGS_CATEGORIES, SETTINGS_PAGES } from '@/config/settingsPages';

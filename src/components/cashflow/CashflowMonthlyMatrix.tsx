@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight, CalendarRange, ChevronsUpDown } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarRange, ChevronsUpDown } from '@/components/ui/icons';
 import { BankMatrixRowGroup, type BankDrilldown } from '@/components/cashflow/BankMatrixRowGroup';
 import { ExpandableMatrixCategory } from '@/components/cashflow/ExpandableMatrixCategory';
-import { MatrixRow } from '@/components/cashflow/MatrixRow';
+import { MATRIX_HEAD, MatrixRow } from '@/components/cashflow/MatrixRow';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Surface } from '@/components/ui/Surface';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
 import { useAddress } from '@/hooks/useAddress';
 import { choiceParam, listParam, numberParam } from '@/lib/address';
@@ -15,6 +15,9 @@ import type { CashflowDataResult } from '@/lib/cashflow/types';
 import { formatCurrencyRounded } from '@/lib/format';
 import { cn, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { IconTile } from '@/components/ui/IconTile';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.cashflow.matrix;
 const macro = APP_COPY.cashflow.macro;
@@ -102,16 +105,16 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
     const sign = (value: number) => (value >= 0 ? 'text-success-400' : 'text-danger-400');
 
     return (
-        <Card className="overflow-hidden w-full">
+        <Surface className="overflow-hidden w-full">
             <div className="p-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                    <IconTile>
                         <CalendarRange size={18} />
-                    </div>
-                    <h3 className="font-semibold text-fg text-base">{fmt(copy.title, { year })}</h3>
+                    </IconTile>
+                    <h3 className={titleClasses('panel')}>{fmt(copy.title, { year })}</h3>
                 </div>
                 <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setExpanded(allExpanded ? new Set() : new Set(allKeys))}
                 >
@@ -121,28 +124,27 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
             </div>
 
             {/* Narrow screens: the table keeps its width and scrolls sideways, row names pinned on the left */}
-            <div className="overflow-x-auto">
-                <table className="w-full max-lg:min-w-matrix text-left text-xs table-fixed">
-                    <thead className="bg-card/90 text-fg-muted font-semibold border-b border-border text-3xs">
-                        <tr>
-                            <th className="px-2 py-2.5 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:bg-card">{copy.categoryHeader}</th>
+            <Table className="max-lg:min-w-matrix text-left text-xs table-fixed">
+                    <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className={cn(MATRIX_HEAD, 'px-2 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:bg-card')}>{copy.categoryHeader}</TableHead>
                             {APP_COPY.months.short.map((month, index) => {
                                 const current = index + 1 === currentMonth;
                                 return (
-                                    <th
+                                    <TableHead
                                         key={month}
                                         title={current ? copy.currentMonth : undefined}
-                                        className={cn('px-0.5 py-2.5 text-right font-mono', current && 'text-primary font-bold bg-primary/10')}
+                                        className={cn(MATRIX_HEAD, 'px-0.5 text-right font-mono', current && 'text-primary font-bold bg-primary/10')}
                                     >
                                         {current && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1" />}
                                         {month}
-                                    </th>
+                                    </TableHead>
                                 );
                             })}
-                            <th className="px-1.5 py-2.5 text-right font-mono text-fg-soft bg-muted/40 w-[10%]">{copy.totalHeader}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60 font-mono text-2xs">
+                            <TableHead className={cn(MATRIX_HEAD, 'px-1.5 text-right font-mono text-fg-soft bg-muted/40 w-[10%]')}>{copy.totalHeader}</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-border/60 font-mono text-2xs">
                         <MatrixRow
                             tone="info"
                             label={copy.opening}
@@ -259,9 +261,8 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
                             expandable={expandable('closing')}
                         />
                         {expanded.has('closing') && bankGroups('closing')}
-                    </tbody>
-                </table>
-            </div>
-        </Card>
+                    </TableBody>
+            </Table>
+        </Surface>
     );
 }

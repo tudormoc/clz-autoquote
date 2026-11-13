@@ -12,8 +12,9 @@ import { QuoteHistoryList } from '@/components/QuoteHistoryList';
 import { APP_COPY } from '@/locales';
 import { APP_CONFIG } from '@/config/constants';
 import { calculateBlockThickness } from '@/lib/pricing/formulas/block';
-import { Layers } from 'lucide-react';
+import { Layers } from '@/components/ui/icons';
 import { useCanEdit } from '@/components/auth/AccessProvider';
+import { SURFACE_TONE, surfaceClasses } from '@/components/ui/Surface';
 
 export function AdvancedQuoteForm() {
     const {
@@ -106,7 +107,7 @@ export function AdvancedQuoteForm() {
                     <CoverSection control={form.control} errors={form.formState.errors} />
 
                     {saveError && (
-                        <div className="text-danger bg-danger/10 p-3 rounded border border-danger/20 text-sm">
+                        <div className={surfaceClasses('inset', SURFACE_TONE.danger, 'p-3 text-sm text-danger')}>
                             {saveError}
                         </div>
                     )}

@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MonthlyHoursTable } from '@/components/presence/MonthlyHoursTable';

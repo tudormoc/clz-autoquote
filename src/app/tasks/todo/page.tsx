@@ -1,4 +1,4 @@
-import { ListTodo } from 'lucide-react';
+import { ListTodo } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TodoView } from '@/components/tasks/agenda/TodoView';

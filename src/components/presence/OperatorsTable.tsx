@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Pencil, Plus } from 'lucide-react';
+import { FileText, Pencil, Plus } from '@/components/ui/icons';
 import { getOperatorStatiAction, getOperatorsAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
 import { OperatorChecklistModal } from '@/components/presence/OperatorChecklistModal';
 import { OperatorFormModal } from '@/components/presence/OperatorFormModal';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { Field } from '@/components/ui/Field';
@@ -10,6 +10,7 @@ import { APP_CONFIG } from '@/config/constants';
 import { monthName, monthShortName } from '@/lib/format';
 import { APP_COPY, fmt } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
+import { Checkbox } from '@/components/ui/Checkbox';
 
 type PageFormat = 'A4' | 'A3';
 type PeriodMode = 'months' | 'weeks';
@@ -146,7 +147,7 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                         {/* 8 columns: 7 rows for 52 weeks, scrolls for 53 */}
                         <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto pr-1">
                             {weekNumbers.map((w) => (
-                                <ChoiceButton key={w} size="sm" selected={weeks.includes(w)} disabled={loading} onClick={() => setWeeks(toggle(weeks, w))}>
+                                <ChoiceButton key={w} size="sm" className="px-0" selected={weeks.includes(w)} disabled={loading} onClick={() => setWeeks(toggle(weeks, w))}>
                                     {w}
                                 </ChoiceButton>
                             ))}
@@ -173,14 +174,8 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                 )}
 
                 {!hideSeparateToggle && (
-                    <label className={surfaceClasses('soft', 'flex items-center gap-3 p-3 bg-card/50 cursor-pointer group')}>
-                        <input
-                            type="checkbox"
-                            checked={separateByArea}
-                            onChange={(e) => setSeparateByArea(e.target.checked)}
-                            disabled={loading}
-                            className="w-4 h-4 rounded border-border-strong bg-muted text-primary focus:ring-primary focus:ring-offset-card"
-                        />
+                    <label className={surfaceClasses('inset', 'flex items-center gap-3 p-3 cursor-pointer group')}>
+                        <Checkbox checked={separateByArea} onChange={(e) => setSeparateByArea(e.target.checked)} disabled={loading} />
                         <span className="font-medium text-fg-strong group-hover:text-primary transition-colors">{areaCopy.separateReports}</span>
                     </label>
                 )}

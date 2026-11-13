@@ -3,14 +3,14 @@
 import { useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Archive, BookOpen, CalendarCheck, Copy, Link2, ListChecks, Pause, Pencil, Play, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive, BookOpen, CalendarCheck, Copy, Link2, ListChecks, Pause, Pencil, Play, RotateCcw, Trash2 } from '@/components/ui/icons';
 import { setTaskStateAction, getTaskPageAction } from '@/app/tasks/task-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { OccurrenceDialog } from '@/components/tasks/occurrence/OccurrenceDialog';
 import { ContactList } from '@/components/tasks/shared/ContactList';
 import { confirmAndDeleteTask } from '@/components/tasks/shared/deleteTask';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { LinkList } from '@/components/tasks/shared/LinkList';
 import { LoadState } from '@/components/ui/LoadState';
 import { QuickNotes } from '@/components/tasks/shared/QuickNotes';
@@ -106,7 +106,7 @@ export function TaskView({ id }: { id: number }) {
             {/* Desktop: fits the screen; on wide screens each column scrolls on its own */}
             <div className="grid grid-cols-1 xl:grid-cols-3 xl:grid-rows-[minmax(0,1fr)] gap-4 items-start lg:flex-1 lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden">
                 <div className="xl:col-span-2 space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
-                    <FormCard title={copy.detail.current} icon={CalendarCheck}>
+                    <Panel title={copy.detail.current} icon={CalendarCheck}>
                         {open.length === 0 ? (
                             <p className="text-sm text-fg-subtle">{copy.detail.noOpen}</p>
                         ) : (
@@ -125,7 +125,7 @@ export function TaskView({ id }: { id: number }) {
                                 />
                             ))
                         )}
-                    </FormCard>
+                    </Panel>
 
                     <Surface className="p-4 sm:p-5">
                         <QuickNotes taskId={task.id} version={task.version} notes={task.notes} onSaved={reload}>
@@ -150,10 +150,10 @@ export function TaskView({ id }: { id: number }) {
                 <div className="space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
                     <TaskInfo task={task} nextDates={page.nextDates} options={options} />
                     {(task.links.length > 0 || contacts.length > 0) && (
-                        <FormCard title={copy.form.sections.where} icon={Link2}>
+                        <Panel title={copy.form.sections.where} icon={Link2}>
                             <LinkList links={task.links} />
                             <ContactList contacts={contacts} />
-                        </FormCard>
+                        </Panel>
                     )}
                     <TaskTimeline closed={closed} log={page.log} checklist={task.checklist} actions={actions} />
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from '@/components/ui/icons';
 import type { CausalePresets } from '@/app/presence/timesheet-actions';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

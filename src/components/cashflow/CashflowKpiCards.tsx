@@ -1,11 +1,11 @@
 'use client';
 
-import { Landmark, ArrowUpRight, ArrowDownRight, Scale } from 'lucide-react';
+import { Landmark, ArrowUpRight, ArrowDownRight, Scale } from '@/components/ui/icons';
 import { KpiCard } from '@/components/cashflow/KpiCard';
 import { APP_COPY, fmt } from '@/locales';
 import type { BankAccountBalance } from '@/lib/cashflow/types';
 import { CASHFLOW_CONFIG } from '@/config/cashflowConfig';
-import { formatCurrencyRounded } from '@/lib/format';
+import { PENDING_VALUE, formatCurrencyRounded } from '@/lib/format';
 
 interface CashflowKpiCardsProps {
     totalBankBalance: number;
@@ -34,7 +34,7 @@ export function CashflowKpiCards({
     loading = false,
 }: CashflowKpiCardsProps) {
     const kpi = APP_COPY.cashflow.kpi;
-    const amount = (value: number, sign = '') => (loading ? '...' : `${sign}${formatCurrencyRounded(value)}`);
+    const amount = (value: number, sign = '') => (loading ? PENDING_VALUE : `${sign}${formatCurrencyRounded(value)}`);
 
     // Total outflows = vendor expenses + payroll + taxes/fees
     const totalOutflows = grandTotalExpense + grandTotalPayroll + grandTotalExtraExpenses;

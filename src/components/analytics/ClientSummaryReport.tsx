@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { getClientSummaryDataAction, getClientSummaryStatsAction, type ClientSummaryRow } from '@/app/analytics/analytics-actions';
 import { generateClientSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';
@@ -21,6 +21,7 @@ import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrencyRounded } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
+import { AlertTriangle } from '@/components/ui/icons';
 
 interface Filters {
     client: string;
@@ -69,7 +70,7 @@ const columns: DataTableColumn<ClientSummaryRow>[] = [
     },
     {
         key: 'split',
-        header: '⚠️',
+        header: <AlertTriangle size={14} />,
         headerTitle: copy.headers.splitWarning,
         mobileLabel: copy.headers.splitWarning,
         align: 'center',

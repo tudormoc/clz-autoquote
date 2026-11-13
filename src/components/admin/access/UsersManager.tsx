@@ -17,7 +17,7 @@ import { NewPinDialog } from '@/components/admin/access/NewPinDialog';
 import { PersonCardDialog } from '@/components/admin/access/PersonCardDialog';
 import { UsersTable } from '@/components/admin/access/UsersTable';
 import { getPersonDriftAction } from '@/app/person-actions';
-import { Card } from '@/components/ui/Card';
+import { Surface } from '@/components/ui/Surface';
 import { Input } from '@/components/ui/Input';
 import { LoadState } from '@/components/ui/LoadState';
 import { RecordCount } from '@/components/ui/RecordCount';
@@ -124,14 +124,14 @@ export function UsersManager() {
 
     return (
         <div className="space-y-4">
-            <Card className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Surface className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="md:w-72">
                     <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={copy.search} aria-label={copy.search} />
                 </div>
                 <div className="md:w-96">
                     <NewNameForm placeholder={copy.namePlaceholder} buttonLabel={copy.add} onSubmit={create} />
                 </div>
-            </Card>
+            </Surface>
 
             {groups.length === 0 && <p className="text-sm text-fg-muted">{copy.noGroups}</p>}
             {shown.length > 0 && <RecordCount count={shown.length} />}

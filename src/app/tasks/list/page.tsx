@@ -1,4 +1,4 @@
-import { ListChecks } from 'lucide-react';
+import { ListChecks } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TaskListView } from '@/components/tasks/list/TaskListView';

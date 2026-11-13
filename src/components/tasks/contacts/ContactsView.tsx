@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Archive, Pencil, Plus, RotateCcw } from 'lucide-react';
+import { Archive, Pencil, Plus, RotateCcw } from '@/components/ui/icons';
 import { getContactsAction, setContactStateAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ContactDialog } from '@/components/tasks/contacts/ContactDialog';

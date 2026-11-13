@@ -1,4 +1,4 @@
-import { Mail, Phone, UserRound } from 'lucide-react';
+import { Mail, Phone, UserRound } from '@/components/ui/icons';
 import { linkHref } from '@/lib/tasks/links';
 import type { Contact } from '@/lib/tasks/types';
 import { Surface } from '@/components/ui/Surface';
@@ -39,7 +39,7 @@ function ContactCard({ contact }: { contact: Contact }) {
 export function ContactList({ contacts }: { contacts: Contact[] }) {
     if (contacts.length === 0) return null;
     return (
-        <Surface kind="soft" className="divide-y divide-border/60">
+        <Surface kind="inset" className="divide-y divide-border/60">
             {contacts.map((contact) => (
                 <ContactCard key={contact.id} contact={contact} />
             ))}

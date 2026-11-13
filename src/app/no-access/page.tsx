@@ -15,7 +15,7 @@ export default async function NoAccessPage() {
     return (
         <div className="flex justify-center py-12">
             <EmptyState className="w-full max-w-md" title={copy.noAccessTitle} description={copy.noAccessHint}>
-                <Link href="/" className={buttonClasses({ variant: 'outline', className: 'mt-4' })}>
+                <Link href="/" className={buttonClasses({ variant: 'secondary', className: 'mt-4' })}>
                     {APP_COPY.errors.goHome}
                 </Link>
             </EmptyState>

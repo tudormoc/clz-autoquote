@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { NetproStatusBadge } from '@/components/analytics/order-operations/NetproStatusBadge';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_VALUE } from '@/lib/format';
@@ -21,7 +21,7 @@ const COLUMNS: DataTableColumn<OrderProductionOperationRow>[] = [
         cell: (row) =>
             row.note ? (
                 <div className="flex items-start gap-1 whitespace-normal">
-                    <FileText className="w-3 h-3 text-info-400 flex-shrink-0 mt-0.5" />
+                    <FileText size={12} className="text-info-400 flex-shrink-0 mt-0.5" />
                     <span className="leading-snug break-words text-2xs">{row.note}</span>
                 </div>
             ) : (

@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpToLine, Copy, ExternalLink, Flag, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpToLine, Copy, ExternalLink, Flag, Trash2 } from '@/components/ui/icons';
 import { occurrenceMenu } from '@/components/tasks/occurrence/occurrenceMenu';
 import { confirmAndDeleteTask } from '@/components/tasks/shared/deleteTask';
 import type { MenuAction } from '@/components/ui/FloatingMenu';

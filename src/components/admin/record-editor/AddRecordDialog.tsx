@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus } from '@/components/ui/icons';
 import { RecordInput } from '@/components/admin/record-editor/RecordInput';
 import { parseDraft } from '@/components/admin/record-editor/fields';
 import type { RecordTableConfig } from '@/components/admin/record-editor/types';

@@ -5,6 +5,7 @@ import { compareFacts, placeDiffers, placeName, type FactComparisonRow, type Fac
 import { cn } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { DocumentFactRow, DocumentFacts, DocumentPlace, DocumentSide } from '@/types';
+import { ROW_WARNING } from '@/components/ui/Table';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -98,7 +99,7 @@ export function DocumentFactsComparison<K extends string, V>({ facts, rules, nam
             columns={columns}
             rows={rows}
             getRowKey={(row) => row.key}
-            getRowClassName={(row) => (row.issues.length ? 'bg-warning-500/5 hover:bg-warning-500/10' : undefined)}
+            getRowClassName={(row) => (row.issues.length ? ROW_WARNING : undefined)}
             emptyMessage={t.factEmpty}
         />
     );

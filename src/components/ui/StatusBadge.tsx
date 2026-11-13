@@ -9,7 +9,7 @@ const TONES: Record<StatusTone, string> = {
     info: 'bg-info-950/40 text-info-300 border-info-800/40',
     highlight: 'bg-highlight-950/40 text-highlight-300 border-highlight-800/40',
     neutral: 'bg-muted text-fg-muted border-border-strong',
-    muted: 'bg-card/80 text-fg-subtle border-border font-normal',
+    muted: 'bg-card text-fg-subtle border-border font-normal',
 };
 
 const SIZES = {
@@ -17,23 +17,29 @@ const SIZES = {
     md: 'px-3 py-1 text-xs',
 } as const;
 
-interface StatusBadgeProps {
+interface BadgeLook {
     tone: StatusTone;
     size?: keyof typeof SIZES;
+    /** Monospaced, for a number or a code */
+    mono?: boolean;
+    className?: string;
+}
+
+/** The look of a badge, for something that is not a plain label (a tag one clicks to change it, a chip holding a button) */
+export function statusBadgeClasses({ tone, size = 'sm', mono, className }: BadgeLook) {
+    return cn('inline-flex items-center gap-1 rounded border font-semibold', TONES[tone], SIZES[size], mono && 'font-mono', className);
+}
+
+interface StatusBadgeProps extends BadgeLook {
     /** Tooltip */
     title?: string;
-    /** Monospaced, for a number */
-    mono?: boolean;
     children: React.ReactNode;
 }
 
-/** Small coloured label for a state (ok, warning, shift type …). */
-export function StatusBadge({ tone, size = 'sm', title, mono, children }: StatusBadgeProps) {
+/** Small coloured label: a state (ok, warning, shift type …), a count on a tab, a code, a tag. The one look of every such label. */
+export function StatusBadge({ title, children, ...look }: StatusBadgeProps) {
     return (
-        <span
-            title={title}
-            className={cn('inline-flex items-center gap-1 rounded border font-semibold', TONES[tone], SIZES[size], mono && 'font-mono')}
-        >
+        <span title={title} className={statusBadgeClasses(look)}>
             {children}
         </span>
     );

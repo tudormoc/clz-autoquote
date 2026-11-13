@@ -17,7 +17,11 @@ const FIXED_SHAPE_OR_PACE = "/(^|[\\s:'\"`])(rounded(-[a-z]{1,2})?-\\[|duration-
 const HAND_MADE_BOX =
   "/^(?=.*(^|\\s)bg-card\\S*(\\s|$))(?=.*(^|\\s)border(\\s|$))(?=.*(^|\\s)rounded(-[a-z0-9]+)?(\\s|$))/";
 const HAND_MADE_BOX_MESSAGE =
-  "Use <Surface> or surfaceClasses() from src/components/ui/Surface.tsx (kinds: panel, soft, floating, chrome) instead of writing bg-card + border + rounded by hand.";
+  "Use <Surface> or surfaceClasses() from src/components/ui/Surface.tsx (kinds: panel, soft, floating, chrome, bar, drawer) instead of writing bg-card + border + rounded by hand.";
+// A surface that names its own background (bg-card/60 …) takes it away from its kind, and so from the skin
+const OWN_BACKGROUND = "/(^|\\s)bg-card/";
+const OWN_BACKGROUND_MESSAGE =
+  "The kind of a Surface owns its background and its transparency (src/components/ui/Surface.tsx): pick the kind that fits instead of a bg-card of its own.";
 const BOX_CLASSES = "JSXOpeningElement:not([name.name=/^(input|select|textarea)$/]) JSXAttribute[name.name='className']";
 const RAW_BUTTON_MESSAGE =
   "Use Button, IconButton, ChoiceButton or, for a one-off, Pressable (src/components/ui) instead of a raw <button>.";
@@ -36,6 +40,8 @@ const TOKEN_RULES = [
 const BOX_RULES = [
   { selector: `${BOX_CLASSES} Literal[value=${HAND_MADE_BOX}]`, message: HAND_MADE_BOX_MESSAGE },
   { selector: `${BOX_CLASSES} TemplateElement[value.raw=${HAND_MADE_BOX}]`, message: HAND_MADE_BOX_MESSAGE },
+  { selector: `JSXOpeningElement[name.name='Surface'] JSXAttribute[name.name='className'] Literal[value=${OWN_BACKGROUND}]`, message: OWN_BACKGROUND_MESSAGE },
+  { selector: `CallExpression[callee.name='surfaceClasses'] > Literal[value=${OWN_BACKGROUND}]`, message: OWN_BACKGROUND_MESSAGE },
 ];
 const BUTTON_RULE = { selector: "JSXOpeningElement[name.name='button']", message: RAW_BUTTON_MESSAGE };
 
@@ -56,6 +62,14 @@ export default defineConfig([
       "react-hooks/refs": "off",
       "react-hooks/incompatible-library": "off",
       "no-restricted-syntax": ["error", ...TOKEN_RULES, ...BOX_RULES, BUTTON_RULE],
+      // The icons of the app are named in one file, so a skin can bring its own set
+      "no-restricted-imports": ["error", { paths: [{ name: "lucide-react", message: "Take icons from @/components/ui/icons (add the name there when it is new), never from the icon package itself." }] }],
+    },
+  },
+  {
+    files: ["src/components/ui/icons.ts"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
   {

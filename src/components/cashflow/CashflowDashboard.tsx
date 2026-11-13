@@ -1,6 +1,6 @@
 'use client';
 
-import { Wallet } from 'lucide-react';
+import { Wallet } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CashflowMonthlyMatrix, MATRIX_VIEW_NAMES } from '@/components/cashflow/CashflowMonthlyMatrix';

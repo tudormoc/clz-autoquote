@@ -3,8 +3,8 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { Group } from '@/lib/auth/accounts';
 import { lightCounts } from '@/lib/auth/lights';
 import { GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
-import { cn } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.admin.groups;
 
@@ -39,10 +39,11 @@ export function GroupCards({ groups, selectedId, pagesOf, members, linkOf }: Gro
                         to={linkOf(group)}
                         aria-current={selected ? 'page' : undefined}
                         title={names.length > 0 ? names.join(', ') : copy.noMembers}
-                        className={cn(
-                            'block min-w-40 flex-1 rounded-lg border px-3 py-2 text-left transition-colors xl:flex-none',
+                        className={surfaceClasses(
+                            'panel',
+                            'block min-w-40 flex-1 px-3 py-2 text-left transition-colors xl:flex-none',
                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                            selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted'
+                            selected ? SURFACE_SELECTED : 'hover:bg-muted'
                         )}
                     >
                         <span className="block truncate text-sm font-semibold text-fg-strong">{group.name}</span>

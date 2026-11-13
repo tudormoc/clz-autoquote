@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from '@/components/ui/icons';
 import { deleteEventsAction, getDailyEventsAction, updateEventTimeAction } from '@/app/presence/events-actions';
 import { AddEventForm } from '@/components/presence/AddEventForm';
 import { Button } from '@/components/ui/Button';
@@ -183,7 +183,7 @@ export function DailyEventsTable() {
                         </Button>
                     )}
                     {canEdit && (
-                        <Button type="button" variant="outline" onClick={() => setShowAddForm(!showAddForm)}>
+                        <Button type="button" variant="secondary" onClick={() => setShowAddForm(!showAddForm)}>
                             <Plus size={16} />
                             {copy.add.button}
                         </Button>

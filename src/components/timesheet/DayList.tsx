@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { weekdayOf } from '@/lib/dateUtils';
 import { KIND_SPECS } from '@/lib/timesheet/kinds';
 import type { DaySummary } from '@/lib/timesheet/types';
@@ -10,6 +10,7 @@ import { DayStatusBadge } from './DayStatusBadge';
 import { entryText, hoursText } from './labels';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { EMPTY_VALUE } from '@/lib/format';
 
 /** "mer 4": the weekday's first letters and the day of the month */
 function dayLabel(day: string): string {
@@ -70,7 +71,7 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                                     quiet && !isOpen && summary.status !== 'closed' ? (
                                         <span className="flex-1 self-center border-t border-dashed border-border/60" aria-hidden />
                                     ) : (
-                                        <span className="text-fg-faint">{summary.status === 'closed' ? summary.closedReason : '—'}</span>
+                                        <span className="text-fg-faint">{summary.status === 'closed' ? summary.closedReason : EMPTY_VALUE}</span>
                                     )
                                 ) : (
                                     summary.entries.map((entry) => (

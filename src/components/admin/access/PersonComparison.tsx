@@ -3,6 +3,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_VALUE } from '@/lib/format';
 import { FACT_PLACES, PLACES, PLACE_SYSTEM, distinctValues, factKeyOf, oddValues, placesWith, type Fact, type PlaceId } from '@/lib/persons/places';
 import { APP_COPY, fmt } from '@/locales';
+import { ROW_WARNING } from '@/components/ui/Table';
 
 const copy = APP_COPY.admin.person;
 
@@ -45,5 +46,5 @@ const COLUMNS: DataTableColumn<Fact>[] = [
  * Every value stays on one line; a wide table scrolls sideways inside its frame.
  */
 export function PersonComparison({ facts }: { facts: Fact[] }) {
-    return <DataTable columns={COLUMNS} rows={facts} getRowKey={(fact) => fact.key} getRowClassName={(fact) => (fact.differs ? 'bg-warning-500/5 hover:bg-warning-500/10' : undefined)} nowrap />;
+    return <DataTable columns={COLUMNS} rows={facts} getRowKey={(fact) => fact.key} getRowClassName={(fact) => (fact.differs ? ROW_WARNING : undefined)} nowrap />;
 }

@@ -1,4 +1,4 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { GuidesListView } from '@/components/tasks/guides/GuidesListView';

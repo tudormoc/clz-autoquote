@@ -1,6 +1,6 @@
 'use client';
 
-import { Repeat } from 'lucide-react';
+import { Repeat } from '@/components/ui/icons';
 import { cardMenu } from '@/components/tasks/calendar/cardMenu';
 import { FloatingMenu } from '@/components/ui/FloatingMenu';
 import type { AgendaCalendar } from '@/hooks/useAgendaCalendar';

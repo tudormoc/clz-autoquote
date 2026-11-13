@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { getAreaSummaryDataAction, type AreaSummaryRow } from '@/app/analytics/analytics-actions';
 import { generateAreaSummaryPDFAction } from '@/app/analytics/pdf-actions';
 import { MonthSelectorModal } from '@/components/analytics/MonthSelectorModal';

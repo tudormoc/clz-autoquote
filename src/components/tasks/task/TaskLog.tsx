@@ -22,7 +22,7 @@ function logText(entry: LogEntry, checklist: ChecklistItem[]): { action: string;
             break;
         case 'checklist': {
             const step = checklist.find((item) => item.id === details.step);
-            detail = `${details.done ? '✓' : '✗'} ${step?.text ?? ''}`.trim();
+            detail = fmt(details.done ? log.stepDone : log.stepUndone, { step: step?.text ?? '' }).trim();
             break;
         }
         default:

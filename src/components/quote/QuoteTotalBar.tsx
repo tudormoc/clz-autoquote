@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/format';
 import type { QuoteBreakdown } from '@/lib/pricing/types';
@@ -18,7 +18,7 @@ export function QuoteTotalBar({ breakdown, onShowDetail }: QuoteTotalBarProps) {
     if (!breakdown) return null;
 
     return (
-        <Surface kind="chrome" className="lg:hidden sticky bottom-0 z-20 -mx-4 px-4 py-3 flex items-center justify-between gap-3 border-t bg-card/95 backdrop-blur">
+        <Surface kind="bar" className="lg:hidden sticky bottom-0 z-20 -mx-4 px-4 py-3 flex items-center justify-between gap-3 border-t">
             <div className="min-w-0">
                 <div className="text-lg font-bold text-fg-strong font-mono">{formatCurrency(breakdown.total_price)}</div>
                 <div className="text-xs text-fg-muted font-mono">

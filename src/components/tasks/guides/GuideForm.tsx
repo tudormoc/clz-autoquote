@@ -1,9 +1,9 @@
 'use client';
 
 import { Fragment } from 'react';
-import { BookOpen, Link2 } from 'lucide-react';
+import { BookOpen, Link2 } from '@/components/ui/icons';
 import { AgendaForm } from '@/components/tasks/shared/AgendaForm';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { LinksEditor } from '@/components/tasks/shared/LinksEditor';
 import { LoadState } from '@/components/ui/LoadState';
 import { MultiPick } from '@/components/tasks/shared/MultiPick';
@@ -35,7 +35,7 @@ export function GuideForm({ id }: { id: number | null }) {
             saveLabel={copy.form.save}
             columns={[
                 <Fragment key="text">
-                    <FormCard title={guides.body} icon={BookOpen}>
+                    <Panel title={guides.body} icon={BookOpen}>
                         <div className="grid grid-cols-1 sm:grid-cols-[1fr_16rem] gap-4">
                             <Field label={guides.title} htmlFor="guide-title">
                                 <Input id="guide-title" value={draft.title} onChange={(e) => set({ title: e.target.value })} placeholder={guides.titlePlaceholder} maxLength={200} autoFocus={id === null} />
@@ -55,17 +55,17 @@ export function GuideForm({ id }: { id: number | null }) {
                                 <Input id="guide-review" type="number" min={1} value={draft.reviewMonths} onChange={(e) => set({ reviewMonths: e.target.value })} />
                             </div>
                         </Field>
-                    </FormCard>
+                    </Panel>
                 </Fragment>,
                 <Fragment key="where">
-                    <FormCard title={copy.form.sections.where} icon={Link2}>
+                    <Panel title={copy.form.sections.where} icon={Link2}>
                         <Field label={copy.form.links}>
                             <LinksEditor links={draft.links} onChange={(links) => set({ links })} />
                         </Field>
                         <Field label={copy.form.contacts}>
                             <MultiPick options={contactOptions} selected={draft.contactIds} onChange={(contactIds) => set({ contactIds })} emptyText={copy.form.noContacts} />
                         </Field>
-                    </FormCard>
+                    </Panel>
                 </Fragment>,
             ]}
         />

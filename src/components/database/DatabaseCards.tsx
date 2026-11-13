@@ -1,4 +1,4 @@
-import { CheckCircle, Database, XCircle } from 'lucide-react';
+import { CheckCircle, Database, XCircle } from '@/components/ui/icons';
 import type { DbConnectionStatus } from '@/app/db-actions';
 import { Spinner } from '@/components/ui/Spinner';
 import { ViewLink } from '@/components/ui/ViewLink';
@@ -7,7 +7,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { MSSQL_DB } from '@/lib/mssql';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.database;
 
@@ -30,22 +30,19 @@ export function DatabaseCards({ selected, linkOf, connections }: DatabaseCardsPr
                         key={db}
                         to={linkOf(db)}
                         aria-current={db === selected ? 'page' : undefined}
-                        className={surfaceClasses(
-                            'panel', 'block p-4 text-left transition-colors hover:bg-muted',
-                            db === selected ? 'border-primary' : 'border-border'
-                        )}
+                        className={surfaceClasses('panel', 'block p-4 text-left transition-colors', db === selected ? SURFACE_SELECTED : 'hover:bg-muted')}
                     >
                         <div className="flex items-center justify-between gap-3">
                             <span className="flex items-center gap-2 font-semibold text-sm text-fg">
-                                <Database className="h-4 w-4 text-primary" />
+                                <Database size={16} className="text-primary" />
                                 {copy.names[db]}
                             </span>
                             {!status ? (
                                 <Spinner size={20} className="text-fg-subtle" />
                             ) : status.ok ? (
-                                <CheckCircle className="h-5 w-5 text-success-500" />
+                                <CheckCircle size={20} className="text-success-500" />
                             ) : (
-                                <XCircle className="h-5 w-5 text-danger" />
+                                <XCircle size={20} className="text-danger" />
                             )}
                         </div>
                         {status && (

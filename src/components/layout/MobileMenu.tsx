@@ -34,7 +34,8 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
                 aria-modal="true"
                 aria-label={APP_COPY.nav.menu}
                 className={surfaceClasses(
-                    'chrome', 'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] border-r shadow-xl transition-transform duration-slide',
+                    'drawer',
+                    'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] border-r transition-transform duration-slide',
                     open ? 'translate-x-0' : '-translate-x-full'
                 )}
             >

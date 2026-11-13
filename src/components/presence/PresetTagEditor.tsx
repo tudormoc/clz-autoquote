@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +9,9 @@ import { Spinner } from '@/components/ui/Spinner';
 import { APP_COPY, fmt } from '@/locales';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Surface } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { IconButton } from '@/components/ui/IconButton';
+import { statusBadgeClasses } from '@/components/ui/StatusBadge';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.analytics.presenceSettings;
 
@@ -63,13 +65,13 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
     };
 
     return (
-        <Surface kind="soft" className="p-4 bg-card/50 space-y-3">
-            <h4 className="text-xs font-semibold text-fg-soft">{title}</h4>
+        <Surface kind="inset" className="p-4 space-y-3">
+            <h4 className={titleClasses('label')}>{title}</h4>
 
             <div className="flex flex-wrap gap-1.5 min-h-8 items-center">
                 {tags.length === 0 && <span className="text-xs text-fg-faint italic">{copy.noPresets}</span>}
                 {tags.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-md bg-warning-500/10 border border-warning-500/30">
+                    <span key={tag} className={statusBadgeClasses({ tone: 'warning', size: 'md', className: 'pr-1.5' })}>
                         <EditableCell
                             display={<span className="text-xs font-semibold font-mono text-warning-300">{tag}</span>}
                             startValue={() => tag}
@@ -81,15 +83,9 @@ export function PresetTagEditor({ title, value, onSave, onRename }: PresetTagEdi
                             onSave={(draft) => rename(tag, draft)}
                         />
                         {canEdit && (
-                            <Pressable
-                                type="button"
-                                onClick={() => remove(tag)}
-                                disabled={saving}
-                                title={fmt(copy.removePreset, { tag })}
-                                className="p-0.5 rounded text-warning-400/60 hover:text-danger-400 transition-colors disabled:opacity-50"
-                            >
+                            <IconButton type="button" size="xs" tone="danger" onClick={() => remove(tag)} disabled={saving} title={fmt(copy.removePreset, { tag })}>
                                 <X size={11} />
-                            </Pressable>
+                            </IconButton>
                         )}
                     </span>
                 ))}

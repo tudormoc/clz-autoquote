@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { UserRound } from 'lucide-react';
+import { UserRound } from '@/components/ui/icons';
 import { saveContactAction } from '@/app/tasks/guide-actions';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';

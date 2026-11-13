@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 
 /** Spinning loader: small inside buttons and cells, large (with a colour class) when it fills a panel. */

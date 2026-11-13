@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { generateOperatorChecklistPDFAction } from '@/app/presence/operators-actions';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';

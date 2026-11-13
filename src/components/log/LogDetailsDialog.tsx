@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ScrollText } from 'lucide-react';
+import { ScrollText } from '@/components/ui/icons';
 import { getLogDetailsAction } from '@/app/log-actions';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { describeDetails } from '@/lib/log/describe';
 import type { LogEntryRow } from '@/lib/log/entries';
 import { APP_COPY } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.log;
 
@@ -39,7 +40,7 @@ export function LogDetailsDialog({ entry, onClose }: LogDetailsDialogProps) {
             {!error && lines === null && <Spinner size={18} />}
             {lines && lines.length === 0 && <p className="text-sm text-fg-muted">{copy.noDetails}</p>}
             {lines && lines.length > 0 && (
-                <pre className="text-2xs font-mono text-fg-soft leading-relaxed whitespace-pre-wrap break-words bg-background/60 p-3 rounded-lg border border-border">
+                <pre className={surfaceClasses('inset', 'text-2xs font-mono text-fg-soft leading-relaxed whitespace-pre-wrap break-words p-3')}>
                     {lines.join('\n')}
                 </pre>
             )}

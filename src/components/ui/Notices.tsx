@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, X } from '@/components/ui/icons';
 import { dismissNotice, noticeStore, type Notice, type NoticeTone } from '@/lib/notify';
 import { useStore } from '@/lib/store';
 import { APP_COPY } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { IconButton } from '@/components/ui/IconButton';
 
 const TONES: Record<NoticeTone, { icon: typeof Info; className: string }> = {
     success: { icon: CheckCircle2, className: 'border-success-600/50 text-success-300' },
@@ -28,18 +28,13 @@ export function Notices() {
                     <div
                         key={id}
                         role={tone === 'error' ? 'alert' : 'status'}
-                        className={surfaceClasses('floating', 'flex items-start gap-2 p-3 text-sm shadow-xl', className)}
+                        className={surfaceClasses('floating', 'flex items-start gap-2 p-3 text-sm', className)}
                     >
                         <Icon size={16} className="mt-0.5 shrink-0" />
                         <p className="flex-1 text-fg-soft break-words">{message}</p>
-                        <Pressable
-                            type="button"
-                            onClick={() => dismissNotice(id)}
-                            title={APP_COPY.common.close}
-                            className="text-fg-muted hover:text-fg-strong transition-colors"
-                        >
+                        <IconButton type="button" size="sm" onClick={() => dismissNotice(id)} title={APP_COPY.common.close} aria-label={APP_COPY.common.close}>
                             <X size={14} />
-                        </Pressable>
+                        </IconButton>
                     </div>
                 );
             })}

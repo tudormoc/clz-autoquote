@@ -1,13 +1,15 @@
 'use client';
 
 import { Spinner } from '@/components/ui/Spinner';
-import { X } from 'lucide-react';
+import { X } from '@/components/ui/icons';
 import { PresetPopup } from '@/components/presence/PresetPopup';
 import { useInlineEditor } from '@/hooks/useInlineEditor';
-import { EMPTY_VALUE } from '@/lib/format';
+import { EMPTY_VALUE, PENDING_VALUE } from '@/lib/format';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { Button } from '@/components/ui/Button';
+import { CELL_FIELD, FIELD } from '@/components/ui/fieldLook';
+import { statusBadgeClasses } from '@/components/ui/StatusBadge';
 
 interface PresetSelectCellProps {
     value: string | null;
@@ -35,7 +37,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
         return (
             <div className="flex items-center justify-center px-2 py-1 text-xs text-primary font-mono gap-1">
                 <Spinner size={12} />
-                <span>{editor.editValue || '...'}</span>
+                <span>{editor.editValue || PENDING_VALUE}</span>
             </div>
         );
     }
@@ -51,22 +53,23 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                     onChange={(e) => editor.setEditValue(e.target.value)}
                     onBlur={commit}
                     onKeyDown={editor.keyDown(commit)}
-                    className="h-7 w-32 px-2 text-xs text-center font-semibold uppercase bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
+                    className={cn(FIELD, CELL_FIELD, 'w-32 text-center font-semibold uppercase')}
                 />
                 <PresetPopup presets={presets} openAbove={editor.openAbove} onPick={(preset) => editor.save(toCausale(preset))}>
                     {value && (
-                        <Pressable
+                        <Button
                             type="button"
+                            variant="danger"
+                            size="xs"
                             onMouseDown={(e) => {
                                 e.preventDefault();
                                 editor.save(null);
                             }}
                             title={copy.removeTitle}
-                            className="px-1.5 py-0.5 text-3xs font-medium bg-danger-950/40 hover:bg-danger-900/60 text-danger-300 border border-danger-800/50 rounded transition-colors flex items-center gap-1"
                         >
                             <X size={10} />
-                            <span>{copy.remove}</span>
-                        </Pressable>
+                            {copy.remove}
+                        </Button>
                     )}
                 </PresetPopup>
             </div>
@@ -82,8 +85,8 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                     onClick={start}
                     title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
                     className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30',
-                        !editor.readOnly && 'transition-colors hover:bg-warning-500/25 cursor-pointer'
+                        statusBadgeClasses({ tone: 'warning' }),
+                        !editor.readOnly && 'cursor-pointer'
                     )}
                 >
                     {value}

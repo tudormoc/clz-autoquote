@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CalendarClock, ExternalLink, Pencil, X } from 'lucide-react';
+import { BookOpen, CalendarClock, ExternalLink, Pencil, X } from '@/components/ui/icons';
 import { getTaskPageAction } from '@/app/tasks/task-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ContactList } from '@/components/tasks/shared/ContactList';
@@ -21,6 +21,7 @@ import { isOpenStatus } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { IconButton } from '@/components/ui/IconButton';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks;
 
@@ -78,7 +79,8 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
             ref={panel}
             aria-label={task?.title ?? copy.pages.list.label}
             className={surfaceClasses(
-                'chrome', 'fixed inset-y-0 right-0 z-40 w-full sm:w-panel flex flex-col border-l border-border-strong shadow-xl transition-transform duration-slide ease-out',
+                'drawer',
+                'fixed inset-y-0 right-0 z-40 w-full sm:w-panel flex flex-col border-l transition-transform duration-slide ease-out',
                 shown ? 'translate-x-0' : 'translate-x-full'
             )}
         >
@@ -149,7 +151,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
 
                         {(task.links.length > 0 || contacts.length > 0) && (
                             <section className="space-y-2">
-                                <h3 className="text-xs font-semibold text-fg-muted">{copy.form.sections.where}</h3>
+                                <h3 className={titleClasses('label')}>{copy.form.sections.where}</h3>
                                 <LinkList links={task.links} />
                                 <ContactList contacts={contacts} />
                             </section>

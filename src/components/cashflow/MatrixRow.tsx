@@ -1,15 +1,18 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { formatCurrencyRounded } from '@/lib/format';
+import { ChevronDown, ChevronRight } from '@/components/ui/icons';
+import { PENDING_VALUE, formatCurrencyRounded } from '@/lib/format';
 import type { MonthValues } from '@/lib/cashflow/matrix';
 import { cn } from '@/lib/utils';
+import { TableCell, TableRow } from '@/components/ui/Table';
 
 export type MatrixTone = 'info' | 'success' | 'danger' | 'warning' | 'neutral';
 /** main = section row · group = category inside a section · item = one account / client */
 export type MatrixLevel = 'main' | 'group' | 'item';
 
+/** The header cells of the matrix: as low and small as its 14 narrow columns need */
+export const MATRIX_HEAD = 'py-2.5 text-3xs';
+
 /** Columns of the matrix: label, twelve months, total */
 export const MATRIX_COLUMNS = 14;
-const LOADING = '...';
 
 const TONES: Record<MatrixTone, { row: string; group: string; value: string; total: string; icon: string; active: string }> = {
     info: { row: 'bg-info-950/20 text-info-200 border-b border-info-900/30 hover:bg-info-900/30', group: 'bg-info-950/10', value: 'text-info-300', total: 'text-info-400 bg-info-950/40', icon: 'text-info-400', active: 'bg-info-900/40 text-info-200' },
@@ -22,7 +25,7 @@ const TONES: Record<MatrixTone, { row: string; group: string; value: string; tot
 const LEVELS: Record<MatrixLevel, { row: string; label: string; cell: string; total: string }> = {
     main: { row: 'text-2xs font-semibold', label: 'px-2 py-2', cell: 'px-0.5 py-2', total: 'px-1.5 py-2 font-bold' },
     group: { row: 'text-3xs font-semibold border-y border-border/40 hover:bg-muted/40', label: 'pl-6 pr-2 py-1.5', cell: 'px-0.5 py-1.5 opacity-80', total: 'px-1.5 py-1.5 font-bold bg-muted/20' },
-    item: { row: 'text-3xs bg-card/40 hover:bg-muted/50', label: 'pl-10 pr-2 py-1', cell: 'px-0.5 py-1 opacity-70', total: 'px-1.5 py-1 font-medium bg-muted/20' },
+    item: { row: 'text-3xs hover:bg-muted/50', label: 'pl-10 pr-2 py-1', cell: 'px-0.5 py-1 opacity-70', total: 'px-1.5 py-1 font-medium bg-muted/20' },
 };
 
 interface MatrixRowProps {
@@ -67,7 +70,7 @@ export function MatrixRow({
     const t = TONES[tone];
     const l = LEVELS[level];
     const showTotal = (value: number | null | undefined) => {
-        if (loading) return LOADING;
+        if (loading) return PENDING_VALUE;
         return value === null || value === undefined ? empty ?? '' : format(value);
     };
     const showMonth = (value: number | null | undefined) =>
@@ -75,34 +78,34 @@ export function MatrixRow({
     const Chevron = expandable?.expanded ? ChevronDown : ChevronRight;
 
     return (
-        <tr
+        <TableRow
             onClick={expandable?.onToggle}
             className={cn('transition-colors', l.row, level === 'main' ? t.row : level === 'group' ? t.group : '', rowClass, active && t.active, expandable && 'cursor-pointer')}
         >
             {/* Pinned while the table scrolls sideways on narrow screens */}
-            <td className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
+            <TableCell className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
                 <div className="flex items-center gap-1.5">
                     {expandable && <Chevron size={level === 'main' ? 14 : 13} className={cn('shrink-0', t.icon)} />}
                     {icon}
                     <span className="truncate">{level === 'main' ? label : <>└ {label}</>}</span>
                 </div>
-            </td>
+            </TableCell>
             {values.map((value, index) => {
                 const clickable = !!onCellClick && value !== null && value !== undefined;
                 return (
-                    <td
+                    <TableCell
                         key={index}
                         onClick={clickable ? (event) => { event.stopPropagation(); onCellClick(index + 1); } : undefined}
                         title={cellTitle?.(index + 1, value)}
                         className={cn(l.cell, 'text-right font-mono truncate', value !== null && value !== undefined ? valueClass?.(value) ?? t.value : t.value, clickable && 'hover:underline hover:bg-muted/30')}
                     >
                         {showMonth(value)}
-                    </td>
+                    </TableCell>
                 );
             })}
-            <td title={totalTitle} className={cn(l.total, 'text-right font-mono border-l border-border truncate', level === 'main' && t.total, totalClass)}>
+            <TableCell title={totalTitle} className={cn(l.total, 'text-right font-mono border-l border-border truncate', level === 'main' && t.total, totalClass)}>
                 {showTotal(total)}
-            </td>
-        </tr>
+            </TableCell>
+        </TableRow>
     );
 }

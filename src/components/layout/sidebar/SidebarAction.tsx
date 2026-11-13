@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
 import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
 import { cn } from '@/lib/utils';

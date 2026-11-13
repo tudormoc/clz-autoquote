@@ -1,5 +1,5 @@
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { Button } from '@/components/ui/Button';
 
 interface PresetPopupProps {
     presets: string[];
@@ -16,23 +16,25 @@ export function PresetPopup({ presets, openAbove, alignRight, onPick, children }
     return (
         <div
             className={surfaceClasses(
-                'floating', 'absolute z-50 flex items-center gap-1 p-1 rounded shadow-2xl backdrop-blur-sm whitespace-nowrap',
+                'floating',
+                'absolute z-50 flex items-center gap-1 p-1 whitespace-nowrap',
                 openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
                 alignRight && 'right-0'
             )}
         >
             {presets.map((preset) => (
-                <Pressable
+                <Button
                     key={preset}
                     type="button"
+                    variant="secondary"
+                    size="xs"
                     onMouseDown={(e) => {
                         e.preventDefault();
                         onPick(preset);
                     }}
-                    className="px-2 py-0.5 text-3xs font-semibold bg-muted hover:bg-warning-600/30 hover:text-warning-300 text-fg-secondary border border-border-strong rounded transition-colors"
                 >
                     {preset}
-                </Pressable>
+                </Button>
             ))}
             {children}
         </div>

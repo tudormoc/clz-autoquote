@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { answerConfirm, confirmStore } from '@/lib/confirm';

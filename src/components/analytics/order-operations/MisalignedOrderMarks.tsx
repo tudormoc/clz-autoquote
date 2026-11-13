@@ -1,4 +1,4 @@
-import { Ban, Check, CircleAlert, Copy, EqualNot, Layers, Pin, type LucideIcon } from 'lucide-react';
+import { Ban, Check, CircleAlert, Copy, EqualNot, Layers, Pin, type LucideIcon } from '@/components/ui/icons';
 import { articleDiffersText } from '@/components/analytics/order-operations/MisalignedOrderActions';
 import { syncBlockText } from '@/lib/orders/syncBlocks';
 import type { MisalignedOrder } from '@/lib/orders/types';

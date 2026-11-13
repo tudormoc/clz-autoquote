@@ -8,6 +8,7 @@ import type { BankAccountBalance, MonthlyBankBreakdownItem, MonthlyFinancialItem
 import { formatCurrencyRounded, monthName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { TableCell, TableRow } from '@/components/ui/Table';
 
 const copy = APP_COPY.cashflow.matrix;
 
@@ -41,9 +42,9 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
 
     return (
         <>
-            <tr className={cn('font-sans font-bold text-3xs', isAsset ? 'bg-success-950/20 text-success-400' : 'bg-danger-950/20 text-danger-400')}>
-                <td className="pl-6 py-0.5" colSpan={MATRIX_COLUMNS}>└ {isAsset ? copy.assets : copy.liabilities}</td>
-            </tr>
+            <TableRow className={cn('font-sans font-bold text-3xs', isAsset ? 'bg-success-950/20 hover:bg-success-950/20 text-success-400' : 'bg-danger-950/20 hover:bg-danger-950/20 text-danger-400')}>
+                <TableCell className="pl-6 py-0.5" colSpan={MATRIX_COLUMNS}>└ {isAsset ? copy.assets : copy.liabilities}</TableCell>
+            </TableRow>
 
             {banks.map((bank) => {
                 const open = drilldown?.accountCode === bank.accountCode && drilldown.section === section;
@@ -75,8 +76,8 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
                         />
 
                         {open && (
-                            <tr className="bg-background">
-                                <td colSpan={MATRIX_COLUMNS} className="p-2 border-b border-border">
+                            <TableRow className="bg-background hover:bg-background">
+                                <TableCell colSpan={MATRIX_COLUMNS} className="p-2 border-b border-border">
                                     <BankOperationsDrilldown
                                         accountCode={bank.accountCode}
                                         accountName={bank.name}
@@ -84,8 +85,8 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
                                         initialMonth={drilldown.month}
                                         onClose={onCloseDrilldown}
                                     />
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         )}
                     </React.Fragment>
                 );

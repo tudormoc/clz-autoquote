@@ -4,6 +4,7 @@ import { AlignmentCell } from '@/components/ui/AlignmentCell';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import type { OperationComparisonRow, OpField } from '@/lib/orders/compare';
 import { APP_COPY, fmt } from '@/locales';
+import { ROW_WARNING } from '@/components/ui/Table';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -79,7 +80,7 @@ export function OperationsComparison({ rows, businessOrderNumber }: { rows: Oper
             columns={columns}
             rows={rows}
             getRowKey={(row) => row.fase}
-            getRowClassName={(row) => (row.issues.length ? 'bg-warning-500/5 hover:bg-warning-500/10' : undefined)}
+            getRowClassName={(row) => (row.issues.length ? ROW_WARNING : undefined)}
         />
     );
 }

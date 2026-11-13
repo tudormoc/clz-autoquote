@@ -1,9 +1,9 @@
 'use client';
 
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock } from '@/components/ui/icons';
 import { NextDatesPreview } from '@/components/tasks/form/NextDatesPreview';
 import { RepeatEditor } from '@/components/tasks/form/RepeatEditor';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { Field } from '@/components/ui/Field';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -38,11 +38,11 @@ export function WhenCard({ draft, today, closedDays, set, setRepeat }: WhenCardP
         repeating && isIsoDate(dueDate) && isIsoDate(draft.dueDate) ? set({ dueDate, repeat: followDate(draft.repeat, draft.dueDate, dueDate) }) : set({ dueDate });
 
     return (
-        <FormCard title={form.sections.when} icon={CalendarClock}>
+        <Panel title={form.sections.when} icon={CalendarClock}>
             <Field label={form.kind}>
                 <div className="flex flex-wrap gap-2">
                     {(['once', 'repeat'] as const).map((kind) => (
-                        <ChoiceButton key={kind} size="sm" className="px-3" selected={draft.kind === kind} onClick={() => setKind(kind)}>
+                        <ChoiceButton key={kind} size="sm" selected={draft.kind === kind} onClick={() => setKind(kind)}>
                             {copy.kinds[kind]}
                         </ChoiceButton>
                     ))}
@@ -73,7 +73,7 @@ export function WhenCard({ draft, today, closedDays, set, setRepeat }: WhenCardP
                     <span className="text-sm text-fg-muted">{form.showDaysSuffix}</span>
                 </div>
             </Field>
-        </FormCard>
+        </Panel>
     );
 }
 

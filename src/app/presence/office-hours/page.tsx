@@ -1,4 +1,4 @@
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { OfficeHoursView } from '@/components/timesheet/OfficeHoursView';

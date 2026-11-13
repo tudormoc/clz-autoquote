@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Eye, Pencil, type LucideIcon } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Pencil, type LucideIcon } from '@/components/ui/icons';
 import { Light } from '@/components/admin/access/Light';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import type { ChipTone } from '@/components/ui/ToggleChips';
+import type { ChoiceTone } from '@/components/ui/ChoiceButton';
 import { pageFunctions, type NavAreaId, type NavItem } from '@/config/navigation';
 import { LIGHTS, functionOn, lightState, withFunction, withLight, type LightKind } from '@/lib/auth/lights';
 import { ACCESS_AREAS, GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
@@ -18,7 +18,7 @@ import { Pressable } from '@/components/ui/Pressable';
 const copy = APP_COPY.admin.groups;
 
 /** How each light is drawn: its icon and its colour when on */
-const LOOK: Record<LightKind, { icon: LucideIcon; tone: ChipTone }> = {
+const LOOK: Record<LightKind, { icon: LucideIcon; tone: ChoiceTone }> = {
     see: { icon: Eye, tone: 'primary' },
     modify: { icon: Pencil, tone: 'warning' },
 };

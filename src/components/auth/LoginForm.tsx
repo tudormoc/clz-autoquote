@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, LogIn } from 'lucide-react';
+import { BookOpen, LogIn } from '@/components/ui/icons';
 import { loginAction } from '@/app/auth-actions';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.auth;
 
@@ -49,7 +50,7 @@ export function LoginForm({ next }: { next?: string }) {
                     <BookOpen size={20} strokeWidth={2.5} />
                 </span>
                 <div>
-                    <h1 className="font-bold text-lg text-fg-strong leading-tight">{APP_COPY.header.title}</h1>
+                    <h1 className={titleClasses('page')}>{APP_COPY.header.title}</h1>
                     <p className="text-sm text-fg-muted">{copy.title}</p>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';

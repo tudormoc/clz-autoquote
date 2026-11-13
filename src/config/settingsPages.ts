@@ -9,7 +9,7 @@
  * 3. One entry here (label and description in it.ts → admin.pages)
  */
 
-import { CalendarOff, Clock, Database, Euro, FolderTree, KeyRound, Layers, Maximize2, ScrollText, Tags, Target, UsersRound, type LucideIcon } from 'lucide-react';
+import { CalendarOff, Clock, Database, Euro, FolderTree, KeyRound, Layers, Maximize2, ScrollText, Tags, Target, UsersRound, type LucideIcon } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 
 /** Groups of the Settings area, in display order: the area each setting belongs to */

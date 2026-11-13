@@ -1,17 +1,19 @@
 'use client';
 
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from '@/components/ui/icons';
 import { WeekCard } from '@/components/tasks/calendar/WeekCard';
 import { cardMenu } from '@/components/tasks/calendar/cardMenu';
 import type { AgendaCalendar } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
 import type { AgendaItem } from '@/lib/tasks/types';
-import { cn } from '@/lib/utils';
+import { titleClasses } from '@/components/ui/titleLook';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { SURFACE_TONE, surfaceClasses } from '@/components/ui/Surface';
 
 /** Late ones in red; the ones without a date quiet */
 const TONES = {
-    danger: { box: 'border-danger-500/30 bg-danger-500/5', icon: 'text-danger-400', title: 'text-danger-300', count: 'bg-danger-500/20 text-danger-300' },
-    muted: { box: 'border-border bg-card/60', icon: 'text-fg-muted', title: 'text-fg-soft', count: 'bg-muted text-fg-secondary' },
+    danger: { box: SURFACE_TONE.danger, icon: 'text-danger-400', title: 'text-danger-300', count: 'danger' },
+    muted: { box: undefined, icon: 'text-fg-muted', title: undefined, count: 'neutral' },
 } as const;
 
 interface CardDockProps {
@@ -36,11 +38,13 @@ export function CardDock({ title, hint, icon: Icon, tone, items, calendar, drag,
     const look = TONES[tone];
 
     return (
-        <section className={cn('shrink-0 flex items-center gap-2 rounded-lg border p-1.5 pl-3 min-w-0', look.box)}>
-            <h2 className="shrink-0 flex items-center gap-1.5 text-sm" title={canEdit ? hint : undefined}>
+        <section className={surfaceClasses('inset', 'shrink-0 flex items-center gap-2 p-1.5 pl-3 min-w-0', look.box)}>
+            <h2 className={titleClasses('section', 'shrink-0 flex items-center gap-1.5')} title={canEdit ? hint : undefined}>
                 <Icon size={14} className={look.icon} />
-                <span className={cn('font-semibold', look.title)}>{title}</span>
-                <span className={cn('text-3xs px-1.5 rounded-full font-mono', look.count)}>{items.length}</span>
+                <span className={look.title}>{title}</span>
+                <StatusBadge tone={look.count} mono>
+                    {items.length}
+                </StatusBadge>
             </h2>
             <div className="flex-1 min-w-0 flex gap-1.5 overflow-x-auto">
                 {items.map((item) => (

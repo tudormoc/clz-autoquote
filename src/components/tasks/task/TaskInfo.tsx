@@ -1,5 +1,5 @@
-import { Info } from 'lucide-react';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Info } from '@/components/ui/icons';
+import { Panel } from '@/components/ui/Panel';
 import { PriorityBadge, TaskStateBadge } from '@/components/tasks/shared/TaskBadges';
 import type { TaskOptions } from '@/app/tasks/task-actions';
 import { describeRepeat, formatIsoDate, formatMoment, formatShortDay } from '@/lib/tasks/describe';
@@ -25,7 +25,7 @@ export function TaskInfo({ task, nextDates, options }: { task: TaskDetail; nextD
     const when = task.repeat ? describeRepeat(task.repeat) : task.dueDate ? `${copy.repeat.once}, ${formatIsoDate(task.dueDate)}` : copy.repeat.noDate;
 
     return (
-        <FormCard title={detail.info} icon={Info}>
+        <Panel title={detail.info} icon={Info}>
             <dl className="space-y-2">
                 <Line label={copy.filters.state}>
                     <TaskStateBadge state={task.state} />
@@ -55,6 +55,6 @@ export function TaskInfo({ task, nextDates, options }: { task: TaskDetail; nextD
                 <p>{fmt(detail.createdBy, { name: task.createdBy, date: formatMoment(task.createdAt) })}</p>
                 {task.updatedAt !== task.createdAt && <p>{fmt(detail.updatedBy, { name: task.updatedBy, date: formatMoment(task.updatedAt) })}</p>}
             </div>
-        </FormCard>
+        </Panel>
     );
 }

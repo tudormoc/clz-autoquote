@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { FIELD, FIELD_ERROR } from '@/components/ui/fieldLook';
 
 export interface SelectProps
     extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -22,8 +23,9 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 )}
                 <select
                     className={cn(
-                        "flex h-9 w-full rounded border border-border-strong bg-background px-3 py-2 text-sm text-fg transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-danger focus-visible:border-danger",
+                        "flex h-9",
+                        FIELD,
+                        error && FIELD_ERROR,
                         className
                     )}
                     ref={ref}

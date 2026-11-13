@@ -1,6 +1,6 @@
 'use client';
 
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
 import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
 import { toggleSidebarCollapsed } from '@/lib/sidebar';

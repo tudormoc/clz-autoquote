@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CaseUpper, Check, UserRound } from 'lucide-react';
+import { AlertTriangle, CaseUpper, Check, UserRound } from '@/components/ui/icons';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import type { UserView } from '@/app/access-actions';
 import { alignEmailAction, alignNameAction, getPersonCardAction, getPersonChoicesAction, setPersonLinksAction, type PersonCard, type PersonChoices } from '@/app/person-actions';
@@ -135,24 +135,24 @@ export function PersonCardDialog({ user, onSaved, onClose }: PersonCardDialogPro
                         <div className="ml-auto flex items-center gap-2">
                             {drift > 0 ? (
                                 <StatusBadge tone="warning" size="md">
-                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <AlertTriangle size={14} />
                                     {fmt(copy.driftStatus, { count: drift })}
                                 </StatusBadge>
                             ) : (
                                 <StatusBadge tone="success" size="md">
-                                    <Check className="w-3.5 h-3.5" />
+                                    <Check size={14} />
                                     {copy.alignedStatus}
                                 </StatusBadge>
                             )}
                             {canAlign(email) && (
                                 <Button variant="warning" size="sm" onClick={() => setConfirming('email')} disabled={busy}>
-                                    <AlignIcon className="w-3.5 h-3.5" />
+                                    <AlignIcon size={14} />
                                     {copy.alignEmail.align}
                                 </Button>
                             )}
                             {canAlign(name) && (
                                 <Button variant="warning" size="sm" onClick={() => setConfirming('name')} disabled={busy}>
-                                    <CaseUpper className="w-3.5 h-3.5" />
+                                    <CaseUpper size={14} />
                                     {copy.alignName.align}
                                 </Button>
                             )}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Markdown } from '@/components/ui/Markdown';
 import { TabBar } from '@/components/ui/TabBar';
 import { Textarea } from '@/components/ui/Textarea';
+import { FIELD_FRAME } from '@/components/ui/fieldLook';
 import { APP_COPY } from '@/locales';
 
 interface MarkdownFieldProps {
@@ -21,7 +22,7 @@ export function MarkdownField({ value, onChange, placeholder, rows = 8, id }: Ma
     const copy = APP_COPY.common;
 
     return (
-        <div className="rounded border border-border-strong bg-background">
+        <div className={FIELD_FRAME}>
             <TabBar
                 className="px-2 pt-1 border-b border-border"
                 tabs={[

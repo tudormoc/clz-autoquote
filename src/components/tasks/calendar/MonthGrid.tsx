@@ -12,6 +12,7 @@ import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -101,7 +102,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                         const content = dayContent(day);
                         return (
                             <section key={day} className={surfaceClasses('panel', 'p-3 space-y-1.5')}>
-                                <h3 className={cn('text-sm font-semibold', day === today ? 'text-primary' : 'text-fg-soft')}>{formatShortDay(day)}</h3>
+                                <h3 className={titleClasses('section', day === today && 'text-primary')}>{formatShortDay(day)}</h3>
                                 {content.open.map((item) => (
                                     <MonthChip key={item.id} calendar={calendar} drag={drag} canEdit={false} item={item} />
                                 ))}

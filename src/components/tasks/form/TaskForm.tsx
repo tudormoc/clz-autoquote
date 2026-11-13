@@ -1,11 +1,11 @@
 'use client';
 
 import { Fragment } from 'react';
-import { BookOpen, FileText, Link2, UsersRound } from 'lucide-react';
+import { BookOpen, FileText, Link2, UsersRound } from '@/components/ui/icons';
 import { ChecklistEditor } from '@/components/tasks/form/ChecklistEditor';
 import { WhenCard } from '@/components/tasks/form/WhenCard';
 import { AgendaForm } from '@/components/tasks/shared/AgendaForm';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { LinksEditor } from '@/components/tasks/shared/LinksEditor';
 import { LoadState } from '@/components/ui/LoadState';
 import { MultiPick } from '@/components/tasks/shared/MultiPick';
@@ -18,6 +18,7 @@ import { LINKS } from '@/config/navigation';
 import { useTaskForm } from '@/hooks/useTaskForm';
 import { PRIORITIES, VISIBILITIES, type Visibility } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
+import { EMPTY_VALUE } from '@/lib/format';
 
 const copy = APP_COPY.tasks;
 const form = copy.form;
@@ -43,7 +44,7 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
             saveLabel={id === null ? form.create : form.save}
             columns={[
                 <Fragment key="what-when">
-                    <FormCard title={form.sections.what} icon={FileText}>
+                    <Panel title={form.sections.what} icon={FileText}>
                         <Field label={form.title} htmlFor="task-title">
                             <Input id="task-title" value={draft.title} onChange={(e) => set({ title: e.target.value })} placeholder={form.titlePlaceholder} maxLength={200} autoFocus={id === null} />
                         </Field>
@@ -63,18 +64,18 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                         <Field label={form.priority}>
                             <div className="flex flex-wrap gap-2">
                                 {PRIORITIES.map((priority) => (
-                                    <ChoiceButton key={priority} size="sm" className="px-3" selected={draft.priority === priority} onClick={() => set({ priority })} title={copy.priorityHint[priority] || undefined}>
+                                    <ChoiceButton key={priority} size="sm" selected={draft.priority === priority} onClick={() => set({ priority })} title={copy.priorityHint[priority] || undefined}>
                                         {copy.priority[priority]}
                                     </ChoiceButton>
                                 ))}
                             </div>
                         </Field>
-                    </FormCard>
+                    </Panel>
 
                     <WhenCard draft={draft} today={options.today} closedDays={options.closedDays} set={set} setRepeat={setRepeat} />
                 </Fragment>,
                 <Fragment key="who-how-where">
-                    <FormCard title={form.sections.who} icon={UsersRound}>
+                    <Panel title={form.sections.who} icon={UsersRound}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field label={form.assignee} htmlFor="task-assignee">
                                 <Select
@@ -98,7 +99,7 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                                         id="task-group"
                                         value={draft.groupId}
                                         onChange={(e) => set({ groupId: e.target.value })}
-                                        options={[{ value: '', label: '—' }, ...options.groups.map((group) => ({ value: String(group.id), label: group.name }))]}
+                                        options={[{ value: '', label: EMPTY_VALUE }, ...options.groups.map((group) => ({ value: String(group.id), label: group.name }))]}
                                     />
                                 </Field>
                             )}
@@ -108,9 +109,9 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                                 </div>
                             </Field>
                         </div>
-                    </FormCard>
+                    </Panel>
 
-                    <FormCard title={form.sections.how} icon={BookOpen}>
+                    <Panel title={form.sections.how} icon={BookOpen}>
                         <Field label={form.notes} htmlFor="task-notes">
                             <MarkdownField id="task-notes" value={draft.notes} onChange={(notes) => set({ notes })} placeholder={form.notesPlaceholder} />
                         </Field>
@@ -120,16 +121,16 @@ export function TaskForm({ id, copyFrom }: { id: number | null; copyFrom: number
                         <Field label={form.guides}>
                             <MultiPick options={guideOptions} selected={draft.guideIds} onChange={(guideIds) => set({ guideIds })} emptyText={form.noGuides} />
                         </Field>
-                    </FormCard>
+                    </Panel>
 
-                    <FormCard title={form.sections.where} icon={Link2}>
+                    <Panel title={form.sections.where} icon={Link2}>
                         <Field label={form.links}>
                             <LinksEditor links={draft.links} onChange={(links) => set({ links })} />
                         </Field>
                         <Field label={form.contacts}>
                             <MultiPick options={contactOptions} selected={draft.contactIds} onChange={(contactIds) => set({ contactIds })} emptyText={form.noContacts} />
                         </Field>
-                    </FormCard>
+                    </Panel>
                 </Fragment>,
             ]}
         />

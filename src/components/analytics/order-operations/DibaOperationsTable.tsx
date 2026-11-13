@@ -1,4 +1,4 @@
-import { Check, FileText } from 'lucide-react';
+import { Check, FileText } from '@/components/ui/icons';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { EMPTY_VALUE, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
@@ -21,7 +21,7 @@ const COLUMNS: DataTableColumn<DibaOperationRow>[] = [
         cell: (row) =>
             row.note ? (
                 <div className="flex items-start gap-1 whitespace-normal">
-                    <FileText className="w-3 h-3 text-primary flex-shrink-0 mt-0.5" />
+                    <FileText size={12} className="text-primary flex-shrink-0 mt-0.5" />
                     <span className="leading-snug break-words text-2xs">{row.note}</span>
                 </div>
             ) : (
@@ -37,7 +37,7 @@ const COLUMNS: DataTableColumn<DibaOperationRow>[] = [
         cell: (row) =>
             row.aggriga === 'S' ? (
                 <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-success-500/20 text-success-400">
-                    <Check className="w-3 h-3" />
+                    <Check size={12} />
                 </span>
             ) : (
                 EMPTY_VALUE

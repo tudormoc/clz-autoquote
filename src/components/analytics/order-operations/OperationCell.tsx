@@ -1,7 +1,8 @@
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
+import { VALUE_WARNING } from '@/components/ui/Table';
 
-const highlight = (differs?: boolean) => (differs ? 'text-warning-300 bg-warning-500/15 rounded px-1 -mx-1' : '');
+const highlight = (differs?: boolean) => (differs ? VALUE_WARNING : '');
 
 interface OperationCellProps {
     /** Operation name and its code */
@@ -27,7 +28,7 @@ export function OperationCell({ operation, code, center, centerName, note, diffe
             </p>
             {(note || differs?.note) && (
                 <p className="text-2xs text-fg-subtle truncate max-w-72 flex items-center gap-1" title={note}>
-                    <FileText className="w-3 h-3 flex-shrink-0" />
+                    <FileText size={12} className="flex-shrink-0" />
                     <span className={highlight(differs?.note)}>{note || APP_COPY.analytics.orderOperations.noNote}</span>
                 </p>
             )}

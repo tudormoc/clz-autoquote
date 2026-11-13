@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import { Pressable } from '@/components/ui/Pressable';
+import { FIELD } from '@/components/ui/fieldLook';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -66,7 +67,7 @@ export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
                 }}
                 placeholder={copy.addPlaceholder}
                 aria-label={copy.add}
-                className="w-full rounded-md border border-primary/60 bg-background px-2 py-1.5 text-sm text-fg placeholder:text-fg-faint focus-visible:outline-none"
+                className={cn(FIELD, 'px-2 py-1.5')}
             />
         </form>
     );

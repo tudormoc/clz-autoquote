@@ -12,7 +12,7 @@ export default function NotFound() {
     return (
         <div className="flex justify-center py-12">
             <EmptyState className="w-full max-w-md" title={copy.notFound} description={copy.notFoundHint}>
-                <Link href="/" className={buttonClasses({ variant: 'outline', className: 'mt-4' })}>
+                <Link href="/" className={buttonClasses({ variant: 'secondary', className: 'mt-4' })}>
                     {copy.goHome}
                 </Link>
             </EmptyState>

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarRange, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Inbox } from '@/components/ui/icons';
 import { AgendaSearch } from '@/components/tasks/shared/AgendaSearch';
 import { NewTaskButton } from '@/components/tasks/shared/NewTaskButton';
 import { TaskFilters } from '@/components/tasks/shared/TaskFilters';
@@ -10,8 +10,8 @@ import { monthName } from '@/lib/format';
 import { weekTitle } from '@/lib/tasks/describe';
 import { isoWeekNumber } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
-import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { ChoiceButton } from '@/components/ui/ChoiceButton';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks.calendar;
 const MODES: CalendarMode[] = ['week', 'month'];
@@ -33,7 +33,7 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
     return (
         <div className="shrink-0 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div className="min-w-0">
-                <h1 className="flex items-center gap-2.5 text-xl font-bold text-fg-strong">
+                <h1 className={titleClasses('page', 'flex items-center gap-2.5')}>
                     <CalendarRange size={20} className="shrink-0 text-primary" />
                     {title}
                 </h1>
@@ -42,7 +42,7 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                     {progress && (
                         <span className="inline-flex items-center gap-2">
                             <span className="h-1.5 w-24 rounded-full bg-muted overflow-hidden" aria-hidden>
-                                <span className="block h-full rounded-full bg-success-500 transition-all" style={{ width: `${Math.round(share * 100)}%` }} />
+                                <span className="block h-full rounded-full bg-success-500 transition-[width]" style={{ width: `${Math.round(share * 100)}%` }} />
                             </span>
                             {progress.total > 0 ? fmt(copy.progress, progress) : copy.nothingThisWeek}
                         </span>
@@ -67,31 +67,21 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                     </Button>
                 )}
                 <div className="flex items-center gap-1">
-                    <Button variant="secondary" size="sm" className="w-8 px-0" onClick={() => shift(-1)} title={copy.previous[mode]} aria-label={copy.previous[mode]}>
+                    <Button variant="secondary" size="icon" onClick={() => shift(-1)} title={copy.previous[mode]} aria-label={copy.previous[mode]}>
                         <ChevronLeft size={16} />
                     </Button>
                     <Button variant={showsToday ? 'ghost' : 'secondary'} size="sm" onClick={() => goTo(today)}>
                         {copy.today}
                     </Button>
-                    <Button variant="secondary" size="sm" className="w-8 px-0" onClick={() => shift(1)} title={copy.next[mode]} aria-label={copy.next[mode]}>
+                    <Button variant="secondary" size="icon" onClick={() => shift(1)} title={copy.next[mode]} aria-label={copy.next[mode]}>
                         <ChevronRight size={16} />
                     </Button>
                 </div>
-                <div role="tablist" className="flex rounded-md border border-border-strong p-0.5 bg-background">
+                <div className="flex gap-1">
                     {MODES.map((option) => (
-                        <Pressable
-                            key={option}
-                            type="button"
-                            role="tab"
-                            aria-selected={mode === option}
-                            onClick={() => setMode(option)}
-                            className={cn(
-                                'px-3 h-7 rounded text-xs font-medium transition-colors',
-                                mode === option ? 'bg-muted-strong text-fg-strong' : 'text-fg-muted hover:text-fg'
-                            )}
-                        >
+                        <ChoiceButton key={option} size="sm" selected={mode === option} onClick={() => setMode(option)}>
                             {copy.views[option]}
-                        </Pressable>
+                        </ChoiceButton>
                     ))}
                 </div>
                 <NewTaskButton />

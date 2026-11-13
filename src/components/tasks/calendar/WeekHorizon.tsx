@@ -8,6 +8,7 @@ import { isoWeekNumber, weekDays } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { Pressable } from '@/components/ui/Pressable';
+import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -44,9 +45,10 @@ export function WeekHorizon({ start, shown, today, loads, onPick }: WeekHorizonP
                         title={label}
                         aria-label={label}
                         aria-current={monday === shown ? 'true' : undefined}
-                        className={cn(
-                            'flex-1 min-w-24 flex items-end gap-2 rounded-lg border px-2 py-1 text-left transition-colors',
-                            monday === shown ? 'border-primary/60 bg-primary/10' : 'border-border bg-card hover:border-border-strong'
+                        className={surfaceClasses(
+                            'panel',
+                            'flex-1 min-w-24 flex items-end gap-2 px-2 py-1 text-left transition-colors',
+                            monday === shown ? SURFACE_SELECTED : 'hover:bg-muted'
                         )}
                     >
                         <span className="shrink-0 flex flex-col leading-tight">

@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useRef } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown } from '@/components/ui/icons';
 import { DataCards, rowLinkProps } from '@/components/ui/DataCards';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';

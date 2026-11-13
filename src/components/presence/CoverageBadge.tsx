@@ -1,4 +1,5 @@
 import { presenceFieldLabel } from '@/components/presence/presenceLabels';
+import { AlertTriangle, Check } from '@/components/ui/icons';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { MissingValue } from '@/components/ui/TableCells';
 import { getDayStatus, rulesForOperator, type PresenceRulesConfig } from '@/lib/presence';
@@ -6,6 +7,11 @@ import { APP_COPY, fmt } from '@/locales';
 import type { OperatorHoursRow } from '@/types';
 
 const copy = APP_COPY.analytics.monthlySummary.verification;
+
+/** "8.0 h" */
+const hours = (value: string) => fmt(APP_COPY.timesheet.hoursUnit, { hours: value });
+const OK = <Check size={12} />;
+const WARNING = <AlertTriangle size={12} />;
 
 interface CoverageBadgeProps {
     row: OperatorHoursRow;
@@ -24,14 +30,16 @@ export function CoverageBadge({ row, todayStr, rules: baseRules }: CoverageBadge
         if (status.kind === 'ok' || (status.kind === 'future' && status.covered > 0)) {
             return (
                 <StatusBadge tone="info" title={fmt(copy.badgeExtraOkTitle, { covered, field: presenceFieldLabel(rules.extraField) })}>
-                    {covered}h ✓
+                    {hours(covered)}
+                    {OK}
                 </StatusBadge>
             );
         }
         if (status.kind === 'empty') {
             return (
                 <StatusBadge tone="warning" title={copy.badgeExtraEmptyTitle}>
-                    ⚠️ 0.0h
+                    {WARNING}
+                    {hours(covered)}
                 </StatusBadge>
             );
         }
@@ -40,28 +48,37 @@ export function CoverageBadge({ row, todayStr, rules: baseRules }: CoverageBadge
 
     switch (status.kind) {
         case 'non-working':
-            return status.covered > 0 ? <StatusBadge tone="info">{covered}h</StatusBadge> : <MissingValue />;
+            return status.covered > 0 ? <StatusBadge tone="info">{hours(covered)}</StatusBadge> : <MissingValue />;
         case 'ok':
             return (
                 <StatusBadge tone="success" title={fmt(copy.badgeOkTitle, { h: expected })}>
-                    {expected}h ✓
+                    {hours(expected)}
+                    {OK}
                 </StatusBadge>
             );
         case 'mismatch':
             return (
                 <StatusBadge tone="warning" title={fmt(copy.badgeMismatchTitle, { covered, h: expected })}>
-                    ⚠️ {covered}h
+                    {WARNING}
+                    {hours(covered)}
                 </StatusBadge>
             );
         case 'empty':
             return (
                 <StatusBadge tone="muted" mono title={copy.badgeEmptyTitle}>
-                    0.0h
+                    {hours(covered)}
                 </StatusBadge>
             );
         case 'future':
             // Today / future: informational only, never counted as anomaly
-            if (status.covered === rules.workdayHours) return <StatusBadge tone="success">{expected}h ✓</StatusBadge>;
-            return status.covered > 0 ? <StatusBadge tone="warning">{covered}h</StatusBadge> : <MissingValue />;
+            if (status.covered === rules.workdayHours) {
+                return (
+                    <StatusBadge tone="success">
+                        {hours(expected)}
+                        {OK}
+                    </StatusBadge>
+                );
+            }
+            return status.covered > 0 ? <StatusBadge tone="warning">{hours(covered)}</StatusBadge> : <MissingValue />;
     }
 }

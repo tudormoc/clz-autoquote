@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Pin, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, Pin, RefreshCw } from '@/components/ui/icons';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
 import { choiceClasses } from '@/components/ui/ChoiceButton';
@@ -75,24 +75,24 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, edition
                 {/* A phase already worked on or a material already withdrawn that left the DiBa: Riallinea leaves it */}
                 {keepsSomething(data.sync_keeps) && (
                     <StatusBadge tone="info" size="md" title={syncKeepLines(data.sync_keeps).join('\n')}>
-                        <Pin className="w-3.5 h-3.5" />
+                        <Pin size={14} />
                         {fmt(t.syncKeptBadge, { kept: syncKeepNames(data.sync_keeps) })}
                     </StatusBadge>
                 )}
                 {/* A comparison that could not be read says so: it is neither aligned nor not */}
                 {data.load_error ? (
                     <StatusBadge tone="danger" size="md" title={data.load_error}>
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <AlertTriangle size={14} />
                         {t.dibaNotRead}
                     </StatusBadge>
                 ) : hasDiscrepancies ? (
                     <StatusBadge tone="warning" size="md">
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <AlertTriangle size={14} />
                         {fmt(t.dibaDiscrepanciesDetected, { count: data.discrepancy_count ?? 0 })}
                     </StatusBadge>
                 ) : (
                     <StatusBadge tone="success" size="md">
-                        <Check className="w-3.5 h-3.5" />
+                        <Check size={14} />
                         {t.dibaAligned}
                     </StatusBadge>
                 )}
@@ -106,12 +106,12 @@ export function ManagementToolbar({ data, editions, refreshing, syncing, edition
                 )}
                 {hasDiscrepancies && canSync && (
                     <Button variant="warning" size="sm" onClick={onSync} disabled={syncing || refreshing || blocked} title={blocked ? syncBlockText(blocks) : t.syncButton}>
-                        <AlignIcon className="w-3.5 h-3.5" />
+                        <AlignIcon size={14} />
                         {syncing ? t.syncing : t.syncButton}
                     </Button>
                 )}
 
-                <Button variant="secondary" size="sm" onClick={onRefresh} disabled={refreshing} title={t.refreshData} className="w-8 px-0">
+                <Button variant="secondary" size="icon" onClick={onRefresh} disabled={refreshing} title={t.refreshData} aria-label={t.refreshData}>
                     {refreshing ? <Spinner size={16} className="text-highlight-400" /> : <RefreshCw size={16} />}
                 </Button>
             </div>

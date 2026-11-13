@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus } from '@/components/ui/icons';
 import { getGuidesAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { ReviewBadge } from '@/components/tasks/guides/ReviewBadge';

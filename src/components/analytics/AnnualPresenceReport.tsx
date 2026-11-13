@@ -7,10 +7,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterPanel } from '@/components/ui/FilterPanel';
 import { YearField } from '@/components/ui/YearField';
 import { useAppliedQuery } from '@/hooks/useAppliedQuery';
-import { Copy } from 'lucide-react';
+import { Copy } from '@/components/ui/icons';
 import { copyToClipboard } from '@/lib/clipboard';
 import { recentYears } from '@/lib/dateUtils';
 import { formatDayMonth } from '@/lib/format';
+import { Surface } from '@/components/ui/Surface';
+import { Table, TableBody, TableCell, TableFooter, TableRow } from '@/components/ui/Table';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.analytics.presence;
 const thisYear = () => recentYears(1)[0];
@@ -111,9 +114,9 @@ export function AnnualPresenceReport() {
                         if (weekTotal === 0) return null;
                         
                         return (
-                            <div key={weekNum} className="border border-border rounded-lg overflow-hidden">
+                            <Surface key={weekNum} className="overflow-hidden">
                                 <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
-                                    <h3 className="text-base font-semibold text-fg">
+                                    <h3 className={titleClasses('panel')}>
                                         {APP_COPY.analytics.presence.week} {weekNum}
                                         {getWeekDateRange(weekNum) && (
                                             <span className="text-sm font-normal text-fg-subtle ml-2">
@@ -123,38 +126,30 @@ export function AnnualPresenceReport() {
                                     </h3>
                                     <Button
                                         onClick={() => copyTableToClipboard(weekNum)}
-                                        variant="outline"
+                                        variant="secondary"
                                         size="sm"
                                     >
                                         <Copy size={14} />
                                         {APP_COPY.analytics.presence.copy}
                                     </Button>
                                 </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <tbody className="divide-y divide-border">
-                                            {weekData.map((item, idx) => (
-                                                <tr key={idx} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-3 text-sm font-medium text-fg">
-                                                        {item.group}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-right font-mono text-fg">
-                                                        {toWholeHours(item.hours)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            <tr className="bg-muted/50 font-semibold">
-                                                <td className="px-4 py-3 text-sm text-fg">
-                                                    {APP_COPY.analytics.presence.total}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-right font-mono text-fg">
-                                                    {toWholeHours(weekTotal)}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                <Table>
+                                    <TableBody>
+                                        {weekData.map((item, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-medium">{item.group}</TableCell>
+                                                <TableCell className="text-right font-mono">{toWholeHours(item.hours)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <TableFooter>
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell>{APP_COPY.analytics.presence.total}</TableCell>
+                                            <TableCell className="text-right font-mono">{toWholeHours(weekTotal)}</TableCell>
+                                        </TableRow>
+                                    </TableFooter>
+                                </Table>
+                            </Surface>
                         );
                     })}
                 </div>

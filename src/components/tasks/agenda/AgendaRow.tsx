@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, Circle, ListChecks, Repeat, UserRound } from 'lucide-react';
+import { CheckCircle2, Circle, ListChecks, Repeat, UserRound } from '@/components/ui/icons';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { occurrenceMenu } from '@/components/tasks/occurrence/occurrenceMenu';
 import { DueLabel } from '@/components/tasks/shared/DueLabel';
@@ -12,7 +12,7 @@ import { LINKS } from '@/config/navigation';
 import type { AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { DoneTick } from '@/components/tasks/shared/DoneTick';
 
 const copy = APP_COPY.tasks;
 
@@ -33,16 +33,13 @@ export function AgendaRow({ item, today, actions, showAssignee }: AgendaRowProps
     return (
         <li className={cn('flex items-start gap-3 px-3 sm:px-4 py-2', done && 'opacity-70')}>
             {canEdit ? (
-                <Pressable
-                    type="button"
-                    onClick={() => (done ? actions.reopen(item) : actions.done(item))}
+                <DoneTick
+                    className="mt-0.5"
+                    done={done}
                     disabled={actions.busy}
-                    title={done ? copy.actions.reopen : copy.actions.markDone}
-                    aria-label={done ? copy.actions.reopen : copy.actions.markDone}
-                    className={cn('mt-0.5 shrink-0 rounded-full transition-colors disabled:opacity-50', done ? 'text-success-400' : 'text-fg-muted hover:text-success-400')}
-                >
-                    {done ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                </Pressable>
+                    label={done ? copy.actions.reopen : copy.actions.markDone}
+                    onClick={() => (done ? actions.reopen(item) : actions.done(item))}
+                />
             ) : (
                 <span className="mt-0.5 shrink-0 text-fg-faint">{done ? <CheckCircle2 size={20} /> : <Circle size={20} />}</span>
             )}

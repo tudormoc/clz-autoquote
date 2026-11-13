@@ -1,6 +1,6 @@
 'use client';
 
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw } from '@/components/ui/icons';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { OccurrenceStatusBadge } from '@/components/tasks/shared/TaskBadges';
 import { formatMoment, formatShortDay } from '@/lib/tasks/describe';

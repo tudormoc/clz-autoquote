@@ -1,5 +1,6 @@
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { titleClasses } from '@/components/ui/titleLook';
 
 interface PageHeaderProps {
     title: string;
@@ -19,7 +20,7 @@ export function PageHeader({ title, icon: Icon, subtitle, actions }: PageHeaderP
             <div className="min-w-0 max-lg:sr-only">
                 <div className="flex items-center gap-2.5">
                     {Icon && <Icon className="shrink-0 text-primary" size={20} />}
-                    <h1 className="text-xl font-bold text-fg-strong truncate">{title}</h1>
+                    <h1 className={titleClasses('page', 'truncate')}>{title}</h1>
                 </div>
                 {subtitle && <div className="mt-0.5 text-sm text-fg-muted">{subtitle}</div>}
             </div>

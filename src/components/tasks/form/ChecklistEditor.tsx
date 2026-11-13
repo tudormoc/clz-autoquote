@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { newStepId } from '@/lib/tasks/taskDraft';

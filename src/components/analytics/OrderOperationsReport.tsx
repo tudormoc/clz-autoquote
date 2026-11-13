@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ListChecks, Search, Workflow } from 'lucide-react';
+import { ListChecks, Search, Workflow } from '@/components/ui/icons';
 import { MisalignedOrdersList } from '@/components/analytics/order-operations/MisalignedOrdersList';
 import { OrderHeader } from '@/components/analytics/order-operations/OrderHeader';
 import { OrderMatches } from '@/components/analytics/order-operations/OrderMatches';
 import { OrderWorkspace } from '@/components/analytics/order-operations/OrderWorkspace';
 import { Button, buttonClasses } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadState } from '@/components/ui/LoadState';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { ViewLink } from '@/components/ui/ViewLink';
@@ -17,6 +18,8 @@ import { useOrderSearch } from '@/hooks/useOrderSearch';
 import { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { IconTile } from '@/components/ui/IconTile';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -63,10 +66,10 @@ export function OrderOperationsReport() {
         <div className="flex-1 min-h-0 flex flex-col gap-3">
             <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-                    <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                    <IconTile size="sm">
                         <Workflow size={18} />
-                    </div>
-                    <h1 className="text-lg font-bold text-fg-strong whitespace-nowrap">{t.pageTitle}</h1>
+                    </IconTile>
+                    <h1 className={titleClasses('page', 'whitespace-nowrap')}>{t.pageTitle}</h1>
                 </div>
                 <form
                     className="flex-1 flex gap-2"
@@ -79,7 +82,7 @@ export function OrderOperationsReport() {
                         <Input placeholder={t.searchPlaceholder} value={term} onChange={(e) => setTerm(e.target.value)} disabled={loading} />
                     </div>
                     <Button type="submit" disabled={loading}>
-                        <Search className="w-4 h-4" />
+                        <Search size={16} />
                         {loading ? t.searching : t.search}
                     </Button>
                     {/* The open orders are compared only when asked for: the list then takes the place of the search
@@ -96,7 +99,7 @@ export function OrderOperationsReport() {
                         aria-disabled={misaligned.loading}
                         className={buttonClasses({ variant: 'secondary', className: cn(misaligned.loading && 'pointer-events-none opacity-50') })}
                     >
-                        {misaligned.loading ? <Spinner size={16} /> : <ListChecks className="w-4 h-4" />}
+                        {misaligned.loading ? <Spinner size={16} /> : <ListChecks size={16} />}
                         <span className="hidden sm:inline">{misaligned.loading ? t.misaligned.loading : t.misaligned.button}</span>
                     </ViewLink>
                 </form>
@@ -122,23 +125,17 @@ export function OrderOperationsReport() {
             {!order && !list && (
                 <div className="flex-1 min-h-0 overflow-auto space-y-3">
                     {waiting ? (
-                        <Card className="flex flex-col items-center gap-3 py-8 text-fg-subtle">
-                            <Spinner size={28} />
-                            <p className="text-sm">{showList ? t.misaligned.comparing : APP_COPY.common.loading}</p>
-                        </Card>
+                        <EmptyState title={showList ? t.misaligned.comparing : APP_COPY.common.loading}>
+                            <Spinner size={24} className="mx-auto mt-3 text-primary" />
+                        </EmptyState>
                     ) : (
                         <>
                             {!showList && matches.length > 1 && <OrderMatches matches={matches} linkOf={address.orderLink} />}
                             {!showList && !failure && message && (
-                                <Card className="text-center py-8 text-fg-subtle">
-                                    <Search className="w-12 h-12 mx-auto mb-3 text-fg-secondary" />
-                                    <p className="text-sm">{message}</p>
-                                </Card>
+                                <EmptyState title={message} />
                             )}
                             {failure && (
-                                <Card className="text-center py-8 text-danger">
-                                    <p className="text-sm">{failure}</p>
-                                </Card>
+                                <LoadState loading={false} error={failure} />
                             )}
                         </>
                     )}

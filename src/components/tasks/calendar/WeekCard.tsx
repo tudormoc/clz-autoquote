@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, Check, Hourglass, ListChecks, PlayCircle, Repeat } from 'lucide-react';
+import { CalendarClock, Hourglass, ListChecks, PlayCircle, Repeat } from '@/components/ui/icons';
 import { useAccess } from '@/components/auth/AccessProvider';
 import { PostponedBadge } from '@/components/tasks/shared/TaskBadges';
 import { FloatingMenu, type MenuAction } from '@/components/ui/FloatingMenu';
@@ -11,7 +11,7 @@ import { isOpenStatus, type AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { DoneTick } from '@/components/tasks/shared/DoneTick';
 
 const copy = APP_COPY.tasks;
 
@@ -90,22 +90,17 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
         >
             {open && item.priority > 0 && <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', EDGE[item.priority])} />}
             <div className="flex items-start gap-2">
-                <Pressable
-                    type="button"
+                <DoneTick
+                    className="mt-px"
+                    size="sm"
+                    done={!open}
                     disabled={!canEdit || busy || !open}
+                    label={open ? copy.actions.markDone : copy.status.done}
                     onClick={(event) => {
                         event.stopPropagation();
                         onDone();
                     }}
-                    title={open ? copy.actions.markDone : copy.status.done}
-                    aria-label={open ? copy.actions.markDone : copy.status.done}
-                    className={cn(
-                        'mt-px shrink-0 size-4 rounded-full border flex items-center justify-center transition-colors',
-                        open ? 'border-fg-faint text-transparent hover:border-success-400 hover:text-success-400 disabled:hover:border-fg-faint disabled:hover:text-transparent' : 'border-success-500 bg-success-500 text-fg-inverse'
-                    )}
-                >
-                    <Check size={10} strokeWidth={3} />
-                </Pressable>
+                />
                 <span
                     className={cn(
                         'min-w-0 text-sm leading-snug',

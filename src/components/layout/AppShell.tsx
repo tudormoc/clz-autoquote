@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu } from '@/components/ui/icons';
 import { useAccess } from '@/components/auth/AccessProvider';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <MobileMenu open={menuOpen} onClose={closeMenu} />
 
             <div className="flex-1 min-w-0 flex flex-col lg:min-h-0">
-                <header className={surfaceClasses('chrome', 'lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-1 px-2 border-b bg-card/95 backdrop-blur')}>
+                <header className={surfaceClasses('bar', 'lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-1 px-2 border-b')}>
                     <IconButton size="lg"
                         type="button"
                         onClick={() => setMenuOpen(true)}

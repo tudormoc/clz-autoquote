@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MyHoursView } from '@/components/timesheet/MyHoursView';

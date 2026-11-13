@@ -4,6 +4,7 @@ import { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -27,9 +28,9 @@ interface FlowColumnProps {
 function FlowColumn({ title, operations, accent, emptyText, numbered }: FlowColumnProps) {
     const done = operations.filter((op) => op.status === 'COM').length;
     return (
-        <Surface kind="soft" className="flex flex-col min-h-0 rounded-xl border-border/70 bg-card/30">
+        <Surface kind="inset" className="flex flex-col min-h-0">
             <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/70">
-                <h3 className={cn('text-xs font-bold flex items-center gap-1.5', accent)}>
+                <h3 className={titleClasses('label', 'flex items-center gap-1.5', accent)}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
                     {title}
                 </h3>

@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { Pencil } from '@/components/ui/icons';
 import type { OfficeDayRow } from '@/app/presence/timesheet-actions';
 import { Button } from '@/components/ui/Button';
 import type { DataTableColumn } from '@/components/ui/DataTable';

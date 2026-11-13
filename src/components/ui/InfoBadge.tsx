@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { statusBadgeClasses } from '@/components/ui/StatusBadge';
 
 interface InfoBadgeProps {
     label: string;
@@ -7,17 +7,11 @@ interface InfoBadgeProps {
     className?: string;
 }
 
-/**
- * Reusable info badge component for displaying calculated values and configurations.
- * Used across forms to show totals, configurations, and computed values.
- */
+/** A grey badge with a name and its value (a total, a computed size) beside a form's fields. */
 export function InfoBadge({ label, value, detail, className }: InfoBadgeProps) {
     return (
-        <div className={cn(
-            "text-xs font-medium text-fg-soft bg-muted px-3 py-1 rounded border border-border-strong flex items-center gap-2",
-            className
-        )}>
-            <span className="text-3xs text-fg-muted">{label}</span>
+        <div className={statusBadgeClasses({ tone: 'neutral', size: 'md', className })}>
+            <span className="text-3xs">{label}</span>
             <span className="text-fg font-mono">
                 {value}
                 {detail && <span className="text-3xs text-fg-muted ml-1">{detail}</span>}

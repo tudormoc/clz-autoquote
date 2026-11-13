@@ -12,6 +12,8 @@ const { LANGUAGE, CURRENCY } = APP_CONFIG.LOCALE;
 
 /** Placeholder shown for missing values */
 export const EMPTY_VALUE = '-';
+/** Shown in place of a value that is being read or saved */
+export const PENDING_VALUE = '…';
 
 // Thousands separator on every number, also 4-digit ones (Italian default omits it: "5186" next to "12.582")
 const GROUPING = { useGrouping: 'always' } as const;

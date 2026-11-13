@@ -3,10 +3,9 @@
 import { PresenceParametersList } from '@/components/presence/PresenceParametersList';
 import { PresetTagEditor } from '@/components/presence/PresetTagEditor';
 import { Turno2Operators } from '@/components/presence/Turno2Operators';
-import { Card } from '@/components/ui/Card';
 import { LoadState } from '@/components/ui/LoadState';
 import { Row, RowList } from '@/components/ui/RowList';
-import { Section } from '@/components/ui/Section';
+import { Panel } from '@/components/ui/Panel';
 import { APP_CONFIG } from '@/config/constants';
 import { usePresenceSettings } from '@/hooks/usePresenceSettings';
 import { APP_COPY, fmt } from '@/locales';
@@ -23,12 +22,12 @@ export function PresenceSettingsManager() {
     const read = !loading && !error;
 
     return (
-        <Card className="p-6 space-y-8">
-            <Section title={copy.parametersSection}>
+        <div className="space-y-4">
+            <Panel title={copy.parametersSection}>
                 <PresenceParametersList settings={parameters} loading={loading} error={error} onSave={saveSetting} />
-            </Section>
+            </Panel>
 
-            <Section title={copy.presetsSection}>
+            <Panel title={copy.presetsSection}>
                 <LoadState loading={loading} error={error} />
                 {read && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -46,13 +45,13 @@ export function PresenceSettingsManager() {
                         />
                     </div>
                 )}
-            </Section>
+            </Panel>
 
-            <Section title={copy.turno2Section}>
+            <Panel title={copy.turno2Section}>
                 <Turno2Operators />
-            </Section>
+            </Panel>
 
-            <Section title={copy.autoExitSection}>
+            <Panel title={copy.autoExitSection}>
                 <RowList>
                     <Row label={copy.autoExitWeekday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_WEEKDAY}</span></Row>
                     <Row label={copy.autoExitSaturday}><span className="font-mono font-bold text-primary">{AUTO_EXIT_TIME_SATURDAY}</span></Row>
@@ -61,7 +60,7 @@ export function PresenceSettingsManager() {
                     </Row>
                     <Row label={copy.triggerHour}><span className="font-mono font-bold text-primary">{TRIGGER_HOUR}:00</span></Row>
                 </RowList>
-            </Section>
-        </Card>
+            </Panel>
+        </div>
     );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { MoreHorizontal, type LucideIcon } from '@/components/ui/icons';
 import { FloatingMenu, type MenuAction } from '@/components/ui/FloatingMenu';
 import { APP_COPY } from '@/locales';
 import { IconButton } from '@/components/ui/IconButton';

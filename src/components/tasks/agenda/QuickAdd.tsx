@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarCheck, Plus, Repeat } from 'lucide-react';
+import { CalendarCheck, Plus, Repeat } from '@/components/ui/icons';
 import { quickAddAction } from '@/app/tasks/agenda-actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -59,7 +59,7 @@ export function QuickAdd({ onAdded }: { onAdded: () => Promise<void> }) {
             {understood && (
                 <p
                     role="status"
-                    className={surfaceClasses('floating', 'absolute left-0 top-full z-10 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-2.5 py-1.5 text-xs text-fg-secondary')}
+                    className={surfaceClasses('floating', 'absolute left-0 top-full z-10 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5 text-xs text-fg-secondary')}
                 >
                     <span className="text-fg-subtle">{copy.quickPreview}</span>
                     <span className="font-medium text-fg-strong">{entry.title}</span>

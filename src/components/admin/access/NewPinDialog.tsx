@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Dices, KeyRound } from 'lucide-react';
+import { Copy, Dices, KeyRound } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { copyToClipboard } from '@/lib/clipboard';

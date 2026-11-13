@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { FIELD, FIELD_ERROR } from '@/components/ui/fieldLook';
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -24,9 +25,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "flex h-9 w-full rounded border border-border-strong bg-background px-3 py-2 text-sm text-fg placeholder:text-fg-faint transition-colors focus-visible:outline-none focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-9",
+            FIELD,
             isNumberInput && "font-mono",
-            error && "border-danger focus-visible:border-danger",
+            error && FIELD_ERROR,
             className
           )}
           ref={ref}

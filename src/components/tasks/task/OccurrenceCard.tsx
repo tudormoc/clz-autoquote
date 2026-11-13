@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, MessageSquare, Save } from 'lucide-react';
+import { CheckCircle2, MessageSquare, Save } from '@/components/ui/icons';
 import { addCommentAction, saveOutcomeAction, setChecklistStepAction } from '@/app/tasks/agenda-actions';
 import type { Saved } from '@/app/tasks/results';
 import { useCanEdit } from '@/components/auth/AccessProvider';
@@ -18,7 +18,7 @@ import { notify } from '@/lib/notify';
 import { formatMoment } from '@/lib/tasks/describe';
 import type { ChecklistItem, LogEntry } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
-import { cn } from '@/lib/utils';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks;
 
@@ -62,7 +62,7 @@ export function OccurrenceCard({ occurrence, taskId, repeats, checklist, comment
     const ticked = new Set(occurrence.checklistDone);
 
     return (
-        <div className={cn('rounded-lg border border-border bg-background/40 space-y-3', compact ? 'px-3 py-2' : 'p-3 sm:p-4')}>
+        <div className={surfaceClasses('inset', 'space-y-3', compact ? 'px-3 py-2' : 'p-3 sm:p-4')}>
             <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <OccurrenceStatusBadge status={occurrence.status} note={occurrence.statusNote} />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, BarChart3, Copy } from 'lucide-react';
+import { ChevronDown, ChevronUp, BarChart3, Copy } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import type { SummaryStatus } from '@/hooks/useReportTable';
@@ -43,7 +43,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
                 </Button>
 
                 {open && onCopy && status === 'ready' && (
-                    <Button onClick={onCopy} variant="outline" size="sm" className="border-border text-fg-muted hover:text-fg-strong">
+                    <Button onClick={onCopy} variant="secondary" size="sm">
                         <Copy size={14} />
                         {copy.copy}
                     </Button>

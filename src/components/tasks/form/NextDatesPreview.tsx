@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from '@/components/ui/icons';
 import { APP_CONFIG } from '@/config/constants';
 import { closedDayChecker, type ClosedDay } from '@/lib/tasks/closedDays';
 import { formatShortDay } from '@/lib/tasks/describe';
@@ -10,6 +10,7 @@ import { upcomingDates } from '@/lib/tasks/projection';
 import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { toRepeatRule, type RepeatDraft } from '@/lib/tasks/taskDraft';
 import { APP_COPY, fmt } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks;
 
@@ -30,7 +31,7 @@ export function NextDatesPreview({ repeat, firstDate, today, closedDays }: NextD
     }, [repeat, firstDate, today]);
 
     return (
-        <div className="rounded border border-border bg-background/60 px-3 py-2">
+        <div className={surfaceClasses('inset', 'px-3 py-2')}>
             <p className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
                 <CalendarDays size={13} />
                 {copy.form.nextDates}

@@ -1,4 +1,4 @@
-import { AlertTriangle, History } from 'lucide-react';
+import { AlertTriangle, History } from '@/components/ui/icons';
 import { StatusBadge, type StatusTone } from '@/components/ui/StatusBadge';
 import { APP_CONFIG } from '@/config/constants';
 import type { OccurrenceStatus, Priority, TaskState } from '@/lib/tasks/types';

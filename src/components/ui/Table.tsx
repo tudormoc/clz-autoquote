@@ -10,6 +10,15 @@ interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
     containerClassName?: string;
 }
 
+/** The lower header and cells of a table read inside something else (the movements of a bank account under its row) */
+export const DENSE_HEAD = 'px-2.5 py-2';
+export const DENSE_CELL = 'px-2.5 py-1.5';
+
+/** The tint of a row that needs a look: a fact that differs from its truth, a phase out of line (`getRowClassName` of DataTable) */
+export const ROW_WARNING = 'bg-warning-500/5 hover:bg-warning-500/10';
+/** The mark of one value that differs, inside a cell */
+export const VALUE_WARNING = 'text-warning-300 bg-warning-500/15 rounded px-1 -mx-1';
+
 const Table = React.forwardRef<HTMLTableElement, TableProps>(({ className, containerClassName, ...props }, ref) => (
     <div className={cn("relative w-full overflow-x-auto", containerClassName)}>
         <table

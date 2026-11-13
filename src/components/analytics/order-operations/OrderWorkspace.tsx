@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, Boxes, Check, Layers, Workflow } from 'lucide-react';
+import { AlertTriangle, Boxes, Check, Layers, Workflow } from '@/components/ui/icons';
 import { useOrderAddress, type WorkspaceTab } from '@/hooks/useOrderAddress';
 import { OrderManagementPanel } from '@/components/analytics/order-operations/OrderManagementPanel';
 import { OrderMaterialsPanel } from '@/components/analytics/order-operations/OrderMaterialsPanel';
@@ -12,6 +12,7 @@ import type { buildProductionFlow } from '@/lib/orders/flow';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -33,24 +34,24 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
     const notRead = diba ? diba.notRead : Boolean(order.management.load_error);
 
     const tabs: TabItem<WorkspaceTab>[] = [
-        { id: 'flow', label: t.operationsTab, icon: <Workflow className="w-4 h-4 text-info-400" />, count: order.operations.length },
-        { id: 'materials', label: t.materialsTab, icon: <Boxes className="w-4 h-4 text-warning-400" />, count: order.materials.length },
+        { id: 'flow', label: t.operationsTab, icon: <Workflow size={16} className="text-info-400" />, count: order.operations.length },
+        { id: 'materials', label: t.materialsTab, icon: <Boxes size={16} className="text-warning-400" />, count: order.materials.length },
         {
             id: 'management',
             label: t.operationsManagementTab,
-            icon: <Layers className="w-4 h-4 text-highlight-400" />,
+            icon: <Layers size={16} className="text-highlight-400" />,
             badge: notRead ? (
-                <span className="inline-flex items-center gap-1 text-3xs px-1.5 rounded-full bg-danger-500/15 text-danger-400 border border-danger-500/30" title={t.dibaNotRead}>
-                    <AlertTriangle className="w-3 h-3" />{t.dibaNotReadShort}
-                </span>
+                <StatusBadge tone="danger" title={t.dibaNotRead}>
+                    <AlertTriangle size={12} />{t.dibaNotReadShort}
+                </StatusBadge>
             ) : hasDiscrepancies ? (
-                <span className="inline-flex items-center gap-1 text-3xs px-1.5 rounded-full bg-warning-500/20 text-warning-300 border border-warning-500/30">
-                    <AlertTriangle className="w-3 h-3" />{discrepancyCount}
-                </span>
+                <StatusBadge tone="warning">
+                    <AlertTriangle size={12} />{discrepancyCount}
+                </StatusBadge>
             ) : (
-                <span className="inline-flex items-center gap-0.5 text-3xs px-1.5 rounded-full bg-success-500/15 text-success-400 border border-success-500/30">
-                    <Check className="w-3 h-3" />{t.dibaShort}
-                </span>
+                <StatusBadge tone="success">
+                    <Check size={12} />{t.dibaShort}
+                </StatusBadge>
             ),
         },
     ];
@@ -60,7 +61,7 @@ export function OrderWorkspace({ order, flow }: OrderWorkspaceProps) {
     const panel = (id: WorkspaceTab) => cn('p-3 overflow-x-auto lg:absolute lg:inset-0 lg:overflow-auto', tab !== id && 'hidden');
 
     return (
-        <Surface kind="soft" className="flex-1 min-h-0 flex flex-col rounded-xl border-border/80 overflow-hidden">
+        <Surface className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <TabBar tabs={tabs} active={tab} linkOf={(id) => address.link({ tab: id })} className="flex-shrink-0 px-2 pt-2 border-b border-border/80" />
             <div className="lg:flex-1 lg:min-h-0 relative">
                 <div className={panel('flow')}>

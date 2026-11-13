@@ -14,6 +14,7 @@ import { defaultReportPeriod } from '@/lib/dateUtils';
 import type { ExcelColumn } from '@/lib/excel';
 import { formatCurrency, formatHours, formatNumber } from '@/lib/format';
 import { APP_COPY } from '@/locales';
+import { AlertTriangle } from '@/components/ui/icons';
 
 interface Filters {
     commessa: string;
@@ -69,7 +70,7 @@ const columns: DataTableColumn<OrderRevenueRow>[] = [
     },
     {
         key: 'split',
-        header: '⚠️',
+        header: <AlertTriangle size={14} />,
         headerTitle: copy.partialRevenueHint,
         mobileLabel: copy.export.partialRevenue,
         align: 'center',

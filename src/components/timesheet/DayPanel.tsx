@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from '@/components/ui/icons';
 import { clearDayAction, deleteEntryAction, fillNormalDayAction, type CausalePresets } from '@/app/presence/timesheet-actions';
 import { Button } from '@/components/ui/Button';
 import { Row, RowList } from '@/components/ui/RowList';
@@ -180,7 +180,7 @@ export function DayPanel({ person, summary, presets, normal, bounds, allKinds, c
             )}
 
             {editable && !empty && !formOpen && !full && (
-                <Button size="sm" variant="outline" onClick={() => setAdding(true)} disabled={busy}>
+                <Button size="sm" variant="secondary" onClick={() => setAdding(true)} disabled={busy}>
                     <Plus size={14} />
                     {copy.addLine}
                 </Button>

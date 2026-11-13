@@ -3,6 +3,7 @@
 import { MatrixRow, MATRIX_COLUMNS, type MatrixTone } from '@/components/cashflow/MatrixRow';
 import { amountValues, MONTHS_IN_YEAR, type MonthValues } from '@/lib/cashflow/matrix';
 import type { MonthlyAmounts } from '@/lib/cashflow/types';
+import { TableCell, TableRow } from '@/components/ui/Table';
 
 interface MatrixItem {
     label: string;
@@ -57,9 +58,9 @@ export function ExpandableMatrixCategory({ title, items, tone, expanded, onToggl
                         />
                     ))
                 ) : (
-                    <tr className="text-3xs">
-                        <td colSpan={MATRIX_COLUMNS} className="pl-10 pr-2 py-1.5 font-medium text-fg-subtle">└ {emptyText}</td>
-                    </tr>
+                    <TableRow className="text-3xs hover:bg-transparent">
+                        <TableCell colSpan={MATRIX_COLUMNS} className="pl-10 pr-2 py-1.5 font-medium text-fg-subtle">└ {emptyText}</TableCell>
+                    </TableRow>
                 ))}
         </>
     );

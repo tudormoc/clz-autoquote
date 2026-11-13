@@ -2,9 +2,11 @@
 
 import { Spinner } from '@/components/ui/Spinner';
 import { useInlineEditor } from '@/hooks/useInlineEditor';
-import { EMPTY_VALUE } from '@/lib/format';
+import { EMPTY_VALUE, PENDING_VALUE } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
+import { CELL_FIELD, FIELD } from '@/components/ui/fieldLook';
+import { statusBadgeClasses } from '@/components/ui/StatusBadge';
 
 type HoursValue = number | string | null;
 
@@ -39,7 +41,7 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
         return (
             <div className="flex items-center justify-end px-2 py-1 text-xs text-primary font-mono gap-1">
                 <Spinner size={12} />
-                <span>{editor.editValue || '...'}</span>
+                <span>{editor.editValue || PENDING_VALUE}</span>
             </div>
         );
     }
@@ -56,7 +58,7 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
                     onChange={(e) => editor.setEditValue(e.target.value)}
                     onBlur={commit}
                     onKeyDown={editor.keyDown(commit)}
-                    className="h-7 w-24 px-2 text-xs text-right font-mono bg-background text-fg border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary shadow-lg"
+                    className={cn(FIELD, CELL_FIELD, 'w-24 text-right font-mono')}
                 />
             </div>
         );
@@ -73,8 +75,8 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
                     onClick={start}
                     title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
                     className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning-500/15 text-warning-400 border border-warning-500/30',
-                        !editor.readOnly && 'cursor-pointer hover:bg-warning-500/25 transition-colors'
+                        statusBadgeClasses({ tone: 'warning' }),
+                        !editor.readOnly && 'cursor-pointer'
                     )}
                 >
                     {String(value)}

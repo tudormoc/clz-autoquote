@@ -3,17 +3,23 @@
 import { LoadState } from '@/components/ui/LoadState';
 import { Spinner } from '@/components/ui/Spinner';
 import React, { useEffect, useState, useTransition, useMemo } from 'react';
-import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
+import { X, Search, CheckCircle2, ArrowUpRight, ArrowDownRight, Layers } from '@/components/ui/icons';
 import { APP_COPY, fmt } from '@/locales';
 import { getBankAccountTransactionsAction } from '@/app/cashflow/cashflow-actions';
 import type { BankAccountDetailsResult } from '@/lib/cashflow/types';
 import { formatCurrency } from '@/lib/format';
-import { errorMessage } from '@/lib/utils';
-import { Surface } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { cn, errorMessage } from '@/lib/utils';
+import { SURFACE_TONE, Surface, surfaceClasses } from '@/components/ui/Surface';
+import { Button } from '@/components/ui/Button';
+import { ChoiceButton } from '@/components/ui/ChoiceButton';
+import { Input } from '@/components/ui/Input';
+import { DENSE_CELL, DENSE_HEAD, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { MissingValue } from '@/components/ui/TableCells';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { titleClasses } from '@/components/ui/titleLook';
 
 /** The frame of the panel */
-const PANEL = 'bg-background/95 border border-border-strong/80 rounded-xl p-4 my-2 text-fg shadow-xl space-y-4';
+const PANEL = surfaceClasses('inset', 'p-4 my-2 space-y-4');
 
 interface BankOperationsDrilldownProps {
     accountCode: number;
@@ -107,11 +113,11 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
     const header = (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
                 <div className="flex items-center gap-3">
-                    <div className="px-2.5 py-1 bg-warning-500/10 border border-warning-500/30 text-warning-400 rounded-md font-mono text-xs font-bold">
+                    <StatusBadge tone="warning" size="md" mono>
                         {accountCode}
-                    </div>
+                    </StatusBadge>
                     <div>
-                        <h4 className="text-sm font-bold text-fg flex items-center gap-2">
+                        <h4 className={titleClasses('section', 'flex items-center gap-2')}>
                             {accountName}
                             <span className="text-xs font-normal text-fg-muted">({year})</span>
                         </h4>
@@ -119,14 +125,10 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Pressable
-                        onClick={onClose}
-                        className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted-strong text-fg-secondary hover:text-fg-strong transition-colors text-xs flex items-center gap-1.5 border border-border-strong/60"
-                        title={t.close}
-                    >
+                    <Button variant="secondary" size="sm" onClick={onClose} title={t.close}>
                         <X size={14} />
-                        <span>{t.close}</span>
-                    </Pressable>
+                        {t.close}
+                    </Button>
                 </div>
             </div>
     );
@@ -147,21 +149,10 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
             {/* Month Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
-                <Pressable
-                    onClick={() => setSelectedMonth('all')}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                        selectedMonth === 'all'
-                            ? 'bg-warning-500/20 text-warning-300 border border-warning-500/40 shadow-sm font-semibold'
-                            : 'bg-card text-fg-muted hover:text-fg-soft border border-border'
-                    }`}
-                >
+                <ChoiceButton size="sm" tone="warning" selected={selectedMonth === 'all'} onClick={() => setSelectedMonth('all')}>
                     {t.filterAllYear}
-                    {data && data.transactions.length > 0 && (
-                        <span className="ml-1.5 px-1.5 py-0.2 bg-muted rounded-full text-3xs text-fg-secondary font-mono">
-                            {data.transactions.length}
-                        </span>
-                    )}
-                </Pressable>
+                    {data && data.transactions.length > 0 && <span className="ml-1.5 opacity-70">({data.transactions.length})</span>}
+                </ChoiceButton>
 
                 {shortMonths.map((mName, idx) => {
                     const mNum = idx + 1;
@@ -170,32 +161,17 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     const isSelected = selectedMonth === mNum;
 
                     return (
-                        <Pressable
-                            key={mNum}
-                            onClick={() => setSelectedMonth(mNum)}
-                            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                                isSelected
-                                    ? 'bg-warning-500/20 text-warning-300 border border-warning-500/40 shadow-sm font-semibold'
-                                    : txCount > 0
-                                    ? 'bg-card text-fg-secondary hover:text-fg-strong border border-border'
-                                    : 'bg-card/40 text-fg-faint border border-border/40 cursor-default'
-                            }`}
-                            disabled={txCount === 0}
-                        >
+                        <ChoiceButton key={mNum} size="sm" tone="warning" selected={isSelected} disabled={txCount === 0} onClick={() => setSelectedMonth(mNum)}>
                             {mName}
-                            {txCount > 0 && (
-                                <span className={`ml-1 text-3xs font-mono ${isSelected ? 'text-warning-200' : 'text-fg-subtle'}`}>
-                                    ({txCount})
-                                </span>
-                            )}
-                        </Pressable>
+                            {txCount > 0 && <span className="ml-1.5 opacity-70">({txCount})</span>}
+                        </ChoiceButton>
                     );
                 })}
             </div>
 
             {/* Summary KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 font-mono text-xs">
-                <Surface kind="soft" className="bg-card/80 p-2.5">
+                <Surface kind="inset" className="p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.openingBalance} ({selectedMonth === 'all' ? `01/01/${year}` : `01/${String(selectedMonth).padStart(2, '0')}/${year}`})
                     </span>
@@ -204,7 +180,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </Surface>
 
-                <div className="bg-success-950/20 border border-success-900/40 rounded-lg p-2.5">
+                <div className={surfaceClasses('inset', SURFACE_TONE.success, 'p-2.5')}>
                     <span className="text-3xs font-sans text-success-400 flex items-center gap-1 mb-0.5">
                         <ArrowUpRight size={12} />
                         {t.totalInflows}
@@ -214,7 +190,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                <div className="bg-danger-950/20 border border-danger-900/40 rounded-lg p-2.5">
+                <div className={surfaceClasses('inset', SURFACE_TONE.danger, 'p-2.5')}>
                     <span className="text-3xs font-sans text-danger-400 flex items-center gap-1 mb-0.5">
                         <ArrowDownRight size={12} />
                         {t.totalOutflows}
@@ -224,7 +200,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </span>
                 </div>
 
-                <Surface kind="soft" className="bg-card/80 p-2.5">
+                <Surface kind="inset" className="p-2.5">
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.netVariation}
                     </span>
@@ -246,7 +222,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                         {formatCurrency(currentClosing)}
                     </span>
                     <span className="text-3xs font-sans text-success-400 block mt-0.5">
-                        ✓ {t.officialBalanceMatch}
+                        {t.officialBalanceMatch}
                     </span>
                 </div>
             </div>
@@ -255,13 +231,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder={t.searchPlaceholder}
-                        className="w-full bg-card border border-border-strong/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-fg-soft placeholder-fg-subtle focus:outline-none focus:border-warning-500/60"
-                    />
+                    <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} className="pl-8" />
                 </div>
 
                 <div className="text-xs text-fg-muted flex items-center gap-1.5">
@@ -273,77 +243,58 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             </div>
 
             {/* Operations Table */}
-            <div className="border border-border rounded-lg overflow-hidden">
-                <div className="max-h-[360px] overflow-y-auto">
-                    <table className="w-full text-left text-xs font-mono">
-                        <thead className="bg-card text-fg-muted text-3xs sticky top-0 z-10 border-b border-border">
-                            <tr>
-                                <th className="px-2.5 py-2 w-[90px]">{t.date}</th>
-                                <th className="px-2 py-2 w-[110px]">{t.regDoc}</th>
-                                <th className="px-2 py-2">{t.description}</th>
-                                <th className="px-2.5 py-2 text-right w-[115px]">{t.inflow}</th>
-                                <th className="px-2.5 py-2 text-right w-[115px]">{t.outflow}</th>
-                                <th className="px-3 py-2 text-right w-[130px] bg-card/90 text-warning-300 font-bold border-l border-border">
-                                    {t.runningBalance}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/60 text-2xs">
-                            {isPending && (
-                                <tr>
-                                    <td colSpan={6} className="text-center py-6 text-fg-muted text-xs">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Spinner size={14} className="text-warning-400" />
+            <Surface className="overflow-hidden">
+                <Table containerClassName="max-h-96 overflow-y-auto" className="text-xs font-mono">
+                    <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className={DENSE_HEAD}>{t.date}</TableHead>
+                            <TableHead className={DENSE_HEAD}>{t.regDoc}</TableHead>
+                            <TableHead className={DENSE_HEAD}>{t.description}</TableHead>
+                            <TableHead className={cn(DENSE_HEAD, 'text-right')}>{t.inflow}</TableHead>
+                            <TableHead className={cn(DENSE_HEAD, 'text-right')}>{t.outflow}</TableHead>
+                            <TableHead className={cn(DENSE_HEAD, 'text-right text-warning-300')}>{t.runningBalance}</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {(isPending || filteredTransactions.length === 0) && (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={6} className="py-6 text-center text-fg-muted">
+                                    {isPending ? (
+                                        <span className="inline-flex items-center gap-2">
+                                            <Spinner size={14} />
                                             {t.loading}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-
-                            {!isPending && filteredTransactions.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="text-center py-6 text-fg-subtle text-xs">
-                                        {t.noTransactions}
-                                    </td>
-                                </tr>
-                            )}
-
-                            {!isPending && filteredTransactions.map((tx, idx) => (
-                                <tr key={tx.id || idx} className="hover:bg-card/60 transition-colors">
-                                    <td className="px-2.5 py-1.5 text-fg-secondary whitespace-nowrap">
-                                        {tx.formattedDate}
-                                    </td>
-
-                                    <td className="px-2 py-1.5 text-fg-muted whitespace-nowrap text-3xs">
+                                        </span>
+                                    ) : (
+                                        t.noTransactions
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        {!isPending &&
+                            filteredTransactions.map((tx, idx) => (
+                                <TableRow key={tx.id || idx}>
+                                    <TableCell className={cn(DENSE_CELL, 'text-fg-secondary whitespace-nowrap')}>{tx.formattedDate}</TableCell>
+                                    <TableCell className={cn(DENSE_CELL, 'text-fg-muted whitespace-nowrap')}>
                                         <span className="font-semibold text-fg-secondary">R.{tx.regNum}/{tx.rowNum}</span>
                                         {tx.docNum > 0 && (
-                                            <span className="ml-1 text-fg-subtle">
-                                                {fmt(t.docNumber, { number: `${tx.docNum}${tx.docSeries ? `/${tx.docSeries}` : ''}` })}
-                                            </span>
+                                            <span className="ml-1 text-fg-subtle">{fmt(t.docNumber, { number: `${tx.docNum}${tx.docSeries ? `/${tx.docSeries}` : ''}` })}</span>
                                         )}
-                                    </td>
-
-                                    <td className="px-2 py-1.5 text-fg-soft truncate max-w-[280px]" title={tx.description}>
+                                    </TableCell>
+                                    <TableCell className={cn(DENSE_CELL, 'max-w-xs truncate text-fg-soft')} title={tx.description}>
                                         {tx.description}
-                                    </td>
-
-                                    <td className="px-2.5 py-1.5 text-right font-medium text-success-400 whitespace-nowrap">
-                                        {tx.dare > 0 ? `+${formatCurrency(tx.dare)}` : '-'}
-                                    </td>
-
-                                    <td className="px-2.5 py-1.5 text-right font-medium text-danger-400 whitespace-nowrap">
-                                        {tx.avere > 0 ? `-${formatCurrency(tx.avere)}` : '-'}
-                                    </td>
-
-                                    <td className="px-3 py-1.5 text-right font-bold text-warning-200 bg-warning-950/10 border-l border-border whitespace-nowrap">
-                                        {formatCurrency(tx.runningBalance)}
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell className={cn(DENSE_CELL, 'text-right font-medium text-success-400 whitespace-nowrap')}>
+                                        {tx.dare > 0 ? `+${formatCurrency(tx.dare)}` : <MissingValue />}
+                                    </TableCell>
+                                    <TableCell className={cn(DENSE_CELL, 'text-right font-medium text-danger-400 whitespace-nowrap')}>
+                                        {tx.avere > 0 ? `-${formatCurrency(tx.avere)}` : <MissingValue />}
+                                    </TableCell>
+                                    <TableCell className={cn(DENSE_CELL, 'text-right font-bold text-warning-200 whitespace-nowrap')}>{formatCurrency(tx.runningBalance)}</TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                    </TableBody>
+                </Table>
+            </Surface>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react';
+import { Users } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { OperatorsTable } from '@/components/presence/OperatorsTable';

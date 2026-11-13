@@ -1,4 +1,4 @@
-import { Repeat } from 'lucide-react';
+import { Repeat } from '@/components/ui/icons';
 import type { PlannedEntry } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';

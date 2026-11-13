@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { CalendarClock, CheckCircle2, Hourglass, SkipForward, XCircle, type LucideIcon } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Hourglass, SkipForward, XCircle, type LucideIcon } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Field } from '@/components/ui/Field';

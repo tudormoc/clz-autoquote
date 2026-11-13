@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronDown, Search, SlidersHorizontal, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export type FilterColumns = 1 | 2 | 3 | 4 | 5;
 
@@ -60,7 +61,9 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                 <SlidersHorizontal size={16} className="text-fg-muted" />
                 {copy.filters}
                 {activeCount > 0 && (
-                    <span className="min-w-5 px-1.5 rounded-full bg-primary/15 text-primary text-xs font-semibold font-mono">{activeCount}</span>
+                    <StatusBadge tone="info" mono>
+                        {activeCount}
+                    </StatusBadge>
                 )}
                 <ChevronDown size={16} className={cn('ml-auto text-fg-muted transition-transform', open && 'rotate-180')} />
             </Pressable>

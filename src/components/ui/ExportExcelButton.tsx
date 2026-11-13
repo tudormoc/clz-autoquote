@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY, fmt } from '@/locales';
 import { exportToExcel, type ExcelColumn, type ExcelSheet } from '@/lib/excel';

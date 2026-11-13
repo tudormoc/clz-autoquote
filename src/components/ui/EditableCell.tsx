@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save, X } from '@/components/ui/icons';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
@@ -64,10 +64,10 @@ export function EditableCell<T>({ display, startValue, renderEditor, onSave }: E
             }}
         >
             {renderEditor(draft.value, (value) => setDraft({ value }))}
-            <Button onClick={save} disabled={saving} size="sm" className="h-8 w-8 p-0" title={APP_COPY.common.save}>
+            <Button onClick={save} disabled={saving} size="icon" title={APP_COPY.common.save} aria-label={APP_COPY.common.save}>
                 <Save size={14} />
             </Button>
-            <Button onClick={() => setDraft(null)} disabled={saving} variant="secondary" size="sm" className="h-8 w-8 p-0" title={APP_COPY.common.cancel}>
+            <Button onClick={() => setDraft(null)} disabled={saving} variant="secondary" size="icon" title={APP_COPY.common.cancel} aria-label={APP_COPY.common.cancel}>
                 <X size={14} />
             </Button>
         </div>

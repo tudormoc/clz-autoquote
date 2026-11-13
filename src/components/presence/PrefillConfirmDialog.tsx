@@ -1,12 +1,13 @@
 import { Spinner } from '@/components/ui/Spinner';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck } from '@/components/ui/icons';
 import { presenceFieldLabel as fieldLabel } from '@/components/presence/presenceLabels';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import type { PrefillSummary } from '@/hooks/usePrefillAbsences';
 import { PREFILL_CATEGORIES, type PresenceRulesConfig } from '@/lib/presence';
 import { APP_COPY, fmt } from '@/locales';
-import { Surface } from '@/components/ui/Surface';
+import { SURFACE_TONE, Surface, surfaceClasses } from '@/components/ui/Surface';
+import { Check } from '@/components/ui/icons';
 
 interface PrefillConfirmDialogProps {
     summary: PrefillSummary;
@@ -27,7 +28,7 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
     const standardCategoriesLabel = PREFILL_CATEGORIES.filter((c) => c.profile === 'standard').map((c) => c.label).join(', ');
 
     const card = (title: string, detail: React.ReactNode, count: number) => (
-        <Surface kind="soft" className="flex items-center justify-between gap-3 p-2.5 rounded bg-card/80">
+        <Surface kind="inset" className="flex items-center justify-between gap-3 p-2.5">
             <div>
                 <div className="font-semibold text-xs text-fg-soft">{title}</div>
                 <div className="text-2xs text-fg-muted">{detail}</div>
@@ -100,16 +101,16 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
                         )}
                 </div>
 
-                <div className="bg-success-950/30 border border-success-800/40 rounded p-3 text-xs space-y-1">
+                <div className={surfaceClasses('inset', SURFACE_TONE.success, 'p-3 text-xs space-y-1')}>
                     <div className="font-semibold text-success-300 flex items-center gap-1.5">
-                        <span>✓</span> {fmt(copy.prefill.ruleTitle, { h: workdayLabel })}
+                        <Check size={14} /> {fmt(copy.prefill.ruleTitle, { h: workdayLabel })}
                     </div>
                     <div className="text-success-400/90 text-2xs">
                         {fmt(copy.prefill.ruleDesc, { h: rules.workdayHours, fields: rules.coveredFields.map(fieldLabel).join(' + ') })}
                     </div>
                 </div>
 
-                <div className="bg-background/60 border border-border/80 rounded p-3 text-xs text-fg-muted space-y-1">
+                <div className={surfaceClasses('inset', 'p-3 text-xs text-fg-muted space-y-1')}>
                     <div className="font-medium text-2xs">
                         {copy.prefill.period} <span className="text-fg font-semibold font-mono">{period.dateFrom}</span> &rarr;{' '}
                         <span className="text-fg font-semibold font-mono">{period.dateTo}</span>

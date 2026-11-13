@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown } from '@/components/ui/icons';
 import { CardField } from '@/components/ui/CardField';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { opensElsewhere } from '@/components/ui/ViewLink';
@@ -7,6 +7,7 @@ import type { SortState } from '@/lib/sort';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/IconButton';
+import { Select } from '@/components/ui/Select';
 
 interface DataCardsProps<R> {
     columns: DataTableColumn<R>[];
@@ -86,19 +87,12 @@ export function DataCards<R>({ columns, rows, getRowKey, getRowClassName, rowLin
             {sortable.length > 0 && onSort && (
                 <div className="flex items-center gap-2 px-3 py-2 border-b border-border text-sm">
                     <ArrowUpDown size={14} className="shrink-0 text-fg-muted" />
-                    <select
+                    <Select
                         value={sort?.column ?? ''}
                         onChange={(e) => onSort(e.target.value)}
                         aria-label={copy.sortBy}
-                        className="flex-1 min-w-0 bg-transparent text-fg focus-visible:outline-none"
-                    >
-                        {!sort && <option value="">{copy.sortBy}</option>}
-                        {sortable.map((column) => (
-                            <option key={column.key} value={column.key}>
-                                {String(columnLabel(column))}
-                            </option>
-                        ))}
-                    </select>
+                        options={[...(sort ? [] : [{ value: '', label: copy.sortBy }]), ...sortable.map((column) => ({ value: column.key, label: String(columnLabel(column)) }))]}
+                    />
                     {sort && (
                         <IconButton size="lg"
                             type="button"

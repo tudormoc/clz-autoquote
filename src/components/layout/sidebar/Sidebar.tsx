@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { BookOpen, X } from 'lucide-react';
+import { BookOpen, X } from '@/components/ui/icons';
 import { SidebarArea } from '@/components/layout/sidebar/SidebarArea';
 import { useAccess } from '@/components/auth/AccessProvider';
 import { SidebarFoldButton } from '@/components/layout/sidebar/SidebarFoldButton';

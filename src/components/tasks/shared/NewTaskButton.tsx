@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus } from '@/components/ui/icons';
 import { useAccess } from '@/components/auth/AccessProvider';
 import { buttonClasses } from '@/components/ui/Button';
 import { LINKS } from '@/config/navigation';

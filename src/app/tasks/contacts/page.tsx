@@ -1,4 +1,4 @@
-import { Contact } from 'lucide-react';
+import { Contact } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ContactsView } from '@/components/tasks/contacts/ContactsView';

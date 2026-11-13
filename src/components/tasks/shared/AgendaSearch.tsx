@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Contact, ListChecks, Search, type LucideIcon } from 'lucide-react';
+import { BookOpen, Contact, ListChecks, Search, type LucideIcon } from '@/components/ui/icons';
 import { searchAgendaAction } from '@/app/tasks/task-actions';
 import { Input } from '@/components/ui/Input';
 import { APP_CONFIG } from '@/config/constants';

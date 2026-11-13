@@ -1,9 +1,11 @@
 import { Control, Controller, FieldErrors, useWatch, UseFormSetValue } from 'react-hook-form';
 import { QuoteInput } from '@/lib/pricing/types';
 import { Input } from '@/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Panel } from '@/components/ui/Panel';
 import { ClientAutocomplete } from '../ClientAutocomplete';
-import { APP_COPY } from '@/locales';
+import { APP_COPY, fmt } from '@/locales';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { titleClasses } from '@/components/ui/titleLook';
 
 interface Props {
     control: Control<QuoteInput>;
@@ -16,115 +18,110 @@ export function GeneralSection({ control, errors, setValue }: Props) {
     const openedWidth = (format?.width || 0) * 2;
     const openedHeight = format?.height || 0;
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{APP_COPY.form.generalInfo}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Controller
-                        control={control}
-                        name="project_title"
-                        render={({ field }) => (
-                            <Input
-                                {...field}
-                                label={APP_COPY.form.projectTitle}
-                                error={errors.project_title?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        control={control}
-                        name="client_name"
-                        render={({ field }) => (
-                            <ClientAutocomplete
-                                {...field}
-                                label={APP_COPY.form.clientName}
-                                placeholder={APP_COPY.form.clientPlaceholder}
-                                error={errors.client_name?.message}
-                                onSelectClientId={(id) => setValue('client_id', id)}
-                            />
-                        )}
-                    />
+        <Panel title={APP_COPY.form.generalInfo}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Controller
+                    control={control}
+                    name="project_title"
+                    render={({ field }) => (
+                        <Input
+                            {...field}
+                            label={APP_COPY.form.projectTitle}
+                            error={errors.project_title?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    control={control}
+                    name="client_name"
+                    render={({ field }) => (
+                        <ClientAutocomplete
+                            {...field}
+                            label={APP_COPY.form.clientName}
+                            placeholder={APP_COPY.form.clientPlaceholder}
+                            error={errors.client_name?.message}
+                            onSelectClientId={(id) => setValue('client_id', id)}
+                        />
+                    )}
+                />
+            </div>
+
+            {/* Book Format Section */}
+            <div className="space-y-4 pt-2 pb-4 border-y border-border">
+                <div className="flex items-center justify-between">
+                    <h3 className={titleClasses('section')}>{APP_COPY.form.bookDimensions}</h3>
+                    {(openedWidth > 0 && openedHeight > 0) && (
+                        <StatusBadge tone="neutral">
+                            <span>{APP_COPY.form.openedFormat}</span>
+                            <span className="text-fg">{fmt(APP_COPY.form.sizeMm, { width: openedWidth, height: openedHeight })}</span>
+                        </StatusBadge>
+                    )}
                 </div>
 
-                {/* Book Format Section */}
-                <div className="space-y-4 pt-2 pb-4 border-y border-border">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-fg-muted">{APP_COPY.form.bookDimensions}</h3>
-                        {(openedWidth > 0 && openedHeight > 0) && (
-                            <div className="text-3xs font-medium text-fg-subtle bg-muted px-2 py-0.5 rounded border border-border flex items-center gap-2">
-                                <span>{APP_COPY.form.openedFormat}</span>
-                                <span className="text-fg">{openedWidth} x {openedHeight} mm</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Controller
-                            control={control}
-                            name="format.width"
-                            render={({ field }) => (
-                                <Input
-                                    {...field}
-                                    label={APP_COPY.form.closedWidth}
-                                    type="number"
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
-                                    }}
-                                    error={errors.format?.width?.message}
-                                />
-                            )}
-                        />
-                        <Controller
-                            control={control}
-                            name="format.height"
-                            render={({ field }) => (
-                                <Input
-                                    {...field}
-                                    label={APP_COPY.form.closedHeight}
-                                    type="number"
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        field.onChange(val === '' ? '' : parseInt(val) || 0);
-                                    }}
-                                    error={errors.format?.height?.message}
-                                />
-                            )}
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <Controller
                         control={control}
-                        name="email"
+                        name="format.width"
                         render={({ field }) => (
                             <Input
                                 {...field}
-                                label={APP_COPY.form.emailAddress}
-                                error={errors.email?.message}
-                            />
-                        )}
-                    />
-                    <Controller
-                        control={control}
-                        name="quantity"
-                        render={({ field }) => (
-                            <Input
-                                {...field}
-                                label={APP_COPY.form.quantityLabel}
+                                label={APP_COPY.form.closedWidth}
                                 type="number"
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     field.onChange(val === '' ? '' : parseInt(val) || 0);
                                 }}
-                                error={errors.quantity?.message}
+                                error={errors.format?.width?.message}
+                            />
+                        )}
+                    />
+                    <Controller
+                        control={control}
+                        name="format.height"
+                        render={({ field }) => (
+                            <Input
+                                {...field}
+                                label={APP_COPY.form.closedHeight}
+                                type="number"
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(val === '' ? '' : parseInt(val) || 0);
+                                }}
+                                error={errors.format?.height?.message}
                             />
                         )}
                     />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Controller
+                    control={control}
+                    name="email"
+                    render={({ field }) => (
+                        <Input
+                            {...field}
+                            label={APP_COPY.form.emailAddress}
+                            error={errors.email?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    control={control}
+                    name="quantity"
+                    render={({ field }) => (
+                        <Input
+                            {...field}
+                            label={APP_COPY.form.quantityLabel}
+                            type="number"
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                field.onChange(val === '' ? '' : parseInt(val) || 0);
+                            }}
+                            error={errors.quantity?.message}
+                        />
+                    )}
+                />
+            </div>
+        </Panel>
     );
 }

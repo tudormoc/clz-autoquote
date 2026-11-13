@@ -2,7 +2,7 @@
 
 import { Spinner } from '@/components/ui/Spinner';
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck } from '@/components/ui/icons';
 import { getMonthlyHoursAction, getPresenceRulesAction, updateHoursDistributionAction } from '@/app/presence/hours-actions';
 import { byOperatorName, monthlyHoursCardTitle, monthlyHoursColumns, monthlyHoursSortColumns } from '@/components/presence/monthlyHoursColumns';
 import { PrefillConfirmDialog } from '@/components/presence/PrefillConfirmDialog';
@@ -45,6 +45,7 @@ import { errorMessage, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import type { HoursDistributionField, OperatorHoursRow } from '@/types';
 import { useCanEdit } from '@/components/auth/AccessProvider';
+import { AlertTriangle, Check } from '@/components/ui/icons';
 
 interface Filters {
     dateFrom: string;
@@ -203,7 +204,7 @@ export function MonthlyHoursTable() {
                     canEdit && <>
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="secondary"
                             onClick={prefill.check}
                             disabled={prefill.checking || prefill.prefilling || list.loading || list.applied === null}
                             className="border-warning-500/40 text-warning-300 hover:bg-warning-500/20"
@@ -230,7 +231,7 @@ export function MonthlyHoursTable() {
                             label={copy.statusFilter.label}
                             options={ALL_STATUSES.map((key) => ({
                                 key,
-                                label: key === 'anomaly' ? `⚠️ ${fmt(copy.statusFilter.anomaly, { h: rules.workdayHours })}` : `✓ ${copy.statusFilter.ok}`,
+                                label: key === 'anomaly' ? fmt(copy.statusFilter.anomaly, { h: rules.workdayHours }) : copy.statusFilter.ok,
                                 count: hasData ? statusCounts[key] : null,
                                 tone: key === 'anomaly' ? 'warning' : 'success',
                             }))}
@@ -253,11 +254,13 @@ export function MonthlyHoursTable() {
                 <RecordCount count={displayed.length}>
                     {anomalyCount > 0 ? (
                         <StatusBadge tone="warning" size="md">
-                            ⚠️ {anomalyCount} {fmt(copy.verification.mismatchesFound, { h: rules.workdayHours })}
+                            <AlertTriangle size={14} />
+                            {anomalyCount} {fmt(copy.verification.mismatchesFound, { h: rules.workdayHours })}
                         </StatusBadge>
                     ) : (
                         <StatusBadge tone="success" size="md">
-                            ✓ {fmt(copy.verification.compliant, { h: rules.workdayHours })}
+                            <Check size={14} />
+                            {fmt(copy.verification.compliant, { h: rules.workdayHours })}
                         </StatusBadge>
                     )}
                 </RecordCount>

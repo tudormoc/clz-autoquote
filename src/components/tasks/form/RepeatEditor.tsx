@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -25,7 +25,7 @@ function Choices<K extends string>({ options, value, onChange }: { options: [K, 
     return (
         <div className="flex flex-wrap gap-2">
             {options.map(([key, label]) => (
-                <ChoiceButton key={key} size="sm" className="px-3" selected={value === key} onClick={() => onChange(key)}>
+                <ChoiceButton key={key} size="sm" selected={value === key} onClick={() => onChange(key)}>
                     {label}
                 </ChoiceButton>
             ))}
@@ -60,7 +60,7 @@ export function RepeatEditor({ draft, onChange }: RepeatEditorProps) {
                             <ChoiceButton
                                 key={day}
                                 size="sm"
-                                className="w-12"
+                                className="w-12 px-0"
                                 selected={draft.weekdays.includes(day)}
                                 onClick={() => onChange({ weekdays: draft.weekdays.includes(day) ? draft.weekdays.filter((d) => d !== day) : [...draft.weekdays, day].sort((a, b) => a - b) })}
                             >

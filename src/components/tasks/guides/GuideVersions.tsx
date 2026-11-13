@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { History, RotateCcw } from 'lucide-react';
+import { History, RotateCcw } from '@/components/ui/icons';
 import { getGuideVersionAction, restoreGuideVersionAction } from '@/app/tasks/guide-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
-import { FormCard } from '@/components/tasks/shared/FormCard';
+import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
 import { Markdown } from '@/components/ui/Markdown';
 import { askConfirm } from '@/lib/confirm';
@@ -12,6 +12,7 @@ import { notify } from '@/lib/notify';
 import { formatMoment } from '@/lib/tasks/describe';
 import type { GuideDetail, GuideVersion } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
+import { surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.guides;
 
@@ -47,7 +48,7 @@ export function GuideVersions({ guide, reload }: { guide: GuideDetail; reload: (
     };
 
     return (
-        <FormCard title={copy.versions} icon={History}>
+        <Panel title={copy.versions} icon={History}>
             {guide.versions.length === 0 ? (
                 <p className="text-sm text-fg-subtle">{copy.noVersions}</p>
             ) : (
@@ -64,7 +65,7 @@ export function GuideVersions({ guide, reload }: { guide: GuideDetail; reload: (
                                 </Button>
                             </div>
                             {shown?.id === version.id && (
-                                <div className="rounded border border-border bg-background/60 p-3 space-y-3">
+                                <div className={surfaceClasses('inset', 'p-3 space-y-3')}>
                                     <p className="text-sm font-semibold text-fg-strong">{shown.title}</p>
                                     {shown.body ? <Markdown text={shown.body} /> : null}
                                     {canEdit && (
@@ -79,6 +80,6 @@ export function GuideVersions({ guide, reload }: { guide: GuideDetail; reload: (
                     ))}
                 </ul>
             )}
-        </FormCard>
+        </Panel>
     );
 }

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { titleClasses } from '@/components/ui/titleLook';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export type SectionTone = 'danger' | 'warning' | 'primary' | 'muted' | 'success';
 
@@ -33,8 +35,10 @@ export function AgendaSection({ title, count, tone, folded = false, children }: 
         <section className="space-y-2">
             <Pressable type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-2 group">
                 <ChevronDown size={16} className={cn('text-fg-muted transition-transform', !open && '-rotate-90')} />
-                <h2 className={cn('text-sm font-semibold', TONES[tone])}>{title}</h2>
-                <span className="text-3xs px-1.5 rounded-full bg-muted text-fg-secondary font-mono">{count}</span>
+                <h2 className={titleClasses('section', TONES[tone])}>{title}</h2>
+                <StatusBadge tone="neutral" mono>
+                    {count}
+                </StatusBadge>
             </Pressable>
             {open && <ul className={surfaceClasses('panel', 'divide-y divide-border/60')}>{children}</ul>}
         </section>

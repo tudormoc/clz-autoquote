@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { DayQuickAdd } from '@/components/tasks/calendar/DayQuickAdd';
 import { PlannedCard } from '@/components/tasks/calendar/PlannedCard';
 import { cardMenu } from '@/components/tasks/calendar/cardMenu';
@@ -12,6 +12,7 @@ import { dayOf, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { Pressable } from '@/components/ui/Pressable';
+import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -51,11 +52,12 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
         <section
             {...(canEdit ? drag.dayProps(date) : {})}
             aria-label={fmt(copy.dayLoad, { n: count })}
-            className={cn(
-                'group/day relative flex flex-1 flex-col min-w-0 rounded-lg border transition-colors',
-                isToday ? 'border-primary/50 bg-primary/5' : closed ? 'border-border/60 bg-background' : 'border-border bg-card/60',
+            className={surfaceClasses(
+                'inset',
+                'group/day relative flex flex-1 flex-col min-w-0 transition-colors',
+                isToday ? SURFACE_SELECTED : closed && 'border-border/60 bg-background',
                 droppable && 'border-dashed border-primary/50',
-                dropping && 'border-solid border-primary bg-primary/10'
+                dropping && ['border-solid', SURFACE_SELECTED]
             )}
         >
             <header className="shrink-0 px-2.5 pt-2 pb-1.5">
@@ -81,7 +83,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                 {closed && closed !== APP_COPY.tasks.holidays.weekend && <p className="mt-0.5 truncate text-3xs text-warning-300">{closed}</p>}
                 <div className="mt-1.5 h-1 rounded-full bg-muted/60 overflow-hidden" title={fmt(copy.dayLoad, { n: count })}>
                     <div
-                        className={cn('h-full rounded-full transition-all', isToday ? 'bg-primary' : 'bg-fg-faint')}
+                        className={cn('h-full rounded-full transition-[width]', isToday ? 'bg-primary' : 'bg-fg-faint')}
                         style={{ width: `${busiest > 0 ? Math.round((count / busiest) * 100) : 0}%` }}
                     />
                 </div>

@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check } from '@/components/ui/icons';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import type { DaySummary } from '@/lib/timesheet/types';
 import { APP_COPY, fmt } from '@/locales';

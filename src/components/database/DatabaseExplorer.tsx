@@ -3,7 +3,7 @@
 import { DatabaseCards } from '@/components/database/DatabaseCards';
 import { TableList } from '@/components/database/TableList';
 import { TableViewer } from '@/components/database/TableViewer';
-import { Card } from '@/components/ui/Card';
+import { Surface } from '@/components/ui/Surface';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useDatabaseExplorer } from '@/hooks/useDatabaseExplorer';
 import { APP_COPY } from '@/locales';
@@ -17,13 +17,13 @@ export function DatabaseExplorer() {
             <DatabaseCards selected={explorer.db} linkOf={explorer.dbLink} connections={explorer.connections} />
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <TableList tables={explorer.tables} selected={explorer.table} linkOf={explorer.tableLink} />
-                <Card className="lg:col-span-3 p-4 h-[70vh] flex flex-col">
+                <Surface className="lg:col-span-3 p-4 h-[70vh] flex flex-col">
                     {explorer.table ? (
                         <TableViewer explorer={explorer} table={explorer.table} />
                     ) : (
                         <EmptyState className="border-0 m-auto" title={APP_COPY.database.pickTable} />
                     )}
-                </Card>
+                </Surface>
             </div>
         </div>
     );

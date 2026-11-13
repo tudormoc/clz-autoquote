@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarCheck, ChevronRight } from 'lucide-react';
+import { CalendarCheck, ChevronRight } from '@/components/ui/icons';
 import { LINKS } from '@/config/navigation';
 import type { UserAccess } from '@/lib/auth/permissions';
 import { loadPeople } from '@/lib/tasks/db/shared';

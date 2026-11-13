@@ -1,7 +1,7 @@
-import { Check, Copy, Trash2, Undo2 } from 'lucide-react';
+import { Check, Copy, Trash2, Undo2 } from '@/components/ui/icons';
 import { GroupLights } from '@/components/admin/access/GroupLights';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Surface } from '@/components/ui/Surface';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
@@ -38,7 +38,7 @@ export function GroupEditor({ group, pages, members, saveState, canUndo, onChang
 
     return (
         <div className="min-w-0 space-y-3">
-            <Card className="space-y-3 p-4">
+            <Surface className="space-y-3 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                     <div className="min-w-0">
                         <div className="text-base font-semibold text-fg-strong">
@@ -94,7 +94,7 @@ export function GroupEditor({ group, pages, members, saveState, canUndo, onChang
                         ))}
                     </div>
                 </div>
-            </Card>
+            </Surface>
             <GroupLights pages={pages} onChange={onChange} />
         </div>
     );

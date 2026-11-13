@@ -1,11 +1,15 @@
-import { ChevronLeft, Package, Printer } from 'lucide-react';
+import { ChevronLeft, Package, Printer } from '@/components/ui/icons';
 import { buttonClasses } from '@/components/ui/Button';
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import type { buildProductionFlow } from '@/lib/orders/flow';
 import { APP_COPY } from '@/locales';
 import type { OrderEdition } from '@/types';
-import { Surface, surfaceClasses } from '@/components/ui/Surface';
+import { Surface } from '@/components/ui/Surface';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { IconTile } from '@/components/ui/IconTile';
+import { iconButtonClasses } from '@/components/ui/IconButton';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -29,24 +33,24 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
     const printable = editions.map((edition) => edition.ordine).filter((id): id is string => !!id);
 
     return (
-        <Surface kind="soft" className="flex-shrink-0 rounded-xl bg-card/60 px-4 py-2.5">
+        <Surface className="flex-shrink-0 px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 {backTo && (
                     <ViewLink
                         to={backTo}
-                        className={surfaceClasses('soft', 'flex items-center gap-1 text-xs text-fg-secondary hover:text-fg-strong px-2 py-1 bg-card/60 hover:bg-muted')}
+                        className={buttonClasses({ variant: 'secondary', size: 'sm' })}
                         title={t.backToResults}
                     >
-                        <ChevronLeft className="w-4 h-4 text-primary" />
+                        <ChevronLeft size={16} className="text-primary" />
                         <span>{matchCount}</span>
                     </ViewLink>
                 )}
 
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-                        <Package className="w-4 h-4" />
-                    </div>
-                    <h2 className="text-lg font-bold text-fg-strong whitespace-nowrap">
+                    <IconTile>
+                        <Package size={16} />
+                    </IconTile>
+                    <h2 className={titleClasses('page', 'whitespace-nowrap')}>
                         {t.orderTitle} <span className="text-primary">{info.commessa_display}</span>
                     </h2>
                 </div>
@@ -71,14 +75,14 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                             <div className="h-full bg-success-600" style={{ width: `${flow.progressPercent}%` }} />
                         </div>
                         <span className="text-xs font-mono text-fg-secondary whitespace-nowrap">{flow.completed}/{flow.total}</span>
-                        {flow.running > 0 && <span className="text-3xs px-1.5 rounded bg-info/15 text-info-400 border border-info/30">{flow.running} {t.statusActive}</span>}
-                        {flow.paused > 0 && <span className="text-3xs px-1.5 rounded bg-warning/15 text-warning-300 border border-warning/30">{flow.paused} {t.statusPaused}</span>}
+                        {flow.running > 0 && <StatusBadge tone="info">{flow.running} {t.statusActive}</StatusBadge>}
+                        {flow.paused > 0 && <StatusBadge tone="warning">{flow.paused} {t.statusPaused}</StatusBadge>}
                     </div>
                 )}
 
                 <div className="ml-auto flex items-center gap-2 flex-wrap">
                     {editions.map((edition, index) => (
-                        <Surface kind="soft" key={edition.commessa_full} className="flex items-center gap-1.5 pl-2 bg-card/70" title={edition.order_description}>
+                        <Surface kind="inset" key={edition.commessa_full} className="flex items-center gap-1.5 pl-2" title={edition.order_description}>
                             {editions.length > 1 && <span className="text-3xs font-bold text-primary">{t.editionSingle} {index + 1}</span>}
                             <span className="font-mono text-xs text-fg-secondary">{edition.commessa_full}</span>
                             {edition.ordine && (
@@ -86,17 +90,17 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                                     href={printUrl('netproId', edition.ordine)}
                                     target="_blank"
                                     rel="noopener"
-                                    className="p-1.5 rounded-r-lg text-fg-secondary hover:text-primary hover:bg-primary/15 border-l border-border"
+                                    className={iconButtonClasses()}
                                     title={t.printCommessa}
                                 >
-                                    <Printer className="w-3.5 h-3.5" />
+                                    <Printer size={14} />
                                 </a>
                             )}
                         </Surface>
                     ))}
                     {editions.length > 1 && printable.length > 0 && (
                         <a href={printUrl('netproIds', printable.join(','))} target="_blank" rel="noopener" className={buttonClasses({ size: 'sm' })}>
-                            <Printer className="w-3.5 h-3.5" />
+                            <Printer size={14} />
                             {t.printAllEditions} ({editions.length})
                         </a>
                     )}

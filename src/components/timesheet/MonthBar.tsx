@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 import { Button } from '@/components/ui/Button';
 import { sameMonthPeriod, shiftMonthPeriod, thisMonthPeriod, type MonthPeriod } from '@/lib/dateUtils';
 import { monthName } from '@/lib/format';
@@ -31,7 +31,7 @@ export function MonthBar({ period, onChange, children }: MonthBarProps) {
                 <ChevronRight size={16} />
             </Button>
             {!current && (
-                <Button variant="outline" size="sm" onClick={() => onChange(thisMonthPeriod())}>
+                <Button variant="secondary" size="sm" onClick={() => onChange(thisMonthPeriod())}>
                     {copy.thisMonth}
                 </Button>
             )}

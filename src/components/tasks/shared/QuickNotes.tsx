@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Save } from 'lucide-react';
+import { Pencil, Save } from '@/components/ui/icons';
 import { saveTaskNotesAction } from '@/app/tasks/task-actions';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Markdown } from '@/components/ui/Markdown';
 import { MarkdownField } from '@/components/ui/MarkdownField';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks;
 
@@ -50,7 +51,7 @@ export function QuickNotes({ taskId, version, notes, onSaved, children }: QuickN
     return (
         <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-                <h3 className="text-xs font-semibold text-fg-muted">{copy.form.sections.how}</h3>
+                <h3 className={titleClasses('label')}>{copy.form.sections.how}</h3>
                 {canEdit && draft === null && (
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setDraft(notes)}>
                         <Pencil size={13} />

@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useId } from 'react';
-import { X, type LucideIcon } from 'lucide-react';
+import { X, type LucideIcon } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
-import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { IconButton } from '@/components/ui/IconButton';
+import { IconTile, type IconTone } from '@/components/ui/IconTile';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const SIZES = {
     sm: 'max-w-sm',
@@ -16,18 +17,11 @@ const SIZES = {
     '2xl': 'max-w-5xl',
 } as const;
 
-const ICON_TONES = {
-    primary: 'bg-primary/15 text-primary',
-    warning: 'bg-warning-500/20 text-warning-400',
-    danger: 'bg-danger-500/20 text-danger-400',
-    success: 'bg-success-500/20 text-success-400',
-} as const;
-
 interface ModalProps {
     title: React.ReactNode;
     subtitle?: React.ReactNode;
     icon?: LucideIcon;
-    iconTone?: keyof typeof ICON_TONES;
+    iconTone?: IconTone;
     size?: keyof typeof SIZES;
     onClose: () => void;
     /** While true (saving, generating …) the window cannot be closed */
@@ -60,12 +54,12 @@ export function Modal({ title, subtitle, icon: Icon, iconTone = 'primary', size 
                 <div className="flex items-start justify-between gap-3 p-4 border-b border-border">
                     <div className="flex items-center gap-3 min-w-0">
                         {Icon && (
-                            <span className={cn('p-2 rounded-lg shrink-0', ICON_TONES[iconTone])}>
+                            <IconTile tone={iconTone}>
                                 <Icon size={18} />
-                            </span>
+                            </IconTile>
                         )}
                         <div className="min-w-0">
-                            <h2 id={titleId} className="text-base font-semibold text-fg-strong">
+                            <h2 id={titleId} className={titleClasses('panel')}>
                                 {title}
                             </h2>
                             {subtitle && <p className="text-xs text-fg-muted mt-0.5">{subtitle}</p>}

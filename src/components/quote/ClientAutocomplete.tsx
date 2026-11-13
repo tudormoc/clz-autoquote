@@ -4,9 +4,10 @@ import { Spinner } from '@/components/ui/Spinner';
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/Input';
 import { searchMSSQLClientsAction } from '@/app/client-search-actions';
-import { Search } from 'lucide-react';
+import { Search } from '@/components/ui/icons';
 import { Surface } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { MENU_ROW } from '@/components/ui/FloatingMenu';
 
 interface Props {
     value: string | undefined;
@@ -93,21 +94,21 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                         {isLoading ? (
                             <Spinner size={16} className="text-primary" />
                         ) : (
-                            <Search className="h-4 w-4" />
+                            <Search size={16} />
                         )}
                     </div>
                 </div>
 
                 {isOpen && suggestions.length > 0 && (
-                    <Surface kind="floating" className="absolute z-20 w-full mt-1 rounded max-h-60 overflow-y-auto">
+                    <Surface kind="floating" className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto">
                         {suggestions.map((suggestion, index) => (
                             <Pressable
                                 key={index}
                                 type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors border-b last:border-b-0 border-border flex items-center justify-between group"
+                                className={MENU_ROW}
                                 onClick={() => handleSelect(suggestion.id, suggestion.name)}
                             >
-                                <span className="font-medium text-fg-soft group-hover:text-primary truncate">
+                                <span className="truncate">
                                     {suggestion.name}
                                 </span>
                             </Pressable>

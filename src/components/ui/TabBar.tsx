@@ -2,6 +2,7 @@ import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import { cn } from '@/lib/utils';
 import { Pressable } from '@/components/ui/Pressable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export interface TabItem<K extends string> {
     id: K;
@@ -44,7 +45,7 @@ export function TabBar<K extends string>({ tabs, active, onChange, linkOf, class
                     <>
                         {tab.icon}
                         <span>{tab.label}</span>
-                        {tab.count !== undefined && <span className="text-3xs px-1.5 rounded-full bg-muted text-fg-secondary">{tab.count}</span>}
+                        {tab.count !== undefined && <StatusBadge tone="neutral">{tab.count}</StatusBadge>}
                         {tab.badge}
                     </>
                 );

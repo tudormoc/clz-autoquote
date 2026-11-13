@@ -1,12 +1,12 @@
-import { Minus, type LucideIcon } from 'lucide-react';
-import { CHIP_ACTIVE, CHIP_INACTIVE, type ChipTone } from '@/components/ui/ToggleChips';
+import { Minus, type LucideIcon } from '@/components/ui/icons';
+import { CHOICE_OFF, CHOICE_ON, type ChoiceTone } from '@/components/ui/ChoiceButton';
 import type { LightState } from '@/lib/auth/lights';
 import { cn } from '@/lib/utils';
 import { Pressable } from '@/components/ui/Pressable';
 
 interface LightProps {
     state: LightState;
-    tone: ChipTone;
+    tone: ChoiceTone;
     /** What the light is (eye, pencil): a round light with the icon inside */
     icon?: LucideIcon;
     /** A named light (a page's own function, e.g. Riallinea): a pill with its name instead of an icon */
@@ -34,7 +34,7 @@ export function Light({ state, tone, icon: Icon, label, name, hint, onToggle }: 
             className={cn(
                 'inline-flex items-center justify-center rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 label ? 'min-h-7 px-3 py-0.5 text-center text-xs leading-tight' : 'h-8 w-8',
-                state === 'on' ? CHIP_ACTIVE[tone] : CHIP_INACTIVE,
+                state === 'on' ? CHOICE_ON[tone] : CHOICE_OFF,
                 state === 'some' && 'border-dashed text-fg-secondary'
             )}
         >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KeyRound, LogOut, Moon, Sun, UserRound } from 'lucide-react';
+import { KeyRound, LogOut, Moon, Sun, UserRound } from '@/components/ui/icons';
 import { logoutAction } from '@/app/auth-actions';
 import { ChangePinDialog } from '@/components/auth/ChangePinDialog';
 import { useAccess } from '@/components/auth/AccessProvider';

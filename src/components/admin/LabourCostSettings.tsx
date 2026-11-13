@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getLabourRatesAction, saveLabourRateAction } from '@/app/analytics/labour-rate-actions';
 import type { LabourRateKey, LabourRates } from '@/app/analytics/queries/shared/labour-rates';
-import { Card } from '@/components/ui/Card';
+import { Surface } from '@/components/ui/Surface';
 import { EditableCell } from '@/components/ui/EditableCell';
 import { Input } from '@/components/ui/Input';
 import { LoadState } from '@/components/ui/LoadState';
@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { errorMessage } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.admin.labourCost;
 const RATE_KEYS = Object.keys(copy.rates) as LabourRateKey[];
@@ -29,9 +30,9 @@ export function LabourCostSettings() {
 
     if (!rates) {
         return (
-            <Card className="max-w-2xl">
+            <Surface className="max-w-2xl">
                 <LoadState loading={!error} error={error} />
-            </Card>
+            </Surface>
         );
     }
 
@@ -53,11 +54,11 @@ export function LabourCostSettings() {
     };
 
     return (
-        <Card className="max-w-2xl divide-y divide-border">
+        <Surface className="max-w-2xl divide-y divide-border">
             {RATE_KEYS.map((key) => (
                 <div key={key} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="min-w-0">
-                        <h2 className="text-sm font-semibold text-fg-strong">{copy.rates[key].label}</h2>
+                        <h2 className={titleClasses('section')}>{copy.rates[key].label}</h2>
                         {key === 'hourly' && (
                             <p className="text-sm text-fg-muted mt-2">
                                 {fmt(copy.exampleLine, {
@@ -94,6 +95,6 @@ export function LabourCostSettings() {
                     />
                 </div>
             ))}
-        </Card>
+        </Surface>
     );
 }

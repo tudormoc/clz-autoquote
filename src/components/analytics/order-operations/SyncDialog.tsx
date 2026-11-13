@@ -1,4 +1,4 @@
-import { Check, Pin } from 'lucide-react';
+import { Check, Pin } from '@/components/ui/icons';
 import { ChangeLines } from '@/components/analytics/order-operations/ChangeLines';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import { Button } from '@/components/ui/Button';
@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import type { SyncChangeGroup } from '@/lib/orders/syncPreview';
 import { APP_COPY, fmt } from '@/locales';
+import { SURFACE_TONE, surfaceClasses } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -45,10 +46,10 @@ export function SyncDialog({ commessa, article, changes, kept, syncing, onConfir
                 </>
             }
         >
-            <div className="text-xs text-fg-secondary leading-relaxed bg-background/60 p-4 rounded-lg border border-border space-y-3">
+            <div className={surfaceClasses('inset', 'text-xs text-fg-secondary leading-relaxed p-4 space-y-3')}>
                 <p className="font-medium text-fg-soft">{t.syncConfirmDescription}</p>
                 {kept.length > 0 && (
-                    <div className="rounded-md border border-warning-500/30 bg-warning-500/10 p-3">
+                    <div className={surfaceClasses('inset', SURFACE_TONE.warning, 'p-3')}>
                         <p className="flex items-center gap-1.5 font-semibold text-warning-300">
                             <Pin size={14} aria-hidden />
                             {t.syncKeepsTitle}

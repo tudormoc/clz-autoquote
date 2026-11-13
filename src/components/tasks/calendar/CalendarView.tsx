@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Inbox } from 'lucide-react';
+import { Inbox } from '@/components/ui/icons';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { CardDock } from '@/components/tasks/calendar/CardDock';
 import { CalendarToolbar } from '@/components/tasks/calendar/CalendarToolbar';

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/components/ui/icons';
 import { CardDock } from '@/components/tasks/calendar/CardDock';
 import { DayColumn } from '@/components/tasks/calendar/DayColumn';
 import { APP_CONFIG } from '@/config/constants';

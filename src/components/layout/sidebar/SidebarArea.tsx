@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
 import { SidebarPages } from '@/components/layout/sidebar/SidebarPages';
 import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AppWindow, Copy, ExternalLink, Folder, Globe, Link2, Mail, Phone, type LucideIcon } from 'lucide-react';
+import { AppWindow, Copy, ExternalLink, Folder, Globe, Link2, Mail, Phone, type LucideIcon } from '@/components/ui/icons';
 import { copyToClipboard } from '@/lib/clipboard';
 import { notify } from '@/lib/notify';
 import { linkHref } from '@/lib/tasks/links';
@@ -64,7 +64,7 @@ function LinkRow({ link }: { link: TaskLink }) {
 export function LinkList({ links }: { links: TaskLink[] }) {
     if (links.length === 0) return null;
     return (
-        <ul className={surfaceClasses('soft', 'divide-y divide-border/60')}>
+        <ul className={surfaceClasses('inset', 'divide-y divide-border/60')}>
             {links.map((link, index) => (
                 <LinkRow key={`${link.kind}:${link.value}:${index}`} link={link} />
             ))}

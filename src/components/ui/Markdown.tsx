@@ -3,12 +3,13 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { titleClasses } from '@/components/ui/titleLook';
 
 /** Each Markdown element drawn with the app's tokens (no typography plugin); raw HTML in the text is never run */
 const ELEMENTS: Components = {
-    h1: ({ children }) => <h3 className="text-base font-semibold text-fg-strong mt-4 first:mt-0 mb-2">{children}</h3>,
-    h2: ({ children }) => <h4 className="text-sm font-semibold text-fg-strong mt-4 first:mt-0 mb-2">{children}</h4>,
-    h3: ({ children }) => <h5 className="text-sm font-semibold text-fg-soft mt-3 first:mt-0 mb-1.5">{children}</h5>,
+    h1: ({ children }) => <h3 className={titleClasses('panel', 'mt-4 first:mt-0 mb-2')}>{children}</h3>,
+    h2: ({ children }) => <h4 className={titleClasses('section', 'mt-4 first:mt-0 mb-2')}>{children}</h4>,
+    h3: ({ children }) => <h5 className={titleClasses('label', 'mt-3 first:mt-0 mb-1.5')}>{children}</h5>,
     p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0 leading-relaxed">{children}</p>,
     ul: ({ children, className }) => <ul className={cn('my-2 pl-5 space-y-1', className?.includes('contains-task-list') ? 'list-none pl-1' : 'list-disc')}>{children}</ul>,
     ol: ({ children }) => <ol className="my-2 pl-5 space-y-1 list-decimal">{children}</ol>,

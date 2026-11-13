@@ -1,9 +1,10 @@
-import { Check } from 'lucide-react';
+import { Check } from '@/components/ui/icons';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { monthComplete, totalHours } from '@/lib/timesheet/month';
 import { HOUR_FIELDS, type DaySummary } from '@/lib/timesheet/types';
 import { APP_COPY } from '@/locales';
 import { fieldLabel, hoursText } from './labels';
+import { EMPTY_VALUE } from '@/lib/format';
 
 /** One line with the month's hours per column (the empty ones left out) and, once every working day is covered, "Mese completo" */
 export function MonthTotals({ days }: { days: readonly DaySummary[] }) {
@@ -12,7 +13,7 @@ export function MonthTotals({ days }: { days: readonly DaySummary[] }) {
     return (
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
             <span>
-                {APP_COPY.timesheet.month.totals}: <span className="font-mono text-fg-secondary">{parts.length > 0 ? parts.join(' · ') : '—'}</span>
+                {APP_COPY.timesheet.month.totals}: <span className="font-mono text-fg-secondary">{parts.length > 0 ? parts.join(' · ') : EMPTY_VALUE}</span>
             </span>
             {monthComplete(days) && (
                 <StatusBadge tone="success">

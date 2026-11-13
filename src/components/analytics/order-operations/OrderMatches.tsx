@@ -1,9 +1,9 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@/components/ui/icons';
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
 import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
-import { Surface } from '@/components/ui/Surface';
+import { Surface, surfaceClasses } from '@/components/ui/Surface';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -21,7 +21,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                 {t.multipleResultsFound}: <span className="text-fg-strong font-bold">{matches.length}</span> — {t.selectOrderToView}
             </p>
 
-            <Surface kind="soft" className="divide-y divide-border/80 rounded-xl overflow-hidden">
+            <Surface className="divide-y divide-border/80 overflow-hidden">
                 {matches.map((match) => (
                     <ViewLink
                         key={match.root_commessa_key}
@@ -29,7 +29,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                         className="group w-full flex items-center justify-between gap-4 py-2 px-4 text-left hover:bg-muted/50 transition-colors"
                     >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                            <div className="flex flex-col items-center justify-center bg-muted/90 border border-border-strong/80 rounded-lg px-2.5 py-0.5 flex-shrink-0 min-w-16">
+                            <div className={surfaceClasses('inset', 'flex flex-col items-center justify-center px-2.5 py-0.5 flex-shrink-0 min-w-16')}>
                                 <span className="text-sm font-bold text-fg-strong font-mono leading-tight">{match.commessa_display}</span>
                                 <span className="text-3xs text-fg-muted font-medium">20{match.year_code}</span>
                             </div>
@@ -48,7 +48,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
 
                         <div className="flex items-center gap-2 flex-shrink-0 text-fg-subtle group-hover:text-primary transition-colors text-xs font-semibold">
                             <span className="hidden sm:inline">{t.openOrder}</span>
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </div>
                     </ViewLink>
                 ))}

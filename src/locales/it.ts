@@ -432,6 +432,9 @@ export const APP_COPY = {
         contacts: "contatti",
       },
       moved: "{from} → {to}",
+      /** A step of the checklist ticked, or unticked */
+      stepDone: "✓ {step}",
+      stepUndone: "✗ {step}",
     },
     repeat: {
       once: "Una volta",
@@ -810,6 +813,8 @@ export const APP_COPY = {
     emailAddress: "Indirizzo Email",
     bookDimensions: "Dimensioni Libro",
     openedFormat: "Formato Aperto:",
+    /** A width by a height, in millimetres */
+    sizeMm: "{width} x {height} mm",
     closedWidth: "Larghezza Chiusa (mm)",
     closedHeight: "Altezza Chiusa (mm)",
     thickness: "Spessore (mm)",
@@ -1102,6 +1107,8 @@ export const APP_COPY = {
       alignedStatus: "Dati allineati",
       driftStatus: "Dati diversi ({count})",
       driftBadge: "{count} dati diversi tra i programmi: apri la scheda",
+      /** Beside the person's icon in Utenti: how many facts differ */
+      driftMark: "≠ {count}",
       aligning: "Allineamento…",
       alignEmail: {
         align: "Allinea e-mail",

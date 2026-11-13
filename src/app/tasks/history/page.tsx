@@ -1,4 +1,4 @@
-import { History } from 'lucide-react';
+import { History } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { HistoryView } from '@/components/tasks/history/HistoryView';

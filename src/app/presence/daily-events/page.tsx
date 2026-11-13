@@ -1,4 +1,4 @@
-import { Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/icons';
 import { FillPage } from '@/components/layout/FillPage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DailyEventsTable } from '@/components/presence/DailyEventsTable';

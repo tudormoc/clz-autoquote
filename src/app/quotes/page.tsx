@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { FileText } from '@/components/ui/icons';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { AdvancedQuoteForm } from '@/components/quote/AdvancedQuoteForm';
 import { getNavArea } from '@/config/navigation';

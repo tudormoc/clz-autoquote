@@ -167,16 +167,31 @@ Restyle the app by editing that file only. Tailwind's own palette is switched of
 classes and `text-[Npx]`, so a component can only use tokens.
 
 **The skin** (`SKIN` in `theme.js`) is what a look is made of besides its colours: every corner size (`rounded`,
-`rounded-lg`, `rounded-full` …), the pace and curve of every transition, the picture behind the page. A component uses
-the classes and never a number: a plain `transition-*`, `duration-slide` for what slides across the screen, `ease-out`
-for what arrives; ESLint fails on `rounded-[7px]`, `duration-300`, `ease-[…]`. A box of a screen is a `Surface` of a
-kind (`panel`, `soft`, `floating`, `chrome`), never a hand-written `bg-card border …`: how each kind is drawn is in
-`src/components/ui/Surface.tsx` alone. What one presses is a `Button`, an `IconButton`, a chip or a tab, or a `Pressable`
-for a one-off, never a raw `<button>`; ESLint fails on both. Motion is the skin's too: what opens over the page comes in
-with its `enter` animation (every floating `Surface`) and a press shrinks by its `press` (every `Pressable`), both off
-today; who set "reduce motion" on their computer gets `CALM_MOTION` instead (a pulse adds `motion-reduce:animate-none`).
-Tables and numbers keep the number font and plain surfaces whatever the skin. What comes next (surfaces, buttons, animations, icons, a second skin):
+`rounded-lg`, `rounded-full` …), the pace and curve of every transition (a plain `transition-*`, `duration-slide` for
+what slides across the screen, `ease-out` for what arrives), how what opens over the page comes in (`enter`) and how a
+press reacts (`press`; both off today), the picture behind the page. Who set "reduce motion" on their computer gets
+`CALM_MOTION` instead (a pulse adds `motion-reduce:animate-none`). Everything else of the look is drawn in the shared
+parts below, each in one file: a restyle touches `theme.js` and those files, never a screen. Tables and numbers keep the
+number font and plain surfaces whatever the skin. ESLint keeps it so: it fails on a fixed corner or pace
+(`rounded-[7px]`, `duration-300`, `ease-[…]`), a box written by hand (`bg-card` + `border` + `rounded`), a background of
+its own on a Surface, a raw `<button>`, an icon imported from `lucide-react`. What is left before a second look:
 [docs/BACKLOG.md](docs/BACKLOG.md) → Skins.
+
+**What a screen is made of.** A screen names the part and adds spacing and layout; it never writes a background, a
+border, a corner, a shadow, a title size or a button of its own. All in `src/components/ui/`:
+
+| What | The one part |
+|---|---|
+| A box | `Surface` (+ `surfaceClasses()` for a link, a list, a form). Kinds: `panel` (a box of the page), `inset` (a quiet box inside a panel, a window or the page), `floating` (a menu, a popup, a window), `chrome` (the sidebar), `bar` (stays put while the page scrolls), `drawer` (slides in over the page). An inset box that says something adds a `SURFACE_TONE` (info, success, warning, danger); the box picked among its like adds `SURFACE_SELECTED` |
+| A box with a title | `Panel` (title, optional icon, optional `aside` on the right) |
+| What one presses | `Button` (+ `buttonClasses()` for a link): primary, secondary, ghost, danger, warning; sizes `xs` to `lg`, and `icon` for a boxed icon. `IconButton` (+ `iconButtonClasses()`): only an icon; `tone="danger"` removes, `tone="warning"` writes to the programs. `ChoiceButton` (+ `choiceClasses()`): everything that is on or off — a pick-one option, a filter chip (`ToggleChips`), a view switch. `TabBar`, `Switch`. `Pressable`: the one `<button>` under all of them, for a one-off |
+| What one types or picks in | `Input`, `Select`, `Textarea`, `Checkbox`, `DatePicker`, `MonthField`, `YearField`, `MarkdownField`. Their one look is `FIELD` (`fieldLook.ts`); `CELL_FIELD` for an editor over a table cell, `FIELD_FRAME` for a field made of parts |
+| A table | `DataTable`, or the `Table` parts for a table of another shape. `ROW_WARNING` / `VALUE_WARNING` for a row or a value that differs, `DENSE_HEAD` / `DENSE_CELL` for a table read inside another |
+| A title | `titleClasses('page' \| 'panel' \| 'section' \| 'label')` (`titleLook.ts`) on the heading's own tag |
+| A small coloured label, count or tag | `StatusBadge` (+ `statusBadgeClasses()`); `InfoBadge` for a name with its value |
+| An icon | From `@/components/ui/icons`, the one list (a new icon is a name added there), sized with `size={n}`. On a tinted square: `IconTile` |
+| A row of a menu, or of a list one picks from | `MENU_ROW` (`FloatingMenu.tsx`) |
+| Nothing yet, loading, a failure | `EmptyState`, `LoadState`, `Spinner`, `MissingValue`; `EMPTY_VALUE` / `PENDING_VALUE` (`src/lib/format.ts`) |
 
 **Two looks, light (default) and dark.** The light values sit on `:root`, the dark ones under `<html data-theme="dark">`;
 the choice is the `clz_theme` cookie (`src/lib/theme.ts`), read by the root layout so the first paint is already right, and
@@ -196,13 +211,12 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
   `FilterPanel` folds into a "Filtri" bar after "Applica". Form fields are 16px on phones (globals.css), so tapping one does not zoom.
 - Exports are named after the report's menu label (`APP_COPY.analytics.reports`): `reportFileName()` in `src/lib/download.ts`.
 
-Shared parts to use before writing new markup: `Button` (+ `buttonClasses()` for links), `IconButton` (a button that is only an icon), `Pressable` (the one `<button>` of the app, for a one-off thing to press), `Input`, `Select`, `Checkbox`, `Switch`,
-`DatePicker`, `Card`, `Surface` (+ `surfaceClasses()` for a link, a list, a form), `EmptyState`, `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
-`Pagination` / `RecordCount`, `DataTable` (+ `Table` primitives, `StackedCell`, `TagCell`, `MissingValue`, footer totals;
+Other shared parts to use before writing new markup: `Field`, `SearchField`, `DateRangeFields`, `FilterPanel` (+ `ToggleChips` rows),
+`Pagination` / `RecordCount`, `DataTable` options (`StackedCell`, footer totals;
 `fill` inside a `FillPage` = takes the free height, header and totals stay in view; `rowLink` = a row that is the link to a view (a click anywhere on it, the middle button for a new tab),
 `rowDetail` = more about a row unfolded under it, `dense` = lower rows, `scrollResetKey` for a list that replaces a row in place), `CardField` (a line of a phone card),
-`EditableCell` (click-to-edit cell), `StatusBadge`, `ChoiceButton`, `TabBar` (tabs as links with `linkOf`), `ViewLink` (a link to another view of the same page), `Section` + `RowList`/`Row` (blocks of a settings page),
-`Spinner`, `LoadState` (spinner or load error while a screen's data is not there yet), `Modal` (every popup window), `ExportExcelButton`.
+`EditableCell` (click-to-edit cell), `ViewLink` (a link to another view of the same page), `RowList` / `Row` (lines of a settings page),
+`Modal` (every popup window), `ExportExcelButton`.
 Messages: `notify.success / error / failure(err)` (`src/lib/notify.ts`) and `await confirmDelete(text)` / `askConfirm({…})`
 (`src/lib/confirm.ts`) — never `alert()` or `confirm()`. Text of a caught error for the screen: `errorMessage(err)` (`src/lib/utils.ts`), never `err: any` or `err.message`:
 an error the app raised says its own text, a technical failure (database, network, file, a fault in the code) says a plain

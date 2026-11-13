@@ -2,7 +2,7 @@
 
 import { Spinner } from '@/components/ui/Spinner';
 import { useEffect, useState } from 'react';
-import { Layers } from 'lucide-react';
+import { Layers } from '@/components/ui/icons';
 import { BlueprintVisualizer, type BlueprintDimensions } from '@/components/quote/BlueprintVisualizer';
 import { buttonClasses } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.blueprint;
 
@@ -79,9 +80,9 @@ export default function BlueprintPage() {
             `}</style>
 
             <div className="h-screen bg-background text-fg flex overflow-hidden">
-                <aside className={surfaceClasses('chrome', 'w-64 border-r bg-card/50 p-4 flex flex-col gap-4 overflow-y-auto no-print')}>
+                <aside className={surfaceClasses('chrome', 'w-64 border-r p-4 flex flex-col gap-4 overflow-y-auto no-print')}>
                     <div className="space-y-3">
-                        <h2 className="text-sm font-semibold text-fg-strong">{copy.settings}</h2>
+                        <h2 className={titleClasses('section')}>{copy.settings}</h2>
                         {ADJUSTABLE.map(({ key, label }) => (
                             <Field key={key} label={label}>
                                 <Input
@@ -97,7 +98,7 @@ export default function BlueprintPage() {
                     </div>
 
                     <div className="pt-3 border-t border-border">
-                        <h3 className="text-xs font-semibold text-fg-muted mb-2">{copy.bookDimensions}</h3>
+                        <h3 className={titleClasses('label', 'mb-2')}>{copy.bookDimensions}</h3>
                         <div className="space-y-1 text-xs text-fg-subtle">
                             {bookSize.map(([label, value]) => (
                                 <div key={label} className="flex justify-between">
@@ -108,18 +109,18 @@ export default function BlueprintPage() {
                         </div>
                     </div>
 
-                    <Pressable onClick={() => window.print()} className={buttonClasses({ variant: 'outline', size: 'sm', className: 'mt-auto' })}>
+                    <Pressable onClick={() => window.print()} className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'mt-auto' })}>
                         {copy.print}
                     </Pressable>
                 </aside>
 
                 <main className="flex-1 overflow-hidden print-full">
-                    <header className={surfaceClasses('chrome', 'border-b bg-card/50 backdrop-blur-md no-print')}>
+                    <header className={surfaceClasses('bar', 'border-b no-print')}>
                         <div className="px-4 h-14 flex items-center gap-3">
                             <div className="bg-primary p-1 rounded text-primary-foreground">
                                 <Layers size={20} strokeWidth={2.5} />
                             </div>
-                            <h1 className="font-bold text-lg tracking-tight text-fg-strong leading-none">
+                            <h1 className={titleClasses('page')}>
                                 {copy.title} <span className="text-primary font-mono">{copy.titleAccent}</span>
                             </h1>
                         </div>

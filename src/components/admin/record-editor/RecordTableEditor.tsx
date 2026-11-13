@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Lock, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Lock, Plus, Trash2 } from '@/components/ui/icons';
 import { AddRecordDialog } from '@/components/admin/record-editor/AddRecordDialog';
 import { RecordCell } from '@/components/admin/record-editor/RecordCell';
 import type { RecordTableConfig } from '@/components/admin/record-editor/types';
@@ -13,6 +13,7 @@ import { APP_COPY } from '@/locales';
 import { useCanEdit } from '@/components/auth/AccessProvider';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { IconButton } from '@/components/ui/IconButton';
 
 /**
  * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete
@@ -49,20 +50,17 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
             const index = rows.indexOf(row);
             return (
                 <div className="flex items-center gap-0.5">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title={APP_COPY.admin.records.moveUp} aria-label={APP_COPY.admin.records.moveUp} disabled={index <= 0} onClick={() => move(row, -1)}>
+                    <IconButton title={APP_COPY.admin.records.moveUp} aria-label={APP_COPY.admin.records.moveUp} disabled={index <= 0} onClick={() => move(row, -1)}>
                         <ArrowUp size={14} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
+                    </IconButton>
+                    <IconButton
                         title={APP_COPY.admin.records.moveDown}
                         aria-label={APP_COPY.admin.records.moveDown}
                         disabled={index === rows.length - 1}
                         onClick={() => move(row, 1)}
                     >
                         <ArrowDown size={14} />
-                    </Button>
+                    </IconButton>
                 </div>
             );
         },

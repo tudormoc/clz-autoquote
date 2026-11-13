@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { Surface, surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.database;
 
@@ -20,14 +21,14 @@ export function ColumnValues({ columns, onPickColumn, values, onPickValue, onClo
     return (
         <div className="space-y-4">
             <div>
-                <h3 className="text-sm font-semibold text-fg-secondary mb-2">{copy.structure}</h3>
+                <h3 className={titleClasses('section', 'mb-2')}>{copy.structure}</h3>
                 <div className="flex flex-wrap gap-2">
                     {columns.map((column) => (
                         <Pressable
                             key={column.COLUMN_NAME}
                             type="button"
                             onClick={() => onPickColumn(column.COLUMN_NAME)}
-                            className={surfaceClasses('panel', 'px-2 py-1 border-border-strong rounded flex flex-col hover:bg-muted hover:border-primary transition-colors text-left')}
+                            className={surfaceClasses('panel', 'px-2 py-1 flex flex-col hover:bg-muted transition-colors text-left')}
                         >
                             <span className="text-3xs font-mono font-bold text-primary">{column.COLUMN_NAME}</span>
                             <span className="text-3xs text-fg-subtle">{column.DATA_TYPE}</span>
@@ -37,23 +38,17 @@ export function ColumnValues({ columns, onPickColumn, values, onPickValue, onClo
             </div>
 
             {values && (
-                <Surface kind="soft" className="p-4 bg-card/50 border-border-strong">
+                <Surface kind="inset" className="p-4">
                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-sm font-semibold text-primary">{copy.topValues}</h3>
+                        <h3 className={titleClasses('section')}>{copy.topValues}</h3>
                         <Button variant="ghost" size="sm" onClick={onClose}>{APP_COPY.common.close}</Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {values.map(({ value, count }, index) => (
-                            <Pressable
-                                key={index}
-                                type="button"
-                                disabled={value === null}
-                                onClick={() => onPickValue(String(value))}
-                                className="px-2 py-1 bg-muted border border-border-strong rounded enabled:hover:border-primary transition-colors flex items-center gap-2"
-                            >
-                                <span className="text-xs font-mono font-medium text-fg-soft">{value === null ? copy.nullValue : String(value)}</span>
-                                <span className="text-3xs px-1.5 py-0.5 bg-muted-strong text-fg-secondary rounded-full font-bold">{count}</span>
-                            </Pressable>
+                            <Button key={index} type="button" variant="secondary" size="sm" disabled={value === null} onClick={() => onPickValue(String(value))}>
+                                <span className="font-mono">{value === null ? copy.nullValue : String(value)}</span>
+                                <span className="opacity-70">({count})</span>
+                            </Button>
                         ))}
                     </div>
                 </Surface>

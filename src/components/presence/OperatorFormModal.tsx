@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, UserPlus } from '@/components/ui/icons';
 import { createOperatorAction, deleteOperatorAction, saveOperatorAction, type OperatorRow } from '@/app/presence/operators-actions';
 import { useCanUse } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';

@@ -5,11 +5,14 @@ import { createPortal } from 'react-dom';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { format, parse, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 import 'react-day-picker/dist/style.css';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
+import { FIELD } from '@/components/ui/fieldLook';
+import { cn } from '@/lib/utils';
 
 interface DatePickerProps {
     value: string;
@@ -145,9 +148,9 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     aria-label={ariaLabel}
                     maxLength={10}
                     autoFocus={autoFocus}
-                    className="w-full px-3 py-2 pr-10 bg-card border border-border rounded-md text-sm text-fg-strong placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className={cn(FIELD, 'h-9 pr-10')}
                 />
-                <Pressable
+                <IconButton
                     type="button"
                     onClick={() => {
                         setPosition(null);
@@ -155,10 +158,10 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     }}
                     aria-label={APP_COPY.common.pickDate}
                     title={APP_COPY.common.pickDate}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-fg-muted hover:text-primary transition-colors"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
                 >
                     <Calendar size={16} />
-                </Pressable>
+                </IconButton>
             </div>
 
             {isOpen &&
@@ -166,7 +169,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     <div
                         ref={popupRef}
                         style={{ position: 'fixed', ...(position ?? { top: 0, left: 0, visibility: 'hidden' }) }}
-                        className={surfaceClasses('floating', 'z-[60] border-border p-3')}
+                        className={surfaceClasses('floating', 'z-[60] p-3')}
                     >
                         <DayPicker
                             mode="single"
@@ -178,14 +181,9 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                             className="rdp-custom"
                         />
                         <div className="border-t border-border pt-2 mt-2">
-                            <Pressable
-                                type="button"
-                                onClick={() => choose(new Date())}
-                                disabled={!inRange(todayIso)}
-                                className="w-full px-3 py-2 text-sm text-fg-secondary hover:text-fg-strong hover:bg-muted rounded transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                            >
+                            <Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => choose(new Date())} disabled={!inRange(todayIso)}>
                                 {APP_COPY.common.today}
-                            </Pressable>
+                            </Button>
                         </div>
                     </div>,
                     document.body
