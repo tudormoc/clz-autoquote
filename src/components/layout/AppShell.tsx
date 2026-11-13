@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-dvh lg:h-dvh lg:flex lg:overflow-hidden bg-background">
-            <aside className={surfaceClasses('chrome', 'hidden lg:block shrink-0 w-sidebar collapsed:w-sidebar-collapsed border-r transition-[width] duration-slide')}>
+            <aside className={surfaceClasses('chrome', 'hidden lg:block shrink-0 w-sidebar collapsed:w-sidebar-collapsed border-r transition-width duration-slide')}>
                 <Sidebar />
             </aside>
             <MobileMenu open={menuOpen} onClose={closeMenu} />

@@ -118,12 +118,28 @@ const FONT_SIZE = {
     '3xs': '0.625rem',  // 10px
 };
 
-// Page frame dimensions (AppShell, sidebar): w-sidebar, w-sidebar-collapsed. Pages use the full width beside it.
+// The sizes that are not a step of the scale: w-sidebar, w-matrix-label, max-w-drawer, h-explorer, grid-rows-fill …
+// A screen names one of these or a step of the scale (w-2/5, min-w-48); the lint refuses a size typed in a class.
 const LAYOUT = {
     width: {
         sidebar: '16rem',             // open sidebar, and the phone menu
         'sidebar-collapsed': '4rem',  // sidebar folded to icons
         panel: '28rem',               // side panel sliding in from the right (Agenda calendar: a task's details)
+        'matrix-label': '22%',        // the first column of a month-by-month table: the names of its rows
+        'matrix-total': '10%',        // its last column: the total of the year
+    },
+    maxWidth: {
+        '2/5': '40%',                 // one of several things on a line: two fifths of it at most
+        drawer: '85vw',               // the phone menu: never the whole width, so a tap beside it closes it
+        'fit-screen': 'calc(100vw - 2rem)', // what floats over the page (a notice) is never wider than the screen
+    },
+    height: {
+        explorer: '70vh',             // the two boxes of Esplora Database side by side, each scrolling inside
+    },
+    gridTemplateRows: {
+        fill: 'minmax(0, 1fr)',       // one row that takes the free height and lets what is in it scroll
+        folded: '0fr',                // the row of what unfolds in place (the Fold part): shut …
+        unfolded: '1fr',              // … and open, at the height of what it holds
     },
     minWidth: {
         matrix: '64rem',              // a month-by-month table (12 months + label + total) below this scrolls sideways
@@ -132,6 +148,7 @@ const LAYOUT = {
         // A table that scrolls inside its own box, column names in view (the lights of Gruppi): the screen less the
         // page title, the group's card and the search above the table
         panel: 'calc(100svh - 21rem)',
+        'fit-screen': 'calc(100vh - 0.5rem)', // a menu is never taller than the screen
     },
 };
 
@@ -184,13 +201,15 @@ const SKIN = {
         'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
         enter: 'none',
         press: '1',
+        // How long what unfolds in place takes to open and to close (the Fold part); 0s = at once
+        unfold: '0s',
     },
     page: { image: 'none' },
 };
 
 // The motion of who set "reduce motion" on their computer: changes land at once, nothing animates in or shrinks.
 // The spinner still turns (it says "wait"); a pulse stops where it is used (motion-reduce:animate-none).
-const CALM_MOTION = { duration: '0.01ms', slide: '0.01ms', enter: 'none', press: '1' };
+const CALM_MOTION = { duration: '0.01ms', slide: '0.01ms', enter: 'none', press: '1', unfold: '0s' };
 
 // ─── Build: CSS variables + Tailwind colour map (no edits needed below) ────────
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import type { SummaryStatus } from '@/hooks/useReportTable';
 import { Surface } from '@/components/ui/Surface';
+import { Fold } from '@/components/ui/Fold';
 
 export interface SummaryItem {
     label: string | React.ReactNode;
@@ -51,7 +52,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
                 )}
             </div>
 
-            {open && (
+            <Fold open={open}>
                 <Surface className="p-4">
                     {status === 'error' ? (
                         <div className="text-center py-4 text-danger">{copy.loadError}</div>
@@ -94,7 +95,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
                         </div>
                     )}
                 </Surface>
-            )}
+            </Fold>
         </div>
     );
 }

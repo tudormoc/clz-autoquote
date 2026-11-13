@@ -204,7 +204,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     <span className="text-3xs font-sans text-fg-muted block mb-0.5">
                         {t.netVariation}
                     </span>
-                    <span className={`text-sm font-bold ${currentNet >= 0 ? 'text-success-400' : 'text-danger-400'}`}>
+                    <span className={cn('text-sm font-bold', currentNet >= 0 ? 'text-success-400' : 'text-danger-400')}>
                         {currentNet >= 0 ? `+${formatCurrency(currentNet)}` : formatCurrency(currentNet)}
                     </span>
                 </Surface>
@@ -229,7 +229,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
 
             {/* Search Bar & Transaction count */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <div className="relative flex-1 min-w-48 max-w-sm">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
                     <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} className="pl-8" />
                 </div>

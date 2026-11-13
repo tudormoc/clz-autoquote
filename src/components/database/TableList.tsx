@@ -15,7 +15,7 @@ interface TableListProps {
 /** Tables of the chosen database: each one is a link that opens it. */
 export function TableList({ tables, selected, linkOf }: TableListProps) {
     return (
-        <Surface className="lg:col-span-1 p-4 h-[70vh] overflow-y-auto">
+        <Surface className="lg:col-span-1 p-4 h-explorer overflow-y-auto">
             <h2 className={titleClasses('panel', 'mb-4 sticky top-0 bg-card pb-2 border-b border-border')}>
                 {fmt(APP_COPY.database.tables, { count: tables.length })}
             </h2>

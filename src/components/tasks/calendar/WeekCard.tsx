@@ -12,6 +12,7 @@ import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 import { DoneTick } from '@/components/tasks/shared/DoneTick';
+import { Meter } from '@/components/ui/Meter';
 
 const copy = APP_COPY.tasks;
 
@@ -134,9 +135,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
                             <span className="font-mono">
                                 {ticked}/{item.checklistCount}
                             </span>
-                            <span className="h-1 w-6 rounded-full bg-muted overflow-hidden">
-                                <span className="block h-full bg-success-500" style={{ width: `${(ticked / item.checklistCount) * 100}%` }} />
-                            </span>
+                            <Meter size="sm" className="w-6" value={ticked / item.checklistCount} />
                         </span>
                     )}
                     <PostponedBadge count={item.postponedCount} short={!detailed} />

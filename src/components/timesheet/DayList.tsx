@@ -11,6 +11,7 @@ import { SURFACE_PENDING, surfaceClasses } from '@/components/ui/Surface';
 import { MenuRow } from '@/components/ui/MenuRow';
 import { FoldArrow } from '@/components/ui/FoldArrow';
 import { EMPTY_VALUE } from '@/lib/format';
+import { Fold } from '@/components/ui/Fold';
 
 /** "mer 4": the weekday's first letters and the day of the month */
 function dayLabel(day: string): string {
@@ -85,7 +86,9 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                             </span>
                             <FoldArrow open={isOpen} size={14} className={cn('text-fg-faint', (locked || (quiet && !isOpen)) && 'invisible')} />
                         </MenuRow>
-                        {isOpen && <div className="border-t border-border/60 bg-muted/20 px-3 py-3 sm:pl-20">{panel}</div>}
+                        <Fold open={isOpen} className="border-t border-border/60 bg-muted/20 px-3 py-3 sm:pl-20">
+                            {panel}
+                        </Fold>
                     </li>
                 );
             })}

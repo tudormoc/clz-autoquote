@@ -47,7 +47,7 @@ export function WeekBoard({ calendar, drag, canEdit }: WeekBoardProps) {
             />
             <div
                 className={cn(
-                    'grid grid-cols-1 gap-2 md:[grid-template-columns:var(--week-columns)] lg:flex-1 lg:min-h-0 lg:grid-rows-[minmax(0,1fr)]',
+                    'grid grid-cols-1 gap-2 md:[grid-template-columns:var(--week-columns)] lg:flex-1 lg:min-h-0 lg:grid-rows-fill',
                     !data && 'opacity-50 pointer-events-none'
                 )}
                 style={{ ['--week-columns' as string]: columns }}

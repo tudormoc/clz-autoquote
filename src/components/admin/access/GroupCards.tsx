@@ -5,11 +5,12 @@ import { lightCounts } from '@/lib/auth/lights';
 import { GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
 import { APP_COPY, fmt } from '@/locales';
 import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
+import { Meter } from '@/components/ui/Meter';
 
 const copy = APP_COPY.admin.groups;
 
 /** Share of all the pages, as a whole percent for a bar's width */
-const share = (count: number) => Math.round((count / GRANTABLE_PAGES.length) * 100);
+const share = (count: number) => count / GRANTABLE_PAGES.length;
 
 interface GroupCardsProps {
     groups: Group[];
@@ -45,10 +46,14 @@ export function GroupCards({ groups, selectedId, pagesOf, members, linkOf }: Gro
                         <span className="block text-xs text-fg-muted">
                             {fmt(copy.members, { count: names.length })} · {fmt(copy.cardPages, { count: counts.see })}
                         </span>
-                        <span className="mt-2 flex h-1 overflow-hidden rounded-full bg-muted-strong">
-                            <span className="bg-warning-500" style={{ width: `${share(counts.modify)}%` }} />
-                            <span className="bg-primary" style={{ width: `${share(counts.see - counts.modify)}%` }} />
-                        </span>
+                        <Meter
+                            size="sm"
+                            className="mt-2"
+                            parts={[
+                                { tone: 'warning', value: share(counts.modify) },
+                                { tone: 'primary', value: share(counts.see - counts.modify) },
+                            ]}
+                        />
                     </ViewLink>
                 );
             })}

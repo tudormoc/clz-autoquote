@@ -105,7 +105,7 @@ export function TaskView({ id }: { id: number }) {
                 }
             />
             {/* Desktop: fits the screen; on wide screens each column scrolls on its own */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 xl:grid-rows-[minmax(0,1fr)] gap-4 items-start lg:flex-1 lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden">
+            <div className="grid grid-cols-1 xl:grid-cols-3 xl:grid-rows-fill gap-4 items-start lg:flex-1 lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden">
                 <div className="xl:col-span-2 space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
                     <Panel title={copy.detail.current} icon={CalendarCheck}>
                         {open.length === 0 ? (

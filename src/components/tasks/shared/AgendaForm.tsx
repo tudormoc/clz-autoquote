@@ -36,7 +36,7 @@ export function AgendaForm({ onSave, saving, cancelHref, saveLabel, columns }: A
             <div
                 className={cn(
                     'grid grid-cols-1 gap-4 items-start lg:flex-1 lg:min-h-0 lg:overflow-y-auto',
-                    columns.length > 1 && 'xl:grid-cols-2 xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden'
+                    columns.length > 1 && 'xl:grid-cols-2 xl:grid-rows-fill xl:overflow-hidden'
                 )}
             >
                 {columns.map((column, index) => (

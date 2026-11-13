@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { IconTile } from '@/components/ui/IconTile';
 import { iconButtonClasses } from '@/components/ui/IconButton';
 import { titleClasses } from '@/components/ui/titleLook';
+import { Meter } from '@/components/ui/Meter';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -56,7 +57,7 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                 </div>
 
                 {title && (
-                    <div className="min-w-0 max-w-[40%]">
+                    <div className="min-w-0 max-w-2/5">
                         <p className="text-3xs text-fg-subtle font-semibold leading-none">{t.title}</p>
                         <p className="text-sm font-semibold text-fg truncate" title={title}>{title}</p>
                     </div>
@@ -70,10 +71,8 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                 )}
 
                 {flow.total > 0 && (
-                    <div className="flex items-center gap-2 min-w-[180px]">
-                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full bg-success-600" style={{ width: `${flow.progressPercent}%` }} />
-                        </div>
+                    <div className="flex items-center gap-2 min-w-44">
+                        <Meter className="flex-1" value={flow.progressPercent / 100} />
                         <span className="text-xs font-mono text-fg-secondary whitespace-nowrap">{flow.completed}/{flow.total}</span>
                         {flow.running > 0 && <StatusBadge tone="info">{flow.running} {t.statusActive}</StatusBadge>}
                         {flow.paused > 0 && <StatusBadge tone="warning">{flow.paused} {t.statusPaused}</StatusBadge>}

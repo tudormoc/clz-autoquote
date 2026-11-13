@@ -113,7 +113,7 @@ export default function BlueprintPage() {
                     </Button>
                 </aside>
 
-                <main className="flex-1 overflow-hidden print-full">
+                <main className="flex-1 flex flex-col overflow-hidden print-full">
                     <header className={surfaceClasses('bar', 'border-b no-print')}>
                         <div className="px-4 h-14 flex items-center gap-3">
                             <div className="bg-primary p-1 rounded text-primary-foreground">
@@ -125,7 +125,7 @@ export default function BlueprintPage() {
                         </div>
                     </header>
 
-                    <div className="h-[calc(100vh-3.5rem)] p-6">
+                    <div className="flex-1 min-h-0 p-6">
                         <BlueprintVisualizer dimensions={dimensions} />
                     </div>
                 </main>

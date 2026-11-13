@@ -60,6 +60,14 @@ similar is one part, not two that differ a little.
   not light up under the mouse says `still`; no screen switches a hover off by hand.
 - What sits over what is eight named layers (`theme.js` → `LAYERS`: `z-raised` … `z-notice`); Tailwind's own numbers are
   switched off and the lint refuses one. A message of the app is now always on top.
+- Sizes that are not a step of the scale are named in `theme.js` → `LAYOUT`; the lint refuses a size typed in a class
+  and a class list glued with a template string. A bar that fills is `Meter`: five were drawn by hand, each with a
+  style of its own. The only inline styles left outside the shared parts set a layout worked out while the page runs
+  (the rows of the month, the columns of the week, the small bars of the coming weeks).
+- What unfolds in place is one part, `Fold` (the pages of an area in the sidebar, a group of Da fare, a group of a
+  settings table, the done cards of a day, a day of Le mie ore, the summary of a report, the filters on a phone): a
+  skin animates all of them with `SKIN.motion.unfold`. It is 0s today, so they open at once as before. The rows of a
+  table (Gruppi, Flusso Monetario, a row's details) unfold at once whatever the skin.
 - ESLint refuses a fixed corner or pace, a hand-made box, a background of its own on a Surface, a raw `<button>`,
   `Pressable` outside the shared parts, an icon imported from the icon package; and, outside the shared parts, a look
   under the mouse, a cursor, a dashed edge and a title look written in a screen. A Claude Code session gets the
@@ -77,11 +85,8 @@ similar is one part, not two that differ a little.
 - Texts and numbers typed in a screen are not checked by any tool.
 
 **Still to do**, in this order:
-1. **Sizes typed as numbers** (12: `w-[90px]`, `max-h-[calc(…)]` …), inline `style={{}}` (11) and class lists built with
-   `` `…${}` `` instead of `cn()` (4).
-2. **What unfolds in place** (sidebar areas, the filter bar) cannot be animated by a skin: it needs the markup changed.
-3. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
-4. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
+1. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
+2. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
    shows every shared part side by side (superadmin, Strumenti), and one real second skin built from one file plus its
    images and font. It will need tokens that only make sense with it: the border width and style of a surface, a
    texture or a blur, a font for titles (in `titleClasses`), its own drawings for the icon names (in `icons.ts`), its

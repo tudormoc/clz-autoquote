@@ -12,6 +12,8 @@ import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { FoldToggle } from '@/components/ui/FoldToggle';
 import { SURFACE_PENDING, SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
+import { Meter } from '@/components/ui/Meter';
+import { Fold } from '@/components/ui/Fold';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -80,12 +82,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                     </span>
                 </div>
                 {closed && closed !== APP_COPY.tasks.holidays.weekend && <p className="mt-0.5 truncate text-3xs text-warning-300">{closed}</p>}
-                <div className="mt-1.5 h-1 rounded-full bg-muted/60 overflow-hidden" title={fmt(copy.dayLoad, { n: count })}>
-                    <div
-                        className={cn('h-full rounded-full transition-[width]', isToday ? 'bg-primary' : 'bg-fg-faint')}
-                        style={{ width: `${busiest > 0 ? Math.round((count / busiest) * 100) : 0}%` }}
-                    />
-                </div>
+                <Meter size="sm" className="mt-1.5" tone={isToday ? 'primary' : 'neutral'} value={busiest > 0 ? count / busiest : 0} title={fmt(copy.dayLoad, { n: count })} />
             </header>
 
             <div className="flex-1 flex flex-col gap-1.5 px-1.5 pt-1 pb-1.5 lg:min-h-0 lg:overflow-y-auto">
@@ -131,8 +128,8 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                         <FoldToggle size="sm" open={showDone} onClick={() => setShowDone(!showDone)} className="w-full py-1 text-2xs text-success-400">
                             {content.done.length === 1 ? copy.done.one : fmt(copy.done.many, { n: content.done.length })}
                         </FoldToggle>
-                        {showDone &&
-                            content.done.map((item) => (
+                        <Fold open={showDone}>
+                            {content.done.map((item) => (
                                 <WeekCard
                                     key={item.id}
                                     item={item}
@@ -147,6 +144,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                                     onDone={() => undefined}
                                 />
                             ))}
+                        </Fold>
                     </div>
                 )}
                 {canEdit && !past && (

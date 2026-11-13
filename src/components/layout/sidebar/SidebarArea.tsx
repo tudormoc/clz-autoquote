@@ -9,6 +9,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { menuRowClasses } from '@/components/ui/MenuRow';
 import { FoldArrow } from '@/components/ui/FoldArrow';
 import { linkClasses } from '@/components/ui/linkLook';
+import { Fold } from '@/components/ui/Fold';
 
 interface SidebarAreaProps {
     area: NavArea;
@@ -56,10 +57,10 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
                 )}
             </div>
 
-            {groups && open && (
-                <div className="collapsed:hidden ml-5 pl-2 mt-0.5 mb-1.5 border-l border-border">
+            {groups && (
+                <Fold open={open} className="collapsed:hidden ml-5 pl-2 mt-0.5 mb-1.5 border-l border-border">
                     <SidebarPages groups={groups} pathname={pathname} onNavigate={onNavigate} />
-                </div>
+                </Fold>
             )}
 
             <SidebarFlyout align={flyoutAlign}>

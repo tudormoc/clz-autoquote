@@ -12,6 +12,7 @@ import { isoWeekNumber } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { ChoiceButton } from '@/components/ui/ChoiceButton';
 import { titleClasses } from '@/components/ui/titleLook';
+import { Meter } from '@/components/ui/Meter';
 
 const copy = APP_COPY.tasks.calendar;
 const MODES: CalendarMode[] = ['week', 'month'];
@@ -41,9 +42,7 @@ export function CalendarToolbar({ calendar, progress }: CalendarToolbarProps) {
                     {mode === 'week' && <span>{fmt(copy.weekNumber, { n: isoWeekNumber(range.start) })}</span>}
                     {progress && (
                         <span className="inline-flex items-center gap-2">
-                            <span className="h-1.5 w-24 rounded-full bg-muted overflow-hidden" aria-hidden>
-                                <span className="block h-full rounded-full bg-success-500 transition-[width]" style={{ width: `${Math.round(share * 100)}%` }} />
-                            </span>
+                            <Meter className="w-24" value={share} />
                             {progress.total > 0 ? fmt(copy.progress, progress) : copy.nothingThisWeek}
                         </span>
                     )}

@@ -11,6 +11,7 @@ import { getAccess } from '@/lib/auth/access';
 import { SIDEBAR_BOOT_SCRIPT } from '@/lib/sidebar';
 import { THEME_COOKIE, parseTheme } from '@/lib/theme';
 import { APP_COPY } from '@/locales';
+import { cn } from '@/lib/utils';
 
 // Fonts are downloaded when the app is built and served from our own server (no request to Google at runtime).
 // The names tailwind uses are the CSS variables below, see FONT_FAMILY in src/styles/theme.js.
@@ -31,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
     return (
         // The boot script may mark <html> before React starts (folded sidebar), hence suppressHydrationWarning
-        <html lang="it" data-theme={theme} className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+        <html lang="it" data-theme={theme} className={cn(sans.variable, mono.variable)} suppressHydrationWarning>
             <head>
                 <script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOT_SCRIPT }} />
             </head>

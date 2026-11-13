@@ -44,7 +44,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
             <Table>
                 <TableHeader>
                     <TableRow still>
-                        <TableHead className="w-[40%]">{copy.operation}</TableHead>
+                        <TableHead className="w-2/5">{copy.operation}</TableHead>
                         <TableHead className="text-right">{copy.setup}</TableHead>
                         <TableHead className="text-right">{copy.unit}</TableHead>
                         <TableHead className="text-right">{copy.total}</TableHead>
@@ -94,7 +94,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                             </TableRow>
                             {adjustments.map(({ label, sign, percent, tone }) => (
                                 <TableRow key={label} still className={ROW_SUMMARY}>
-                                    <TableCell colSpan={3} className={`text-xs pl-6 ${tone}`}>
+                                    <TableCell colSpan={3} className={cn('text-xs pl-6', tone)}>
                                         {label} {sign}{formatNumber(percent * 100, 1)}%
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs text-fg-subtle">{copy.included}</TableCell>

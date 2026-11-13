@@ -20,6 +20,7 @@ import type { ExcelColumn } from '@/lib/excel';
 import { formatHours, formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
 import { APP_COPY } from '@/locales';
+import { cn } from '@/lib/utils';
 
 interface Filters {
     area: string;
@@ -66,7 +67,7 @@ const columns: DataTableColumn<AreaSummaryRow>[] = [
         header: copy.headers.efficiency,
         align: 'right',
         cell: (row) => (
-            <span className={`font-mono font-semibold ${scoreTone(row.efficiency, EXCELLENT, ACCEPTABLE)}`}>{row.efficiency.toFixed(0)}%</span>
+            <span className={cn('font-mono font-semibold', scoreTone(row.efficiency, EXCELLENT, ACCEPTABLE))}>{row.efficiency.toFixed(0)}%</span>
         ),
     },
 ];

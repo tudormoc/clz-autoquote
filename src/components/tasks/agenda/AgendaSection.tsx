@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { FoldToggle } from '@/components/ui/FoldToggle';
 import { titleClasses } from '@/components/ui/titleLook';
+import { Fold } from '@/components/ui/Fold';
 
 export type SectionTone = 'danger' | 'warning' | 'primary' | 'muted' | 'success';
 
@@ -33,7 +34,9 @@ export function AgendaSection({ title, count, tone, folded = false, children }: 
             <FoldToggle open={open} count={count} onClick={() => setOpen(!open)} className="-ml-1">
                 <h2 className={titleClasses('section', TONES[tone])}>{title}</h2>
             </FoldToggle>
-            {open && <ul className={surfaceClasses('panel', 'divide-y divide-border/60')}>{children}</ul>}
+            <Fold open={open}>
+                <ul className={surfaceClasses('panel', 'divide-y divide-border/60')}>{children}</ul>
+            </Fold>
         </section>
     );
 }

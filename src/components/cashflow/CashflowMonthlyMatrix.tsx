@@ -127,7 +127,7 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
             <Table className="max-lg:min-w-matrix text-left text-xs table-fixed">
                     <TableHeader>
                         <TableRow still>
-                            <TableHead className={cn(MATRIX_HEAD, 'px-2 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-sticky max-lg:bg-card')}>{copy.categoryHeader}</TableHead>
+                            <TableHead className={cn(MATRIX_HEAD, 'px-2 w-matrix-label truncate max-lg:sticky max-lg:left-0 max-lg:z-sticky max-lg:bg-card')}>{copy.categoryHeader}</TableHead>
                             {APP_COPY.months.short.map((month, index) => {
                                 const current = index + 1 === currentMonth;
                                 return (
@@ -141,7 +141,7 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
                                     </TableHead>
                                 );
                             })}
-                            <TableHead className={cn(MATRIX_HEAD, 'px-1.5 text-right font-mono text-fg-soft bg-muted/40 w-[10%]')}>{copy.totalHeader}</TableHead>
+                            <TableHead className={cn(MATRIX_HEAD, 'px-1.5 text-right font-mono text-fg-soft bg-muted/40 w-matrix-total')}>{copy.totalHeader}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="divide-border/60 font-mono text-2xs">

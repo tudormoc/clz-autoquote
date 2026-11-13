@@ -168,12 +168,12 @@ classes and `text-[Npx]`, so a component can only use tokens.
 
 **The skin** (`SKIN` in `theme.js`) is what a look is made of besides its colours: every corner size (`rounded`,
 `rounded-lg`, `rounded-full` …), the pace and curve of every transition (a plain `transition-*`, `duration-slide` for
-what slides across the screen, `ease-out` for what arrives), how what opens over the page comes in (`enter`) and how a
-press reacts (`press`; both off today), the picture behind the page. Who set "reduce motion" on their computer gets
+what slides across the screen, `ease-out` for what arrives), how what opens over the page comes in (`enter`), how a
+press reacts (`press`) and how long what unfolds in place takes (`unfold`; all three off today), the picture behind the page. Who set "reduce motion" on their computer gets
 `CALM_MOTION` instead (a pulse adds `motion-reduce:animate-none`). Everything else of the look is drawn in the shared
 parts below, each in one file: a restyle touches `theme.js` and those files, never a screen. Tables and numbers keep the
 number font and plain surfaces whatever the skin. ESLint keeps it so: it fails on a fixed corner or pace
-(`rounded-[7px]`, `duration-300`, `ease-[…]`), a layer written as a number (`z-50`), a box written by hand (`bg-card` + `border` + `rounded`), a background of
+(`rounded-[7px]`, `duration-300`, `ease-[…]`), a layer written as a number (`z-50`), a size typed in a class (`w-[22%]`, `top-[30px]`), a class list glued with a template string, a box written by hand (`bg-card` + `border` + `rounded`), a background of
 its own on a Surface, a raw `<button>`, `Pressable` imported outside `src/components/ui`, an icon imported from
 `lucide-react`; and, outside `src/components/ui`, on what a screen may not write itself: a look under the mouse
 (`hover:bg-…`, `hover:text-…`, `group-hover:…`), `cursor-pointer`, `border-dashed`, and the size, weight and colour of one
@@ -194,10 +194,11 @@ border, a corner, a shadow, a title size or a button of its own. All in `src/com
 | A title | `titleClasses('page' \| 'panel' \| 'section' \| 'label')` (`titleLook.ts`) on the heading's own tag |
 | The label over a field | `Field` (or the `label` of `Input` / `Select`); its look is `FIELD_LABEL` (`fieldLook.ts`), the `label` title on its own line. `FIELD_ERROR_TEXT` for why a value was refused |
 | A link read as text | `linkClasses('accent' \| 'name' \| 'quiet')` (`linkLook.ts`): a link inside what one reads, the name that opens its thing, a quiet word. A link that looks like a button, a row or a box takes that part's classes |
+| A bar that fills (how much is done, taken, given) | `Meter`: one value, or several `parts` side by side. The one place where a number becomes a width |
 | A small coloured label, count or tag | `StatusBadge` (+ `statusBadgeClasses()`); `InfoBadge` for a name with its value |
 | An icon | From `@/components/ui/icons`, the one list (a new icon is a name added there), sized with `size={n}`. On a tinted square: `IconTile` |
 | A row of a menu, or of a list one picks from | `MenuRow`, `menuRowClasses()` for a link or a label that is one |
-| The arrow of what unfolds in place | `FoldArrow` (right while folded, down when open), or `FoldToggle` for the whole header |
+| What unfolds in place | `FoldToggle` is its header (arrow, name, count), `FoldArrow` the arrow alone (right while folded, down when open), `Fold` what opens under it: `<Fold open={open}>`. `keep` for fields that must keep what was typed, `openFrom="lg"` for what is always open on a wide screen. Never `{open && …}` by hand: only `Fold` can be animated by a skin (`SKIN.motion.unfold`). The rows of a table unfold at once |
 | Nothing yet, loading, a failure | `EmptyState`, `LoadState`, `Spinner`, `MissingValue`; `EMPTY_VALUE` / `PENDING_VALUE` (`src/lib/format.ts`) |
 
 **Two looks, light (default) and dark.** The light values sit on `:root`, the dark ones under `<html data-theme="dark">`;
@@ -212,7 +213,7 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
 - Text: `text-fg-strong` · `text-fg` · `text-fg-soft` · `text-fg-secondary` · `text-fg-muted` · `text-fg-subtle` · `text-fg-faint` · `text-fg-inverse`
 - Status (scale 50–950, default 500): `primary`, `success`, `warning`, `danger`, `info`, `highlight` — e.g. `text-success-400`, `bg-danger/10`, `border-warning-500/30`
 - Layers, what sits over what: `z-raised` (lifted inside its box) · `z-sticky` (a table's header and totals) · `z-popup` (suggestions under a field, an editor over a cell) · `z-bar` · `z-drawer` · `z-window` · `z-menu` (over anything, a window too) · `z-notice`. They are `LAYERS` in `theme.js`; no other `z-` exists
-- Small text: `text-2xs` (11px), `text-3xs` (10px, the smallest). Layout: `w-sidebar`, `w-sidebar-collapsed`, `min-w-matrix`; `collapsed:` styles the folded sidebar
+- Small text: `text-2xs` (11px), `text-3xs` (10px, the smallest). Sizes that are not a step of the scale are named in `theme.js` → `LAYOUT`: `w-sidebar`, `w-sidebar-collapsed`, `w-panel`, `w-matrix-label` / `w-matrix-total`, `min-w-matrix`, `max-w-2/5`, `max-w-drawer`, `max-w-fit-screen` / `max-h-fit-screen`, `max-h-panel`, `h-explorer`, `grid-rows-fill`; `collapsed:` styles the folded sidebar
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
 - Phones: below `lg` the sidebar is a slide-in menu and the page scrolls as a whole; `DataTable` shows one card per row
   below `md` (`DataCards`, column options `mobileHidden` / `mobileLabel`, table options `mobileTitle` / `mobileFooter`),

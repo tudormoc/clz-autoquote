@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Fold } from '@/components/ui/Fold';
 
 export type FilterColumns = 1 | 2 | 3 | 4 | 5;
 
@@ -69,7 +70,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                 <FoldArrow open={open} className="ml-auto text-fg-muted" />
             </Pressable>
 
-            <div className={cn('p-4 lg:block', open ? 'block border-t border-border lg:border-t-0' : 'hidden')}>
+            <Fold open={open} keep openFrom="lg" className="p-4 border-t border-border lg:border-t-0">
                 <div className={cn('grid grid-cols-1 gap-4', GRID[columns])}>{children}</div>
                 {below && <div className="mt-4 pt-4 border-t border-border space-y-4">{below}</div>}
                 <div className="flex flex-wrap gap-2 mt-4">
@@ -84,7 +85,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                     </Button>
                     {actions && <div className="flex flex-wrap items-center gap-2 lg:ml-auto">{actions}</div>}
                 </div>
-            </div>
+            </Fold>
         </form>
     );
 }

@@ -96,7 +96,7 @@ export function FloatingMenu({ actions, anchor, onClose }: FloatingMenuProps) {
                 event.preventDefault();
                 event.stopPropagation();
             }}
-            className={surfaceClasses('floating', 'z-menu min-w-52 max-h-[calc(100vh-0.5rem)] overflow-y-auto py-1', !position && 'invisible')}
+            className={surfaceClasses('floating', 'z-menu min-w-52 max-h-fit-screen overflow-y-auto py-1', !position && 'invisible')}
         >
             {actions.map(({ label, icon: Icon, onSelect, tone, divider }) => (
                 <Fragment key={label}>

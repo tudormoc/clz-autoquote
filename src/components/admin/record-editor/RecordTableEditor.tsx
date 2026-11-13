@@ -14,6 +14,7 @@ import { useCanEdit } from '@/components/auth/AccessProvider';
 import { FoldToggle } from '@/components/ui/FoldToggle';
 import { titleClasses } from '@/components/ui/titleLook';
 import { IconButton } from '@/components/ui/IconButton';
+import { Fold } from '@/components/ui/Fold';
 
 /**
  * Editor of one settings table, described by a RecordTableConfig: click a value to change it, trash icon to delete
@@ -107,7 +108,7 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
                             <FoldToggle open={open} count={section.rows.length} onClick={() => setExpanded(toggleInSet(expanded, section.value))}>
                                 <span className={titleClasses('section')}>{section.label}</span>
                             </FoldToggle>
-                            {open && table(section.rows)}
+                            <Fold open={open}>{table(section.rows)}</Fold>
                         </div>
                     );
                 })

@@ -7,6 +7,7 @@ import { searchMSSQLClientsAction } from '@/app/client-search-actions';
 import { Search } from '@/components/ui/icons';
 import { Surface } from '@/components/ui/Surface';
 import { MenuRow } from '@/components/ui/MenuRow';
+import { FIELD_LABEL } from '@/components/ui/fieldLook';
 
 interface Props {
     value: string | undefined;
@@ -79,17 +80,18 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
 
         return (
             <div ref={wrapperRef} className="relative w-full">
+                {label && <label className={FIELD_LABEL}>{label}</label>}
+                {/* Only the field is in this box, so the icon sits in the middle of it whatever is above or under */}
                 <div className="relative">
                     <Input
                         ref={ref}
-                        label={label}
                         placeholder={placeholder}
                         value={searchTerm}
                         onChange={handleInputChange}
                         error={error}
                         autoComplete="off"
                     />
-                    <div className="absolute right-3 top-[30px] text-fg-subtle">
+                    <div className="absolute right-3 top-2.5 text-fg-subtle">
                         {isLoading ? (
                             <Spinner size={16} className="text-primary" />
                         ) : (

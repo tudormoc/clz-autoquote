@@ -24,7 +24,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
 
     return (
         // Stays mounted so it can slide out; `invisible` waits for the slide to end, `inert` keeps the keyboard out while closed
-        <div className={cn('lg:hidden fixed inset-0 z-drawer transition-[visibility] duration-slide', open ? 'visible' : 'invisible')} inert={!open}>
+        <div className={cn('lg:hidden fixed inset-0 z-drawer transition-visibility duration-slide', open ? 'visible' : 'invisible')} inert={!open}>
             <div
                 className={cn('absolute inset-0 bg-overlay/60 touch-none transition-opacity duration-slide', open ? 'opacity-100' : 'opacity-0')}
                 onClick={onClose}
@@ -35,7 +35,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
                 aria-label={APP_COPY.nav.menu}
                 className={surfaceClasses(
                     'drawer',
-                    'absolute inset-y-0 left-0 w-sidebar max-w-[85vw] border-r transition-transform duration-slide',
+                    'absolute inset-y-0 left-0 w-sidebar max-w-drawer border-r transition-transform duration-slide',
                     open ? 'translate-x-0' : '-translate-x-full'
                 )}
             >

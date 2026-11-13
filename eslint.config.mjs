@@ -33,6 +33,13 @@ const LAYER_NUMBER = "/(^|[\\s:'\"`])-?z-(\\[|[0-9])/";
 const LAYER_NUMBER_MESSAGE =
   "Use a named layer from src/styles/theme.js → LAYERS (z-raised, z-sticky, z-popup, z-bar, z-drawer, z-window, z-menu, z-notice) instead of a number.";
 
+// A size typed in a class (w-[22%], top-[30px], max-h-[calc(…)]) is known to one screen only: the scale and theme.js name them
+const SIZE_NUMBER =
+  "/(^|[\\s:'\"`])-?(w|h|size|min-w|min-h|max-w|max-h|top|right|bottom|left|inset(-[xy])?|basis|gap(-[xy])?|[pm][xytrblse]?|space-[xy]|translate-[xy]|transition)-\\[/";
+const SIZE_NUMBER_MESSAGE =
+  "Use a step of the scale (w-2/5, min-w-48, top-2.5 …) or a size named in src/styles/theme.js → LAYOUT (w-matrix-label, h-explorer, max-w-drawer, max-h-fit-screen …) instead of a size typed in a class; transition-width / transition-visibility for a transition.";
+const GLUED_CLASSES_MESSAGE = "Build a class list with cn() from src/lib/utils.ts, not with a template string: cn('a b', condition && 'c').";
+
 // What `no-restricted-syntax` refuses, in the groups a folder may be let off
 const TOKEN_RULES = [
   { selector: `Literal[value=${RAW_PALETTE_CLASS}]`, message: RAW_PALETTE_MESSAGE },
@@ -43,6 +50,9 @@ const TOKEN_RULES = [
   { selector: `TemplateElement[value.raw=${FIXED_SHAPE_OR_PACE}]`, message: FIXED_SHAPE_OR_PACE_MESSAGE },
   { selector: `Literal[value=${LAYER_NUMBER}]`, message: LAYER_NUMBER_MESSAGE },
   { selector: `TemplateElement[value.raw=${LAYER_NUMBER}]`, message: LAYER_NUMBER_MESSAGE },
+  { selector: `Literal[value=${SIZE_NUMBER}]`, message: SIZE_NUMBER_MESSAGE },
+  { selector: `TemplateElement[value.raw=${SIZE_NUMBER}]`, message: SIZE_NUMBER_MESSAGE },
+  { selector: "JSXAttribute[name.name='className'] TemplateLiteral", message: GLUED_CLASSES_MESSAGE },
 ];
 const BOX_RULES = [
   { selector: `${BOX_CLASSES} Literal[value=${HAND_MADE_BOX}]`, message: HAND_MADE_BOX_MESSAGE },

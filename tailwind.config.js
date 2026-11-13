@@ -42,7 +42,7 @@ module.exports = {
                 '3xl': 'var(--radius-3xl)',
                 full: 'var(--radius-pill)',
             },
-            transitionDuration: { DEFAULT: 'var(--motion-duration)', slide: 'var(--motion-slide)' },
+            transitionDuration: { DEFAULT: 'var(--motion-duration)', slide: 'var(--motion-slide)', unfold: 'var(--motion-unfold)' },
             transitionTimingFunction: { DEFAULT: 'var(--motion-ease)', out: 'var(--motion-ease-out)' },
             // animate-enter: how what opens over the page comes in (none until a skin names an animation)
             animation: { enter: 'var(--motion-enter)' },
@@ -51,6 +51,11 @@ module.exports = {
             width: theme.LAYOUT.width,
             minWidth: theme.LAYOUT.minWidth,
             maxHeight: theme.LAYOUT.maxHeight,
+            maxWidth: theme.LAYOUT.maxWidth,
+            height: theme.LAYOUT.height,
+            gridTemplateRows: theme.LAYOUT.gridTemplateRows,
+            // transition-width, transition-visibility, transition-rows: what changes size, shows up, or unfolds, over time
+            transitionProperty: { width: 'width', visibility: 'visibility', rows: 'grid-template-rows' },
             boxShadow: {
                 sm: 'var(--shadow-sm)',
                 DEFAULT: 'var(--shadow)',
