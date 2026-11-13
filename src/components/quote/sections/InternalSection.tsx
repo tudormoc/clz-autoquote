@@ -170,7 +170,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
             {/* Legacy Pages Field */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium leading-none">
+                    <label className={titleClasses('label')}>
                         {APP_COPY.form.pagesLabel}
                     </label>
                     <div className="flex gap-2">
@@ -294,7 +294,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
 
                 <div className="space-y-4">
                     <div className={surfaceClasses('inset', 'p-4 space-y-3')}>
-                        <div className="flex justify-between items-center text-xs font-medium text-fg-subtle">
+                        <div className={titleClasses('label', 'flex justify-between items-center')}>
                             <span className="w-24">{APP_COPY.form.amountLabel}</span>
                             <span className="flex-1 px-4">{APP_COPY.form.signatureTypeLabel}</span>
                             <span className="w-16 text-right">{APP_COPY.form.totalPpLabel}</span>
@@ -371,7 +371,7 @@ export function InternalSection({ control, errors, setValue, signatureTypes = []
                                     });
                                 }
                             }}
-                            className="w-full mt-2 border-dashed text-fg-subtle hover:text-primary"
+                            className="w-full mt-2"
                         >
                             {APP_COPY.form.addSignatureBatch}
                         </Button>

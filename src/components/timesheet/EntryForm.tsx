@@ -18,6 +18,7 @@ import { APP_COPY, fmt } from '@/locales';
 import { formatStepHours, kindLabel } from './labels';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { EMPTY_VALUE } from '@/lib/format';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.timesheet.editor;
 const { DEFAULT_TIME_FROM, MAX_NOTE_LENGTH } = APP_CONFIG.TIMESHEET;
@@ -128,7 +129,7 @@ export function EntryForm({ person, day, entry, presets, prefill, bounds, kinds,
                 save();
             }}
         >
-            <p className="text-xs font-semibold text-fg-soft">{entry ? copy.editLine : copy.newLine}</p>
+            <p className={titleClasses('section')}>{entry ? copy.editLine : copy.newLine}</p>
             <div className="flex flex-wrap gap-1.5">
                 {kindChoices.map((kind) => (
                     <ChoiceButton key={kind} size="sm" selected={draft.kind === kind} onClick={() => changeKind(kind)} disabled={saving}>

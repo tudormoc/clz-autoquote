@@ -2,6 +2,7 @@ import { Mail, Phone, UserRound } from '@/components/ui/icons';
 import { linkHref } from '@/lib/tasks/links';
 import type { Contact } from '@/lib/tasks/types';
 import { Surface } from '@/components/ui/Surface';
+import { linkClasses } from '@/components/ui/linkLook';
 
 /** One contact: name, role and company, phone and email clickable, notes */
 function ContactCard({ contact }: { contact: Contact }) {
@@ -17,13 +18,13 @@ function ContactCard({ contact }: { contact: Contact }) {
                 {who && <p className="text-xs text-fg-muted">{who}</p>}
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
                     {contact.phone && (
-                        <a href={phone ?? undefined} className="inline-flex items-center gap-1 text-primary hover:underline">
+                        <a href={phone ?? undefined} className={linkClasses('accent', 'inline-flex items-center gap-1')}>
                             <Phone size={12} />
                             {contact.phone}
                         </a>
                     )}
                     {contact.email && (
-                        <a href={email ?? undefined} className="inline-flex items-center gap-1 text-primary hover:underline break-all">
+                        <a href={email ?? undefined} className={linkClasses('accent', 'inline-flex items-center gap-1 break-all')}>
                             <Mail size={12} />
                             {contact.email}
                         </a>

@@ -13,6 +13,7 @@ import type { AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import { DoneTick } from '@/components/tasks/shared/DoneTick';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 
@@ -45,7 +46,7 @@ export function AgendaRow({ item, today, actions, showAssignee }: AgendaRowProps
             )}
 
             <div className="flex-1 min-w-0">
-                <Link href={`${LINKS.tasks.list}/${item.taskId}`} className={cn('text-sm font-medium hover:text-primary break-words', done ? 'line-through text-fg-muted' : 'text-fg-strong')}>
+                <Link href={`${LINKS.tasks.list}/${item.taskId}`} className={linkClasses('name', 'text-sm break-words', done && 'line-through text-fg-muted')}>
                     {item.title}
                 </Link>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-2xs text-fg-subtle">

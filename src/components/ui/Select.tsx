@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { FIELD, FIELD_ERROR } from '@/components/ui/fieldLook';
+import { FIELD, FIELD_ERROR, FIELD_ERROR_TEXT, FIELD_LABEL } from '@/components/ui/fieldLook';
 
 export interface SelectProps
     extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -16,7 +16,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 {label && (
                     <label
                         htmlFor={id}
-                        className="block text-xs font-medium text-fg-muted mb-1.5"
+                        className={FIELD_LABEL}
                     >
                         {label}
                     </label>
@@ -39,7 +39,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     ))}
                 </select>
                 {error && (
-                    <p className="text-xs text-danger mt-1">
+                    <p className={FIELD_ERROR_TEXT}>
                         {error}
                     </p>
                 )}

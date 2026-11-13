@@ -28,6 +28,7 @@ import { notify } from '@/lib/notify';
 import { isOpenStatus, type TaskState } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 
@@ -133,7 +134,7 @@ export function TaskView({ id }: { id: number }) {
                             <ul className="space-y-1">
                                 {guides.map((guide) => (
                                     <li key={guide.id}>
-                                        <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+                                        <Link href={`${LINKS.tasks.guides}/${guide.id}`} className={linkClasses('accent', 'inline-flex items-center gap-2 text-sm')}>
                                             <BookOpen size={14} />
                                             {guide.title}
                                         </Link>

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { DayStatusBadge } from './DayStatusBadge';
 import { entryText, hoursText } from './labels';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { SURFACE_PENDING, surfaceClasses } from '@/components/ui/Surface';
 import { MenuRow } from '@/components/ui/MenuRow';
 import { FoldArrow } from '@/components/ui/FoldArrow';
 import { EMPTY_VALUE } from '@/lib/format';
@@ -67,7 +67,7 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                             >
                                 {summary.entries.length === 0 ? (
                                     quiet && !isOpen && summary.status !== 'closed' ? (
-                                        <span className="flex-1 self-center border-t border-dashed border-border/60" aria-hidden />
+                                        <span className={cn('flex-1 self-center border-t border-border/60', SURFACE_PENDING)} aria-hidden />
                                     ) : (
                                         <span className="text-fg-faint">{summary.status === 'closed' ? summary.closedReason : EMPTY_VALUE}</span>
                                     )

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { FIELD, FIELD_ERROR } from '@/components/ui/fieldLook';
+import { FIELD, FIELD_ERROR, FIELD_ERROR_TEXT, FIELD_LABEL } from '@/components/ui/fieldLook';
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -17,7 +17,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-xs font-medium text-fg-muted mb-1.5"
+            className={FIELD_LABEL}
           >
             {label}
           </label>
@@ -36,7 +36,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p className="text-xs text-danger mt-1">
+          <p className={FIELD_ERROR_TEXT}>
             {error}
           </p>
         )}

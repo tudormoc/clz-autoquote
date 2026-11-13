@@ -23,6 +23,7 @@ import { formatMoment } from '@/lib/tasks/describe';
 import type { GuideSummary } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks.guides;
 
@@ -60,7 +61,7 @@ export function GuidesListView() {
             header: copy.columns.title,
             mobileHidden: true,
             cell: (guide) => (
-                <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="font-medium text-fg-strong hover:text-primary">
+                <Link href={`${LINKS.tasks.guides}/${guide.id}`} className={linkClasses('name')}>
                     {guide.title}
                     {guide.state === 'archived' && <span className="ml-2 text-2xs font-normal text-fg-faint">{APP_COPY.tasks.states.archived}</span>}
                 </Link>
@@ -96,7 +97,7 @@ export function GuidesListView() {
                 onSort={toggleSort}
                 emptyMessage={data.guides.length === 0 ? copy.empty : copy.noMatch}
                 mobileTitle={(guide) => (
-                    <Link href={`${LINKS.tasks.guides}/${guide.id}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.guides}/${guide.id}`} className={linkClasses('name')}>
                         {guide.title}
                     </Link>
                 )}

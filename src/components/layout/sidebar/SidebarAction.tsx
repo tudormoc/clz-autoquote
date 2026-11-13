@@ -1,6 +1,6 @@
 import type { LucideIcon } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
-import { SIDEBAR_ACTION_ROW } from '@/components/layout/sidebar/sidebarRow';
+import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
 import { MenuRow } from '@/components/ui/MenuRow';
 
 interface SidebarActionProps {
@@ -13,7 +13,7 @@ interface SidebarActionProps {
 export function SidebarAction({ icon: Icon, label, onClick }: SidebarActionProps) {
     return (
         <div className="group/item relative">
-            <MenuRow onClick={onClick} aria-label={label} className={SIDEBAR_ACTION_ROW}>
+            <MenuRow quiet onClick={onClick} aria-label={label} className={SIDEBAR_ROW}>
                 <Icon size={18} className="shrink-0" />
                 <span className="truncate collapsed:hidden">{label}</span>
             </MenuRow>

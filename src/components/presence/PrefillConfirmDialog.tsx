@@ -50,7 +50,7 @@ export function PrefillConfirmDialog({ summary, rules, period, prefilling, onCon
                     <Button type="button" variant="secondary" onClick={onClose} disabled={prefilling}>
                         {APP_COPY.common.cancel}
                     </Button>
-                    <Button type="button" onClick={onConfirm} disabled={prefilling} className="bg-warning-600 hover:bg-warning-500 text-fg-strong">
+                    <Button type="button" variant="warning" onClick={onConfirm} disabled={prefilling}>
                         {prefilling ? <Spinner size={16} /> : <CalendarCheck size={16} />}
                         {copy.prefill.confirmButton} ({summary.totalCount})
                     </Button>

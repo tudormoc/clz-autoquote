@@ -3,13 +3,14 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from '@/components/ui/icons';
 import { DataCards, rowLinkProps } from '@/components/ui/DataCards';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { ROW_PRESSABLE, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import type { ViewTarget } from '@/hooks/useAddress';
 import type { SortState } from '@/hooks/useReportTable';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { Pressable } from '@/components/ui/Pressable';
+import { linkClasses } from '@/components/ui/linkLook';
 
 type Align = 'left' | 'right' | 'center';
 
@@ -155,7 +156,7 @@ export function DataTable<R>({
                 containerClassName={cn(cards && 'hidden md:block', fill && 'lg:flex-1 lg:min-h-0 lg:overflow-y-auto')}
             >
                 <TableHeader>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow still>
                         {columns.map((column) => {
                             const align = alignOf(column);
                             const sortable = !!onSort && column.sortable !== false;
@@ -171,7 +172,7 @@ export function DataTable<R>({
                                         <Pressable
                                             type="button"
                                             onClick={() => onSort(column.key)}
-                                            className={cn('w-full flex items-center gap-2 font-semibold hover:text-primary transition-colors', JUSTIFY[align])}
+                                            className={linkClasses('quiet', 'w-full flex items-center gap-2 font-semibold', JUSTIFY[align])}
                                         >
                                             {column.header}
                                             <SortIcon active={sorted} direction={sort?.direction} />
@@ -186,7 +187,7 @@ export function DataTable<R>({
                 </TableHeader>
                 <TableBody className={cn(loading && rows.length > 0 && 'opacity-50 transition-opacity')}>
                     {message ? (
-                        <TableRow className="hover:bg-transparent">
+                        <TableRow still>
                             <TableCell colSpan={columns.length} className="py-8 text-center text-fg-muted">
                                 {message}
                             </TableCell>
@@ -196,7 +197,7 @@ export function DataTable<R>({
                             const detail = rowDetail?.(row);
                             return (
                                 <Fragment key={getRowKey(row, index)}>
-                                    <TableRow className={cn(rowLink && 'cursor-pointer', getRowClassName?.(row))} {...rowLinkProps(rowLink?.(row))}>
+                                    <TableRow className={cn(rowLink && ROW_PRESSABLE, getRowClassName?.(row))} {...rowLinkProps(rowLink?.(row))}>
                                         {columns.map((column) => (
                                             <TableCell
                                                 key={column.key}
@@ -215,7 +216,7 @@ export function DataTable<R>({
                                         ))}
                                     </TableRow>
                                     {detail && (
-                                        <TableRow className="hover:bg-transparent">
+                                        <TableRow still>
                                             <TableCell colSpan={columns.length} className="bg-background/60 text-sm">
                                                 {detail}
                                             </TableCell>

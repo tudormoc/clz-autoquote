@@ -23,7 +23,7 @@ export function SidebarPages({ groups, pathname, onNavigate }: SidebarPagesProps
                                 href={item.href}
                                 onClick={onNavigate}
                                 aria-current={active ? 'page' : undefined}
-                                className={menuRowClasses({ selected: active }, 'h-9 lg:h-8 px-2 py-0 rounded-md', !active && 'text-fg-muted hover:text-fg')}
+                                className={menuRowClasses({ selected: active, quiet: true }, 'h-9 lg:h-8 px-2 py-0 rounded-md')}
                             >
                                 <span className="truncate">{item.label}</span>
                             </Link>

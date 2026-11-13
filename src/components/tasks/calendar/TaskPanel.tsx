@@ -19,9 +19,10 @@ import type { AgendaCalendar, CalendarSelection } from '@/hooks/useAgendaCalenda
 import { describeRepeat, formatShortDay } from '@/lib/tasks/describe';
 import { isOpenStatus } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { SURFACE_PENDING, surfaceClasses } from '@/components/ui/Surface';
 import { IconButton } from '@/components/ui/IconButton';
 import { titleClasses } from '@/components/ui/titleLook';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 
@@ -80,7 +81,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
             aria-label={task?.title ?? copy.pages.list.label}
             className={surfaceClasses(
                 'drawer',
-                'fixed inset-y-0 right-0 z-40 w-full sm:w-panel flex flex-col border-l transition-transform duration-slide ease-out',
+                'fixed inset-y-0 right-0 z-drawer w-full sm:w-panel flex flex-col border-l transition-transform duration-slide ease-out',
                 shown ? 'translate-x-0' : 'translate-x-full'
             )}
         >
@@ -92,13 +93,13 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
                                 <PriorityBadge priority={task.priority} />
                                 {task.areaName && <span className="text-xs text-fg-subtle">{task.areaName}</span>}
                             </div>
-                            <Link href={`${LINKS.tasks.list}/${task.id}`} className="block text-base font-semibold text-fg-strong hover:text-primary break-words">
+                            <Link href={`${LINKS.tasks.list}/${task.id}`} className={linkClasses('quiet', titleClasses('panel'), 'block break-words')}>
                                 {task.title}
                             </Link>
                             <p className="text-xs text-fg-muted">{describeRepeat(task.repeat)}</p>
                         </>
                     ) : (
-                        <p className="text-base font-semibold text-fg-strong break-words">{selection.kind === 'item' ? selection.item.title : selection.entry.title}</p>
+                        <p className={titleClasses('panel', 'break-words')}>{selection.kind === 'item' ? selection.item.title : selection.entry.title}</p>
                     )}
                 </div>
                 <IconButton size="sm"
@@ -117,7 +118,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
                 ) : (
                     <>
                         {selection.kind === 'planned' ? (
-                            <p className="flex items-start gap-2 rounded-md border border-dashed border-border-strong p-3 text-sm text-fg-secondary">
+                            <p className={surfaceClasses('inset', SURFACE_PENDING, 'flex items-start gap-2 p-3 text-sm text-fg-secondary')}>
                                 <CalendarClock size={16} className="mt-0.5 shrink-0 text-fg-muted" />
                                 {fmt(task.repeat?.mode === 'after' ? copy.calendar.plannedPanelAfter : copy.calendar.plannedPanel, {
                                     date: formatShortDay(selection.entry.date),
@@ -142,7 +143,7 @@ export function TaskPanel({ selection, calendar }: TaskPanelProps) {
 
                         <QuickNotes taskId={task.id} version={task.version} notes={task.notes} onSaved={refresh}>
                             {guides.map((guide) => (
-                                <Link key={guide.id} href={`${LINKS.tasks.guides}/${guide.id}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                                <Link key={guide.id} href={`${LINKS.tasks.guides}/${guide.id}`} className={linkClasses('accent', 'flex items-center gap-2 text-sm')}>
                                     <BookOpen size={14} />
                                     {guide.title}
                                 </Link>

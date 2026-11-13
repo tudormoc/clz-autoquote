@@ -18,7 +18,7 @@ export function QuoteTotalBar({ breakdown, onShowDetail }: QuoteTotalBarProps) {
     if (!breakdown) return null;
 
     return (
-        <Surface kind="bar" className="lg:hidden sticky bottom-0 z-20 -mx-4 px-4 py-3 flex items-center justify-between gap-3 border-t">
+        <Surface kind="bar" className="lg:hidden sticky bottom-0 z-bar -mx-4 px-4 py-3 flex items-center justify-between gap-3 border-t">
             <div className="min-w-0">
                 <div className="text-lg font-bold text-fg-strong font-mono">{formatCurrency(breakdown.total_price)}</div>
                 <div className="text-xs text-fg-muted font-mono">

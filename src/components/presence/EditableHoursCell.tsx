@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { CELL_FIELD, FIELD } from '@/components/ui/fieldLook';
 import { statusBadgeClasses } from '@/components/ui/StatusBadge';
+import { VALUE_PRESSABLE } from '@/components/ui/Table';
 
 type HoursValue = number | string | null;
 
@@ -48,7 +49,7 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
 
     if (editor.isEditing) {
         return (
-            <div className="relative flex justify-end z-30">
+            <div className="relative flex justify-end z-popup">
                 <input
                     ref={editor.inputRef}
                     type="number"
@@ -76,7 +77,7 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
                     title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
                     className={cn(
                         statusBadgeClasses({ tone: 'warning' }),
-                        !editor.readOnly && 'cursor-pointer'
+                        !editor.readOnly && VALUE_PRESSABLE
                     )}
                 >
                     {String(value)}
@@ -91,7 +92,7 @@ export function EditableHoursCell({ value, onSave }: EditableHoursCellProps) {
             title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
             className={cn(
                 'px-2 py-1 rounded text-sm font-mono text-right block',
-                !editor.readOnly && 'transition-colors cursor-pointer hover:bg-muted/80 hover:text-primary',
+                !editor.readOnly && VALUE_PRESSABLE,
                 hasValue && Number(value) > 0 ? 'text-fg-soft font-medium' : 'text-fg-subtle italic'
             )}
         >

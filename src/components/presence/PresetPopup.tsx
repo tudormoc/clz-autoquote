@@ -17,7 +17,7 @@ export function PresetPopup({ presets, openAbove, alignRight, onPick, children }
         <div
             className={surfaceClasses(
                 'floating',
-                'absolute z-50 flex items-center gap-1 p-1 whitespace-nowrap',
+                'absolute z-popup flex items-center gap-1 p-1 whitespace-nowrap',
                 openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
                 alignRight && 'right-0'
             )}

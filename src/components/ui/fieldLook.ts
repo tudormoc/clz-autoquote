@@ -1,3 +1,5 @@
+import { titleClasses } from '@/components/ui/titleLook';
+
 /** The edge of a field: its corner, border and background. Alone, it frames a field made of parts (the formatted-text box) */
 export const FIELD_FRAME = 'rounded border border-border-strong bg-background';
 
@@ -9,6 +11,12 @@ export const FIELD = `w-full ${FIELD_FRAME} px-3 py-2 text-sm text-fg placeholde
 
 /** A field whose value was refused */
 export const FIELD_ERROR = 'border-danger focus-visible:border-danger';
+
+/** Why it was refused, under the field */
+export const FIELD_ERROR_TEXT = 'mt-1 text-xs text-danger';
+
+/** The label over a field: the small title of the app (titleLook.ts), on its own line */
+export const FIELD_LABEL = titleClasses('label', 'block mb-2');
 
 /** A field opened over a table cell to change its value: low, edged with the accent, lifted off the row */
 export const CELL_FIELD = 'h-7 px-2 py-0 text-xs border-primary shadow-lg';

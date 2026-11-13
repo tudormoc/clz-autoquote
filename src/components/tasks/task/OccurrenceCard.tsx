@@ -19,6 +19,8 @@ import { formatMoment } from '@/lib/tasks/describe';
 import type { ChecklistItem, LogEntry } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
+import { titleClasses } from '@/components/ui/titleLook';
+import { Field } from '@/components/ui/Field';
 
 const copy = APP_COPY.tasks;
 
@@ -88,7 +90,7 @@ export function OccurrenceCard({ occurrence, taskId, repeats, checklist, comment
 
             {!compact && checklist.length > 0 && (
                 <div>
-                    <p className="text-xs font-medium text-fg-muted mb-1.5">
+                    <p className={titleClasses('label', 'mb-1.5')}>
                         {fmt(copy.detail.checklistOf, { done: checklist.filter((step) => ticked.has(step.id)).length, total: checklist.length })}
                     </p>
                     <ul className="space-y-1">
@@ -109,10 +111,9 @@ export function OccurrenceCard({ occurrence, taskId, repeats, checklist, comment
 
             {!compact && canEdit && (
                 <div className="space-y-1.5">
-                    <label htmlFor={`outcome-${occurrence.id}`} className="block text-xs font-medium text-fg-muted">
-                        {copy.detail.outcome}
-                    </label>
-                    <Textarea id={`outcome-${occurrence.id}`} rows={2} value={outcome} onChange={(e) => setOutcome(e.target.value)} placeholder={copy.dialogs.outcomePlaceholder} />
+                    <Field label={copy.detail.outcome} htmlFor={`outcome-${occurrence.id}`}>
+                        <Textarea id={`outcome-${occurrence.id}`} rows={2} value={outcome} onChange={(e) => setOutcome(e.target.value)} placeholder={copy.dialogs.outcomePlaceholder} />
+                    </Field>
                     {outcome !== (occurrence.outcome ?? '') && (
                         <Button size="sm" variant="secondary" disabled={saving} onClick={() => run(saveOutcomeAction(occurrence.id, occurrence.version, outcome), copy.messages.saved)}>
                             <Save size={14} />
@@ -124,7 +125,7 @@ export function OccurrenceCard({ occurrence, taskId, repeats, checklist, comment
 
             {!compact && (comments.length > 0 || canEdit) && (
                 <div className="space-y-1.5">
-                    <p className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+                    <p className={titleClasses('label', 'flex items-center gap-1.5')}>
                         <MessageSquare size={13} />
                         {copy.detail.comments}
                     </p>

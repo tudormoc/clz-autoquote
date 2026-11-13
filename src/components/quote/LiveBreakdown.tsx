@@ -1,9 +1,11 @@
 import { Panel } from '@/components/ui/Panel';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { ROW_SUMMARY, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { EMPTY_VALUE, formatCurrency, formatNumber } from '@/lib/format';
 import type { QuoteBreakdown } from '@/lib/pricing/types';
 import { APP_COPY } from '@/locales';
+import { cn } from '@/lib/utils';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.breakdown;
 
@@ -32,7 +34,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
             title={copy.title}
             aside={
                 <div className="text-right">
-                    <div className="text-xl font-bold text-fg-strong font-mono">{formatCurrency(breakdown.total_price)}</div>
+                    <div className={titleClasses('page', 'font-mono')}>{formatCurrency(breakdown.total_price)}</div>
                     <div className="text-xs text-fg-subtle font-mono">
                         {formatCurrency(breakdown.unit_price)} {copy.unitPrice}
                     </div>
@@ -41,7 +43,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
         >
             <Table>
                 <TableHeader>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow still>
                         <TableHead className="w-[40%]">{copy.operation}</TableHead>
                         <TableHead className="text-right">{copy.setup}</TableHead>
                         <TableHead className="text-right">{copy.unit}</TableHead>
@@ -75,11 +77,11 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                     ))}
                 </TableBody>
                 <TableFooter className="bg-muted/50">
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableRow still className={ROW_SUMMARY}>
                         <TableCell colSpan={3} className="font-medium text-xs">{copy.setupTotal}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatCurrency(setup_total)}</TableCell>
                     </TableRow>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40 border-t-0">
+                    <TableRow still className={cn(ROW_SUMMARY, 'border-t-0')}>
                         <TableCell colSpan={3} className="font-medium text-xs">{copy.productionTotal}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatCurrency(production_total)}</TableCell>
                     </TableRow>
@@ -91,7 +93,7 @@ export function LiveBreakdown({ breakdown }: { breakdown: QuoteBreakdown | null 
                                 </TableCell>
                             </TableRow>
                             {adjustments.map(({ label, sign, percent, tone }) => (
-                                <TableRow key={label} className="bg-muted/40 hover:bg-muted/40">
+                                <TableRow key={label} still className={ROW_SUMMARY}>
                                     <TableCell colSpan={3} className={`text-xs pl-6 ${tone}`}>
                                         {label} {sign}{formatNumber(percent * 100, 1)}%
                                     </TableCell>

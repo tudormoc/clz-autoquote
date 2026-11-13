@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { APP_CONFIG } from '@/config/constants';
 import { monthName, monthShortName } from '@/lib/format';
 import { APP_COPY, fmt } from '@/locales';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 import { Checkbox } from '@/components/ui/Checkbox';
 
 type PageFormat = 'A4' | 'A3';
@@ -174,9 +174,9 @@ export function MonthSelectorModal({ isOpen, onClose, onGenerate, loading, title
                 )}
 
                 {!hideSeparateToggle && (
-                    <label className={surfaceClasses('inset', 'flex items-center gap-3 p-3 cursor-pointer group')}>
+                    <label className={pressableSurfaceClasses({ kind: 'inset' }, 'flex items-center gap-3 p-3')}>
                         <Checkbox checked={separateByArea} onChange={(e) => setSeparateByArea(e.target.checked)} disabled={loading} />
-                        <span className="font-medium text-fg-strong group-hover:text-primary transition-colors">{areaCopy.separateReports}</span>
+                        <span className="font-medium text-fg-strong">{areaCopy.separateReports}</span>
                     </label>
                 )}
 

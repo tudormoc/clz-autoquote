@@ -15,7 +15,7 @@ export function SidebarFlyout({ align, children }: SidebarFlyoutProps) {
     return (
         <div
             className={cn(
-                'hidden collapsed:group-hover/item:block collapsed:group-has-[:focus-visible]/item:block absolute left-full z-50 pl-2',
+                'hidden collapsed:group-hover/item:block collapsed:group-has-[:focus-visible]/item:block absolute left-full z-menu pl-2',
                 align === 'top' ? 'top-0' : 'bottom-0'
             )}
         >

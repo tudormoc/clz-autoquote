@@ -24,6 +24,7 @@ import { askConfirm } from '@/lib/confirm';
 import { notify } from '@/lib/notify';
 import { formatMoment } from '@/lib/tasks/describe';
 import { APP_COPY, fmt } from '@/locales';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 
@@ -104,7 +105,7 @@ export function GuideView({ id }: { id: number }) {
                             <ul className="space-y-1.5">
                                 {guide.tasks.map((task) => (
                                     <li key={task.id} className="flex items-center justify-between gap-2">
-                                        <Link href={`${LINKS.tasks.list}/${task.id}`} className="text-sm text-primary hover:underline">
+                                        <Link href={`${LINKS.tasks.list}/${task.id}`} className={linkClasses('accent', 'text-sm')}>
                                             {task.title}
                                         </Link>
                                         {task.state !== 'active' && <TaskStateBadge state={task.state} />}

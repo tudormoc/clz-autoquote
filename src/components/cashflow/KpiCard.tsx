@@ -3,6 +3,7 @@ import { IconTile, type IconTone } from '@/components/ui/IconTile';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Surface } from '@/components/ui/Surface';
 import { cn } from '@/lib/utils';
+import { titleClasses } from '@/components/ui/titleLook';
 
 export type KpiTone = Extract<IconTone, 'info' | 'success' | 'danger'>;
 
@@ -29,7 +30,7 @@ export function KpiCard({ label, icon: Icon, tone, value, note, noteAsBadge = fa
     return (
         <Surface className="p-4">
             <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-fg-muted">{label}</span>
+                <span className={titleClasses('label')}>{label}</span>
                 <IconTile tone={tone}>
                     <Icon size={18} />
                 </IconTile>

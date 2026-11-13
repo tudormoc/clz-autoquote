@@ -6,6 +6,8 @@ import { useCanEdit } from '@/components/auth/AccessProvider';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { Pressable } from '@/components/ui/Pressable';
+import { VALUE_PRESSABLE } from '@/components/ui/Table';
+import { cn } from '@/lib/utils';
 
 interface EditableCellProps<T> {
     /** What the cell shows when it is not being edited */
@@ -35,7 +37,7 @@ export function EditableCell<T>({ display, startValue, renderEditor, onSave }: E
                 type="button"
                 onClick={() => setDraft({ value: startValue() })}
                 title={APP_COPY.common.clickToEdit}
-                className="-mx-2 px-2 py-1 rounded text-left transition-colors hover:bg-muted"
+                className={cn(VALUE_PRESSABLE, '-mx-2 px-2 py-1 text-left')}
             >
                 {display}
             </Pressable>

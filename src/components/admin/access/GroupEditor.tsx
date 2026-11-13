@@ -10,6 +10,7 @@ import type { Group } from '@/lib/auth/accounts';
 import { PRESETS, lightCounts, withPreset } from '@/lib/auth/lights';
 import { GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
 import { APP_COPY, fmt } from '@/locales';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.admin.groups;
 
@@ -41,7 +42,7 @@ export function GroupEditor({ group, pages, members, saveState, canUndo, onChang
             <Surface className="space-y-3 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                     <div className="min-w-0">
-                        <div className="text-base font-semibold text-fg-strong">
+                        <div className={titleClasses('panel')}>
                             <EditableCell
                                 key={group.id}
                                 display={group.name}

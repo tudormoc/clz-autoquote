@@ -42,7 +42,7 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
 
     return (
         <>
-            <TableRow className={cn('font-sans font-bold text-3xs', isAsset ? 'bg-success-950/20 hover:bg-success-950/20 text-success-400' : 'bg-danger-950/20 hover:bg-danger-950/20 text-danger-400')}>
+            <TableRow still className={cn('font-sans font-bold text-3xs', isAsset ? 'bg-success-950/20 text-success-400' : 'bg-danger-950/20 text-danger-400')}>
                 <TableCell className="pl-6 py-0.5" colSpan={MATRIX_COLUMNS}>└ {isAsset ? copy.assets : copy.liabilities}</TableCell>
             </TableRow>
 
@@ -76,7 +76,7 @@ export function BankMatrixRowGroup({ category, section, banks, monthlyData, bank
                         />
 
                         {open && (
-                            <TableRow className="bg-background hover:bg-background">
+                            <TableRow still className="bg-background">
                                 <TableCell colSpan={MATRIX_COLUMNS} className="p-2 border-b border-border">
                                     <BankOperationsDrilldown
                                         accountCode={bank.accountCode}

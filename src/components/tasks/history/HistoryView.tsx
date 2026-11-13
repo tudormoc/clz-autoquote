@@ -23,6 +23,7 @@ import type { HistoryRow } from '@/lib/tasks/db/views';
 import type { OccurrenceStatus } from '@/lib/tasks/types';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 const columnsCopy = copy.history.columns;
@@ -103,7 +104,7 @@ export function HistoryView() {
             header: columnsCopy.task,
             mobileHidden: true,
             cell: (row) => (
-                <Link href={`${LINKS.tasks.list}/${row.taskId}`} className="font-medium text-fg-strong hover:text-primary">
+                <Link href={`${LINKS.tasks.list}/${row.taskId}`} className={linkClasses('name')}>
                     {row.title}
                 </Link>
             ),
@@ -165,7 +166,7 @@ export function HistoryView() {
                 error={query.error}
                 emptyMessage={applied === null ? copy.history.hint : copy.history.empty}
                 mobileTitle={(row) => (
-                    <Link href={`${LINKS.tasks.list}/${row.taskId}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.list}/${row.taskId}`} className={linkClasses('name')}>
                         {row.title}
                     </Link>
                 )}

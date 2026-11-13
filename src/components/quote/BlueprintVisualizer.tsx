@@ -86,7 +86,7 @@ export function BlueprintVisualizer({ dimensions }: BlueprintVisualizerProps) {
 
     return (
         <Surface className="w-full h-full flex flex-col items-center justify-center overflow-hidden relative">
-            <div className="absolute top-4 left-4 text-xs font-mono text-fg-subtle z-10 pointer-events-none">
+            <div className="absolute top-4 left-4 text-xs font-mono text-fg-subtle z-raised pointer-events-none">
                 {copy.preview}
                 {bleed > 0 && <span className="text-danger ml-2">• {fmt(copy.bleedActive, { mm: bleed })}</span>}
             </div>

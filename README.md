@@ -173,9 +173,12 @@ press reacts (`press`; both off today), the picture behind the page. Who set "re
 `CALM_MOTION` instead (a pulse adds `motion-reduce:animate-none`). Everything else of the look is drawn in the shared
 parts below, each in one file: a restyle touches `theme.js` and those files, never a screen. Tables and numbers keep the
 number font and plain surfaces whatever the skin. ESLint keeps it so: it fails on a fixed corner or pace
-(`rounded-[7px]`, `duration-300`, `ease-[…]`), a box written by hand (`bg-card` + `border` + `rounded`), a background of
+(`rounded-[7px]`, `duration-300`, `ease-[…]`), a layer written as a number (`z-50`), a box written by hand (`bg-card` + `border` + `rounded`), a background of
 its own on a Surface, a raw `<button>`, `Pressable` imported outside `src/components/ui`, an icon imported from
-`lucide-react`. What is left before a second look:
+`lucide-react`; and, outside `src/components/ui`, on what a screen may not write itself: a look under the mouse
+(`hover:bg-…`, `hover:text-…`, `group-hover:…`), `cursor-pointer`, `border-dashed`, and the size, weight and colour of one
+of the four titles. A Claude Code session is told at once: after every Edit or Write, `scripts/lint-edited.js` lints
+the file just changed and hands the errors back (the hook in `.claude/settings.json`). What is left before a second look:
 [docs/BACKLOG.md](docs/BACKLOG.md) → Skins.
 
 **What a screen is made of.** A screen names the part and adds spacing and layout; it never writes a background, a
@@ -183,12 +186,14 @@ border, a corner, a shadow, a title size or a button of its own. All in `src/com
 
 | What | The one part |
 |---|---|
-| A box | `Surface` (+ `surfaceClasses()` for a link, a list, a form). Kinds: `panel` (a box of the page), `inset` (a quiet box inside a panel, a window or the page), `floating` (a menu, a popup, a window), `chrome` (the sidebar), `bar` (stays put while the page scrolls), `drawer` (slides in over the page). An inset box that says something adds a `SURFACE_TONE` (info, success, warning, danger); the box picked among its like adds `SURFACE_SELECTED` |
+| A box | `Surface` (+ `surfaceClasses()` for a link, a list, a form). Kinds: `panel` (a box of the page), `inset` (a quiet box inside a panel, a window or the page), `floating` (a menu, a popup, a window), `chrome` (the sidebar), `bar` (stays put while the page scrolls), `drawer` (slides in over the page). An inset box that says something adds a `SURFACE_TONE` (info, success, warning, danger); the box picked among its like adds `SURFACE_SELECTED`; one for what is not there yet (a date still to come, where a card would land) adds `SURFACE_PENDING` |
 | A box with a title | `Panel` (title, optional icon, optional `aside` on the right) |
-| What one presses | `Button` (+ `buttonClasses()` for a link): primary, secondary, ghost, danger, warning; sizes `xs` to `lg`, and `icon` for a boxed icon. `IconButton` (+ `iconButtonClasses()`): only an icon; `tone="danger"` removes, `tone="warning"` writes to the programs, `tone="success"` marks something done, `lit` shows that colour without the mouse. `ChoiceButton` (+ `choiceClasses()`): everything that is on or off — a pick-one option, a filter chip (`ToggleChips`), a view switch, a light of Gruppi (`round`, `selected="mixed"` for some of several). `SurfaceButton` (+ `pressableSurfaceClasses()`): a box one presses (a tile to pick, a card of the calendar; `selected`, `tone`, `bare`). `MenuRow` (+ `menuRowClasses()` for a link or a label): a row one presses (a menu action, a name in a list, a day that opens, a row or a page of the sidebar; `selected` = the one picked, `ROW_PICKED`). `TextButton`: a word or a line pressed as plain text. `FoldToggle`: the header that unfolds what is under it (arrow, name, count). `TabBar`, `Switch`. `Pressable`: the one `<button>` under all of them, used only inside `src/components/ui` |
+| What one presses | `Button` (+ `buttonClasses()` for a link): primary, secondary, ghost, danger, warning; sizes `xs` to `lg`, and `icon` for a boxed icon. `IconButton` (+ `iconButtonClasses()`): only an icon; `tone="danger"` removes, `tone="warning"` writes to the programs, `tone="success"` marks something done, `lit` shows that colour without the mouse. `ChoiceButton` (+ `choiceClasses()`): everything that is on or off — a pick-one option, a filter chip (`ToggleChips`), a view switch, a light of Gruppi (`round`, `selected="mixed"` for some of several). `SurfaceButton` (+ `pressableSurfaceClasses()`): a box one presses (a tile to pick, a card of the calendar; `selected`, `tone`, `bare`). `MenuRow` (+ `menuRowClasses()` for a link or a label): a row one presses (a menu action, a name in a list, a day that opens, a row or a page of the sidebar; `selected` = the one picked, `quiet` = grey until the mouse is on it). `TextButton`: a word or a line pressed as plain text. `FoldToggle`: the header that unfolds what is under it (arrow, name, count). `TabBar`, `Switch`. `Pressable`: the one `<button>` under all of them, used only inside `src/components/ui` |
 | What one types or picks in | `Input`, `Select`, `Textarea`, `Checkbox`, `DatePicker`, `MonthField`, `YearField`, `MarkdownField`. Their one look is `FIELD` (`fieldLook.ts`); `CELL_FIELD` for an editor over a table cell, `FIELD_FRAME` for a field made of parts |
-| A table | `DataTable`, or the `Table` parts for a table of another shape. `ROW_WARNING` / `VALUE_WARNING` for a row or a value that differs, `DENSE_HEAD` / `DENSE_CELL` for a table read inside another |
+| A table | `DataTable`, or the `Table` parts for a table of another shape. `ROW_WARNING` / `VALUE_WARNING` for a row or a value that differs, `VALUE_PRESSABLE` for a value one presses in its cell, `ROW_SUMMARY` for a row that stands for several (a total), `ROW_PRESSABLE` for a row one presses, `still` on a `TableRow` that does not light up under the mouse, `DENSE_HEAD` / `DENSE_CELL` for a table read inside another |
 | A title | `titleClasses('page' \| 'panel' \| 'section' \| 'label')` (`titleLook.ts`) on the heading's own tag |
+| The label over a field | `Field` (or the `label` of `Input` / `Select`); its look is `FIELD_LABEL` (`fieldLook.ts`), the `label` title on its own line. `FIELD_ERROR_TEXT` for why a value was refused |
+| A link read as text | `linkClasses('accent' \| 'name' \| 'quiet')` (`linkLook.ts`): a link inside what one reads, the name that opens its thing, a quiet word. A link that looks like a button, a row or a box takes that part's classes |
 | A small coloured label, count or tag | `StatusBadge` (+ `statusBadgeClasses()`); `InfoBadge` for a name with its value |
 | An icon | From `@/components/ui/icons`, the one list (a new icon is a name added there), sized with `size={n}`. On a tinted square: `IconTile` |
 | A row of a menu, or of a list one picks from | `MenuRow`, `menuRowClasses()` for a link or a label that is one |
@@ -206,6 +211,7 @@ warning / danger fills, `text-primary-foreground` on `bg-primary`; `bg-bright` i
 - Lines: `border-border` · `border-border-strong`
 - Text: `text-fg-strong` · `text-fg` · `text-fg-soft` · `text-fg-secondary` · `text-fg-muted` · `text-fg-subtle` · `text-fg-faint` · `text-fg-inverse`
 - Status (scale 50–950, default 500): `primary`, `success`, `warning`, `danger`, `info`, `highlight` — e.g. `text-success-400`, `bg-danger/10`, `border-warning-500/30`
+- Layers, what sits over what: `z-raised` (lifted inside its box) · `z-sticky` (a table's header and totals) · `z-popup` (suggestions under a field, an editor over a cell) · `z-bar` · `z-drawer` · `z-window` · `z-menu` (over anything, a window too) · `z-notice`. They are `LAYERS` in `theme.js`; no other `z-` exists
 - Small text: `text-2xs` (11px), `text-3xs` (10px, the smallest). Layout: `w-sidebar`, `w-sidebar-collapsed`, `min-w-matrix`; `collapsed:` styles the folded sidebar
 - No uppercase labels, monospace only for numbers, shadows only on floating elements.
 - Phones: below `lg` the sidebar is a slide-in menu and the page scrolls as a whole; `DataTable` shows one card per row

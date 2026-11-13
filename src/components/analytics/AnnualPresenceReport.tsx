@@ -143,7 +143,7 @@ export function AnnualPresenceReport() {
                                         ))}
                                     </TableBody>
                                     <TableFooter>
-                                        <TableRow className="hover:bg-transparent">
+                                        <TableRow still>
                                             <TableCell>{APP_COPY.analytics.presence.total}</TableCell>
                                             <TableCell className="text-right font-mono">{toWholeHours(weekTotal)}</TableCell>
                                         </TableRow>

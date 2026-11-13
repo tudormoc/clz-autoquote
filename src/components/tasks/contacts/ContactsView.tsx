@@ -25,6 +25,7 @@ import { linkHref } from '@/lib/tasks/links';
 import type { Contact } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks.contacts;
 
@@ -77,7 +78,7 @@ export function ContactsView() {
         if (!value) return <MissingValue />;
         const href = linkHref({ kind, label: '', value });
         return href ? (
-            <a href={href} className="text-primary hover:underline break-all">
+            <a href={href} className={linkClasses('accent', 'break-all')}>
                 {value}
             </a>
         ) : (

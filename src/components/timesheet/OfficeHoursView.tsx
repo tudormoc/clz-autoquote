@@ -82,7 +82,7 @@ export function OfficeHoursView() {
 
     const totals = totalHours(list.rows.map((row) => row.summary));
     const footer = (
-        <TableRow className="text-xs font-semibold hover:bg-transparent">
+        <TableRow still className="text-xs font-semibold">
             {columns.map((column, index) => (
                 <TableCell key={column.key} className={cn('py-2', column.variant ? 'text-right font-mono text-fg' : 'text-fg-muted')}>
                     {index === 0 ? copy.totals : isHourField(column.key) && totals[column.key] > 0 ? formatStepHours(totals[column.key]) : null}

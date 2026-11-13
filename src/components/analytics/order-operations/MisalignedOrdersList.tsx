@@ -21,6 +21,7 @@ import type { MisalignedOrder, MisalignedOrders, OtherProductionOrder } from '@/
 import type { RowSortColumns } from '@/lib/sort';
 import { cn, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const t = APP_COPY.analytics.orderOperations;
 const copy = t.misaligned;
@@ -127,7 +128,7 @@ export function MisalignedOrdersList({ data, busy, busyOrders, hidden, linkOf, o
             compact: true,
             mobileHidden: true,
             cell: (order) => (
-                <ViewLink to={linkOf(order.rootCommessaKey)} className="font-mono font-semibold text-primary hover:underline">
+                <ViewLink to={linkOf(order.rootCommessaKey)} className={linkClasses('accent', 'font-mono font-semibold')}>
                     {order.commessa}
                 </ViewLink>
             ),

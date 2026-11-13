@@ -82,7 +82,7 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
                 // Touch screens: holding a finger opens the menu, not the phone's own text selection
                 '[@media(hover:none)]:select-none [@media(hover:none)]:[-webkit-touch-callout:none]',
                 compact ? 'py-1.5' : 'py-2',
-                open ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                open && 'cursor-grab active:cursor-grabbing',
                 dragging && 'opacity-40'
             )}
         >

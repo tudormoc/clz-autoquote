@@ -13,7 +13,7 @@ export function TableRows({ columns, rows }: TableRowsProps) {
         <div className="border border-border rounded-lg">
             <Table>
                 <TableHeader>
-                    <TableRow className="hover:bg-transparent">
+                    <TableRow still>
                         {columns.map((column) => (
                             <TableHead key={column.COLUMN_NAME} className="px-3 py-2 text-3xs">
                                 {column.COLUMN_NAME}

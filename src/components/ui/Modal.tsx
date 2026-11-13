@@ -44,7 +44,7 @@ export function Modal({ title, subtitle, icon: Icon, iconTone = 'primary', size 
     }, [busy, onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-window flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
             <div
                 role="dialog"
                 aria-modal="true"

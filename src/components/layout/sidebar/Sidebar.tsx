@@ -56,7 +56,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                         type="button"
                         onClick={onClose}
                         aria-label={APP_COPY.nav.closeMenu}
-                        className="ml-auto rounded-md hover:text-fg"
+                        className="ml-auto"
                     >
                         <X size={20} />
                     </IconButton>

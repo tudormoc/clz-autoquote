@@ -36,6 +36,9 @@ export const SURFACE_TONE: Record<SurfaceTone, string> = {
     danger: 'border-danger-500/30 bg-danger-500/10',
 };
 
+/** A box for what is not there yet (a date still to come, the place a dragged card would land): a dashed edge */
+export const SURFACE_PENDING = 'border-dashed';
+
 /** A panel that is the one picked among its like (the open group, the week on screen, today): the accent on its edge, a tint inside */
 export const SURFACE_SELECTED = 'border-primary bg-primary/5';
 

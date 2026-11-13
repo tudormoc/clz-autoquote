@@ -14,10 +14,12 @@ interface DayQuickAddProps {
     onAdd: (title: string) => Promise<boolean>;
     /** Shown only on hover of the day (desktop); always on phones */
     quiet: boolean;
+    /** A narrow day (closed, with nothing on it): only the "+" on a computer screen, its name as a tooltip */
+    compact?: boolean;
 }
 
 /** "+ Aggiungi" at the foot of a day: turns into a line; Enter adds a task on that day, Escape gives up */
-export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
+export function DayQuickAdd({ onAdd, quiet, compact = false }: DayQuickAddProps) {
     const [writing, setWriting] = useState(false);
     const [title, setTitle] = useState('');
     const [saving, setSaving] = useState(false);
@@ -26,10 +28,15 @@ export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
         return (
             <TextButton
                 onClick={() => setWriting(true)}
-                className={cn('w-full gap-1.5 px-2 py-1.5 text-xs focus-visible:opacity-100', quiet && 'md:opacity-0 md:group-hover/day:opacity-100')}
+                title={compact ? copy.add : undefined}
+                className={cn(
+                    'w-full gap-1.5 px-2 py-1.5 text-xs focus-visible:opacity-100',
+                    quiet && 'md:opacity-0 md:group-hover/day:opacity-100',
+                    compact && 'md:justify-center md:px-0'
+                )}
             >
                 <Plus size={13} />
-                {copy.add}
+                <span className={cn(compact && 'md:sr-only')}>{copy.add}</span>
             </TextButton>
         );
     }

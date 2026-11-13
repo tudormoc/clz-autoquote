@@ -169,7 +169,7 @@ export function DatePicker({ value, onChange, placeholder, id, ariaLabel, min, m
                     <div
                         ref={popupRef}
                         style={{ position: 'fixed', ...(position ?? { top: 0, left: 0, visibility: 'hidden' }) }}
-                        className={surfaceClasses('floating', 'z-[60] p-3')}
+                        className={surfaceClasses('floating', 'z-menu p-3')}
                     >
                         <DayPicker
                             mode="single"

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CELL_FIELD, FIELD } from '@/components/ui/fieldLook';
 import { statusBadgeClasses } from '@/components/ui/StatusBadge';
+import { VALUE_PRESSABLE } from '@/components/ui/Table';
 
 interface PresetSelectCellProps {
     value: string | null;
@@ -44,7 +45,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
 
     if (editor.isEditing) {
         return (
-            <div className="relative flex items-center justify-center z-30">
+            <div className="relative flex items-center justify-center z-popup">
                 <input
                     ref={editor.inputRef}
                     type="text"
@@ -86,7 +87,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                     title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
                     className={cn(
                         statusBadgeClasses({ tone: 'warning' }),
-                        !editor.readOnly && 'cursor-pointer'
+                        !editor.readOnly && VALUE_PRESSABLE
                     )}
                 >
                     {value}
@@ -97,7 +98,7 @@ export function PresetSelectCell({ value, presets = [], onSave }: PresetSelectCe
                     title={editor.readOnly ? undefined : APP_COPY.common.clickToEdit}
                     className={cn(
                         'px-2 py-0.5 rounded text-xs font-mono text-center block text-fg-faint italic',
-                        !editor.readOnly && 'transition-colors cursor-pointer hover:bg-muted/80 hover:text-fg-secondary'
+                        !editor.readOnly && VALUE_PRESSABLE
                     )}
                 >
                     {EMPTY_VALUE}

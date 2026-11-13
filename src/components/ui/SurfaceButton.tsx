@@ -18,7 +18,7 @@ export function pressableSurfaceClasses({ kind = 'panel', tone, selected = false
     return surfaceClasses(
         kind,
         tone && SURFACE_TONE[tone],
-        'text-left transition-colors',
+        'text-left cursor-pointer transition-colors',
         selected ? SURFACE_SELECTED : 'hover:bg-muted',
         bare && !selected && 'border-transparent bg-transparent',
         ...classes

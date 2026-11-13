@@ -28,6 +28,8 @@ module.exports = {
             DEFAULT: ({ opacityValue }) => withOpacity(t('colors.primary.DEFAULT'), opacityValue),
         }),
         ringOffsetColor: ({ theme: t }) => ({ ...t('colors'), DEFAULT: withOpacity(t('colors.background')) }),
+        // The only layers there are: z-raised … z-notice. Tailwind's own numbers (z-10, z-50) are switched off
+        zIndex: theme.LAYERS,
         extend: {
             // Every size of corner and the pace of every transition are the skin's (theme.js → SKIN), read as variables
             borderRadius: {

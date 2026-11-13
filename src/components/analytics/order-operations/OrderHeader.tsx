@@ -65,7 +65,7 @@ export function OrderHeader({ editions, flow, matchCount, backTo }: OrderHeaderP
                 {info.client_name && (
                     <div className="min-w-0">
                         <p className="text-3xs text-fg-subtle font-semibold leading-none">{t.client}</p>
-                        <p className="text-sm font-semibold text-fg-soft truncate">{info.client_name}</p>
+                        <p className={titleClasses('section', 'truncate')}>{info.client_name}</p>
                     </div>
                 )}
 

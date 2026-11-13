@@ -25,6 +25,7 @@ import {
     type OperatorFreeField,
 } from '@/lib/presence/operatorInput';
 import { APP_COPY, fmt } from '@/locales';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.analytics.operators.form;
 const CATEGORY_OPTIONS = EMPLOYEE_CATEGORIES.map((c) => ({ label: c.label, value: c.key }));
@@ -222,7 +223,7 @@ export function OperatorFormModal({ operator, onSaved, onClose }: OperatorFormMo
                 </div>
                 {operator && (
                     <fieldset className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border pt-3">
-                        <legend className="text-xs font-medium text-fg-muted pr-2">{copy.freeFields}</legend>
+                        <legend className={titleClasses('label', 'pr-2')}>{copy.freeFields}</legend>
                         {OPERATOR_FREE_FIELDS.map((field) => (
                             <Field key={field} label={field} htmlFor={id(field)}>
                                 <Input

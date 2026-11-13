@@ -5,6 +5,7 @@ import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
 import { Surface, surfaceClasses } from '@/components/ui/Surface';
 import { menuRowClasses } from '@/components/ui/MenuRow';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -18,7 +19,7 @@ interface OrderMatchesProps {
 export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
     return (
         <div className="space-y-2">
-            <p className="text-xs font-semibold text-fg-muted px-1">
+            <p className={titleClasses('label', 'px-1')}>
                 {t.multipleResultsFound}: <span className="text-fg-strong font-bold">{matches.length}</span> — {t.selectOrderToView}
             </p>
 
@@ -36,7 +37,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-fg-soft group-hover:text-primary transition-colors truncate">{match.master_order_title}</p>
+                                <p className={titleClasses('section', 'truncate')}>{match.master_order_title}</p>
                                 <div className="flex items-center gap-2 text-xs text-fg-muted">
                                     <span className="truncate max-w-80">{match.client_name || '-'}</span>
                                     <span>•</span>
@@ -47,7 +48,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0 text-fg-subtle group-hover:text-primary transition-colors text-xs font-semibold">
+                        <div className="flex items-center gap-2 flex-shrink-0 text-fg-subtle text-xs font-semibold">
                             <span className="hidden sm:inline">{t.openOrder}</span>
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </div>

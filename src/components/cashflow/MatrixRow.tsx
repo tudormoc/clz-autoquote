@@ -2,7 +2,7 @@ import { FoldArrow } from '@/components/ui/FoldArrow';
 import { PENDING_VALUE, formatCurrencyRounded } from '@/lib/format';
 import type { MonthValues } from '@/lib/cashflow/matrix';
 import { cn } from '@/lib/utils';
-import { TableCell, TableRow } from '@/components/ui/Table';
+import { ROW_PRESSABLE, TableCell, TableRow, VALUE_PRESSABLE } from '@/components/ui/Table';
 
 export type MatrixTone = 'info' | 'success' | 'danger' | 'warning' | 'neutral';
 /** main = section row · group = category inside a section · item = one account / client */
@@ -15,17 +15,17 @@ export const MATRIX_HEAD = 'py-2.5 text-3xs';
 export const MATRIX_COLUMNS = 14;
 
 const TONES: Record<MatrixTone, { row: string; group: string; value: string; total: string; icon: string; active: string }> = {
-    info: { row: 'bg-info-950/20 text-info-200 border-b border-info-900/30 hover:bg-info-900/30', group: 'bg-info-950/10', value: 'text-info-300', total: 'text-info-400 bg-info-950/40', icon: 'text-info-400', active: 'bg-info-900/40 text-info-200' },
-    success: { row: 'bg-success-950/30 text-success-400 hover:bg-success-900/40', group: 'bg-success-950/20', value: 'text-success-300', total: 'text-success-400 bg-success-950/50', icon: 'text-success-400', active: 'bg-success-900/40 text-success-200' },
-    danger: { row: 'bg-danger-950/30 text-danger-400 hover:bg-danger-900/40', group: 'bg-danger-950/10', value: 'text-danger-300', total: 'text-danger-400 bg-danger-950/50', icon: 'text-danger-400', active: 'bg-danger-900/40 text-danger-200' },
-    warning: { row: 'bg-warning-950/25 text-warning-300 border-t-2 border-warning-500/40 hover:bg-warning-900/30', group: 'bg-warning-950/10', value: 'text-warning-200', total: 'text-warning-400 bg-warning-950/40', icon: 'text-warning-400', active: 'bg-warning-900/40 text-warning-200' },
+    info: { row: 'bg-info-950/20 text-info-200 border-b border-info-900/30', group: 'bg-info-950/10', value: 'text-info-300', total: 'text-info-400 bg-info-950/40', icon: 'text-info-400', active: 'bg-info-900/40 text-info-200' },
+    success: { row: 'bg-success-950/30 text-success-400', group: 'bg-success-950/20', value: 'text-success-300', total: 'text-success-400 bg-success-950/50', icon: 'text-success-400', active: 'bg-success-900/40 text-success-200' },
+    danger: { row: 'bg-danger-950/30 text-danger-400', group: 'bg-danger-950/10', value: 'text-danger-300', total: 'text-danger-400 bg-danger-950/50', icon: 'text-danger-400', active: 'bg-danger-900/40 text-danger-200' },
+    warning: { row: 'bg-warning-950/25 text-warning-300 border-t-2 border-warning-500/40', group: 'bg-warning-950/10', value: 'text-warning-200', total: 'text-warning-400 bg-warning-950/40', icon: 'text-warning-400', active: 'bg-warning-900/40 text-warning-200' },
     neutral: { row: 'bg-card text-fg border-y border-border-strong', group: 'bg-card', value: 'text-fg', total: 'text-fg bg-muted/40', icon: 'text-fg-muted', active: 'bg-muted text-fg' },
 };
 
 const LEVELS: Record<MatrixLevel, { row: string; label: string; cell: string; total: string }> = {
     main: { row: 'text-2xs font-semibold', label: 'px-2 py-2', cell: 'px-0.5 py-2', total: 'px-1.5 py-2 font-bold' },
-    group: { row: 'text-3xs font-semibold border-y border-border/40 hover:bg-muted/40', label: 'pl-6 pr-2 py-1.5', cell: 'px-0.5 py-1.5 opacity-80', total: 'px-1.5 py-1.5 font-bold bg-muted/20' },
-    item: { row: 'text-3xs hover:bg-muted/50', label: 'pl-10 pr-2 py-1', cell: 'px-0.5 py-1 opacity-70', total: 'px-1.5 py-1 font-medium bg-muted/20' },
+    group: { row: 'text-3xs font-semibold border-y border-border/40', label: 'pl-6 pr-2 py-1.5', cell: 'px-0.5 py-1.5 opacity-80', total: 'px-1.5 py-1.5 font-bold bg-muted/20' },
+    item: { row: 'text-3xs', label: 'pl-10 pr-2 py-1', cell: 'px-0.5 py-1 opacity-70', total: 'px-1.5 py-1 font-medium bg-muted/20' },
 };
 
 interface MatrixRowProps {
@@ -79,10 +79,10 @@ export function MatrixRow({
     return (
         <TableRow
             onClick={expandable?.onToggle}
-            className={cn('transition-colors', l.row, level === 'main' ? t.row : level === 'group' ? t.group : '', rowClass, active && t.active, expandable && 'cursor-pointer')}
+            className={cn('transition-colors', l.row, level === 'main' ? t.row : level === 'group' ? t.group : '', rowClass, active && t.active, expandable && ROW_PRESSABLE)}
         >
             {/* Pinned while the table scrolls sideways on narrow screens */}
-            <TableCell className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
+            <TableCell className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-raised max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
                 <div className="flex items-center gap-1.5">
                     {expandable && <FoldArrow open={expandable.expanded} size={level === 'main' ? 14 : 13} className={t.icon} />}
                     {icon}
@@ -96,7 +96,7 @@ export function MatrixRow({
                         key={index}
                         onClick={clickable ? (event) => { event.stopPropagation(); onCellClick(index + 1); } : undefined}
                         title={cellTitle?.(index + 1, value)}
-                        className={cn(l.cell, 'text-right font-mono truncate', value !== null && value !== undefined ? valueClass?.(value) ?? t.value : t.value, clickable && 'hover:underline hover:bg-muted/30')}
+                        className={cn(l.cell, 'text-right font-mono truncate', value !== null && value !== undefined ? valueClass?.(value) ?? t.value : t.value, clickable && VALUE_PRESSABLE)}
                     >
                         {showMonth(value)}
                     </TableCell>

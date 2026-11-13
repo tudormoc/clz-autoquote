@@ -6,8 +6,9 @@ import { isWithin, type NavArea } from '@/config/navigation';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/IconButton';
-import { ROW_PICKED } from '@/components/ui/MenuRow';
+import { menuRowClasses } from '@/components/ui/MenuRow';
 import { FoldArrow } from '@/components/ui/FoldArrow';
+import { linkClasses } from '@/components/ui/linkLook';
 
 interface SidebarAreaProps {
     area: NavArea;
@@ -31,13 +32,7 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
 
     return (
         <div className="group/item relative">
-            <div
-                className={cn(
-                    'flex items-center rounded-md transition-colors',
-                    onAreaPage ? ROW_PICKED : 'hover:bg-muted',
-                    !onAreaPage && (inArea ? 'text-fg-strong' : 'text-fg-muted hover:text-fg')
-                )}
-            >
+            <div className={menuRowClasses({ selected: onAreaPage, quiet: !inArea }, 'gap-0 p-0 rounded-md', inArea && !onAreaPage && 'text-fg-strong')}>
                 <Link
                     href={area.href}
                     onClick={onNavigate}
@@ -54,7 +49,7 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
                         onClick={onToggle}
                         aria-expanded={open}
                         aria-label={fmt(APP_COPY.nav.showPages, { area: label })}
-                        className="collapsed:hidden shrink-0 mr-1 text-fg-subtle hover:text-fg hover:bg-muted-strong"
+                        className="collapsed:hidden shrink-0 mr-1"
                     >
                         <FoldArrow open={open} />
                     </IconButton>
@@ -68,7 +63,7 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
             )}
 
             <SidebarFlyout align={flyoutAlign}>
-                <Link href={area.href} className="block px-2 py-1.5 text-sm font-semibold text-fg-strong hover:text-primary transition-colors">
+                <Link href={area.href} className={linkClasses('name', 'block px-2 py-1.5 text-sm font-semibold')}>
                     {label}
                 </Link>
                 {groups && <SidebarPages groups={groups} pathname={pathname} />}

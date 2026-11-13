@@ -11,6 +11,7 @@ import { RepeatRuleSchema } from '@/lib/tasks/repeat';
 import { toRepeatRule, type RepeatDraft } from '@/lib/tasks/taskDraft';
 import { APP_COPY, fmt } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks;
 
@@ -32,7 +33,7 @@ export function NextDatesPreview({ repeat, firstDate, today, closedDays }: NextD
 
     return (
         <div className={surfaceClasses('inset', 'px-3 py-2')}>
-            <p className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+            <p className={titleClasses('label', 'flex items-center gap-1.5')}>
                 <CalendarDays size={13} />
                 {copy.form.nextDates}
             </p>

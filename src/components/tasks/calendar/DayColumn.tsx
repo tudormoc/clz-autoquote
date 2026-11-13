@@ -11,7 +11,7 @@ import { dayOf, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { FoldToggle } from '@/components/ui/FoldToggle';
-import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
+import { SURFACE_PENDING, SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -55,8 +55,8 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                 'inset',
                 'group/day relative flex flex-1 flex-col min-w-0 transition-colors',
                 isToday ? SURFACE_SELECTED : closed && 'border-border/60 bg-background',
-                droppable && 'border-dashed border-primary/50',
-                dropping && ['border-solid', SURFACE_SELECTED]
+                droppable && [SURFACE_PENDING, SURFACE_SELECTED],
+                dropping && 'border-solid'
             )}
         >
             <header className="shrink-0 px-2.5 pt-2 pb-1.5">
@@ -90,7 +90,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
 
             <div className="flex-1 flex flex-col gap-1.5 px-1.5 pt-1 pb-1.5 lg:min-h-0 lg:overflow-y-auto">
                 {dropping && others.length === 0 && (
-                    <p className="rounded-md border border-dashed border-primary px-2 py-2 text-center text-xs text-primary">{copy.dropHere}</p>
+                    <p className={surfaceClasses('inset', SURFACE_PENDING, SURFACE_SELECTED, 'px-2 py-2 text-center text-xs text-primary')}>{copy.dropHere}</p>
                 )}
                 {content.open.map((item) => {
                     const index = others.indexOf(item);
@@ -151,7 +151,7 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
                 )}
                 {canEdit && !past && (
                     <div className={cn(content.done.length === 0 && 'mt-auto')}>
-                        <DayQuickAdd onAdd={(title) => calendar.addOn(date, title)} quiet={!empty} />
+                        <DayQuickAdd onAdd={(title) => calendar.addOn(date, title)} quiet={!empty} compact={!!closed && empty && !isToday} />
                     </div>
                 )}
             </div>

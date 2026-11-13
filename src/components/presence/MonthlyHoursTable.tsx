@@ -163,7 +163,7 @@ export function MonthlyHoursTable() {
     );
 
     const footer = (
-        <TableRow className="text-xs font-semibold hover:bg-transparent">
+        <TableRow still className="text-xs font-semibold">
             <TableCell colSpan={LABEL_COLUMNS} className="py-2 text-fg-muted">
                 {totalsLabel}
             </TableCell>
@@ -207,7 +207,6 @@ export function MonthlyHoursTable() {
                             variant="secondary"
                             onClick={prefill.check}
                             disabled={prefill.checking || prefill.prefilling || list.loading || list.applied === null}
-                            className="border-warning-500/40 text-warning-300 hover:bg-warning-500/20"
                         >
                             {prefill.checking || prefill.prefilling ? <Spinner size={16} /> : <CalendarCheck size={16} />}
                             {copy.prefill.button}

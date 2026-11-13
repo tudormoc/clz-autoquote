@@ -5,7 +5,7 @@ import { Eye, Pencil, type LucideIcon } from '@/components/ui/icons';
 import { Light } from '@/components/admin/access/Light';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { ROW_SUMMARY, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import type { ChoiceTone } from '@/components/ui/ChoiceButton';
 import { pageFunctions, type NavAreaId, type NavItem } from '@/config/navigation';
 import { LIGHTS, functionOn, lightState, withFunction, withLight, type LightKind } from '@/lib/auth/lights';
@@ -155,7 +155,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
             <Surface className="overflow-hidden">
                 <Table containerClassName="lg:max-h-panel lg:overflow-y-auto">
                     <TableHeader>
-                        <TableRow className="hover:bg-transparent">
+                        <TableRow still>
                             <TableHead>{copy.page}</TableHead>
                             {LIGHTS.map((kind) => {
                                 const Icon = LOOK[kind].icon;
@@ -173,7 +173,7 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
                     </TableHeader>
                     <TableBody>
                         {rows.length === 0 && (
-                            <TableRow className="hover:bg-transparent">
+                            <TableRow still>
                                 <TableCell colSpan={LIGHTS.length + 2} className="py-6 text-center text-sm text-fg-subtle">
                                     {copy.noMatch}
                                 </TableCell>
@@ -184,9 +184,9 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
                             return (
                                 <TableRow
                                     key={row.key}
+                                    still
                                     className={cn(
-                                        'hover:bg-transparent',
-                                        row.nested ? 'text-fg-secondary' : 'bg-muted/40 font-semibold text-fg-strong',
+                                        row.nested ? 'text-fg-secondary' : [ROW_SUMMARY, 'font-semibold text-fg-strong'],
                                         text !== '' && row.search.includes(text) && 'bg-primary/5'
                                     )}
                                 >

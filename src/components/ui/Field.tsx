@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { FIELD_LABEL } from '@/components/ui/fieldLook';
 
 interface FieldProps {
     label: React.ReactNode;
@@ -12,7 +13,7 @@ interface FieldProps {
 export function Field({ label, htmlFor, children, className }: FieldProps) {
     return (
         <div className={cn(className)}>
-            <label htmlFor={htmlFor} className="block text-xs font-medium text-fg-muted mb-2">
+            <label htmlFor={htmlFor} className={FIELD_LABEL}>
                 {label}
             </label>
             {children}

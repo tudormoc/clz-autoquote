@@ -53,21 +53,35 @@ similar is one part, not two that differ a little.
   and `FoldArrow` (what unfolds in place, one arrow everywhere). A link or a label that is pressed takes the same look
   from the part's classes (`pressableSurfaceClasses`, `menuRowClasses`): the cards of Gruppi and of the home pages, the
   pages of the sidebar, the table list of Esplora Database.
+- The small grey label has one look: `titleClasses('label')` over a few lines, `FIELD_LABEL` (the same, on its own
+  line) over a field, in `Field`, `Input` and `Select`. No screen writes it any more.
+- A link read as text has three looks, in one file (`linkClasses`: accent, name, quiet); a value one presses in a
+  table cell one (`VALUE_PRESSABLE`); a dashed box for what is not there yet one (`SURFACE_PENDING`). A table row that does
+  not light up under the mouse says `still`; no screen switches a hover off by hand.
+- What sits over what is eight named layers (`theme.js` → `LAYERS`: `z-raised` … `z-notice`); Tailwind's own numbers are
+  switched off and the lint refuses one. A message of the app is now always on top.
 - ESLint refuses a fixed corner or pace, a hand-made box, a background of its own on a Surface, a raw `<button>`,
-  `Pressable` outside the shared parts, an icon imported from the icon package.
+  `Pressable` outside the shared parts, an icon imported from the icon package; and, outside the shared parts, a look
+  under the mouse, a cursor, a dashed edge and a title look written in a screen. A Claude Code session gets the
+  errors of a file right after it edits it (`.claude/settings.json` → `scripts/lint-edited.js`).
+
+**How the rules are kept, and what is still weak** (2026-11-13):
+- The lint is a list of what is refused: a new way of drawing by hand passes until a rule names it. Stronger: a screen
+  may write only spacing and layout, with a count of the places that still write more (about 237) that may only go down.
+- The check before a push is `gitsync.bat` on this PC: a plain `git push` skips it. Stronger: the full check on GitHub
+  for every push (to see first: the build downloads two fonts and may need what is only in `.env.local`).
+- The check after an edit covers Claude Code sessions in this folder, and only files changed with Edit or Write: a
+  file changed by a script or by hand waits for the lint of the whole project.
+- No tool sees the screen: the page of every shared part (below), with screenshots compared automatically.
+- A rule can be switched off with a comment (three today): a reason required for each, and a count.
+- Texts and numbers typed in a screen are not checked by any tool.
 
 **Still to do**, in this order:
-1. **Field labels** written by hand (9). Then look again for what slipped through, the way it was found before: raw
-   `tr` / `td`, a `bg-card/NN`, a `rounded-full` pill, an icon sized by classes, a symbol or a unit typed in a screen.
-   Found on 2026-11-13 and still open: text links with a hover of their own (18, they could take the look of
-   `TextButton`), the two click-to-edit cells of the presence tables (`EditableHoursCell`, `PresetSelectCell`: the same
-   classes twice), the option box of the month window (`MonthSelectorModal`), dashed boxes written in place (Calendario).
-2. **Layers** (what sits over what): 18 `z-…` numbers on five levels become named layers (menu, drawer, window, notice).
-3. **Sizes typed as numbers** (12: `w-[90px]`, `max-h-[calc(…)]` …), inline `style={{}}` (11) and class lists built with
+1. **Sizes typed as numbers** (12: `w-[90px]`, `max-h-[calc(…)]` …), inline `style={{}}` (11) and class lists built with
    `` `…${}` `` instead of `cn()` (4).
-4. **What unfolds in place** (sidebar areas, the filter bar) cannot be animated by a skin: it needs the markup changed.
-5. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
-6. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
+2. **What unfolds in place** (sidebar areas, the filter bar) cannot be animated by a skin: it needs the markup changed.
+3. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
+4. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
    shows every shared part side by side (superadmin, Strumenti), and one real second skin built from one file plus its
    images and font. It will need tokens that only make sense with it: the border width and style of a surface, a
    texture or a blur, a font for titles (in `titleClasses`), its own drawings for the icon names (in `icons.ts`), its

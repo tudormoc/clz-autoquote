@@ -25,7 +25,7 @@ export function TableList({ tables, selected, linkOf }: TableListProps) {
                         key={table}
                         to={linkOf(table)}
                         aria-current={table === selected ? 'page' : undefined}
-                        className={menuRowClasses({ selected: table === selected }, 'rounded', table !== selected && 'text-fg-muted')}
+                        className={menuRowClasses({ selected: table === selected, quiet: true }, 'rounded')}
                     >
                         {table}
                     </ViewLink>

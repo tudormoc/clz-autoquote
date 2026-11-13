@@ -36,13 +36,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <MobileMenu open={menuOpen} onClose={closeMenu} />
 
             <div className="flex-1 min-w-0 flex flex-col lg:min-h-0">
-                <header className={surfaceClasses('bar', 'lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-1 px-2 border-b')}>
+                <header className={surfaceClasses('bar', 'lg:hidden sticky top-0 z-bar h-14 shrink-0 flex items-center gap-1 px-2 border-b')}>
                     <IconButton size="lg"
                         type="button"
                         onClick={() => setMenuOpen(true)}
                         aria-label={APP_COPY.nav.openMenu}
                         aria-expanded={menuOpen}
-                        className="p-2.5 rounded-md hover:text-fg"
+                        className="p-2.5"
                     >
                         <Menu size={22} />
                     </IconButton>

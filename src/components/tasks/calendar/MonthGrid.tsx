@@ -43,7 +43,7 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                 style={{ gridTemplateRows: `auto repeat(${days.length / 7}, minmax(0, 1fr))` }}
             >
                 {APP_COPY.weekdays.short.map((name) => (
-                    <div key={name} className="px-2 py-1.5 text-xs font-semibold text-fg-muted border-b border-border bg-muted/40">
+                    <div key={name} className={titleClasses('label', 'px-2 py-1.5 border-b border-border bg-muted/40')}>
                         {name}
                     </div>
                 ))}

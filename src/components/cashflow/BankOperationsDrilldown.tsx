@@ -246,7 +246,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
             <Surface className="overflow-hidden">
                 <Table containerClassName="max-h-96 overflow-y-auto" className="text-xs font-mono">
                     <TableHeader>
-                        <TableRow className="hover:bg-transparent">
+                        <TableRow still>
                             <TableHead className={DENSE_HEAD}>{t.date}</TableHead>
                             <TableHead className={DENSE_HEAD}>{t.regDoc}</TableHead>
                             <TableHead className={DENSE_HEAD}>{t.description}</TableHead>
@@ -257,7 +257,7 @@ export const BankOperationsDrilldown: React.FC<BankOperationsDrilldownProps> = (
                     </TableHeader>
                     <TableBody>
                         {(isPending || filteredTransactions.length === 0) && (
-                            <TableRow className="hover:bg-transparent">
+                            <TableRow still>
                                 <TableCell colSpan={6} className="py-6 text-center text-fg-muted">
                                     {isPending ? (
                                         <span className="inline-flex items-center gap-2">

@@ -126,8 +126,8 @@ export function CashflowMonthlyMatrix({ data, year, loading }: CashflowMonthlyMa
             {/* Narrow screens: the table keeps its width and scrolls sideways, row names pinned on the left */}
             <Table className="max-lg:min-w-matrix text-left text-xs table-fixed">
                     <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                            <TableHead className={cn(MATRIX_HEAD, 'px-2 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-10 max-lg:bg-card')}>{copy.categoryHeader}</TableHead>
+                        <TableRow still>
+                            <TableHead className={cn(MATRIX_HEAD, 'px-2 w-[22%] truncate max-lg:sticky max-lg:left-0 max-lg:z-sticky max-lg:bg-card')}>{copy.categoryHeader}</TableHead>
                             {APP_COPY.months.short.map((month, index) => {
                                 const current = index + 1 === currentMonth;
                                 return (

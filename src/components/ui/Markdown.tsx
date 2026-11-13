@@ -4,6 +4,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { titleClasses } from '@/components/ui/titleLook';
+import { linkClasses } from '@/components/ui/linkLook';
 
 /** Each Markdown element drawn with the app's tokens (no typography plugin); raw HTML in the text is never run */
 const ELEMENTS: Components = {
@@ -15,7 +16,7 @@ const ELEMENTS: Components = {
     ol: ({ children }) => <ol className="my-2 pl-5 space-y-1 list-decimal">{children}</ol>,
     li: ({ children }) => <li className="leading-relaxed marker:text-fg-muted">{children}</li>,
     a: ({ href, children }) => (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary-300 break-words">
+        <a href={href} target="_blank" rel="noopener noreferrer" className={linkClasses('accent', 'underline underline-offset-2 break-words')}>
             {children}
         </a>
     ),

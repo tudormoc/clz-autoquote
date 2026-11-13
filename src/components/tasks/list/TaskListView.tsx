@@ -25,6 +25,7 @@ import type { RowSortColumns } from '@/lib/sort';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 const columnsCopy = copy.list.columns;
@@ -96,7 +97,7 @@ export function TaskListView() {
             mobileHidden: true,
             cell: (task) => (
                 <div className="min-w-0">
-                    <Link href={`${LINKS.tasks.list}/${task.id}`} className="font-medium text-fg-strong hover:text-primary">
+                    <Link href={`${LINKS.tasks.list}/${task.id}`} className={linkClasses('name')}>
                         {task.title}
                     </Link>
                     {task.tags.length > 0 && <div className="text-2xs text-fg-subtle">{task.tags.join(' · ')}</div>}
@@ -162,7 +163,7 @@ export function TaskListView() {
                 onSort={toggleSort}
                 emptyMessage={tasks.length === 0 ? copy.list.empty : copy.list.noMatch}
                 mobileTitle={(task) => (
-                    <Link href={`${LINKS.tasks.list}/${task.id}`} className="font-medium text-fg-strong">
+                    <Link href={`${LINKS.tasks.list}/${task.id}`} className={linkClasses('name')}>
                         {task.title}
                     </Link>
                 )}

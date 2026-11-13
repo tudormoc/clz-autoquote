@@ -2,7 +2,7 @@
 
 import { PanelLeftClose, PanelLeftOpen } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
-import { SIDEBAR_ACTION_ROW } from '@/components/layout/sidebar/sidebarRow';
+import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
 import { toggleSidebarCollapsed } from '@/lib/sidebar';
 import { APP_COPY } from '@/locales';
 import { MenuRow } from '@/components/ui/MenuRow';
@@ -13,7 +13,7 @@ const copy = APP_COPY.nav;
 export function SidebarFoldButton() {
     return (
         <div className="group/item relative">
-            <MenuRow onClick={toggleSidebarCollapsed} className={SIDEBAR_ACTION_ROW}>
+            <MenuRow quiet onClick={toggleSidebarCollapsed} className={SIDEBAR_ROW}>
                 <PanelLeftClose size={18} className="shrink-0 collapsed:hidden" />
                 <PanelLeftOpen size={18} className="shrink-0 hidden collapsed:block" />
                 <span className="collapsed:hidden">{copy.collapse}</span>

@@ -18,6 +18,12 @@ export const DENSE_CELL = 'px-2.5 py-1.5';
 export const ROW_WARNING = 'bg-warning-500/5 hover:bg-warning-500/10';
 /** The mark of one value that differs, inside a cell */
 export const VALUE_WARNING = 'text-warning-300 bg-warning-500/15 rounded px-1 -mx-1';
+/** A value one presses, in a cell: to change it in place, to see what it is made of */
+export const VALUE_PRESSABLE = 'cursor-pointer rounded transition-colors hover:bg-muted';
+/** A row one presses: it opens what it is about, or unfolds the rows under it */
+export const ROW_PRESSABLE = 'cursor-pointer';
+/** The tint of a row that stands for several: a total, what was added to it, an area over its pages */
+export const ROW_SUMMARY = 'bg-muted/40';
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(({ className, containerClassName, ...props }, ref) => (
     <div className={cn("relative w-full overflow-x-auto", containerClassName)}>
@@ -35,7 +41,7 @@ const TableHeader = React.forwardRef<
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
     // Sticks to the top of a scrolling table box; the line under it is drawn by each cell (shadow-divider)
-    <thead ref={ref} className={cn("sticky top-0 z-10 bg-card", className)} {...props} />
+    <thead ref={ref} className={cn("sticky top-0 z-sticky bg-card", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -54,19 +60,21 @@ const TableFooter = React.forwardRef<
     // Sticks to the bottom of a scrolling table box, so the totals stay in view
     <tfoot
         ref={ref}
-        className={cn("sticky bottom-0 z-10 bg-card font-medium [&_td]:shadow-divider-top", className)}
+        className={cn("sticky bottom-0 z-sticky bg-card font-medium [&_td]:shadow-divider-top", className)}
         {...props}
     />
 ))
 TableFooter.displayName = "TableFooter"
 
-const TableRow = React.forwardRef<
-    HTMLTableRowElement,
-    React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+    /** A row that does not light up under the mouse: a header row, a total, a row that only holds something else */
+    still?: boolean;
+}
+
+const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(({ className, still = false, ...props }, ref) => (
     <tr
         ref={ref}
-        className={cn("transition-colors hover:bg-muted/40", className)}
+        className={cn("transition-colors", !still && "hover:bg-muted/40", className)}
         {...props}
     />
 ))

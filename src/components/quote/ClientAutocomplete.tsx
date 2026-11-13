@@ -99,7 +99,7 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                 </div>
 
                 {isOpen && suggestions.length > 0 && (
-                    <Surface kind="floating" className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto">
+                    <Surface kind="floating" className="absolute z-popup w-full mt-1 max-h-60 overflow-y-auto">
                         {suggestions.map((suggestion, index) => (
                             <MenuRow key={index} onClick={() => handleSelect(suggestion.id, suggestion.name)}>
                                 <span className="truncate">

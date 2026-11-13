@@ -16,7 +16,7 @@ const TITLES: Record<TitleLevel, string> = {
     page: 'text-xl font-bold text-fg-strong',
     panel: 'text-base font-semibold text-fg-strong',
     section: 'text-sm font-semibold text-fg-soft',
-    label: 'text-xs font-semibold text-fg-muted',
+    label: 'text-xs font-medium text-fg-muted',
 };
 
 /** The look of a title; what follows adds its layout (a margin, an icon beside it) or a tone: <h3 className={titleClasses('section', 'mb-2')}> */

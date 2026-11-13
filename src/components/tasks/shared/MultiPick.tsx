@@ -43,7 +43,7 @@ export function MultiPick({ options, selected, onChange, emptyText }: MultiPickP
             {options.length > SEARCH_FROM && <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={APP_COPY.common.search} />}
             <div className="max-h-56 overflow-y-auto rounded border border-border divide-y divide-border/60">
                 {visible.map((option) => (
-                    <label key={option.id} className={menuRowClasses({}, 'items-start cursor-pointer')}>
+                    <label key={option.id} className={menuRowClasses({}, 'items-start')}>
                         <span className="mt-0.5">
                             <Checkbox checked={selected.includes(option.id)} onChange={(e) => toggle(option.id, e.target.checked)} aria-label={option.label} />
                         </span>

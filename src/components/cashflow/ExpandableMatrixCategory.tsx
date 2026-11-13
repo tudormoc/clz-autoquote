@@ -58,7 +58,7 @@ export function ExpandableMatrixCategory({ title, items, tone, expanded, onToggl
                         />
                     ))
                 ) : (
-                    <TableRow className="text-3xs hover:bg-transparent">
+                    <TableRow still className="text-3xs">
                         <TableCell colSpan={MATRIX_COLUMNS} className="pl-10 pr-2 py-1.5 font-medium text-fg-subtle">└ {emptyText}</TableCell>
                     </TableRow>
                 ))}

@@ -135,6 +135,19 @@ const LAYOUT = {
     },
 };
 
+// What sits over what, from the page up: z-raised … z-notice. A screen names the layer, never a number (the lint
+// refuses one), so two things can no longer fight over the same place by accident.
+const LAYERS = {
+    raised: '1',    // lifted over its neighbours inside one box: a pinned cell, a button over the link of a card
+    sticky: '10',   // stays put while its box scrolls: the header and the totals of a table
+    popup: '20',    // opens beside what it belongs to, inside the page: suggestions under a field, an editor over a cell
+    bar: '30',      // a bar of the page that stays put: the top bar of a phone, the total of a quote
+    drawer: '40',   // slides in over the page: the phone menu, the panel of a task
+    window: '50',   // a window over the whole page
+    menu: '60',     // opens over anything, a window too: a menu, the calendar of a date field, a list of results
+    notice: '70',   // a message of the app: always on top
+};
+
 const SHADOWS = {
     'shadow-sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
     'shadow': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
@@ -256,6 +269,7 @@ module.exports = {
     FONT_FAMILY,
     FONT_SIZE,
     LAYOUT,
+    LAYERS,
     SHADOWS,
     SKIN,
     cssVariables,

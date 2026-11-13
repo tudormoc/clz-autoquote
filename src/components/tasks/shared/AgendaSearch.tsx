@@ -12,6 +12,7 @@ import type { SearchHit, SearchKind } from '@/lib/tasks/db/search';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
 import { Surface } from '@/components/ui/Surface';
+import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks.search;
 const ICONS: Record<SearchKind, LucideIcon> = { task: ListChecks, guide: BookOpen, contact: Contact };
@@ -102,14 +103,14 @@ export function AgendaSearch({ className = 'sm:w-72' }: { className?: string }) 
                 maxLength={APP_CONFIG.TASKS.MAX_TITLE_LENGTH}
             />
             {shown && (
-                <Surface kind="floating" role="listbox" className="absolute right-0 top-full z-50 mt-1 w-full sm:w-96 max-h-96 overflow-y-auto py-1">
+                <Surface kind="floating" role="listbox" className="absolute right-0 top-full z-menu mt-1 w-full sm:w-96 max-h-96 overflow-y-auto py-1">
                     {shown.length === 0 && <p className="px-3 py-2 text-sm text-fg-subtle">{copy.empty}</p>}
                     {shown.map((hit, index) => {
                         const Icon = ICONS[hit.kind];
                         const first = index === 0 || shown[index - 1].kind !== hit.kind;
                         return (
                             <div key={`${hit.kind}:${hit.id}`}>
-                                {first && <p className="px-3 pt-2 pb-1 text-3xs font-semibold text-fg-subtle">{copy.groups[hit.kind]}</p>}
+                                {first && <p className={titleClasses('label', 'px-3 pt-2 pb-1')}>{copy.groups[hit.kind]}</p>}
                                 <Link
                                     href={hrefOf(hit)}
                                     role="option"

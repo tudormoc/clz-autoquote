@@ -9,6 +9,7 @@ import type { LinkKind, TaskLink } from '@/lib/tasks/types';
 import { APP_COPY } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
 import { IconButton } from '@/components/ui/IconButton';
+import { linkClasses } from '@/components/ui/linkLook';
 
 const copy = APP_COPY.tasks;
 
@@ -40,19 +41,19 @@ function LinkRow({ link }: { link: TaskLink }) {
         <li className="flex items-start gap-2.5 px-3 py-2">
             <Icon size={16} className="mt-0.5 shrink-0 text-fg-muted" />
             {href && link.kind === 'page' ? (
-                <Link href={href} className="flex-1 min-w-0 hover:text-primary">
+                <Link href={href} className={linkClasses('quiet', 'flex-1 min-w-0')}>
                     {body}
                 </Link>
             ) : href ? (
-                <a href={href} target={link.kind === 'web' ? '_blank' : undefined} rel="noopener noreferrer" className="flex-1 min-w-0 flex items-start gap-1.5 group">
+                <a href={href} target={link.kind === 'web' ? '_blank' : undefined} rel="noopener noreferrer" className={linkClasses('quiet', 'flex-1 min-w-0 flex items-start gap-1.5')}>
                     {body}
-                    {link.kind === 'web' && <ExternalLink size={12} className="mt-1 shrink-0 text-fg-faint group-hover:text-primary" />}
+                    {link.kind === 'web' && <ExternalLink size={12} className="mt-1 shrink-0 opacity-60" />}
                 </a>
             ) : (
                 <span className="flex-1 min-w-0">{body}</span>
             )}
             {link.kind === 'path' && (
-                <IconButton size="sm" type="button" onClick={copyPath} title={copy.pathHint} aria-label={copy.copyPath} className="shrink-0 hover:text-primary">
+                <IconButton size="sm" type="button" onClick={copyPath} title={copy.pathHint} aria-label={copy.copyPath} className="shrink-0">
                     <Copy size={14} />
                 </IconButton>
             )}
