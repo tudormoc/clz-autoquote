@@ -4,7 +4,7 @@ import type { Group } from '@/lib/auth/accounts';
 import { lightCounts } from '@/lib/auth/lights';
 import { GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/permissions';
 import { APP_COPY, fmt } from '@/locales';
-import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 
 const copy = APP_COPY.admin.groups;
 
@@ -39,12 +39,7 @@ export function GroupCards({ groups, selectedId, pagesOf, members, linkOf }: Gro
                         to={linkOf(group)}
                         aria-current={selected ? 'page' : undefined}
                         title={names.length > 0 ? names.join(', ') : copy.noMembers}
-                        className={surfaceClasses(
-                            'panel',
-                            'block min-w-40 flex-1 px-3 py-2 text-left transition-colors xl:flex-none',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                            selected ? SURFACE_SELECTED : 'hover:bg-muted'
-                        )}
+                        className={pressableSurfaceClasses({ selected }, 'block min-w-40 flex-1 px-3 py-2 xl:flex-none')}
                     >
                         <span className="block truncate text-sm font-semibold text-fg-strong">{group.name}</span>
                         <span className="block text-xs text-fg-muted">

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Plus } from '@/components/ui/icons';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { TextButton } from '@/components/ui/TextButton';
 import { FIELD } from '@/components/ui/fieldLook';
 
 const copy = APP_COPY.tasks.calendar;
@@ -24,17 +24,13 @@ export function DayQuickAdd({ onAdd, quiet }: DayQuickAddProps) {
 
     if (!writing) {
         return (
-            <Pressable
-                type="button"
+            <TextButton
                 onClick={() => setWriting(true)}
-                className={cn(
-                    'w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-fg-subtle hover:text-primary hover:bg-primary/5 transition-colors focus-visible:opacity-100',
-                    quiet && 'md:opacity-0 md:group-hover/day:opacity-100'
-                )}
+                className={cn('w-full gap-1.5 px-2 py-1.5 text-xs focus-visible:opacity-100', quiet && 'md:opacity-0 md:group-hover/day:opacity-100')}
             >
                 <Plus size={13} />
                 {copy.add}
-            </Pressable>
+            </TextButton>
         );
     }
 

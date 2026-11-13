@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from '@/components/ui/icons';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 import { PENDING_VALUE, formatCurrencyRounded } from '@/lib/format';
 import type { MonthValues } from '@/lib/cashflow/matrix';
 import { cn } from '@/lib/utils';
@@ -75,7 +75,6 @@ export function MatrixRow({
     };
     const showMonth = (value: number | null | undefined) =>
         dashes && !loading && (value === null || value === undefined || value <= 0) ? '-' : showTotal(value);
-    const Chevron = expandable?.expanded ? ChevronDown : ChevronRight;
 
     return (
         <TableRow
@@ -85,7 +84,7 @@ export function MatrixRow({
             {/* Pinned while the table scrolls sideways on narrow screens */}
             <TableCell className={cn(l.label, 'font-sans truncate max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-card')} title={title ?? (typeof label === 'string' ? label : undefined)}>
                 <div className="flex items-center gap-1.5">
-                    {expandable && <Chevron size={level === 'main' ? 14 : 13} className={cn('shrink-0', t.icon)} />}
+                    {expandable && <FoldArrow open={expandable.expanded} size={level === 'main' ? 14 : 13} className={t.icon} />}
                     {icon}
                     <span className="truncate">{level === 'main' ? label : <>└ {label}</>}</span>
                 </div>

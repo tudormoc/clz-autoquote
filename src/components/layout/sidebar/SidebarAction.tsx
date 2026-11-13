@@ -1,8 +1,7 @@
 import type { LucideIcon } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
-import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
-import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { SIDEBAR_ACTION_ROW } from '@/components/layout/sidebar/sidebarRow';
+import { MenuRow } from '@/components/ui/MenuRow';
 
 interface SidebarActionProps {
     icon: LucideIcon;
@@ -14,10 +13,10 @@ interface SidebarActionProps {
 export function SidebarAction({ icon: Icon, label, onClick }: SidebarActionProps) {
     return (
         <div className="group/item relative">
-            <Pressable type="button" onClick={onClick} aria-label={label} className={cn(SIDEBAR_ROW, 'w-full text-fg-muted hover:bg-muted hover:text-fg transition-colors')}>
+            <MenuRow onClick={onClick} aria-label={label} className={SIDEBAR_ACTION_ROW}>
                 <Icon size={18} className="shrink-0" />
                 <span className="truncate collapsed:hidden">{label}</span>
-            </Pressable>
+            </MenuRow>
             <SidebarFlyout align="bottom">
                 <p className="px-2 py-1 text-sm text-fg">{label}</p>
             </SidebarFlyout>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { NavGroup } from '@/config/navigation';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 import { IconTile } from '@/components/ui/IconTile';
 import { titleClasses } from '@/components/ui/titleLook';
 
@@ -16,7 +16,7 @@ export function NavCards({ groups }: { groups: NavGroup[] }) {
                             <Link
                                 key={id}
                                 href={href}
-                                className={surfaceClasses('panel', 'group flex items-center gap-3 p-4 hover:border-primary/50 hover:bg-muted/50 transition-colors')}
+                                className={pressableSurfaceClasses({}, 'group flex items-center gap-3 p-4')}
                             >
                                 <IconTile>
                                     <Icon size={20} />

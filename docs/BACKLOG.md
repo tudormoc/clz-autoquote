@@ -48,20 +48,26 @@ similar is one part, not two that differ a little.
   `FIELD` for every field; the `Table` parts for every table; `titleClasses` for every heading; `StatusBadge` for every
   label; `IconTile`; the one list of icons. `Card`, `Section`, `FormCard`, `TagCell`, the outlined button and the
   "soft" box are gone: each was a second way to draw something.
-- ESLint refuses a fixed corner or pace, a hand-made box, a background of its own on a Surface, a raw `<button>`, an
-  icon imported from the icon package.
+- Everything one presses is a shared kind, nothing is drawn by hand any more: `Button`, `IconButton`, `ChoiceButton`
+  (the lights of Gruppi too), `SurfaceButton` (a box one presses), `MenuRow` (a row), `TextButton` (a word), `FoldToggle`
+  and `FoldArrow` (what unfolds in place, one arrow everywhere). A link or a label that is pressed takes the same look
+  from the part's classes (`pressableSurfaceClasses`, `menuRowClasses`): the cards of Gruppi and of the home pages, the
+  pages of the sidebar, the table list of Esplora Database.
+- ESLint refuses a fixed corner or pace, a hand-made box, a background of its own on a Surface, a raw `<button>`,
+  `Pressable` outside the shared parts, an icon imported from the icon package.
 
 **Still to do**, in this order:
-1. **One-off things one presses** (19 `Pressable` outside the shared parts): the chips and cards of the Agenda calendar,
-   the headers that fold a section, the day rows of Le mie ore, the rows of the sidebar. Give them shared kinds.
-2. **Field labels** written by hand (9). Then look again for what slipped through, the way it was found before: raw
+1. **Field labels** written by hand (9). Then look again for what slipped through, the way it was found before: raw
    `tr` / `td`, a `bg-card/NN`, a `rounded-full` pill, an icon sized by classes, a symbol or a unit typed in a screen.
-3. **Layers** (what sits over what): 18 `z-…` numbers on five levels become named layers (menu, drawer, window, notice).
-4. **Sizes typed as numbers** (12: `w-[90px]`, `max-h-[calc(…)]` …), inline `style={{}}` (11) and class lists built with
+   Found on 2026-11-13 and still open: text links with a hover of their own (18, they could take the look of
+   `TextButton`), the two click-to-edit cells of the presence tables (`EditableHoursCell`, `PresetSelectCell`: the same
+   classes twice), the option box of the month window (`MonthSelectorModal`), dashed boxes written in place (Calendario).
+2. **Layers** (what sits over what): 18 `z-…` numbers on five levels become named layers (menu, drawer, window, notice).
+3. **Sizes typed as numbers** (12: `w-[90px]`, `max-h-[calc(…)]` …), inline `style={{}}` (11) and class lists built with
    `` `…${}` `` instead of `cn()` (4).
-5. **What unfolds in place** (sidebar areas, the filter bar) cannot be animated by a skin: it needs the markup changed.
-6. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
-7. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
+4. **What unfolds in place** (sidebar areas, the filter bar) cannot be animated by a skin: it needs the markup changed.
+5. **The floor plan** has one hand-made box; ESLint lets that folder off until it is next worked on.
+6. **The switch and the proof**: the skin choice beside light / dark (`<html data-skin="…">`, a cookie), a page that
    shows every shared part side by side (superadmin, Strumenti), and one real second skin built from one file plus its
    images and font. It will need tokens that only make sense with it: the border width and style of a surface, a
    texture or a blur, a font for titles (in `titleClasses`), its own drawings for the icon names (in `icons.ts`), its

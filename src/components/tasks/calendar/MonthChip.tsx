@@ -1,17 +1,14 @@
 'use client';
 
-import { Repeat } from '@/components/ui/icons';
 import { cardMenu } from '@/components/tasks/calendar/cardMenu';
+import { PlannedCard } from '@/components/tasks/calendar/PlannedCard';
 import { FloatingMenu } from '@/components/ui/FloatingMenu';
+import { SurfaceButton } from '@/components/ui/SurfaceButton';
 import type { AgendaCalendar } from '@/hooks/useAgendaCalendar';
 import type { CalendarDrag } from '@/hooks/useCalendarDrag';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { isOpenStatus, type AgendaItem, type PlannedEntry } from '@/lib/tasks/types';
-import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
-
-const copy = APP_COPY.tasks.calendar;
 
 /** One line of a month cell: a stored occurrence (draggable while open, right-click for its actions) or a planned date (dashed) */
 export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: AgendaCalendar; drag: CalendarDrag; canEdit: boolean; item?: AgendaItem; entry?: PlannedEntry }) {
@@ -19,42 +16,39 @@ export function MonthChip({ calendar, drag, canEdit, item, entry }: { calendar: 
     const contextMenu = useContextMenu();
     if (entry) {
         return (
-            <Pressable
-                type="button"
-                onClick={() => select({ kind: 'planned', entry })}
-                data-calendar-card
-                title={`${entry.title} — ${copy.plannedHint}`}
-                className="w-full flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-2xs text-fg-subtle border border-dashed border-border-strong hover:text-fg-secondary"
-            >
-                <Repeat size={10} className="shrink-0" />
-                <span className="truncate">{entry.title}</span>
-            </Pressable>
+            <PlannedCard
+                compact
+                entry={entry}
+                selected={selected?.kind === 'planned' && selected.entry.taskId === entry.taskId && selected.entry.date === entry.date}
+                onOpen={() => select({ kind: 'planned', entry })}
+            />
         );
     }
     if (!item) return null;
     const open = isOpenStatus(item.status);
     const late = open && item.dueDate !== null && item.dueDate < today;
-    const isSelected = selected?.kind === 'item' && selected.item.id === item.id;
+    const critical = open && item.priority === 2;
     const menu = canEdit ? cardMenu(item, calendar) : [];
     return (
         <>
-            <Pressable
-                type="button"
+            <SurfaceButton
                 {...(canEdit ? drag.cardProps(item) : {})}
+                tone={late || critical ? 'danger' : undefined}
+                bare={!open}
+                selected={selected?.kind === 'item' && selected.item.id === item.id}
                 onClick={() => select({ kind: 'item', item })}
                 onContextMenu={menu.length > 0 ? contextMenu.open : undefined}
                 data-calendar-card
                 title={item.title}
                 className={cn(
-                    'w-full flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-2xs transition-colors',
-                    !open ? 'text-fg-faint line-through' : late ? 'bg-danger-500/15 text-danger-300' : item.priority === 2 ? 'bg-danger-500/10 text-fg-strong' : 'bg-primary/10 text-fg hover:bg-primary/20',
-                    isSelected && 'ring-1 ring-primary'
+                    'w-full flex items-center gap-1 truncate px-1.5 py-0.5 text-2xs',
+                    !open ? 'text-fg-faint line-through' : late ? 'text-danger-300' : critical ? 'text-fg-strong' : 'text-fg'
                 )}
             >
-                {open && item.priority > 0 && <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', item.priority === 2 ? 'bg-danger-400' : 'bg-warning-400')} />}
+                {open && item.priority > 0 && <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', critical ? 'bg-danger-400' : 'bg-warning-400')} />}
                 {item.dueTime && <span className="font-mono shrink-0">{item.dueTime}</span>}
                 <span className="truncate">{item.title}</span>
-            </Pressable>
+            </SurfaceButton>
             {contextMenu.at && <FloatingMenu actions={menu} anchor={contextMenu.at} onClose={contextMenu.close} />}
         </>
     );

@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { searchMSSQLClientsAction } from '@/app/client-search-actions';
 import { Search } from '@/components/ui/icons';
 import { Surface } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
-import { MENU_ROW } from '@/components/ui/FloatingMenu';
+import { MenuRow } from '@/components/ui/MenuRow';
 
 interface Props {
     value: string | undefined;
@@ -102,16 +101,11 @@ export const ClientAutocomplete = React.forwardRef<HTMLInputElement, Props>(
                 {isOpen && suggestions.length > 0 && (
                     <Surface kind="floating" className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto">
                         {suggestions.map((suggestion, index) => (
-                            <Pressable
-                                key={index}
-                                type="button"
-                                className={MENU_ROW}
-                                onClick={() => handleSelect(suggestion.id, suggestion.name)}
-                            >
+                            <MenuRow key={index} onClick={() => handleSelect(suggestion.id, suggestion.name)}>
                                 <span className="truncate">
                                     {suggestion.name}
                                 </span>
-                            </Pressable>
+                            </MenuRow>
                         ))}
                     </Surface>
                 )}

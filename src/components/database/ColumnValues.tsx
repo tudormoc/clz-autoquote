@@ -1,8 +1,8 @@
 import type { DbColumn, DbValueCount } from '@/app/db-actions';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
-import { Surface, surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { Surface } from '@/components/ui/Surface';
+import { SurfaceButton } from '@/components/ui/SurfaceButton';
 import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.database;
@@ -24,15 +24,10 @@ export function ColumnValues({ columns, onPickColumn, values, onPickValue, onClo
                 <h3 className={titleClasses('section', 'mb-2')}>{copy.structure}</h3>
                 <div className="flex flex-wrap gap-2">
                     {columns.map((column) => (
-                        <Pressable
-                            key={column.COLUMN_NAME}
-                            type="button"
-                            onClick={() => onPickColumn(column.COLUMN_NAME)}
-                            className={surfaceClasses('panel', 'px-2 py-1 flex flex-col hover:bg-muted transition-colors text-left')}
-                        >
+                        <SurfaceButton key={column.COLUMN_NAME} onClick={() => onPickColumn(column.COLUMN_NAME)} className="px-2 py-1 flex flex-col">
                             <span className="text-3xs font-mono font-bold text-primary">{column.COLUMN_NAME}</span>
                             <span className="text-3xs text-fg-subtle">{column.DATA_TYPE}</span>
-                        </Pressable>
+                        </SurfaceButton>
                     ))}
                 </div>
             </div>

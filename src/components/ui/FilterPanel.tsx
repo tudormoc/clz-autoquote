@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Search, SlidersHorizontal, X } from '@/components/ui/icons';
+import { Search, SlidersHorizontal, X } from '@/components/ui/icons';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import { cn } from '@/lib/utils';
@@ -65,7 +66,7 @@ export function FilterPanel({ children, columns = 4, onApply, onClear, buttons, 
                         {activeCount}
                     </StatusBadge>
                 )}
-                <ChevronDown size={16} className={cn('ml-auto text-fg-muted transition-transform', open && 'rotate-180')} />
+                <FoldArrow open={open} className="ml-auto text-fg-muted" />
             </Pressable>
 
             <div className={cn('p-4 lg:block', open ? 'block border-t border-border lg:border-t-0' : 'hidden')}>

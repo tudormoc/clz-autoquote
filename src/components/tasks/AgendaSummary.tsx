@@ -6,7 +6,8 @@ import { loadPeople } from '@/lib/tasks/db/shared';
 import { agendaCounts } from '@/lib/tasks/db/views';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { IconTile } from '@/components/ui/IconTile';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 
 const copy = APP_COPY.tasks.home;
 
@@ -25,14 +26,11 @@ export async function AgendaSummary({ access }: { access: UserAccess }) {
     return (
         <Link
             href={LINKS.tasks.todo}
-            className={surfaceClasses(
-                'panel', 'mb-6 flex items-center gap-3 p-4 transition-colors hover:bg-muted/50',
-                urgent ? 'border-danger-500/40 hover:border-danger-500/70' : 'border-border hover:border-primary/50'
-            )}
+            className={pressableSurfaceClasses({ tone: urgent ? 'danger' : undefined }, 'mb-6 flex items-center gap-3 p-4')}
         >
-            <span className={cn('shrink-0 p-2 rounded-md', urgent ? 'bg-danger-500/15 text-danger-400' : 'bg-primary/10 text-primary')}>
+            <IconTile tone={urgent ? 'danger' : 'primary'}>
                 <CalendarCheck size={20} />
-            </span>
+            </IconTile>
             <span className="flex-1 min-w-0">
                 <span className="block font-semibold text-fg-strong">{copy.title}</span>
                 <span className={cn('block text-sm', urgent ? 'text-danger-300' : 'text-fg-muted')}>

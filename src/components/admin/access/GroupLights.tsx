@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Eye, Pencil, type LucideIcon } from '@/components/ui/icons';
+import { Eye, Pencil, type LucideIcon } from '@/components/ui/icons';
 import { Light } from '@/components/admin/access/Light';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,7 +13,7 @@ import { ACCESS_AREAS, GRANTABLE_PAGES, type PagePermissions } from '@/lib/auth/
 import { cn, foldText, toggleInSet } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import { Surface } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { FoldToggle } from '@/components/ui/FoldToggle';
 
 const copy = APP_COPY.admin.groups;
 
@@ -108,18 +108,16 @@ export function GroupLights({ pages, onChange }: GroupLightsProps) {
         }
         const areaId = row.areaId;
         const isOpen = text !== '' || open.has(areaId);
-        const Chevron = isOpen ? ChevronDown : ChevronRight;
         return (
-            <Pressable
-                type="button"
+            <FoldToggle
+                size="sm"
+                open={isOpen}
                 onClick={() => setOpen((prev) => toggleInSet(prev, areaId))}
-                aria-expanded={isOpen}
                 title={fmt(APP_COPY.nav.showPages, { area: row.label })}
-                className="inline-flex items-center gap-1 -ml-1 rounded px-1 hover:bg-muted transition-colors"
+                className="-ml-1"
             >
-                <Chevron size={14} className="text-fg-muted" />
                 {row.label}
-            </Pressable>
+            </FoldToggle>
         );
     };
 

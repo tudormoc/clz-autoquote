@@ -1,12 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from '@/components/ui/icons';
-import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { FoldToggle } from '@/components/ui/FoldToggle';
 import { titleClasses } from '@/components/ui/titleLook';
-import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export type SectionTone = 'danger' | 'warning' | 'primary' | 'muted' | 'success';
 
@@ -33,13 +30,9 @@ export function AgendaSection({ title, count, tone, folded = false, children }: 
 
     return (
         <section className="space-y-2">
-            <Pressable type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-2 group">
-                <ChevronDown size={16} className={cn('text-fg-muted transition-transform', !open && '-rotate-90')} />
+            <FoldToggle open={open} count={count} onClick={() => setOpen(!open)} className="-ml-1">
                 <h2 className={titleClasses('section', TONES[tone])}>{title}</h2>
-                <StatusBadge tone="neutral" mono>
-                    {count}
-                </StatusBadge>
-            </Pressable>
+            </FoldToggle>
             {open && <ul className={surfaceClasses('panel', 'divide-y divide-border/60')}>{children}</ul>}
         </section>
     );

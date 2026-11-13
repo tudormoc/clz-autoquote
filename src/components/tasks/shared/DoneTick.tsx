@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle } from '@/components/ui/icons';
-import { Pressable } from '@/components/ui/Pressable';
+import { IconButton } from '@/components/ui/IconButton';
 import { cn } from '@/lib/utils';
 
 interface DoneTickProps {
@@ -17,15 +17,18 @@ interface DoneTickProps {
 export function DoneTick({ done, size = 'md', disabled, label, onClick, className }: DoneTickProps) {
     const Icon = done ? CheckCircle2 : Circle;
     return (
-        <Pressable
+        <IconButton
             type="button"
+            tone="success"
+            lit={done}
             disabled={disabled}
             onClick={onClick}
             title={label}
             aria-label={label}
-            className={cn('shrink-0 rounded-full transition-colors', done ? 'text-success-400' : 'text-fg-muted enabled:hover:text-success-400 disabled:opacity-50', className)}
+            // The circle is the whole button: no room around it, so it sits on the line of its title
+            className={cn('shrink-0 rounded-full p-0', className)}
         >
             <Icon size={size === 'sm' ? 16 : 20} />
-        </Pressable>
+        </IconButton>
     );
 }

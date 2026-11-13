@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, BarChart3, Copy } from '@/components/ui/icons';
+import { BarChart3, Copy } from '@/components/ui/icons';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 import { Button } from '@/components/ui/Button';
 import { APP_COPY } from '@/locales';
 import type { SummaryStatus } from '@/hooks/useReportTable';
@@ -39,7 +40,7 @@ export function SummaryCards({ items, status, onLoad, onCopy, disabled }: Summar
                 <Button onClick={() => setIsVisible(!isVisible)} variant="secondary" disabled={disabled}>
                     <BarChart3 size={16} />
                     {open ? copy.hideSummary : copy.showSummary}
-                    {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <FoldArrow open={open} />
                 </Button>
 
                 {open && onCopy && status === 'ready' && (

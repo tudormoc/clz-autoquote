@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { isWithin, type NavGroup } from '@/config/navigation';
-import { cn } from '@/lib/utils';
+import { menuRowClasses } from '@/components/ui/MenuRow';
 
 interface SidebarPagesProps {
     groups: NavGroup[];
@@ -23,10 +23,7 @@ export function SidebarPages({ groups, pathname, onNavigate }: SidebarPagesProps
                                 href={item.href}
                                 onClick={onNavigate}
                                 aria-current={active ? 'page' : undefined}
-                                className={cn(
-                                    'flex items-center h-9 lg:h-8 px-2 rounded-md text-sm transition-colors',
-                                    active ? 'bg-primary/10 text-primary-400 font-medium' : 'text-fg-muted hover:bg-muted hover:text-fg'
-                                )}
+                                className={menuRowClasses({ selected: active }, 'h-9 lg:h-8 px-2 py-0 rounded-md', !active && 'text-fg-muted hover:text-fg')}
                             >
                                 <span className="truncate">{item.label}</span>
                             </Link>

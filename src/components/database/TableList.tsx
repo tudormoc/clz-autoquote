@@ -1,9 +1,9 @@
 import { Surface } from '@/components/ui/Surface';
 import { ViewLink } from '@/components/ui/ViewLink';
 import type { ViewTarget } from '@/hooks/useAddress';
-import { cn } from '@/lib/utils';
 import { APP_COPY, fmt } from '@/locales';
 import { titleClasses } from '@/components/ui/titleLook';
+import { menuRowClasses } from '@/components/ui/MenuRow';
 
 interface TableListProps {
     tables: string[];
@@ -25,10 +25,7 @@ export function TableList({ tables, selected, linkOf }: TableListProps) {
                         key={table}
                         to={linkOf(table)}
                         aria-current={table === selected ? 'page' : undefined}
-                        className={cn(
-                            'block w-full text-left px-3 py-2 rounded text-sm transition-colors',
-                            table === selected ? 'bg-muted text-primary font-medium' : 'text-fg-muted hover:bg-muted'
-                        )}
+                        className={menuRowClasses({ selected: table === selected }, 'rounded', table !== selected && 'text-fg-muted')}
                     >
                         {table}
                     </ViewLink>

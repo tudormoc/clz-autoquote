@@ -7,8 +7,7 @@ import type { DayLoad } from '@/lib/tasks/types';
 import { isoWeekNumber, weekDays } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
-import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
+import { SurfaceButton } from '@/components/ui/SurfaceButton';
 
 const copy = APP_COPY.tasks.calendar;
 
@@ -38,18 +37,14 @@ export function WeekHorizon({ start, shown, today, loads, onPick }: WeekHorizonP
                 const critical = days.reduce((sum, day) => sum + (loads?.[day]?.critical ?? 0), 0);
                 const label = fmt(copy.horizonWeek, { n: isoWeekNumber(monday), count: total }) + (critical > 0 ? ` · ${fmt(copy.horizonCritical, { n: critical })}` : '');
                 return (
-                    <Pressable
+                    <SurfaceButton
                         key={monday}
-                        type="button"
+                        selected={monday === shown}
                         onClick={() => onPick(monday)}
                         title={label}
                         aria-label={label}
                         aria-current={monday === shown ? 'true' : undefined}
-                        className={surfaceClasses(
-                            'panel',
-                            'flex-1 min-w-24 flex items-end gap-2 px-2 py-1 text-left transition-colors',
-                            monday === shown ? SURFACE_SELECTED : 'hover:bg-muted'
-                        )}
+                        className="flex-1 min-w-24 flex items-end gap-2 px-2 py-1"
                     >
                         <span className="shrink-0 flex flex-col leading-tight">
                             <span className={cn('text-2xs', monday === shown ? 'text-primary font-semibold' : 'text-fg-muted')}>{formatDayMonth(monday)}</span>
@@ -71,7 +66,7 @@ export function WeekHorizon({ start, shown, today, loads, onPick }: WeekHorizonP
                                 );
                             })}
                         </span>
-                    </Pressable>
+                    </SurfaceButton>
                 );
             })}
         </nav>

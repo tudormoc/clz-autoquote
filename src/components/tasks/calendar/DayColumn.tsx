@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from '@/components/ui/icons';
 import { DayQuickAdd } from '@/components/tasks/calendar/DayQuickAdd';
 import { PlannedCard } from '@/components/tasks/calendar/PlannedCard';
 import { cardMenu } from '@/components/tasks/calendar/cardMenu';
@@ -11,7 +10,7 @@ import type { CalendarDrag } from '@/hooks/useCalendarDrag';
 import { dayOf, weekdayOf } from '@/lib/dateUtils';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
-import { Pressable } from '@/components/ui/Pressable';
+import { FoldToggle } from '@/components/ui/FoldToggle';
 import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
 
 const copy = APP_COPY.tasks.calendar;
@@ -129,15 +128,9 @@ export function DayColumn({ date, content, calendar, drag, canEdit, closed, busi
 
                 {content.done.length > 0 && (
                     <div className="mt-auto pt-1">
-                        <Pressable
-                            type="button"
-                            onClick={() => setShowDone(!showDone)}
-                            aria-expanded={showDone}
-                            className="w-full flex items-center gap-1 px-1.5 py-1 text-2xs text-success-400 hover:text-success-300"
-                        >
-                            <ChevronDown size={12} className={cn('transition-transform', !showDone && '-rotate-90')} />
+                        <FoldToggle size="sm" open={showDone} onClick={() => setShowDone(!showDone)} className="w-full py-1 text-2xs text-success-400">
                             {content.done.length === 1 ? copy.done.one : fmt(copy.done.many, { n: content.done.length })}
-                        </Pressable>
+                        </FoldToggle>
                         {showDone &&
                             content.done.map((item) => (
                                 <WeekCard

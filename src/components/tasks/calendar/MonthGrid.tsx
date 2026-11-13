@@ -11,7 +11,7 @@ import { monthKey } from '@/lib/tasks/week';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { TextButton } from '@/components/ui/TextButton';
 import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.tasks.calendar;
@@ -63,31 +63,28 @@ export function MonthGrid({ calendar, drag, canEdit }: MonthGridProps) {
                             className={cn(
                                 'min-h-28 lg:min-h-0 overflow-hidden p-1.5 border-b border-r border-border/60 space-y-1 transition-colors',
                                 closed && 'bg-background',
+                                day === today && 'bg-primary/5',
                                 !inMonth(day) && 'opacity-40',
                                 drag.dragging && drag.canDrop(day) && 'bg-primary/5',
                                 drag.target?.date === day && 'bg-primary/15'
                             )}
                         >
                             <div className="flex items-center justify-between gap-1">
-                                <Pressable
-                                    type="button"
+                                <TextButton
                                     onClick={() => openWeek(day)}
-                                    className={cn(
-                                        'text-xs font-mono rounded-full px-1.5',
-                                        day === today ? 'bg-primary text-primary-foreground font-semibold' : closed ? 'text-fg-faint hover:text-fg' : 'text-fg-secondary hover:text-fg-strong'
-                                    )}
+                                    className={cn('px-1.5 text-xs font-mono', day === today ? 'font-semibold text-primary' : closed ? 'text-fg-faint' : 'text-fg-secondary')}
                                 >
                                     {dayOf(day)}
-                                </Pressable>
+                                </TextButton>
                                 {closed && closed !== APP_COPY.tasks.holidays.weekend && <span className="truncate text-3xs text-warning-300">{closed}</span>}
                             </div>
                             {chips.slice(0, max).map((chip) => (
                                 <MonthChip key={chip.key} calendar={calendar} drag={drag} canEdit={canEdit} item={'item' in chip ? chip.item : undefined} entry={'entry' in chip ? chip.entry : undefined} />
                             ))}
                             {chips.length > max && (
-                                <Pressable type="button" onClick={() => openWeek(day)} className="px-1 text-3xs text-fg-subtle hover:text-primary">
+                                <TextButton onClick={() => openWeek(day)} className="px-1 text-3xs">
                                     {fmt(copy.more, { n: chips.length - max })}
-                                </Pressable>
+                                </TextButton>
                             )}
                         </div>
                     );

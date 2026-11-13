@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ChevronDown } from '@/components/ui/icons';
 import { SidebarFlyout } from '@/components/layout/sidebar/SidebarFlyout';
 import { SidebarPages } from '@/components/layout/sidebar/SidebarPages';
 import { SIDEBAR_ROW } from '@/components/layout/sidebar/sidebarRow';
@@ -7,6 +6,8 @@ import { isWithin, type NavArea } from '@/config/navigation';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/IconButton';
+import { ROW_PICKED } from '@/components/ui/MenuRow';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 
 interface SidebarAreaProps {
     area: NavArea;
@@ -33,7 +34,7 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
             <div
                 className={cn(
                     'flex items-center rounded-md transition-colors',
-                    onAreaPage ? 'bg-primary/10 text-primary' : 'hover:bg-muted',
+                    onAreaPage ? ROW_PICKED : 'hover:bg-muted',
                     !onAreaPage && (inArea ? 'text-fg-strong' : 'text-fg-muted hover:text-fg')
                 )}
             >
@@ -55,7 +56,7 @@ export function SidebarArea({ area, pathname, open, onToggle, onNavigate, flyout
                         aria-label={fmt(APP_COPY.nav.showPages, { area: label })}
                         className="collapsed:hidden shrink-0 mr-1 text-fg-subtle hover:text-fg hover:bg-muted-strong"
                     >
-                        <ChevronDown size={16} className={cn('transition-transform', !open && '-rotate-90')} />
+                        <FoldArrow open={open} />
                     </IconButton>
                 )}
             </div>

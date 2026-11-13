@@ -4,12 +4,11 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useEffect, useState } from 'react';
 import { Layers } from '@/components/ui/icons';
 import { BlueprintVisualizer, type BlueprintDimensions } from '@/components/quote/BlueprintVisualizer';
-import { buttonClasses } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
 import { titleClasses } from '@/components/ui/titleLook';
 
 const copy = APP_COPY.blueprint;
@@ -109,9 +108,9 @@ export default function BlueprintPage() {
                         </div>
                     </div>
 
-                    <Pressable onClick={() => window.print()} className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'mt-auto' })}>
+                    <Button variant="secondary" size="sm" className="mt-auto" onClick={() => window.print()}>
                         {copy.print}
-                    </Pressable>
+                    </Button>
                 </aside>
 
                 <main className="flex-1 overflow-hidden print-full">

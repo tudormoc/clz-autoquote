@@ -7,7 +7,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { MSSQL_DB } from '@/lib/mssql';
 import { cn } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
-import { SURFACE_SELECTED, surfaceClasses } from '@/components/ui/Surface';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 
 const copy = APP_COPY.database;
 
@@ -30,7 +30,7 @@ export function DatabaseCards({ selected, linkOf, connections }: DatabaseCardsPr
                         key={db}
                         to={linkOf(db)}
                         aria-current={db === selected ? 'page' : undefined}
-                        className={surfaceClasses('panel', 'block p-4 text-left transition-colors', db === selected ? SURFACE_SELECTED : 'hover:bg-muted')}
+                        className={pressableSurfaceClasses({ selected: db === selected }, 'block p-4')}
                     >
                         <div className="flex items-center justify-between gap-3">
                             <span className="flex items-center gap-2 font-semibold text-sm text-fg">

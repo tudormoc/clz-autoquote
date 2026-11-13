@@ -4,6 +4,7 @@ import type { ViewTarget } from '@/hooks/useAddress';
 import type { MasterOrderMatch } from '@/lib/orders/types';
 import { APP_COPY } from '@/locales';
 import { Surface, surfaceClasses } from '@/components/ui/Surface';
+import { menuRowClasses } from '@/components/ui/MenuRow';
 
 const t = APP_COPY.analytics.orderOperations;
 
@@ -26,7 +27,7 @@ export function OrderMatches({ matches, linkOf }: OrderMatchesProps) {
                     <ViewLink
                         key={match.root_commessa_key}
                         to={linkOf(match.root_commessa_key)}
-                        className="group w-full flex items-center justify-between gap-4 py-2 px-4 text-left hover:bg-muted/50 transition-colors"
+                        className={menuRowClasses({}, 'group justify-between gap-4 px-4')}
                     >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
                             <div className={surfaceClasses('inset', 'flex flex-col items-center justify-center px-2.5 py-0.5 flex-shrink-0 min-w-16')}>

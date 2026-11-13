@@ -10,7 +10,7 @@ import { formatShortDay, relativeDay } from '@/lib/tasks/describe';
 import { isOpenStatus, type AgendaItem } from '@/lib/tasks/types';
 import { APP_COPY, fmt } from '@/locales';
 import { cn } from '@/lib/utils';
-import { surfaceClasses } from '@/components/ui/Surface';
+import { pressableSurfaceClasses } from '@/components/ui/SurfaceButton';
 import { DoneTick } from '@/components/tasks/shared/DoneTick';
 
 const copy = APP_COPY.tasks;
@@ -76,15 +76,13 @@ export function WeekCard({ item, today, detailed, compact = false, selected, can
             data-calendar-card
             tabIndex={0}
             title={open && canEdit ? copy.calendar.dragHint : undefined}
-            className={surfaceClasses(
-                'panel',
-                'group relative overflow-hidden rounded-md pl-2.5 pr-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            className={pressableSurfaceClasses(
+                { tone: late ? 'danger' : undefined, selected, bare: !open },
+                'group relative overflow-hidden rounded-md pl-2.5 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 // Touch screens: holding a finger opens the menu, not the phone's own text selection
                 '[@media(hover:none)]:select-none [@media(hover:none)]:[-webkit-touch-callout:none]',
                 compact ? 'py-1.5' : 'py-2',
-                open ? 'border-border hover:border-border-strong hover:bg-muted/40 cursor-grab active:cursor-grabbing' : 'border-transparent bg-transparent hover:bg-muted/30 cursor-pointer',
-                late && 'border-danger-500/40 bg-danger-500/5',
-                selected && 'ring-1 ring-primary border-primary/60',
+                open ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
                 dragging && 'opacity-40'
             )}
         >

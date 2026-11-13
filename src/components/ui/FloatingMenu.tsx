@@ -3,9 +3,8 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LucideIcon } from '@/components/ui/icons';
-import { cn } from '@/lib/utils';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { MenuRow } from '@/components/ui/MenuRow';
 
 export interface MenuAction {
     label: string;
@@ -19,9 +18,6 @@ export interface MenuAction {
 
 /** Where the list opens: under its "⋯" button (right edges aligned), or at the mouse (right-click) */
 export type MenuAnchor = { button: React.RefObject<HTMLElement | null> } | { x: number; y: number };
-
-/** A row of a menu, or of any list one picks from (the clients found while typing): lit when the mouse is on it */
-export const MENU_ROW = 'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left hover:bg-muted transition-colors';
 
 /** Room kept between the list and its button / the window edge (px) */
 const GAP = 4;
@@ -105,19 +101,18 @@ export function FloatingMenu({ actions, anchor, onClose }: FloatingMenuProps) {
             {actions.map(({ label, icon: Icon, onSelect, tone, divider }) => (
                 <Fragment key={label}>
                     {divider && <div role="separator" className="my-1 border-t border-border" />}
-                    <Pressable
-                        type="button"
+                    <MenuRow
                         role="menuitem"
                         onClick={(event) => {
                             event.stopPropagation();
                             onClose();
                             onSelect();
                         }}
-                        className={cn(MENU_ROW, tone === 'danger' ? 'text-danger-400' : 'text-fg')}
+                        className={tone === 'danger' ? 'text-danger-400' : 'text-fg'}
                     >
                         {Icon && <Icon size={15} className="shrink-0 opacity-80" />}
                         {label}
-                    </Pressable>
+                    </MenuRow>
                 </Fragment>
             ))}
         </div>,

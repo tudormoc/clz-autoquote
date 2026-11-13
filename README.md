@@ -174,7 +174,8 @@ press reacts (`press`; both off today), the picture behind the page. Who set "re
 parts below, each in one file: a restyle touches `theme.js` and those files, never a screen. Tables and numbers keep the
 number font and plain surfaces whatever the skin. ESLint keeps it so: it fails on a fixed corner or pace
 (`rounded-[7px]`, `duration-300`, `ease-[…]`), a box written by hand (`bg-card` + `border` + `rounded`), a background of
-its own on a Surface, a raw `<button>`, an icon imported from `lucide-react`. What is left before a second look:
+its own on a Surface, a raw `<button>`, `Pressable` imported outside `src/components/ui`, an icon imported from
+`lucide-react`. What is left before a second look:
 [docs/BACKLOG.md](docs/BACKLOG.md) → Skins.
 
 **What a screen is made of.** A screen names the part and adds spacing and layout; it never writes a background, a
@@ -184,13 +185,14 @@ border, a corner, a shadow, a title size or a button of its own. All in `src/com
 |---|---|
 | A box | `Surface` (+ `surfaceClasses()` for a link, a list, a form). Kinds: `panel` (a box of the page), `inset` (a quiet box inside a panel, a window or the page), `floating` (a menu, a popup, a window), `chrome` (the sidebar), `bar` (stays put while the page scrolls), `drawer` (slides in over the page). An inset box that says something adds a `SURFACE_TONE` (info, success, warning, danger); the box picked among its like adds `SURFACE_SELECTED` |
 | A box with a title | `Panel` (title, optional icon, optional `aside` on the right) |
-| What one presses | `Button` (+ `buttonClasses()` for a link): primary, secondary, ghost, danger, warning; sizes `xs` to `lg`, and `icon` for a boxed icon. `IconButton` (+ `iconButtonClasses()`): only an icon; `tone="danger"` removes, `tone="warning"` writes to the programs. `ChoiceButton` (+ `choiceClasses()`): everything that is on or off — a pick-one option, a filter chip (`ToggleChips`), a view switch. `TabBar`, `Switch`. `Pressable`: the one `<button>` under all of them, for a one-off |
+| What one presses | `Button` (+ `buttonClasses()` for a link): primary, secondary, ghost, danger, warning; sizes `xs` to `lg`, and `icon` for a boxed icon. `IconButton` (+ `iconButtonClasses()`): only an icon; `tone="danger"` removes, `tone="warning"` writes to the programs, `tone="success"` marks something done, `lit` shows that colour without the mouse. `ChoiceButton` (+ `choiceClasses()`): everything that is on or off — a pick-one option, a filter chip (`ToggleChips`), a view switch, a light of Gruppi (`round`, `selected="mixed"` for some of several). `SurfaceButton` (+ `pressableSurfaceClasses()`): a box one presses (a tile to pick, a card of the calendar; `selected`, `tone`, `bare`). `MenuRow` (+ `menuRowClasses()` for a link or a label): a row one presses (a menu action, a name in a list, a day that opens, a row or a page of the sidebar; `selected` = the one picked, `ROW_PICKED`). `TextButton`: a word or a line pressed as plain text. `FoldToggle`: the header that unfolds what is under it (arrow, name, count). `TabBar`, `Switch`. `Pressable`: the one `<button>` under all of them, used only inside `src/components/ui` |
 | What one types or picks in | `Input`, `Select`, `Textarea`, `Checkbox`, `DatePicker`, `MonthField`, `YearField`, `MarkdownField`. Their one look is `FIELD` (`fieldLook.ts`); `CELL_FIELD` for an editor over a table cell, `FIELD_FRAME` for a field made of parts |
 | A table | `DataTable`, or the `Table` parts for a table of another shape. `ROW_WARNING` / `VALUE_WARNING` for a row or a value that differs, `DENSE_HEAD` / `DENSE_CELL` for a table read inside another |
 | A title | `titleClasses('page' \| 'panel' \| 'section' \| 'label')` (`titleLook.ts`) on the heading's own tag |
 | A small coloured label, count or tag | `StatusBadge` (+ `statusBadgeClasses()`); `InfoBadge` for a name with its value |
 | An icon | From `@/components/ui/icons`, the one list (a new icon is a name added there), sized with `size={n}`. On a tinted square: `IconTile` |
-| A row of a menu, or of a list one picks from | `MENU_ROW` (`FloatingMenu.tsx`) |
+| A row of a menu, or of a list one picks from | `MenuRow`, `menuRowClasses()` for a link or a label that is one |
+| The arrow of what unfolds in place | `FoldArrow` (right while folded, down when open), or `FoldToggle` for the whole header |
 | Nothing yet, loading, a failure | `EmptyState`, `LoadState`, `Spinner`, `MissingValue`; `EMPTY_VALUE` / `PENDING_VALUE` (`src/lib/format.ts`) |
 
 **Two looks, light (default) and dark.** The light values sit on `:root`, the dark ones under `<html data-theme="dark">`;

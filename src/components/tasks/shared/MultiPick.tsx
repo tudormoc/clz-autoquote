@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { APP_COPY } from '@/locales';
+import { menuRowClasses } from '@/components/ui/MenuRow';
 
 export interface PickOption {
     id: number;
@@ -42,7 +43,7 @@ export function MultiPick({ options, selected, onChange, emptyText }: MultiPickP
             {options.length > SEARCH_FROM && <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={APP_COPY.common.search} />}
             <div className="max-h-56 overflow-y-auto rounded border border-border divide-y divide-border/60">
                 {visible.map((option) => (
-                    <label key={option.id} className="flex items-start gap-2.5 px-3 py-2 cursor-pointer hover:bg-muted/40">
+                    <label key={option.id} className={menuRowClasses({}, 'items-start cursor-pointer')}>
                         <span className="mt-0.5">
                             <Checkbox checked={selected.includes(option.id)} onChange={(e) => toggle(option.id, e.target.checked)} aria-label={option.label} />
                         </span>

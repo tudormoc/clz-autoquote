@@ -1,6 +1,5 @@
 'use client';
 
-import { ChevronDown } from '@/components/ui/icons';
 import { weekdayOf } from '@/lib/dateUtils';
 import { KIND_SPECS } from '@/lib/timesheet/kinds';
 import type { DaySummary } from '@/lib/timesheet/types';
@@ -9,7 +8,8 @@ import { APP_COPY } from '@/locales';
 import { DayStatusBadge } from './DayStatusBadge';
 import { entryText, hoursText } from './labels';
 import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { MenuRow } from '@/components/ui/MenuRow';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 import { EMPTY_VALUE } from '@/lib/format';
 
 /** "mer 4": the weekday's first letters and the day of the month */
@@ -43,18 +43,16 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                 const locked = summary.day < startDay;
                 return (
                     <li key={summary.day}>
-                        <Pressable
-                            type="button"
+                        <MenuRow
                             disabled={locked}
                             onClick={() => onToggle(summary.day)}
                             aria-expanded={isOpen}
                             title={locked || isOpen ? undefined : APP_COPY.timesheet.day.open}
                             className={cn(
                                 // On a phone the lines of a filled day wrap to their own row (gap-y keeps the two rows tight)
-                                'w-full flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-0.5 px-3 py-2 text-left text-sm transition-colors',
-                                // A free day (weekend, before the start) keeps its size but looks switched off: greyed, a dashed line, no hover
-                                quiet && !isOpen && 'text-fg-faint bg-muted/20 opacity-70 cursor-default',
-                                locked ? 'cursor-default' : !quiet && 'hover:bg-muted',
+                                'flex-wrap sm:flex-nowrap gap-x-3 gap-y-0.5',
+                                // A free day (weekend, before the start) keeps its size but looks switched off: greyed, a dashed line
+                                quiet && !isOpen && 'text-fg-faint bg-muted/20 opacity-70',
                                 isToday && 'bg-primary/5',
                                 isOpen && 'bg-muted/40'
                             )}
@@ -85,8 +83,8 @@ export function DayList({ days, today, startDay, expanded, onToggle, panel }: Da
                             <span className="w-auto shrink-0 text-right sm:w-28">
                                 <DayStatusBadge summary={summary} today={today} />
                             </span>
-                            <ChevronDown size={14} className={cn('shrink-0 text-fg-faint transition-transform', isOpen && 'rotate-180', (locked || (quiet && !isOpen)) && 'invisible')} />
-                        </Pressable>
+                            <FoldArrow open={isOpen} size={14} className={cn('text-fg-faint', (locked || (quiet && !isOpen)) && 'invisible')} />
+                        </MenuRow>
                         {isOpen && <div className="border-t border-border/60 bg-muted/20 px-3 py-3 sm:pl-20">{panel}</div>}
                     </li>
                 );

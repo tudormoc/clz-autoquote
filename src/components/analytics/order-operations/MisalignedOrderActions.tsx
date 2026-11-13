@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight, RefreshCw } from '@/components/ui/icons';
+import { RefreshCw } from '@/components/ui/icons';
+import { FoldArrow } from '@/components/ui/FoldArrow';
 import { AlignIcon } from '@/components/ui/AlignIcon';
 import { IconButton } from '@/components/ui/IconButton';
 import { Spinner } from '@/components/ui/Spinner';
@@ -57,7 +58,7 @@ export function MisalignedOrderActions({ order, detailsShown, busy, canRiallinea
     return (
         <span className="flex items-center gap-0.5">
             <IconButton title={detailsLabel} aria-label={detailsLabel} aria-expanded={detailsShown} onClick={press(onToggleDetails)}>
-                {detailsShown ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <FoldArrow open={detailsShown} />
             </IconButton>
             <IconButton title={copy.refreshRow} aria-label={copy.refreshRow} disabled={busy} onClick={press(onRefresh)}>
                 {busy ? <Spinner size={16} /> : <RefreshCw size={16} />}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Lock, Plus, Trash2 } from '@/components/ui/icons';
+import { ArrowDown, ArrowUp, Lock, Plus, Trash2 } from '@/components/ui/icons';
 import { AddRecordDialog } from '@/components/admin/record-editor/AddRecordDialog';
 import { RecordCell } from '@/components/admin/record-editor/RecordCell';
 import type { RecordTableConfig } from '@/components/admin/record-editor/types';
@@ -11,8 +11,8 @@ import { useRecordTable } from '@/hooks/useRecordTable';
 import { toggleInSet } from '@/lib/utils';
 import { APP_COPY } from '@/locales';
 import { useCanEdit } from '@/components/auth/AccessProvider';
-import { surfaceClasses } from '@/components/ui/Surface';
-import { Pressable } from '@/components/ui/Pressable';
+import { FoldToggle } from '@/components/ui/FoldToggle';
+import { titleClasses } from '@/components/ui/titleLook';
 import { IconButton } from '@/components/ui/IconButton';
 
 /**
@@ -104,15 +104,9 @@ export function RecordTableEditor<T extends object>({ config }: { config: Record
                     const open = expanded.has(section.value);
                     return (
                         <div key={section.value} className="space-y-2">
-                            <Pressable
-                                type="button"
-                                onClick={() => setExpanded(toggleInSet(expanded, section.value))}
-                                className={surfaceClasses('panel', 'w-full px-4 py-2 flex items-center gap-2 hover:bg-muted transition-colors')}
-                            >
-                                {open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                <span className="font-semibold text-fg">{section.label}</span>
-                                <span className="text-xs text-fg-muted">({section.rows.length})</span>
-                            </Pressable>
+                            <FoldToggle open={open} count={section.rows.length} onClick={() => setExpanded(toggleInSet(expanded, section.value))}>
+                                <span className={titleClasses('section')}>{section.label}</span>
+                            </FoldToggle>
                             {open && table(section.rows)}
                         </div>
                     );
